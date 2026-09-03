@@ -1545,12 +1545,13 @@
 
         // Riel de la corredera, visible sobre el vano en todas las fotos. Se
         // alarga hacia el lado por donde se va la hoja, que es donde va colgada.
+        let riel = null
         if (corre) {
           const yRiel = Y0 + v.alto + 0.09
           const largoRiel = L + rec + 0.3
           const cRiel = c + (sentido * rec) / 2
-          if (s.eje === 'h') bloqueMuro(cRiel, yRiel, s.pos + desplante, largoRiel, 0.1, 0.07, matAluminio, false)
-          else bloqueMuro(s.pos + desplante, yRiel, cRiel, 0.07, 0.1, largoRiel, matAluminio, false)
+          if (s.eje === 'h') riel = bloqueMuro(cRiel, yRiel, s.pos + desplante, largoRiel, 0.1, 0.07, matAluminio, false)
+          else riel = bloqueMuro(s.pos + desplante, yRiel, cRiel, 0.07, 0.1, largoRiel, matAluminio, false)
         }
 
         // ── Hoja de la puerta ────────────────────────────────────────
@@ -1653,6 +1654,10 @@
               : (s.eje === 'h' ? -1 : 1) * cara * jamba * (Math.PI / 2),
           abierta: 0,
           meta: 0,       // hacia dónde va: sirve para sonar solo en el cambio
+          // Para poder cambiarle el lado a la hoja con la escena ya montada:
+          // el riel se mueve con ella, reflejado sobre el centro del vano.
+          riel,
+          cVano: c,
         })
 
         // El marco se coloca sobre la cota del muro, igual que el resto del
@@ -1730,6 +1735,100 @@
         gMuros.add(tope)
       })
     }
+
+    // Se aplaza a un microtask porque los equipos se montan mas abajo que este
+    // punto del archivo: midiendo aqui mismo, gEquipos todavia esta vacio y una
+    // corrediza se "arreglaba" metiendose dentro de una maquina.
+    // ── Lado de apertura: se decide midiendo, no solo por regla ──────────────
+    // Las reglas de mas arriba eligen el lado mirando unicamente el propio tramo
+    // de muro, y no ven lo que hay de verdad al otro lado: un muro perpendicular,
+    // un equipo o la hoja de la puerta de al lado. Con la escena ya montada si se
+    // puede comprobar: se abre cada hoja de par en par y, si invade la franja por
+    // la que se pasa, se prueba el lado contrario y gana el que menos estorbe.
+    // Asi salieron de sitio una batiente del pasillo que se metia entera en el
+    // muro y los dos pares de corredizas que se montaban una sobre otra. Solo se
+    // cambia lo que mejora de forma clara: la hoja que ya estaba en su mejor lado
+    // se queda donde estaba.
+    queueMicrotask(() => {
+      const Y_BAJO = 0.10, Y_ALTO = 1.90   // franja del cuerpo al pasar
+      const recorta = (b) => {
+        b.min.y = Math.max(b.min.y, Y_BAJO)
+        b.max.y = Math.min(b.max.y, Y_ALTO)
+        return b
+      }
+      const volumen = (b) =>
+        Math.max(0, b.max.x - b.min.x) * Math.max(0, b.max.y - b.min.y) * Math.max(0, b.max.z - b.min.z)
+      const corte = (a, b) => {
+        const dx = Math.min(a.max.x, b.max.x) - Math.max(a.min.x, b.min.x)
+        const dy = Math.min(a.max.y, b.max.y) - Math.max(a.min.y, b.min.y)
+        const dz = Math.min(a.max.z, b.max.z) - Math.max(a.min.z, b.min.z)
+        return (dx <= 0 || dy <= 0 || dz <= 0) ? 0 : dx * dy * dz
+      }
+      // El riel de una corrediza acompana a su hoja: no cuenta como estorbo.
+      const rieles = new Set(puertas.map((p) => p.riel).filter(Boolean))
+      const fijos = []
+      for (const o of gMuros.children) if (!rieles.has(o)) fijos.push(recorta(new THREE.Box3().setFromObject(o)))
+      for (const o of gEquipos.children) fijos.push(recorta(new THREE.Box3().setFromObject(o)))
+
+      // Caja de la hoja abierta del todo, sin dejar la puerta movida.
+      const cajaAbierta = (p) => {
+        const hoja = p.pivote.children[0]
+        const g = { rot: p.pivote.rotation.y, x: hoja.position.x, z: hoja.position.z, sy: hoja.scale.y, y: hoja.position.y }
+        if (p.enrolla) { hoja.scale.y = 0.06; hoja.position.y = g.sy - 0.03 }
+        else if (p.corre) { if (p.eje === 'h') hoja.position.x = p.recorrido; else hoja.position.z = p.recorrido }
+        else p.pivote.rotation.y = p.giro
+        p.pivote.updateMatrixWorld(true)
+        const b = recorta(new THREE.Box3().setFromObject(hoja))
+        p.pivote.rotation.y = g.rot
+        hoja.position.x = g.x; hoja.position.z = g.z
+        hoja.scale.y = g.sy; hoja.position.y = g.y
+        p.pivote.updateMatrixWorld(true)
+        return b
+      }
+      // Cuanto invade, en tanto por uno de su propio volumen.
+      const estorbo = (i, cajas) => {
+        const b = cajas[i]
+        const v = volumen(b)
+        if (v <= 0) return 0
+        let peor = 0
+        for (const c of fijos) { const x = corte(b, c); if (x > peor) peor = x }
+        for (let k = 0; k < cajas.length; k++) {
+          if (k === i) continue
+          const x = corte(b, cajas[k]); if (x > peor) peor = x
+        }
+        return peor / v
+      }
+      // Al otro lado: la corrediza corre al reves y su riel se refleja sobre el
+      // centro del vano; la batiente gira hacia la otra cara.
+      const voltear = (p) => {
+        if (p.corre) {
+          p.recorrido = -p.recorrido
+          if (p.riel) {
+            const eje = p.eje === 'h' ? 'x' : 'z'
+            p.riel.position[eje] = 2 * p.cVano - p.riel.position[eje]
+            p.riel.updateMatrixWorld(true)
+          }
+        } else p.giro = -p.giro
+      }
+
+      let recolocadas = 0
+      // Dos vueltas: al mover una hoja cambia lo que estorba a sus vecinas.
+      for (let vuelta = 0; vuelta < 2; vuelta++) {
+        const cajas = puertas.map((p) => cajaAbierta(p))
+        for (let i = 0; i < puertas.length; i++) {
+          const p = puertas[i]
+          if (p.enrolla) continue                 // la cortina sube: no tiene otro lado
+          const ahora = estorbo(i, cajas)
+          if (ahora <= 0.15) continue
+          const previa = cajas[i]
+          voltear(p)
+          cajas[i] = cajaAbierta(p)
+          if (estorbo(i, cajas) < ahora - 0.05) recolocadas++
+          else { voltear(p); cajas[i] = previa }  // no mejora: se deja como estaba
+        }
+      }
+      globalThis.__PLANTA3D.hojasRecolocadas = recolocadas
+    })
 
     globalThis.__PLANTA3D.puertas = puertas
     globalThis.__PLANTA3D.colisiones = colisiones
