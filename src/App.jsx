@@ -1162,8 +1162,8 @@ export default function App() {
           </p>
           <p className="hint" style={{ textAlign: 'center' }}>
             Revisa <code>.env</code>: <code>VITE_SUPABASE_URL</code> y{' '}
-            <code>VITE_SUPABASE_KEY</code>. Grok es opcional y va en{' '}
-            <code>VITE_XAI_API_KEY</code>, no en Supabase.
+            <code>VITE_SUPABASE_KEY</code>. El asesor IA no necesita clave aqui:
+            la guarda la funcion asesor-ia en Supabase.
           </p>
         </div>
       </main>

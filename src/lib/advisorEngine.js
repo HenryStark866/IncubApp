@@ -18,19 +18,16 @@ import {
   driveCreateDoc,
   loadStoredToken,
 } from './googleWorkspace'
+import { supabase } from './supabase'
 
 export { ADVISOR_SUGGESTIONS }
 
+// Quién atiende al asesor lo decide el SERVIDOR, no el navegador: la clave del
+// proveedor vive en la Edge Function. Aquí siempre se intenta, y si no hay
+// proveedor configurado o falla, la respuesta cae al conocimiento local — que
+// es el mismo respaldo de siempre.
 function llmConfigured() {
-  try {
-    return Boolean(
-      import.meta.env.VITE_XAI_API_KEY ||
-        import.meta.env.VITE_OPENAI_API_KEY ||
-        import.meta.env.VITE_GROQ_API_KEY
-    )
-  } catch {
-    return false
-  }
+  return true
 }
 
 /**
@@ -154,29 +151,6 @@ function localAnswer(userText, history = []) {
 }
 
 async function callLlm({ userText, history, knowledgeText, toolNote }) {
-  const xai = import.meta.env.VITE_XAI_API_KEY
-  const openai = import.meta.env.VITE_OPENAI_API_KEY
-  const groq = import.meta.env.VITE_GROQ_API_KEY
-
-  let url
-  let key
-  let model
-  if (xai) {
-    url = 'https://api.x.ai/v1/chat/completions'
-    key = xai
-    model = import.meta.env.VITE_XAI_MODEL || 'grok-2-latest'
-  } else if (groq) {
-    url = 'https://api.groq.com/openai/v1/chat/completions'
-    key = groq
-    model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
-  } else if (openai) {
-    url = 'https://api.openai.com/v1/chat/completions'
-    key = openai
-    model = import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini'
-  } else {
-    return null
-  }
-
   const msgs = [
     {
       role: 'system',
@@ -193,25 +167,13 @@ async function callLlm({ userText, history, knowledgeText, toolNote }) {
     { role: 'user', content: userText },
   ]
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages: msgs,
-      temperature: 0.55,
-      max_tokens: 1200,
-    }),
+  // La clave del proveedor NUNCA llega aquí: la función la guarda como secreto
+  // y sólo responde a quien tiene sesión de IncubApp.
+  const { data, error } = await supabase.functions.invoke('asesor-ia', {
+    body: { messages: msgs },
   })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`LLM ${res.status}: ${err.slice(0, 200)}`)
-  }
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content?.trim() || null
+  if (error) throw new Error(`asesor-ia: ${error.message}`)
+  return data?.text || null
 }
 
 /**
@@ -462,13 +424,7 @@ export async function askAdvisor({ userText, history = [], executeConfirm }) {
 export function advisorStatus() {
   return {
     llm: llmConfigured(),
-    llmProvider: import.meta.env.VITE_XAI_API_KEY
-      ? 'xAI'
-      : import.meta.env.VITE_GROQ_API_KEY
-        ? 'Groq'
-        : import.meta.env.VITE_OPENAI_API_KEY
-          ? 'OpenAI'
-          : null,
+    llmProvider: 'servidor',
     google: Boolean(loadStoredToken()?.access_token),
     googleClientConfigured: Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID),
   }
