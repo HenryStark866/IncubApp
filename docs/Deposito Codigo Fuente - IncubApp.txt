@@ -1,0 +1,58 @@
+DEPÓSITO / INVENTARIO DE CÓDIGO FUENTE — IncubApp
+9 de julio de 2026 · Versión 3.0
+Henry Camilo Taborda Galeano — Desarrollador
+
+1. IDENTIFICACIÓN
+Producto: IncubApp (plataforma de incubación avanzada; evolución de la línea documentada como Incubant).
+Tipo: aplicación web (SPA) multi-empresa, multi-rol, módulos herméticos.
+Repositorio local típico: incubant-app / incubapp (package name: incubapp).
+
+2. STACK
+- React 19 + Vite 8 (JSX)
+- Supabase: Auth, PostgreSQL, RLS, Realtime, Storage
+- Leaflet (mapas logística)
+- SheetJS xlsx (exportaciones)
+- PWA: public/sw.js (caché incubapp-shell-v3)
+
+3. ÁRBOL PRINCIPAL (src/)
+- main.jsx, App.jsx, index.css
+- components/  (~50 paneles: planta, granja, gerencia, reportes, asistencia, IE, etc.)
+- hooks/       (datos y Realtime)
+- lib/         (roles, privacyScopes, notificaciones, GPS, chatbot, offline…)
+- data/        (demos)
+- DOCUMENTACION_RECORRIDO.md
+
+4. FUNCIONALIDADES CUBIERTAS EN EL CÓDIGO (avance 9 de julio de 2026)
+- Módulos herméticos + access_grants (acceso temporal entre módulos)
+- Tablero Hoy, Admin plataforma, cockpits de gerencia e ingeniería industrial
+- Rondas con foto, OT, supervisión, monitoreo
+- Levantes/granjas, huevo, recepción, cuarto frío, cargue
+- Ventas, logística/flota, inventarios, sanidad, IoT stubs
+- Reportes entre módulos (OC, facturas, cotizaciones, informes verificados)
+- Cumplimiento y plan de bonos (90 días uso continuo, ≥95 %, rondas mín. 6)
+- Asistencia selfie con marca de agua (nombre, fecha, hora, lugar, GPS)
+- Expansión SaaS a clientes y empresas hermanas (fondo de bonos sin nómina de planta)
+- Notificaciones filtradas (OT → planta; documentos → gerencia) + push navegador
+- Asistencia ingreso/salida con foto
+- Chat org + presencia; GPS opcional (no bloquea ingreso)
+- Offline queue; export Excel; documentación en código (Henry Stark Desarrollador)
+
+5. MIGRACIONES SQL (aplicar en Supabase)
+- supabase_migration_*.sql en la raíz del proyecto
+- Críticos recientes: access_grants, dispatches_attendance, logistics, veterinary, plant_geo, member_presence, ops_workflow, etc.
+
+6. SECRETOS
+- Solo VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en cliente
+- Service role y .env NUNCA en el repositorio público
+
+7. BUILD
+npm install
+npm run build
+Salida: dist/ (publicar en Vercel u otro hosting estático)
+
+8. NOTA SOBRE ESTE ARCHIVO
+La versión anterior de «Depósito Código Fuente» incluía un volcado masivo de texto.
+Esta versión 2.0 es el inventario canónico actualizado. El código fuente vivo está en el
+árbol del proyecto y en el control de versiones que la empresa habilite (GitHub privado recomendado).
+
+Documentado por: Henry Stark Desarrollador / Henry Camilo Taborda Galeano — Desarrollador

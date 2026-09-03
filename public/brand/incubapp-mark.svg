@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="IncubApp">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A1628"/>
+      <stop offset="100%" stop-color="#050A14"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#35D6E8"/>
+      <stop offset="50%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#E84DFF"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="46" fill="none" stroke="url(#neon)" stroke-width="1.5" opacity="0.35"/>
+  <circle cx="64" cy="64" r="34" fill="none" stroke="url(#neon)" stroke-width="1.2" opacity="0.55" stroke-dasharray="3 5"/>
+  <!-- abstract node / AI core -->
+  <path filter="url(#glow)" d="M64 28 L92 48 L92 80 L64 100 L36 80 L36 48 Z" fill="none" stroke="url(#neon)" stroke-width="2.4"/>
+  <circle cx="64" cy="64" r="10" fill="url(#neon)" filter="url(#glow)"/>
+  <circle cx="64" cy="40" r="3.5" fill="#35D6E8"/>
+  <circle cx="86" cy="72" r="3.5" fill="#7C5CFF"/>
+  <circle cx="42" cy="72" r="3.5" fill="#E84DFF"/>
+  <path d="M64 50 L64 74 M52 64 L76 64" stroke="#050A14" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

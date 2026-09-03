@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#03060F"/>
+      <stop offset="50%" stop-color="#0A1224"/>
+      <stop offset="100%" stop-color="#120A22"/>
+    </linearGradient>
+    <linearGradient id="grid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#35D6E8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#7C5CFF" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <g stroke="url(#grid)" stroke-width="1">
+    <!-- perspective grid -->
+    <path d="M0 520 L800 380 L1600 520" fill="none"/>
+    <path d="M0 580 L800 400 L1600 580" fill="none"/>
+    <path d="M0 650 L800 430 L1600 650" fill="none"/>
+    <path d="M0 730 L800 470 L1600 730" fill="none"/>
+    <path d="M0 820 L800 520 L1600 820" fill="none"/>
+    <path d="M200 900 L800 360 L1400 900" fill="none" opacity="0.5"/>
+    <path d="M400 900 L800 360 L1200 900" fill="none" opacity="0.5"/>
+    <path d="M600 900 L800 360 L1000 900" fill="none" opacity="0.5"/>
+  </g>
+  <circle cx="1280" cy="180" r="160" fill="#7C5CFF" opacity="0.08"/>
+  <circle cx="200" cy="200" r="120" fill="#35D6E8" opacity="0.07"/>
+</svg>

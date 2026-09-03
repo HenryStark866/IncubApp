@@ -1,0 +1,57 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Variables de entorno y secretos (NUNCA versionar: claves, tokens, cadenas de conexión)
+.env
+.env.*
+!.env.example
+!.env.planta3d.example
+
+# Credenciales de servicio (nunca versionar)
+serviceAccount*.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.vercel
+.claude
+*.tsbuildinfo
+coverage
+.DS_Store
+Thumbs.db
+*.pem
+*.p12
+
+# Generado en el build desde las VITE_SUPABASE_* (lleva la clave publicable)
+public/planta3d/config.js
+
+# Referencia para scripts/planta-solapes.mjs (se regenera con git show)
+.ref-planta.js
+
+# Estado local de `supabase link` (ref del proyecto, versiones, URL del pooler)
+supabase/.temp
+
+# Material de trabajo, no código del producto (se queda fuera del repo)
+MANTENIMIENTO/
+PLANTA 3D INCUBANT/
+PRODUCCION Y PROYECCION INCUBANT/
+layaut/

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CDH Maker">
+  <rect width="64" height="64" rx="14" fill="#050A14"/>
+  <g stroke="#E8F0FF" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M18 20 L13 5 L27 16"/>
+    <path d="M46 20 L51 5 L37 16"/>
+    <path d="M13 5 L20 30 L14 40 L32 55 L50 40 L44 30 L51 5"/>
+    <path d="M20 30 L28 34 L32 45 L36 34 L44 30"/>
+  </g>
+  <path d="M22 24 L27.5 27" stroke="#35D6E8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M42 24 L36.5 27" stroke="#35D6E8" stroke-width="3" stroke-linecap="round"/>
+</svg>

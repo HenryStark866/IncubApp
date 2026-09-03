@@ -1,0 +1,33 @@
+{
+  "name": "incubapp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/planta3d-config.mjs && vite build",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview",
+    "planta3d:fotos": "node scripts/planta3d-fotos.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.1",
+    "leaflet": "^1.9.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "docx": "^9.7.1",
+    "oxlint": "^1.71.0",
+    "pg": "^8.22.0",
+    "pptxgenjs": "^4.0.1",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
+  }
+}

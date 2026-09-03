@@ -1,0 +1,1370 @@
+{
+ "salas": [
+  {
+   "id": "fafd14b0-514e-4098-b94d-555faa42f4ff",
+   "code": "S15",
+   "name": "Oficina No 2",
+   "pos_x": 33.039,
+   "pos_y": 25.059,
+   "width": 4.018,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 2.009,
+     "y": 0,
+     "id": "5a12ec80-bb1d-493e-80d3-6aab04d471c3",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "0673a216-b2d1-4692-84b4-479c860ca0b2",
+   "code": "S47",
+   "name": "ALMACÉN DE DESECHOS ORGÁNICOS",
+   "pos_x": 84.392,
+   "pos_y": 23.382,
+   "width": 3.961,
+   "height": 4.018,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "d55cc3d6-4917-46f1-a363-310b0619a032",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "7b469e4e-028b-4532-92fd-461bf29b387d",
+   "code": "S68",
+   "name": "CAVA DEL HUEVO",
+   "pos_x": 88.353,
+   "pos_y": 23.382,
+   "width": 1.99,
+   "height": 4.018,
+   "doors": []
+  },
+  {
+   "id": "328fa33b-be24-413a-920c-307e6f053237",
+   "code": "S8",
+   "name": "ALMACEN No 1",
+   "pos_x": 63.758,
+   "pos_y": 25.059,
+   "width": 4.04,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 2.34,
+     "y": 0,
+     "id": "7c84d502-80df-4182-9653-2e091282826e",
+     "rot": 0,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "3332f10f-fbb0-4ce6-ba4c-173f21763964",
+   "code": "S35B",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 33.039,
+   "pos_y": 32.918,
+   "width": 30.719,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "f1543983-33fc-4326-baa0-cd4b0e1d2ab0",
+   "code": "TEC-1",
+   "name": "Sala técnica No 1",
+   "pos_x": 48.195,
+   "pos_y": 25.059,
+   "width": 15.563,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "0be17be3-385c-4abe-ac74-29f65f110e95",
+     "rot": 0,
+     "type": "normal"
+    },
+    {
+     "x": 0.1,
+     "y": 6.259,
+     "id": "bccc313c-ad3f-4c1f-836e-20ab890dc16c",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "d172b0ef-6800-45ad-9717-fc723f74eaa1",
+   "code": "S71",
+   "name": "PLATAFORMA CHILLERS",
+   "pos_x": 41.088,
+   "pos_y": 32.918,
+   "width": 14.384,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "06d67ad7-47c7-4425-8681-0ae59a0819bc",
+   "code": "S9",
+   "name": "Sala técnica No 2",
+   "pos_x": 37.057,
+   "pos_y": 25.059,
+   "width": 11.138,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "84aaf774-efec-4552-a7e6-e3f633ea5c0f",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "15db632a-b7b0-455c-89a8-3d34f4106733",
+   "code": "SI1",
+   "name": "Sala de incubadoras 1",
+   "pos_x": 41.088,
+   "pos_y": 6,
+   "width": 25.733,
+   "height": 11.49,
+   "doors": [
+    {
+     "x": 24.133,
+     "y": 5.745,
+     "id": "6a77015f-2cf6-4846-904d-a74ec5580188",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "fec06f28-f257-4ed6-a340-a7b6c53bfc44",
+   "code": "S23",
+   "name": "PASILLO",
+   "pos_x": 39.485,
+   "pos_y": 21.382,
+   "width": 1.603,
+   "height": 2,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.29999999999999993,
+     "id": "6a0edcb4-53d0-4dc8-91e0-4bafc961f018",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "fcafa254-316b-475e-818a-c6dd76dadfe9",
+   "code": "S33",
+   "name": "SALA DE SEXAJE",
+   "pos_x": 81.885,
+   "pos_y": 6,
+   "width": 2.507,
+   "height": 11.49,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "385be811-3a64-42fc-a55b-b2c656e17579",
+     "rot": 0,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "718014dd-e021-4c60-8c0b-5b4f1668e9bb",
+   "code": "S56B",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 96.325,
+   "pos_y": 6,
+   "width": 1.7,
+   "height": 17.382,
+   "doors": []
+  },
+  {
+   "id": "4e925203-b6dd-4cfb-93ff-cc2158614a75",
+   "code": "S29",
+   "name": "FILTRO SANITARIO DAMAS",
+   "pos_x": 5,
+   "pos_y": 19.205,
+   "width": 1.005,
+   "height": 8.195,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "7c67e6a7-1798-42ab-8f91-e6922de2ef7a",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "a28b607f-357a-47d6-9782-2dc3c1f2cd80",
+   "code": "S28",
+   "name": "COMEDOR ZONA LIMPIA",
+   "pos_x": 5,
+   "pos_y": 6,
+   "width": 4.734,
+   "height": 11.49,
+   "doors": [
+    {
+     "x": 1.005,
+     "y": 9.89,
+     "id": "f2ac573b-2596-4f3a-87a2-4eed47888d3d",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "5c700000-0000-4000-8000-000000000070",
+   "code": "S70",
+   "name": "W.C",
+   "pos_x": 47.395,
+   "pos_y": 25.059,
+   "width": 0.8,
+   "height": 2.341,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "03b896e3-bdab-4219-86f7-66615eb6838a",
+     "rot": 0,
+     "type": "normal"
+    },
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "d172b94a-0c2f-4c6a-b801-a1d52d6ec486",
+     "rot": 0,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "700c88ff-37dd-4398-9b8c-00d73c829a83",
+   "code": "S25",
+   "name": "PASILLO",
+   "pos_x": 5,
+   "pos_y": 17.49,
+   "width": 28.039,
+   "height": 1.715,
+   "doors": []
+  },
+  {
+   "id": "c77b848c-8be7-4598-bb18-5b7ba747dda9",
+   "code": "LAV",
+   "name": "Sala de lavado canastillas",
+   "pos_x": 29.003,
+   "pos_y": 19.205,
+   "width": 4.036,
+   "height": 4.177,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 2.577,
+     "id": "76995fc8-1be5-4f41-863f-5dc8e0bad6f3",
+     "rot": 180,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "7bd56237-435a-4105-aaaf-ae6707a4c03e",
+   "code": "S24",
+   "name": "PASILLO",
+   "pos_x": 33.039,
+   "pos_y": 17.49,
+   "width": 8.049,
+   "height": 3.892,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "fe95e281-e40e-4241-8755-c591693311ac",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "5c720000-0000-4000-8000-000000000072",
+   "code": "S72B",
+   "name": "VACUNACIÓN",
+   "pos_x": 84.392,
+   "pos_y": 17.49,
+   "width": 5.951,
+   "height": 1.715,
+   "doors": []
+  },
+  {
+   "id": "3167254d-1497-42b5-81a7-16014778a6c0",
+   "code": "S16",
+   "name": "PASILLO",
+   "pos_x": 35.048,
+   "pos_y": 23.382,
+   "width": 13.147,
+   "height": 1.677,
+   "doors": [
+    {
+     "x": 11.447000000000001,
+     "y": 0,
+     "id": "3235c8dd-9849-4789-b3c2-fd3fad09b936",
+     "rot": 90,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "4525b77b-4257-4a69-bb42-355e85935a13",
+   "code": "SN2",
+   "name": "Sala de nacedoras 2",
+   "pos_x": 70.821,
+   "pos_y": 6,
+   "width": 11.064,
+   "height": 5.745,
+   "doors": [
+    {
+     "x": 9.464,
+     "y": 2.539,
+     "id": "da8a37df-325f-4fb9-bd03-5194b4def7c6",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "7a8eb99a-6f31-41a0-867d-789114bdbd2b",
+   "code": "SN3",
+   "name": "Sala de nacedoras 3",
+   "pos_x": 55.472,
+   "pos_y": 19.205,
+   "width": 11.349,
+   "height": 4.177,
+   "doors": [
+    {
+     "x": 9.649000000000001,
+     "y": 0,
+     "id": "a9d50795-614e-4917-a71d-fe1b15bbc48a",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "2c95acc2-e44c-4295-9992-7fe4c0b71216",
+   "code": "S55",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 90.343,
+   "pos_y": 23.382,
+   "width": 5.982,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "058d4c41-3bd0-4840-be20-16d2b3ec758d",
+   "code": "SN1",
+   "name": "Sala de nacedoras 1",
+   "pos_x": 70.821,
+   "pos_y": 11.745,
+   "width": 11.064,
+   "height": 5.745,
+   "doors": [
+    {
+     "x": 9.464,
+     "y": 0.1,
+     "id": "b67311f7-1ee9-42a8-8948-4667c3244ddc",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "77fdd234-6016-4521-ac28-551277e059f4",
+   "code": "SI2",
+   "name": "Sala de incubadoras 2",
+   "pos_x": 9.734,
+   "pos_y": 6,
+   "width": 31.354,
+   "height": 11.49,
+   "doors": [
+    {
+     "x": 19.269,
+     "y": 9.89,
+     "id": "56e3aeed-aca9-4352-8b35-c33a8b5d02d6",
+     "rot": 180,
+     "type": "sliding"
+    },
+    {
+     "x": 29.754,
+     "y": 5.745,
+     "id": "319b3c80-56c8-428e-bd54-a59fb3ee99da",
+     "rot": 90,
+     "type": "open"
+    }
+   ]
+  },
+  {
+   "id": "9dd825c7-4799-4679-b5e8-8e55a9f77c55",
+   "code": "S18",
+   "name": "almacenamiento Huevo comercial",
+   "pos_x": 33.039,
+   "pos_y": 21.382,
+   "width": 6.446,
+   "height": 2,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0.4,
+     "id": "72ef5c3d-4c37-490c-8d50-a271a85aa6af",
+     "rot": 180,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "a137a92f-1e51-4957-aa34-ad0a3c9b71f6",
+   "code": "S64",
+   "name": "BODEGA AGROSAN",
+   "pos_x": 81.065,
+   "pos_y": 23.382,
+   "width": 3.327,
+   "height": 4.018,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "09ea1a17-6177-4ec9-9c64-d0dc4a3f47da",
+     "type": "normal"
+    },
+    {
+     "x": 0.82,
+     "y": 0,
+     "id": "fb90a022-906a-4b99-b4d4-c721cd2ccd36",
+     "rot": 270,
+     "type": "normal"
+    },
+    {
+     "x": 0.82,
+     "y": 2.418,
+     "id": "8f2cbb32-820d-41a2-9198-3a28a9835907",
+     "rot": 180,
+     "type": "loading"
+    }
+   ]
+  },
+  {
+   "id": "117ba8ad-99dd-4fc0-a613-056614a61947",
+   "code": "S48",
+   "name": "SALA DE CARGUE DESPACHO",
+   "pos_x": 92.229,
+   "pos_y": 19.205,
+   "width": 4.096,
+   "height": 4.177,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 2.577,
+     "id": "3e30d59a-2312-4c73-97f5-1d9e405d7ef4",
+     "rot": 180,
+     "type": "loading"
+    }
+   ]
+  },
+  {
+   "id": "e90fbe82-b288-415f-87e8-e58a09477335",
+   "code": "S31",
+   "name": "LAVANDERIA ZONA LIMPIA",
+   "pos_x": 6.005,
+   "pos_y": 19.205,
+   "width": 2.06,
+   "height": 3.663,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 2.063,
+     "id": "82202de7-caa0-46aa-9a1a-9bcf68ba54ca",
+     "rot": 180,
+     "type": "normal"
+    },
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "79c9515f-1196-4f3a-a38c-f754c1e43dd1",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "16f2899e-851e-4129-be9c-bbccc6acecf5",
+   "code": "S65",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 90.343,
+   "pos_y": 24.707,
+   "width": 2,
+   "height": 2.693,
+   "doors": []
+  },
+  {
+   "id": "70eeb804-515a-4b58-9135-fdc46297d495",
+   "code": "S41",
+   "name": "INGRESO PLANTA ZONA LIMPIA",
+   "pos_x": 6.005,
+   "pos_y": 24.707,
+   "width": 2.06,
+   "height": 2.693,
+   "doors": [
+    {
+     "x": 0.46,
+     "y": 0.352,
+     "id": "90a4f529-e853-4568-86fb-3bc8c4cfa60e",
+     "rot": 0,
+     "type": "normal"
+    },
+    {
+     "x": 0,
+     "y": 0.352,
+     "id": "bec89f82-7f2c-4e5d-b039-9101fafe539d",
+     "rot": 270,
+     "type": "normal"
+    },
+    {
+     "x": 0.1,
+     "y": 1.093,
+     "id": "41412410-9470-4ae1-8799-069c2b5b41de",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "3e72a930-dadb-4fb6-819e-ff1ba669b727",
+   "code": "S62",
+   "name": "PASILLO",
+   "pos_x": 48.195,
+   "pos_y": 23.382,
+   "width": 32.87,
+   "height": 1.677,
+   "doors": []
+  },
+  {
+   "id": "e1380d3f-3e71-46f7-9b6c-0983eff1195c",
+   "code": "S19",
+   "name": "Almacenamiento de carros",
+   "pos_x": 41.088,
+   "pos_y": 17.49,
+   "width": 3.034,
+   "height": 5.892,
+   "doors": [
+    {
+     "x": 0,
+     "y": 1.715,
+     "id": "f1a8d119-4a3a-4ef7-8f68-0ead20841f94",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "5b150000-0000-4000-8000-000000000015",
+   "code": "S15B",
+   "name": "Oficina No 2",
+   "pos_x": 33.039,
+   "pos_y": 23.382,
+   "width": 2.009,
+   "height": 1.677,
+   "doors": []
+  },
+  {
+   "id": "68727cbe-28b1-46fe-b199-457380d2f810",
+   "code": "REC",
+   "name": "Sala recepción de huevos",
+   "pos_x": 29.003,
+   "pos_y": 23.382,
+   "width": 4.036,
+   "height": 4.018,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 2.418,
+     "id": "eeb9b34a-f0d1-478d-8121-e441d31de2b1",
+     "rot": 180,
+     "type": "loading"
+    }
+   ]
+  },
+  {
+   "id": "e91428e4-7a45-45ec-a43a-e9ca4c7cb646",
+   "code": "LCC",
+   "name": "Sala de lavado de carros",
+   "pos_x": 66.821,
+   "pos_y": 17.49,
+   "width": 6.582,
+   "height": 5.892,
+   "doors": [
+    {
+     "x": 0.977,
+     "y": 4.292,
+     "id": "c9f2cad9-ec69-4c4b-9c87-2d3b8cf00e40",
+     "rot": 180,
+     "type": "normal"
+    },
+    {
+     "x": 0.977,
+     "y": 0,
+     "id": "252d4ad3-9a64-4ffa-8270-d1b6e1e9c0b1",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "b0d4c69a-d7b9-4ea9-a486-ec9f9d70afda",
+   "code": "S32",
+   "name": "ALMACEN DOTACION",
+   "pos_x": 6.005,
+   "pos_y": 22.868,
+   "width": 2.06,
+   "height": 1.839,
+   "doors": []
+  },
+  {
+   "id": "ef2ada1d-9a67-4e18-85e0-3d8a45d18569",
+   "code": "S66",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 84.392,
+   "pos_y": 27.4,
+   "width": 5.951,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "a0409687-cbec-4dcf-a034-25d6de251147",
+   "code": "S43",
+   "name": "W.C",
+   "pos_x": 5,
+   "pos_y": 14.131,
+   "width": 1.005,
+   "height": 3.359,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "24cf7ba7-31ee-4ae2-9aad-87d610535a4d",
+     "rot": 180,
+     "type": "normal"
+    },
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "2ef24c7b-095e-45d3-a905-ac26fcd0baaa",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "e9c0f96e-671d-42bc-8e93-142e43a8f10d",
+   "code": "S22",
+   "name": "Cuarto Frio",
+   "pos_x": 9.734,
+   "pos_y": 19.205,
+   "width": 19.269,
+   "height": 8.195,
+   "doors": [
+    {
+     "x": 17.568999999999996,
+     "y": 0,
+     "id": "d672e5ae-fa7a-4ae3-b03f-0f16760ce765",
+     "type": "sliding"
+    },
+    {
+     "x": 17.669,
+     "y": 6.495000000000001,
+     "id": "245eed06-7039-48ff-8fba-b38031353b04",
+     "rot": 90,
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "94e62c74-fcee-4b68-a794-e08e8afd3a04",
+   "code": "S45",
+   "name": "ALMACÉN DE CANASTAS",
+   "pos_x": 84.392,
+   "pos_y": 19.205,
+   "width": 7.837,
+   "height": 4.177,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "ab410872-8b4d-4bef-b243-c7b233368222",
+     "rot": 90,
+     "type": "sliding"
+    },
+    {
+     "x": 3.961,
+     "y": 0,
+     "id": "55c7c6a9-9863-486c-a747-da582efad1fb",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "fe09e893-3ba4-426a-840c-95c62fea38d1",
+   "code": "S42",
+   "name": "INGRESO ZONA SUCIA",
+   "pos_x": 70.821,
+   "pos_y": 27.4,
+   "width": 2.198,
+   "height": 5.518,
+   "doors": [
+    {
+     "x": 0.598,
+     "y": 3.8179999999999996,
+     "id": "ab675180-5ce5-4d7b-ae28-7aec8166496c",
+     "rot": 0,
+     "type": "normal"
+    },
+    {
+     "x": 0,
+     "y": 3.8179999999999996,
+     "id": "29032e53-b4dc-4f1a-833a-c2782ce4b53e",
+     "rot": 270,
+     "type": "normal"
+    },
+    {
+     "x": 0.1,
+     "y": 3.918,
+     "id": "ea41215e-293b-4180-81f2-d576ca87bbf0",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "209bdf63-d4d6-490e-a3d4-3b5781a56a2d",
+   "code": "S37",
+   "name": "COMEDOR ZONA SUCIA",
+   "pos_x": 76.031,
+   "pos_y": 25.059,
+   "width": 5.034,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "767a823f-f66a-4ee0-af6f-733c0d33fc31",
+     "rot": 0,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "b03eaa03-5916-46ab-85b2-7d7eb712423d",
+   "code": "S44",
+   "name": "W.C",
+   "pos_x": 78.665,
+   "pos_y": 25.059,
+   "width": 2.4,
+   "height": 2.341,
+   "doors": [
+    {
+     "x": 0.6999999999999998,
+     "y": 0,
+     "id": "44f99e70-2c06-4101-a5dd-41cdfe143ae9",
+     "type": "normal"
+    },
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "51e912e4-0fbe-4f28-8394-7d5b8734825f",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "d7da3177-a600-499c-979a-90eaf9f3deaf",
+   "code": "SN4",
+   "name": "Sala de nacedoras 4",
+   "pos_x": 44.122,
+   "pos_y": 19.205,
+   "width": 11.35,
+   "height": 4.177,
+   "doors": [
+    {
+     "x": 9.65,
+     "y": 0,
+     "id": "cdce5049-e63f-4e7f-9db1-69585a7a6391",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "6f09157d-ecf5-41c1-b5d9-c210589d578c",
+   "code": "S46",
+   "name": "DESPACHO",
+   "pos_x": 90.343,
+   "pos_y": 6,
+   "width": 5.982,
+   "height": 13.205,
+   "doors": [
+    {
+     "x": 0,
+     "y": 11.49,
+     "id": "adcad487-346b-447c-a936-59a93280dc91",
+     "rot": 180,
+     "type": "normal"
+    },
+    {
+     "x": 4.282,
+     "y": 11.605,
+     "id": "c283f35a-4dd9-4b93-b888-6193651a9d81",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "dcbcb77f-e012-445f-88b2-3dfb305218f3",
+   "code": "S30",
+   "name": "FILTRO SANITARIO HOMBRES",
+   "pos_x": 8.065,
+   "pos_y": 19.205,
+   "width": 1.669,
+   "height": 8.195,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "d70fccbe-6b2d-4128-a043-956e0f441e64",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "3b7ad76a-e135-48b7-9143-17ba492bbdcd",
+   "code": "S72",
+   "name": "VACUNACION",
+   "pos_x": 84.392,
+   "pos_y": 8.539,
+   "width": 5.951,
+   "height": 8.951,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 7.351,
+     "id": "56d8ffc1-abd7-4409-8521-7c6273349b95",
+     "rot": 270,
+     "type": "sliding"
+    },
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "dc458522-6756-4a38-8e73-7fce033ef6bd",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "e6d5e84a-d9c0-4404-8b51-2454871d1d4b",
+   "code": "S67",
+   "name": "CUARTO DE VACUNA",
+   "pos_x": 84.392,
+   "pos_y": 6,
+   "width": 5.951,
+   "height": 2.539,
+   "doors": []
+  },
+  {
+   "id": "955a4ef0-c05b-4bde-9672-bc55c3ade4e3",
+   "code": "S49",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 5,
+   "pos_y": 27.4,
+   "width": 24.003,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "7c23e6da-3128-46a4-bfc2-c9595f452d3d",
+   "code": "S39",
+   "name": "FILTRO SANITARIO HOMBRES",
+   "pos_x": 73.019,
+   "pos_y": 25.059,
+   "width": 3.012,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 0.384,
+     "y": 0,
+     "id": "8fddec54-2fd3-4ead-bd94-2b01e86b0e88",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "e393c0a1-9b49-44a7-b899-d62f94f3fd74",
+   "code": "S40",
+   "name": "LAVANDERIA ZONA SUCIA",
+   "pos_x": 70.821,
+   "pos_y": 25.059,
+   "width": 2.198,
+   "height": 2.341,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "fdd525d7-17b1-4874-9259-12f64a9e8411",
+     "rot": 270,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "bd1349e6-727e-4d71-ac8f-d28b296b6cfa",
+   "code": "TUN",
+   "name": "PASILLO",
+   "pos_x": 44.122,
+   "pos_y": 17.49,
+   "width": 22.699,
+   "height": 1.715,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "393f3985-76e5-4f2a-a263-8e519c44df12",
+     "rot": 270,
+     "type": "sliding"
+    },
+    {
+     "x": 20.999,
+     "y": 0,
+     "id": "8a5d016c-e642-45e7-8262-9a0c9f6ae09b",
+     "type": "sliding"
+    }
+   ]
+  },
+  {
+   "id": "c229f81b-952a-470b-90f2-3e533ac2aaff",
+   "code": "S38",
+   "name": "FILTRO SANITARIO DAMAS",
+   "pos_x": 67.798,
+   "pos_y": 25.059,
+   "width": 3.023,
+   "height": 7.859,
+   "doors": [
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "f79515db-a3f0-4a5e-bfa2-611e67f24b69",
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "1591740b-5bbc-4c4e-a532-94d59cd1f1ed",
+   "code": "S50",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 5,
+   "pos_y": 4,
+   "width": 91.325,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "29db001f-fb0e-4d24-a594-1751fed17aa6",
+   "code": "S36",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 81.065,
+   "pos_y": 27.4,
+   "width": 1.7,
+   "height": 5.518,
+   "doors": []
+  },
+  {
+   "id": "5e900000-0000-4000-8000-000000000026",
+   "code": "REP",
+   "name": "ALMACÉN DE REPUESTOS",
+   "pos_x": 9.734,
+   "pos_y": 6,
+   "width": 2,
+   "height": 2.539,
+   "doors": [
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "f84ae23e-126c-4308-8678-686ca0e3c50d",
+     "rot": 270,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "065476de-6075-4b45-8782-b0c627fd47be",
+   "code": "S51",
+   "name": "CORREDOR EXTERIOR NORTE",
+   "pos_x": 3,
+   "pos_y": 6,
+   "width": 2,
+   "height": 26.918,
+   "doors": []
+  },
+  {
+   "id": "49dd2a59-f96a-4cd7-9659-3bc22e6ffd0d",
+   "code": "S21",
+   "name": "Lavado Nacimiento",
+   "pos_x": 73.403,
+   "pos_y": 17.49,
+   "width": 10.989,
+   "height": 5.892,
+   "doors": [
+    {
+     "x": 8.482,
+     "y": 0,
+     "id": "76300a4f-28ff-4e75-b9bb-54b9f42da13f",
+     "type": "normal"
+    },
+    {
+     "x": 8.482,
+     "y": 0,
+     "id": "4b6fbfdd-0644-4035-9243-c4bb8a7d3095",
+     "rot": 270,
+     "type": "normal"
+    },
+    {
+     "x": 0,
+     "y": 0.1,
+     "id": "599f1d7e-3a95-4697-b6f1-0c151dcd84e8",
+     "rot": 180,
+     "type": "normal"
+    },
+    {
+     "x": 5.262,
+     "y": 4.292,
+     "id": "77e3b0b9-988f-46c4-a6f6-25292675d667",
+     "rot": 180,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "2f93fd7a-2892-4a7a-8475-fa4523993e7d",
+   "code": "S35",
+   "name": "CORREDOR EXTERIOR",
+   "pos_x": 63.758,
+   "pos_y": 32.918,
+   "width": 17.307,
+   "height": 2,
+   "doors": []
+  },
+  {
+   "id": "be07ec69-1f1d-4933-9899-23d626ea9919",
+   "code": "S63",
+   "name": "ALMACENAMIENTO MAQ TRANSFERENCIA",
+   "pos_x": 66.821,
+   "pos_y": 6,
+   "width": 4,
+   "height": 2.539,
+   "doors": [
+    {
+     "x": 0.977,
+     "y": 0,
+     "id": "d21f23e0-9a70-4adc-a0d0-998244887fa7",
+     "rot": 0,
+     "type": "normal"
+    }
+   ]
+  },
+  {
+   "id": "2f29120e-7df1-4d81-a148-c8fe588248ee",
+   "code": "TRF",
+   "name": "Sala de transferencia",
+   "pos_x": 66.821,
+   "pos_y": 8.539,
+   "width": 4,
+   "height": 8.951,
+   "doors": [
+    {
+     "x": 2.4,
+     "y": 0.1,
+     "id": "5135451d-66d3-4fa3-a4b7-7ebaee2a3210",
+     "rot": 90,
+     "type": "sliding"
+    },
+    {
+     "x": 2.4,
+     "y": 3.206,
+     "id": "03060f72-5bc9-4d56-847c-d59750de1d39",
+     "rot": 90,
+     "type": "sliding"
+    },
+    {
+     "x": 0.1,
+     "y": 0,
+     "id": "5843618b-9016-474d-ad27-9ddd10b44a9e",
+     "type": "sliding"
+    }
+   ]
+  }
+ ],
+ "equipos": [
+  {
+   "id": "92cf96ab-291d-4bf7-9df0-415a33503228",
+   "code": "INC-01",
+   "pos_x": 0.117,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "843ba257-316c-4541-b79b-a59f993046fb",
+   "code": "INC-02",
+   "pos_x": 4.367,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "37385660-e05e-4828-8cd5-b18af03186d2",
+   "code": "INC-03",
+   "pos_x": 8.617,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "2f26e91e-252f-4976-b846-614aa5a82fda",
+   "code": "INC-04",
+   "pos_x": 12.867,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "57f48375-2e2d-4d46-bfed-af8ca6940bff",
+   "code": "INC-05",
+   "pos_x": 17.117,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "1e2894e5-c795-4d3b-b1bd-327615f0cb82",
+   "code": "INC-06",
+   "pos_x": 21.367,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "f4520b18-98d3-4c9b-8aea-5f9d074e9d54",
+   "code": "INC-12",
+   "pos_x": 0.117,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "8cd2861b-cf9c-4b1e-ad1d-b4da7eabf281",
+   "code": "INC-11",
+   "pos_x": 4.367,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "89ddb92b-f007-455f-84ae-80ac12038e62",
+   "code": "INC-10",
+   "pos_x": 8.617,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "1bff2328-f293-46ee-8f72-a616bc930e2e",
+   "code": "INC-09",
+   "pos_x": 12.867,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "78d60dc6-6ced-488f-80b0-e8ba3fdf406f",
+   "code": "INC-08",
+   "pos_x": 17.117,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "d869c9c9-5e9e-4be5-887e-ef2e4f0571a1",
+   "code": "INC-07",
+   "pos_x": 21.367,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "601e3c57-5c27-4ecf-8b0e-0e96e5fc953c",
+   "code": "NAC-04",
+   "pos_x": 0,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "26abf9b6-7c85-4ad3-92c8-4f9a06008962",
+   "code": "NAC-05",
+   "pos_x": 3.688,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "489703c6-a49e-4fad-9700-ebe69e79f7e5",
+   "code": "NAC-06",
+   "pos_x": 7.376,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "b9648dbe-c0c1-4f4f-9de6-8916dc80243a",
+   "code": "NAC-09",
+   "pos_x": 0.05,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "e38c7e55-33d6-44c1-89d7-cf36ebfca38c",
+   "code": "NAC-08",
+   "pos_x": 3.8,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "14e2fba0-b98e-447b-bdbb-fa51dbe49125",
+   "code": "NAC-07",
+   "pos_x": 7.55,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "21ae42f9-b63f-4fca-82b9-19a6cf1e4585",
+   "code": "NAC-01",
+   "pos_x": 0,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "4ab6309c-649f-459f-8322-f1ff6878aaa2",
+   "code": "NAC-02",
+   "pos_x": 3.688,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "424cb8b7-96ff-4b78-84b6-046e5bf174de",
+   "code": "NAC-03",
+   "pos_x": 7.376,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "34c3c21f-3afa-4278-af0d-a7d80b8bc8e5",
+   "code": "INC-19",
+   "pos_x": 3.927,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "6f703864-ef3e-4b45-9070-7d9dc8e4341d",
+   "code": "INC-20",
+   "pos_x": 8.177,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "1c97e9e4-f8e0-4b9e-8a36-5f4cb2050772",
+   "code": "INC-21",
+   "pos_x": 12.427,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "a321bcdb-02f3-4718-b9db-529699aa3849",
+   "code": "INC-22",
+   "pos_x": 16.677,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "454c7e9b-1ebf-415a-8ffc-bda1e39ed02b",
+   "code": "INC-23",
+   "pos_x": 20.927,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "ae216cf4-4def-4f46-91ec-cf6e4619652e",
+   "code": "INC-24",
+   "pos_x": 25.177,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "6e2d2eae-84b5-4a1f-8ceb-a2061d4a7464",
+   "code": "INC-18",
+   "pos_x": 2.927,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "7787e4ab-0e13-43eb-850b-1705487c972e",
+   "code": "INC-17",
+   "pos_x": 7.177,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "69de1aac-fd6a-4ce3-bf12-3634fd65e843",
+   "code": "INC-16",
+   "pos_x": 11.427,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "90bcbe24-f773-4933-9d6b-67d99d33d26e",
+   "code": "INC-15",
+   "pos_x": 15.677,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "0c79e72e-c9a0-49a9-bacb-0da09784ab36",
+   "code": "INC-14",
+   "pos_x": 19.927,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "147eb539-ad06-4959-9830-a581ee7cd92c",
+   "code": "INC-13",
+   "pos_x": 24.177,
+   "pos_y": 7.99,
+   "rotation": 0
+  },
+  {
+   "id": "ca26a34f-53ca-4a2e-8c79-a9bc4bbf2241",
+   "code": "NAC-12",
+   "pos_x": 0.05,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "0a34b622-e358-464f-b447-29f77c8ca788",
+   "code": "NAC-11",
+   "pos_x": 3.8,
+   "pos_y": 0,
+   "rotation": 180
+  },
+  {
+   "id": "cc5689dc-c2c1-4941-9ea4-596982212113",
+   "code": "NAC-10",
+   "pos_x": 7.55,
+   "pos_y": 0,
+   "rotation": 180
+  }
+ ]
+}
