@@ -1,0 +1,19 @@
+# Vercel NO respeta .gitignore: sin esta lista, el deploy subia 145 MB de
+# material de trabajo y la carga se abortaba a media subida una y otra vez.
+MANTENIMIENTO/
+PLANTA 3D INCUBANT/
+PRODUCCION Y PROYECCION INCUBANT/
+layaut/
+Petersime/
+.respaldo/
+.git/
+.claude/
+
+# Documentacion interna: contratos, presupuestos y manuales no tienen por que
+# viajar al servidor de compilacion.
+docs/
+
+# OJO: los .env SI se suben a proposito. El proyecto no tiene variables de
+# entorno configuradas en Vercel, y el build (vite) las necesita para inyectar
+# VITE_SUPABASE_URL y VITE_SUPABASE_KEY. Solo llegan al compilador, nunca se
+# publican como archivo.
