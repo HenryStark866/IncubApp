@@ -390,7 +390,13 @@
       // el remate del lado seguia diciendo 'techo' y ganaba: el sobremuro corria
       // entero hasta la cumbrera, tambien por delante de las puertas del nivel
       // 2, y tapiaba el desembarco de la escalera al area tecnica.
-      if (llevaEntrepiso(r)) return 'entrepiso'
+      //
+      // Ojo: cargar la losa no basta. `entrepisoSalas` es una lista de salas
+      // enteras y la losa sobra por los bordes —sobre la recepcion de huevos no
+      // hay nada arriba—, asi que ahi no hay volumen que siga cerrando y el
+      // muro tiene que subir el mismo o queda un boquete de fachada entre la
+      // losa y el faldon.
+      if (llevaEntrepiso(r) && hayNivel2Sobre(r)) return 'entrepiso'
       // Un muro que da a la calle por su otra cara sube hasta la cubierta: es
       // la envolvente. Todos los demas —los internos— mueren en la cara
       // inferior de la losa, a 3,30, tengan o no entrepiso encima. Antes solo
@@ -462,6 +468,51 @@
         }
       }
       return out
+    }
+    // El contorno partido en rectángulos, para poder cruzarlo con la losa, que
+    // se dibuja por rectángulos. Barrido por las x de sus aristas verticales:
+    // en cada franja se mira dónde corta una vertical a las aristas
+    // horizontales y los cortes se emparejan de dos en dos. Vale para cualquier
+    // contorno ortogonal, que es lo único que dibuja el editor 2D.
+    const rectangulosDe = (r) => {
+      if (!esLibre(r)) return [{ x0: r.x, x1: r.x + r.w, z0: r.y, z1: r.y + r.h }]
+      const p = contornoDe(r)
+      const xs = [...new Set(p.map((q) => round2(q.x)))].sort((a, b) => a - b)
+      const out = []
+      for (let i = 0; i < xs.length - 1; i++) {
+        const xa = xs[i], xb = xs[i + 1]
+        if (xb - xa < 0.02) continue
+        const xm = (xa + xb) / 2
+        const cortes = []
+        for (let k = 0; k < p.length; k++) {
+          const A = p[k], B = p[(k + 1) % p.length]
+          if (Math.abs(A.z - B.z) > 0.02) continue
+          if (Math.min(A.x, B.x) < xm && Math.max(A.x, B.x) > xm) cortes.push(A.z)
+        }
+        cortes.sort((a, b) => a - b)
+        for (let k = 0; k + 1 < cortes.length; k += 2) {
+          if (cortes[k + 1] - cortes[k] < 0.02) continue
+          out.push({ x0: xa, x1: xb, z0: cortes[k], z1: cortes[k + 1] })
+        }
+      }
+      return out
+    }
+    // La huella del segundo nivel, en rectangulos, calculada una sola vez.
+    let _rectsNivel2 = null
+    const rectsNivel2 = () => (_rectsNivel2 ||= datos.rooms.filter(esNivel2).flatMap(rectangulosDe))
+    // ¿Hay piso de segundo nivel sobre esta sala? Se muestrea su huella en vez
+    // de sumar areas: los tuneles caen DENTRO de los cuartos de maquinas y al
+    // sumarlas el solape daba mas del 100 %.
+    const hayNivel2Sobre = (r) => {
+      const rr = rectsNivel2()
+      let dentro = 0, tot = 0
+      for (let x = r.x + 0.25; x < r.x + r.w; x += 0.5) {
+        for (let z = r.y + 0.25; z < r.y + r.h; z += 0.5) {
+          tot++
+          if (rr.some((u) => x > u.x0 && x < u.x1 && z > u.z0 && z < u.z1)) dentro++
+        }
+      }
+      return tot === 0 || dentro > tot * 0.5
     }
     const areaDe = (r) => {
       if (!esLibre(r)) return r.w * r.h
@@ -2075,6 +2126,25 @@
       if (cur < a1 - 0.05) libres.push([cur, a1])
       return libres
     }
+    // El contorno cierra el borde del PISO del segundo nivel, así que solo tiene
+    // sentido donde de verdad hay piso arriba. La losa se dibuja por sala de la
+    // planta baja, y dos de ellas asoman por fuera de lo que el nivel 2 ocupa
+    // —la SALA RECEPCIÓN DE HUEVOS entera, y el extremo occidental del PASILLO
+    // S25, que es más largo que el área técnica—. Ahí quedaban dos plataformas
+    // peladas con su antepecho levantado, flotando en el aire y sin pertenecer a
+    // ninguna sala: las dos formas raras que se veían al aislar el nivel 2.
+    const polisNivel2 = datos.rooms.filter(esNivel2).map((r) => esLibre(r) ? contornoDe(r) : [
+      { x: r.x, z: r.y }, { x: r.x + r.w, z: r.y },
+      { x: r.x + r.w, z: r.y + r.h }, { x: r.x, z: r.y + r.h },
+    ])
+    const hayPisoArriba = (px, pz) => polisNivel2.some((pol) => {
+      let d = false
+      for (let i = 0, j = pol.length - 1; i < pol.length; j = i++) {
+        const xi = pol[i].x, zi = pol[i].z, xj = pol[j].x, zj = pol[j].z
+        if (((zi > pz) !== (zj > pz)) && (px < ((xj - xi) * (pz - zi)) / (zj - zi) + xi)) d = !d
+      }
+      return d
+    })
     let tramosContorno = 0
     if (ENTREPISO > 0 && seVeNivel(2)) {
       const PASO = 0.5
@@ -2107,23 +2177,27 @@
         }
         return false
       }
-      const unaVez = (cx, cz, lx, lz) => {
+      // `ix`/`iz` apuntan hacia adentro de la sala, que es el lado donde estaría
+      // el piso: si a 30 cm para allá no hay sala del nivel 2, ese borde no es
+      // borde de nada y no se levanta.
+      const unaVez = (cx, cz, lx, lz, ix, iz) => {
         const k = [cx, cz, lx, lz].map((v) => v.toFixed(2)).join('|')
         if (puestos.has(k)) return
         puestos.add(k)
+        if (!hayPisoArriba(cx + ix * 0.3, cz + iz * 0.3)) return
         if (yaSube(cx, cz, lx, lz)) return
         alza(cx, cz, lx, lz)
       }
       for (const r of conEntrepiso) {
-        for (const [lado, zz] of [['n', r.y], ['s', r.y + r.h]]) {
-          for (const [p, q] of bordeSinEntrepiso(r, lado)) unaVez((p + q) / 2, zz, q - p, GROSOR_MURO)
+        for (const [lado, zz, iz] of [['n', r.y, 1], ['s', r.y + r.h, -1]]) {
+          for (const [p, q] of bordeSinEntrepiso(r, lado)) unaVez((p + q) / 2, zz, q - p, GROSOR_MURO, 0, iz)
         }
-        for (const [lado, xx] of [['o', r.x], ['e', r.x + r.w]]) {
+        for (const [lado, xx, ix] of [['o', r.x, 1], ['e', r.x + r.w, -1]]) {
           for (const [p, q] of bordeSinEntrepiso(r, lado)) {
             const n = Math.max(1, Math.ceil((q - p) / PASO))
             for (let k = 0; k < n; k++) {
               const z1 = p + ((q - p) * k) / n, z2 = p + ((q - p) * (k + 1)) / n
-              unaVez(xx, (z1 + z2) / 2, GROSOR_MURO, z2 - z1)
+              unaVez(xx, (z1 + z2) / 2, GROSOR_MURO, z2 - z1, ix, 0)
             }
           }
         }
@@ -2208,6 +2282,30 @@
           return out
         })
       })
+      // Y solo donde hay piso arriba. La losa se dibuja por sala de la planta
+      // baja, y dos de ellas asoman por fuera de lo que ocupa el nivel 2: la
+      // SALA RECEPCIÓN DE HUEVOS entera y el extremo occidental del PASILLO
+      // S25, que es más largo que el área técnica. Quedaban dos plataformas
+      // peladas colgadas a 3,40 sin ser ninguna sala. Se cruza cada trozo con
+      // los rectángulos del nivel 2 y se queda solo la parte cubierta; el
+      // reparto es disjunto, así que ninguna banda se dibuja dos veces.
+      const cubiertos = []
+      for (const u of rectsNivel2()) {
+        trozos = trozos.flatMap((t) => {
+          const ax = Math.max(t.x0, u.x0), bx = Math.min(t.x1, u.x1)
+          const az = Math.max(t.z0, u.z0), bz = Math.min(t.z1, u.z1)
+          if (bx - ax < 0.02 || bz - az < 0.02) return [t]
+          cubiertos.push({ x0: ax, x1: bx, z0: az, z1: bz })
+          const out = []
+          if (az - t.z0 > 0.02) out.push({ ...t, z1: az })
+          if (t.z1 - bz > 0.02) out.push({ ...t, z0: bz })
+          if (ax - t.x0 > 0.02) out.push({ x0: t.x0, x1: ax, z0: az, z1: bz })
+          if (t.x1 - bx > 0.02) out.push({ x0: bx, x1: t.x1, z0: az, z1: bz })
+          return out
+        })
+        if (!trozos.length) break
+      }
+      trozos = cubiertos
       trozos.forEach((t) => {
         const an = t.x1 - t.x0, la = t.z1 - t.z0
         if (an < 0.02 || la < 0.02) return
