@@ -101,6 +101,10 @@ const lineasSalas = rooms.map((r) => {
     // El muro va escrito, no deducido: así reescalar una sala no le cambia de
     // sitio la puerta.
     if (d.lado) partes.push(`lado: ${txt(d.lado)}`)
+    // Sentido de apertura escrito a mano ('adentro' / 'afuera'). Ausente = lo
+    // decide la regla del 3D, que es lo normal; escrito, manda y ademas deja la
+    // hoja fija frente al repaso que voltea las que estorban.
+    if (d.abre) partes.push(`abre: ${txt(d.abre)}`)
     partes.push(`type: ${txt(d.type || 'normal')}`)
     return `{ ${partes.join(', ')} }`
   })

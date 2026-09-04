@@ -95,6 +95,7 @@
         doors: (r.doors || []).map((d) => ({
           x: num(d.x), y: num(d.y), rot: num(d.rot), type: d.type || 'normal',
           ...(d.lado ? { lado: d.lado } : null),
+          ...(d.abre ? { abre: d.abre } : null),
           ...(d.w != null ? { w: num(d.w) } : null),
           ...(d.h != null ? { h: num(d.h) } : null),
           ...(d.base != null ? { base: num(d.base) } : null),

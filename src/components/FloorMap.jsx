@@ -902,6 +902,22 @@ export default function FloorMap({
     updateRoom(room.id, { doors })
   }
 
+  // Hacia dónde abre la hoja en el recorrido 3D. Sin valor lo decide él solo,
+  // por reglas (espacio confinado, baño, salida al exterior, pasillo, y a
+  // igualdad hacia la sala más amplia) y luego reajusta las que estorban. Eso
+  // acierta casi siempre, pero no lo ve todo: la puerta del área técnica da a
+  // la escalera, que no es una sala, y la trataba como salida al exterior
+  // abriéndola sobre el hueco. Escrito a mano manda, y la deja fija.
+  const cycleDoorAbre = (room, door) => {
+    const abre = door.abre === 'adentro' ? 'afuera' : door.abre === 'afuera' ? null : 'adentro'
+    const doors = (room.doors ?? []).map((d) => {
+      if (d.id !== door.id) return d
+      const { abre: _fuera, ...resto } = d
+      return abre ? { ...resto, abre } : resto
+    })
+    updateRoom(room.id, { doors })
+  }
+
   // ── Altura por muro ─────────────────────────────────────────
   // null/ausente = automático (la regla de siempre, por tipo de sala y
   // fachada); 'techo' = fuerza el muro hasta la cubierta aunque la regla
@@ -1288,6 +1304,18 @@ export default function FloorMap({
                             onClick={(e) => { e.stopPropagation(); rotateDoor(room, d) }}
                           >
                             ⟳
+                          </button>
+                          <button
+                            className={`door-abre${d.abre ? ' fijo' : ''}`}
+                            title={
+                              d.abre === 'adentro' ? 'Abre hacia adentro de la sala (clic: hacia afuera)'
+                              : d.abre === 'afuera' ? 'Abre hacia afuera de la sala (clic: automático)'
+                              : 'Sentido de apertura automático (clic: fijarlo hacia adentro)'
+                            }
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); cycleDoorAbre(room, d) }}
+                          >
+                            {d.abre === 'adentro' ? 'D' : d.abre === 'afuera' ? 'F' : 'A'}
                           </button>
                           <button
                             className="door-del"

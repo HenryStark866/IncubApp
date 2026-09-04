@@ -270,6 +270,14 @@
     const haciaDondeAbre = (v) => {
       const r = v.sala
       const dentro = caraDeLaSala(v.lado)
+      // Sentido escrito a mano desde el editor 2D (`abre` del vano). Manda
+      // sobre todas las reglas de abajo y, además, deja la hoja FIJA: el
+      // repaso que voltea hojas midiendo estorbos la respeta. Las reglas
+      // aciertan casi siempre, pero no lo ven todo —la puerta del área técnica
+      // da a la escalera, que no es una sala, y por eso la trataban como salida
+      // al exterior y la abrían sobre el hueco.
+      if (v.abreManual === 'adentro') return dentro
+      if (v.abreManual === 'afuera') return -dentro
       const vec = vecinaDeVano(r, v.lado, v.c - v.ancho / 2, v.c + v.ancho / 2)
 
       // 1. Espacio confinado —cuarto de máquinas, túnel—: la hoja no cabe
@@ -689,6 +697,7 @@
             tipo: d.type,
             lado,
             sala: r,
+            abreManual: d.abre || null,
             // La cota del pasillo al que pertenece la puerta: es lo que decide
             // en qué muro puede abrirse, porque el mismo plano puede llevar un
             // tramo en la planta baja y otro en el segundo nivel.
@@ -791,6 +800,7 @@
           tipo: d.type,
           lado,
           sala: r,
+          abreManual: d.abre || null,
         }
         vano.abre = haciaDondeAbre(vano)
         if (iCerca >= 0) {
@@ -1259,7 +1269,7 @@
         // el muro corrido y sin vano.
         if (Math.abs((reg.cota || 0) - (v.cota || 0)) > 0.06) continue
         if (v.c <= reg.a + 0.05 || v.c >= reg.b - 0.05) continue
-        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, abre: v.abre })
+        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, abre: v.abre, abreManual: v.abreManual })
         reg.alto = Math.max(reg.alto, v.alto + 0.1)
         break
       }
@@ -1810,6 +1820,8 @@
           pivote,
           corre,
           enrolla,
+          // Sentido puesto a mano: el repaso que voltea hojas no la toca.
+          fijo: !!v.abreManual,
           eje: s.eje,
           // Punto por donde se pasa: si el visitante se acerca ahí, abre.
           px: s.eje === 'h' ? c : s.pos,
@@ -1991,6 +2003,7 @@
         for (let i = 0; i < puertas.length; i++) {
           const p = puertas[i]
           if (p.enrolla) continue                 // la cortina sube: no tiene otro lado
+          if (p.fijo) continue                    // sentido escrito a mano: no se discute
           const ahora = estorbo(i, cajas)
           if (ahora <= 0.15) continue
           const previa = cajas[i]

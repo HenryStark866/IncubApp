@@ -2045,6 +2045,17 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .door-del:hover { background: #f07070; color: #0a1120; }
 
+/* Sentido de apertura de la hoja: A automatico, D adentro, F afuera. Apagado
+   mientras lo decide el 3D, encendido cuando se fija a mano. */
+.door-abre {
+  position: absolute; bottom: -9px; left: -9px; width: 18px; height: 18px; padding: 0;
+  line-height: 1; border-radius: 50%; border: 1px solid #6b7691; background: #141a26;
+  color: #8b97ad; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;
+}
+.door-abre.fijo { border-color: var(--amber, #f0b34a); color: var(--amber, #f0b34a); background: #241d10; }
+.door-abre:hover { background: var(--amber, #f0b34a); color: #0a1120; border-color: var(--amber, #f0b34a); }
+
 /* â”€â”€ MÃ¡quinas incubadoras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .machines-wrap { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 18px; }
 /* section-title unificado arriba en tokens */
