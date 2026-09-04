@@ -384,6 +384,13 @@
       if (esBano(r)) return null
       if (esCuartoMaquinasIncubadoras(r)) return 'techo'
       if (esCuartoMaquinas(r) || esTunel(r)) return null
+      // Un muro que CARGA el entrepiso muere en la losa aunque sea fachada, y
+      // ahi se detiene: por encima ya cierra el contorno del segundo nivel. Es
+      // la misma regla que ya aplicaba el reparto por tramos de mas abajo, pero
+      // el remate del lado seguia diciendo 'techo' y ganaba: el sobremuro corria
+      // entero hasta la cumbrera, tambien por delante de las puertas del nivel
+      // 2, y tapiaba el desembarco de la escalera al area tecnica.
+      if (llevaEntrepiso(r)) return 'entrepiso'
       // Un muro que da a la calle por su otra cara sube hasta la cubierta: es
       // la envolvente. Todos los demas —los internos— mueren en la cara
       // inferior de la losa, a 3,30, tengan o no entrepiso encima. Antes solo
@@ -611,6 +618,7 @@
     datos.rooms.forEach((r) => {
       const cat = r._cat
       if (!cat.muro) {
+        const cotaVano = cotaDe(r)
         ;(r.doors || []).forEach((d) => {
           const lado = ladoDePuerta(r, d)
           const horiz = lado === 'arriba' || lado === 'abajo'
@@ -630,6 +638,10 @@
             tipo: d.type,
             lado,
             sala: r,
+            // La cota del pasillo al que pertenece la puerta: es lo que decide
+            // en qué muro puede abrirse, porque el mismo plano puede llevar un
+            // tramo en la planta baja y otro en el segundo nivel.
+            cota: cotaVano,
           }
           vano.abre = haciaDondeAbre(vano)
           vanosSueltos.push(vano)
@@ -639,16 +651,42 @@
           // abrirse y la puerta no se veía. Cuando el lado de un pasillo lleva
           // puerta se levanta ese muro, que además es lo correcto: son los
           // límites entre zona limpia, zona sucia y oficinas.
+          //
+          // El muro que ya exista tiene que estar A LA MISMA COTA. Un cuarto
+          // del segundo nivel puede caer justo encima del pasillo —el túnel de
+          // nacedoras 2 se apoya sobre el muro sur del PASILLO S23— y sin
+          // comparar la cota ese muro de arriba pasaba por «ya hay», el de la
+          // planta baja no se levantaba, y el pasillo quedaba tapiado.
           const yaHay = [...segmentos.values()].some(
             (g) => g.eje === vano.eje && Math.abs(g.pos - pos) < 0.06 &&
+                   Math.abs((g.cota || 0) - cotaVano) < 0.06 &&
                    g.a < vano.c - 0.1 && g.b > vano.c + 0.1
           )
           if (!yaHay) {
             const s2 = horiz
               ? { eje: 'h', pos, a: r.x, b: r.x + r.w }
               : { eje: 'v', pos, a: r.y, b: r.y + r.h }
+            // Nunca por encima de la cubierta. Un tabique del segundo nivel
+            // arranca a 3,40 y con los 2,90 de rigor remata en 6,30, muy por
+            // encima del faldón: hacia la fachada del frente la cubierta va
+            // bajando y ahí el muro salía por el tejado. La altura libre no es
+            // constante, así que en un muro vertical manda el extremo más bajo
+            // —la cubierta es una carpa de una sola cumbrera, su mínimo sobre
+            // un tramo siempre cae en una punta.
+            const libre = horiz
+              ? alturaBajoCubierta(pos) - cotaVano
+              : Math.min(alturaBajoCubierta(s2.a), alturaBajoCubierta(s2.b)) - cotaVano
+            const altoMuro = Math.max(0.05, Math.min(datos.meta.alturaMuro, libre))
+            // Y el vano tampoco pasa de ahí — la misma regla que ya rige en las
+            // salas con muro. Si no, el dintel se dibuja por encima del muro que
+            // lo lleva y vuelve a salir por el tejado. Se recorta el vano MISMO,
+            // no una copia: el reparto de vanos sueltos de más abajo reconoce
+            // por identidad los que ya están colocados, y con una copia volvía a
+            // colgar una segunda hoja en el mismo agujero.
+            vano.alto = Math.min(vano.alto, altoMuro - 0.05)
             segmentos.set(`p${r.code}|${lado}`, {
-              ...s2, alto: datos.meta.alturaMuro, color: r._color, vanos: [vano], proyectada: false,
+              ...s2, alto: altoMuro, color: r._color, proyectada: false, cota: cotaVano,
+              vanos: [vano],
             })
           }
         })
@@ -660,9 +698,34 @@
       // contorno si la sala es de forma libre.
       const aristas = aristasDe(r)
 
+      // En una sala de forma libre el `lado` que trae la puerta no sirve: el
+      // editor 2D lo calcula contra el RECTANGULO ENVOLVENTE, y el muro real
+      // puede estar metros adentro. La puerta del área técnica —el desembarco
+      // de la escalera— venía marcada 'abajo', o sea el borde del envolvente en
+      // z=28, cuando el contorno por ahí va por z=23,5: se quedaba sin arista
+      // donde abrirse y no se dibujaba. Para esas salas manda la geometría: se
+      // busca la arista del contorno más cercana al punto de la puerta.
+      const aristaCercana = (d) => {
+        let mejor = -1, dMin = Infinity
+        aristas.forEach((s, i) => {
+          const horiz = s.eje === 'h'
+          const along = horiz ? r.x + d.x : r.y + d.y
+          if (along < s.a - 0.6 || along > s.b + 0.6) return
+          const dist = Math.abs((horiz ? r.y + d.y : r.x + d.x) - s.pos)
+          if (dist < dMin) { dMin = dist; mejor = i }
+        })
+        return mejor
+      }
       const vanos = { arriba: [], abajo: [], izquierda: [], derecha: [] }
+      const vanosPorArista = new Map()
       ;(r.doors || []).forEach((d) => {
-        const lado = ladoDePuerta(r, d)
+        const iCerca = esLibre(r) ? aristaCercana(d) : -1
+        // El nombre del lado sigue haciendo falta para saber hacia dónde abre la
+        // hoja: se saca de a qué lado del centro de la sala cae esa arista.
+        const lado = iCerca < 0 ? ladoDePuerta(r, d)
+          : aristas[iCerca].eje === 'h'
+            ? (aristas[iCerca].pos > r.y + r.h / 2 ? 'abajo' : 'arriba')
+            : (aristas[iCerca].pos > r.x + r.w / 2 ? 'derecha' : 'izquierda')
         const centro = (lado === 'arriba' || lado === 'abajo' ? r.x + d.x : r.y + d.y) + anchoVano(d) / 2
         const esCarga = d.type === 'loading'
         const vano = {
@@ -679,7 +742,10 @@
           sala: r,
         }
         vano.abre = haciaDondeAbre(vano)
-        vanos[lado].push(vano)
+        if (iCerca >= 0) {
+          if (!vanosPorArista.has(iCerca)) vanosPorArista.set(iCerca, [])
+          vanosPorArista.get(iCerca).push(vano)
+        } else vanos[lado].push(vano)
       })
 
       aristas.forEach((s, iArista) => {
@@ -692,17 +758,29 @@
         // —cincuenta metros— arrancaba a 2,40 m del suelo, porque los cuartos
         // de maquinas de encima tienen su mismo ancho exacto.
         const clave = `${s.eje}|${round2(s.pos)}|${round2(s.a)}|${round2(s.b)}|${round2(cotaDe(r))}`
-        let reg = segmentos.get(clave)
-        if (!reg) {
-          reg = { eje: s.eje, pos: s.pos, a: s.a, b: s.b, alto, color: r._color, vanos: [], proyectada: s.proyectada, sube: false, subeHasta: null, cota: cotaDe(r) }
-          segmentos.set(clave, reg)
-        }
         // Altura manual del muro (herramienta del editor 2D): ausente/null es
         // la regla automática de siempre; 'techo' fuerza el sobremuro hasta la
         // cubierta aunque la regla no lo haría; un número fija el tabique en
         // esa cifra y sin sobremuro, así el editor manda sobre la regla.
         const manual = nombre ? (r.wallHeights || {})[nombre] : null
-        const altoLado = typeof manual === 'number' ? manual : alto
+        // Y por encima de la cubierta no pasa ninguno. En la planta baja no se
+        // nota nunca —el faldón más bajo mide justo los 2,90 del muro estándar—
+        // pero apoyados en el entrepiso esos mismos 2,90 rematan en 6,30 y
+        // salían por el tejado a lo largo de todo el frente del área técnica.
+        // La cubierta es una carpa de una sola cumbrera, así que sobre un tramo
+        // su punto más bajo cae siempre en una de las dos puntas.
+        const libreLado = (s.eje === 'h'
+          ? alturaBajoCubierta(s.pos)
+          : Math.min(alturaBajoCubierta(s.a), alturaBajoCubierta(s.b))) - cotaDe(r)
+        const altoLado = Math.max(0.05, Math.min(
+          typeof manual === 'number' ? manual : alto,
+          libreLado
+        ))
+        let reg = segmentos.get(clave)
+        if (!reg) {
+          reg = { eje: s.eje, pos: s.pos, a: s.a, b: s.b, alto: altoLado, color: r._color, vanos: [], proyectada: s.proyectada, sube: false, subeHasta: null, cota: cotaDe(r) }
+          segmentos.set(clave, reg)
+        }
         // Una arista INTERIOR del recorte no tiene lado al que pertenecer, y
         // tampoco puede ser fachada: remata como cualquier muro interior.
         const subeHastaLado = manual === 'techo' ? 'techo'
@@ -718,9 +796,11 @@
         reg.sube = reg.sube || !!subeHastaLado
         reg.cota = Math.max(reg.cota || 0, cotaDe(r))
         reg.proyectada = reg.proyectada && s.proyectada
+        // En forma libre el vano ya sabe su arista exacta, por geometría.
+        if (vanosPorArista.has(iArista)) reg.vanos.push(...vanosPorArista.get(iArista))
         // Cada vano va al TRAMO que lo contiene: un lado partido por el recorte
         // son varias aristas, y meter todos sus vanos en cada una los repetiria.
-        if (nombre) {
+        else if (nombre) {
           const mios = vanos[nombre].filter((v) => v.c > s.a - 0.02 && v.c < s.b + 0.02)
           // Si un vano no cae en ninguna arista de su lado —puede pasar si la
           // puerta quedo sobre el recorte—, se le da a la mas larga del lado.
@@ -1121,6 +1201,12 @@
       if ([...segmentos.values()].some((g) => g.vanos.includes(v))) continue
       for (const reg of segmentos.values()) {
         if (reg.eje !== v.eje || Math.abs(reg.pos - v.pos) > 0.06) continue
+        // Y a su misma cota: el mismo plano puede llevar dos tramos, uno de la
+        // planta baja y otro del segundo nivel. Sin este filtro la puerta del
+        // PASILLO S23 se abría en el muro del TÚNEL NACEDORAS No 2 —tres metros
+        // y medio en el aire, con la hoja colgada allá arriba— y abajo quedaba
+        // el muro corrido y sin vano.
+        if (Math.abs((reg.cota || 0) - (v.cota || 0)) > 0.06) continue
         if (v.c <= reg.a + 0.05 || v.c >= reg.b - 0.05) continue
         reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, abre: v.abre })
         reg.alto = Math.max(reg.alto, v.alto + 0.1)
@@ -1468,6 +1554,23 @@
         // ella; un muro interior que solo cierra el entrepiso remata contra su
         // piso, que es plano y no depende de dónde caiga el muro en la nave.
         const aTecho = s.subeHasta !== 'entrepiso'
+        // Los vanos del muro de ARRIBA, si en este mismo plano hay una sala del
+        // segundo nivel. El sobremuro sube de corrido —esa es la gracia, cerrar
+        // también por encima de las puertas— pero cuando detrás hay un cuarto
+        // del nivel 2 le tapiaba la suya: la puerta existe en el muro de arriba
+        // y este, a diez centímetros, la cerraba. Pasaba con el desembarco de la
+        // escalera al área técnica. Se le abre el mismo hueco.
+        const huecosArriba = []
+        for (const o of segmentos.values()) {
+          if (o === s || o.eje !== s.eje || Math.abs(o.pos - s.pos) > 0.25) continue
+          if ((o.cota || 0) <= Y0 + 0.02) continue
+          for (const v of (o.vanos || [])) {
+            huecosArriba.push({
+              a: v.c - v.ancho / 2, b: v.c + v.ancho / 2,
+              y0: (o.cota || 0) + (v.base || 0), y1: (o.cota || 0) + v.alto,
+            })
+          }
+        }
         const remate = (cc, zz, ll) => {
           // Aislando la planta baja, los muros se cortan a la altura del piso
           // del segundo nivel: se mira el nivel 1 como lo que es, un volumen
@@ -1478,9 +1581,28 @@
           // baja a 2,90 y un muro interno a 3,30 la atravesaria.
           const techo = Math.min(aTecho ? alturaBajoCubierta(zz) : SOFITO, alturaBajoCubierta(zz), tope)
           if (techo <= Y0 + s.alto + 0.02) return
-          const h = techo - Y0 - s.alto
-          if (s.eje === 'h') bloqueMuro(cc, Y0 + s.alto + h / 2, s.pos, ll, h, GROSOR_MURO, mat, true)
-          else bloqueMuro(s.pos, Y0 + s.alto + h / 2, cc, GROSOR_MURO, h, ll, mat, true)
+          const base = Y0 + s.alto
+          const trozo = (c2, l2, d0, d1) => {
+            const h = d1 - d0
+            if (h <= 0.02 || l2 <= 0.02) return
+            if (s.eje === 'h') bloqueMuro(c2, d0 + h / 2, s.pos, l2, h, GROSOR_MURO, mat, true)
+            else bloqueMuro(s.pos, d0 + h / 2, c2, GROSOR_MURO, h, l2, mat, true)
+          }
+          const p0 = cc - ll / 2, p1 = cc + ll / 2
+          const corta = huecosArriba
+            .filter((k) => k.b > p0 + 0.02 && k.a < p1 - 0.02 && k.y1 > base + 0.02 && k.y0 < techo - 0.02)
+            .sort((u, w) => u.a - w.a)
+          if (!corta.length) { trozo(cc, ll, base, techo); return }
+          let x = p0
+          for (const k of corta) {
+            const a = Math.max(p0, k.a), b = Math.min(p1, k.b)
+            if (a > x + 0.02) trozo((x + a) / 2, a - x, base, techo)
+            // Antepecho y dintel del vano de arriba, dentro de su propio ancho.
+            trozo((a + b) / 2, b - a, base, Math.max(base, Math.min(techo, k.y0)))
+            trozo((a + b) / 2, b - a, Math.min(techo, Math.max(base, k.y1)), techo)
+            x = Math.max(x, b)
+          }
+          if (p1 > x + 0.02) trozo((x + p1) / 2, p1 - x, base, techo)
         }
         const largoTotal = s.b - s.a
         const centroTotal = (s.a + s.b) / 2

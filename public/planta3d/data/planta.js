@@ -4,7 +4,7 @@
  * Todas las medidas están en METROS, con el mismo sistema del plano 2D de IncubApp:
  *   +X hacia el oriente del plano (derecha) · +Y hacia el sur del plano (abajo)
  * En 3D se usa: X = x del plano · Z = y del plano · Y = altura.
- * Instantánea tomada el 2026-09-03. Para actualizarla, vuelva a exportar de IncubApp.
+ * Instantánea tomada el 2026-09-04. Para actualizarla, vuelva a exportar de IncubApp.
  *
  * NOTA SOBRE LOS NOMBRES: la geometría es un volcado literal de Supabase, los rótulos no.
  * El 2026-07-29 se normalizaron en la base las erratas de S45, S47, S35, S50, S51 y S64,
@@ -22,7 +22,7 @@ window.PLANTA = {
     empresa: 'Antioqueña de Incubación SAS',
     ciudad: 'HISPANIA',
     direccion: 'Km 2, vía Hispania-Andes, vereda La Seca.',
-    snapshot: '2026-09-03',
+    snapshot: '2026-09-04',
     alturaMuro: 2.9, // altura libre contra la fachada del frente (m)
     // La nave va a dos aguas pero NO es simetrica: arranca en 5,60 contra la
     // fachada de atras —la del norte, donde esta el ala de incubadoras—, sube
@@ -129,7 +129,7 @@ window.PLANTA = {
     { id: 'a65ec9a5-c206-41e7-bed9-1b941e7d579b', code: 'S83', name: 'CUARTO DE MAQUINAS NAC 2', type: 'technical', x: 71, y: 7.6, w: 10.3, h: 1.8, rot: 0, color: null, nivel: 2, doors: [] },
     { id: 'f691d266-f3bf-4cb2-8b64-4c0c3a46f3bf', code: 'S84', name: 'CUARTO DE MAQUINAS NAC 3', type: 'technical', x: 56, y: 20.6, w: 10.3, h: 1.8, rot: 0, color: null, nivel: 2, doors: [] },
     { id: 'd1eee66d-9da5-4cd9-9e2c-595311fb35d0', code: 'S85', name: 'CUARTO DE MAQUINAS NAC 4', type: 'technical', x: 44, y: 20.6, w: 10.3, h: 1.8, rot: 0, color: null, nivel: 2, doors: [] },
-    { id: '067ed2d2-3980-43f8-8bc0-51717b19ea93', code: 'S86', name: 'AREA TECNICA DE AMBIENTE CONTROLADO', type: 'plenum', x: 12, y: 6, w: 85, h: 22, rot: 0, color: null, nivel: 2, puntos: [{ x: 0, y: 11.5 }, { x: 0, y: 22 }, { x: 17, y: 22 }, { x: 17, y: 17.5 }, { x: 85, y: 17.5 }, { x: 85, y: 0 }, { x: 54, y: 0 }, { x: 54, y: 11.5 }, { x: 0, y: 11.5 }], doors: [{ x: 39.4, y: 16, rot: 180, lado: 'abajo', type: 'normal' }] },
+    { id: '067ed2d2-3980-43f8-8bc0-51717b19ea93', code: 'S86', name: 'AREA TECNICA DE AMBIENTE CONTROLADO', type: 'technical', x: 12, y: 6, w: 85, h: 22, rot: 0, color: null, nivel: 2, puntos: [{ x: 0, y: 11.5 }, { x: 0, y: 22 }, { x: 17, y: 22 }, { x: 17, y: 17.5 }, { x: 85, y: 17.5 }, { x: 85, y: 0 }, { x: 54, y: 0 }, { x: 54, y: 11.5 }, { x: 0, y: 11.5 }], doors: [{ x: 39.4, y: 16, rot: 180, lado: 'abajo', type: 'normal' }] },
     { id: 'a9cdfafe-a0c3-4661-9f01-103aec827d7e', code: 'S87', name: 'Plenum NAC 4', type: 'plenum', x: 44, y: 20.4, w: 12, h: 3, rot: 0, color: null, altura: 3.4, parteDe: 'd7da3177-a600-499c-979a-90eaf9f3deaf', puntos: [{ x: 10.5, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 3 }, { x: 0, y: 3 }, { x: 0, y: 2 }, { x: 10.5, y: 2 }, { x: 10.5, y: 0 }], doors: [{ x: 10.85, y: 0, w: 0.8, h: 2, base: 0, lado: 'arriba', type: 'normal' }] },
     { id: '604fbba8-f481-4eb7-8692-808bc37dbf2b', code: 'S88', name: 'Plenum NAC 3', type: 'plenum', x: 56, y: 20.4, w: 12, h: 3, rot: 0, color: null, altura: 3.4, parteDe: '7a8eb99a-6f31-41a0-867d-789114bdbd2b', puntos: [{ x: 10.5, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 3 }, { x: 0, y: 3 }, { x: 0, y: 2 }, { x: 10.5, y: 2 }, { x: 10.5, y: 0 }], doors: [{ x: 10.85, y: 0, w: 0.8, h: 2, base: 0, lado: 'arriba', type: 'normal' }] },
     { id: '994e7dff-c212-41d4-a1d9-12bea484fc9a', code: 'S89', name: 'Plenum NAC 2', type: 'plenum', x: 71, y: 6, w: 11, h: 4.5, rot: 0, color: null, altura: 3.4, parteDe: '4525b77b-4257-4a69-bb42-355e85935a13', puntos: [{ x: 0, y: 0 }, { x: 11, y: 0 }, { x: 11, y: 4.5 }, { x: 10.1, y: 4.5 }, { x: 10.1, y: 3.4 }, { x: 10.3, y: 3.4 }, { x: 10.3, y: 1.6 }, { x: 0, y: 1.6 }, { x: 0, y: 0 }], doors: [{ x: 10.15, y: 4.5, w: 0.8, h: 2, base: 0, lado: 'abajo', type: 'normal' }] },

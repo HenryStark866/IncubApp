@@ -252,14 +252,47 @@ for (const r of R) {
   avisa('acceso', nom(r) + ' no tiene por donde entrar (nivel ' + (r.nivel || 1) + ')')
 }
 
+// Aristas del contorno, para las salas de forma libre: el `lado` que trae la
+// puerta lo calcula el editor 2D contra el RECTANGULO ENVOLVENTE, y en una sala
+// dibujada a mano el muro real puede estar metros adentro. El 3D ya resuelve la
+// puerta contra la arista mas cercana (mundo.js); aqui se hace igual, o el area
+// tecnica salia con una puerta "que no da a ninguna parte" que si da.
+const aristas = (r) => {
+  const p = contorno(r)
+  const out = []
+  for (let i = 0; i < p.length; i++) {
+    const A = p[i], B = p[(i + 1) % p.length]
+    if (Math.abs(A.y - B.y) < 0.02 && Math.abs(A.x - B.x) > 0.02)
+      out.push({ h: true, pos: (A.y + B.y) / 2, a: Math.min(A.x, B.x), b: Math.max(A.x, B.x) })
+    else if (Math.abs(A.x - B.x) < 0.02 && Math.abs(A.y - B.y) > 0.02)
+      out.push({ h: false, pos: (A.x + B.x) / 2, a: Math.min(A.y, B.y), b: Math.max(A.y, B.y) })
+  }
+  return out
+}
+const aristaDePuerta = (r, d) => {
+  if (!Array.isArray(r.puntos) || r.puntos.length < 3) return null
+  let mejor = null, dMin = Infinity
+  for (const s of (aristas(r) || [])) {
+    const along = s.h ? r.x + d.x : r.y + d.y
+    if (along < s.a - 0.6 || along > s.b + 0.6) continue
+    const dist = Math.abs((s.h ? r.y + d.y : r.x + d.x) - s.pos)
+    if (dist < dMin) { dMin = dist; mejor = s }
+  }
+  return mejor
+}
+
 // -- 5. puertas que dan a la nada -------------------------------------------
 for (const r of R) {
   if (!conMuro(r)) continue
   for (const d of (r.doors || [])) {
     if (d.type === 'window' || d.type === 'loading') continue
-    const l = d.lado || 'arriba'
+    const ar = aristaDePuerta(r, d)
+    const l = ar
+      ? (ar.h ? (ar.pos > r.y + r.h / 2 ? 'abajo' : 'arriba') : (ar.pos > r.x + r.w / 2 ? 'derecha' : 'izquierda'))
+      : (d.lado || 'arriba')
     const h = l === 'arriba' || l === 'abajo'
-    const muro = l === 'arriba' ? r.y : l === 'abajo' ? y1(r) : l === 'izquierda' ? r.x : x1(r)
+    const muro = ar ? ar.pos
+      : l === 'arriba' ? r.y : l === 'abajo' ? y1(r) : l === 'izquierda' ? r.x : x1(r)
     const de = (h ? r.x : r.y) + (h ? d.x : d.y), a = de + (d.w != null ? d.w : 1.6)
     const hay = R.some((o) => {
       if (o.id === r.id || (Number(o.nivel) || 1) !== (Number(r.nivel) || 1)) return false
@@ -272,7 +305,10 @@ for (const r of R) {
       return fin > de + 0.05 && ini < a - 0.05
     })
     const anfitriona = R.some((o) => o.id !== r.id && (Number(o.nivel) || 1) === (Number(r.nivel) || 1) && dentro(r, o))
-    if (!hay && !anfitriona) avisa('puerta', nom(r) + ' -- puerta en "' + l + '" no da a ninguna sala (nivel ' + (r.nivel || 1) + ')')
+    // A las salas que se alcanzan por la escalera del entrepiso la puerta les da
+    // al desembarco, que no es una sala: exigirle vecina de su mismo nivel es
+    // pedirle algo que no existe.
+    if (!hay && !anfitriona && !ESCALERA.has(r.code)) avisa('puerta', nom(r) + ' -- puerta en "' + l + '" no da a ninguna sala (nivel ' + (r.nivel || 1) + ')')
   }
 }
 
@@ -315,7 +351,17 @@ for (const r of R) {
   if (!conMuro(r) || r.exterior) continue
   const techo = cota(r) + alto(r)
   const libre = Math.min(bajoCubierta(r.y), bajoCubierta(y1(r)))
-  if (techo > libre + 0.03) avisa('cubierta', nom(r) + ' remata a ' + techo.toFixed(2) + ' y la cubierta ahi esta a ' + libre.toFixed(2))
+  // En la planta baja pasarse de la cubierta es un error de datos: el faldon
+  // mas bajo mide justo los 2,90 del muro estandar, asi que si algo lo supera
+  // es porque trae una altura mal puesta. Apoyado en el entrepiso, en cambio,
+  // pasarse es la norma —el area tecnica corre bajo toda la pendiente— y
+  // mundo.js recorta cada tramo de muro contra la cubierta. Lo que si importa
+  // ahi es cuanta altura libre queda para andar.
+  if (cota(r) < 0.01) {
+    if (techo > libre + 0.03) avisa('cubierta', nom(r) + ' remata a ' + techo.toFixed(2) + ' y la cubierta ahi esta a ' + libre.toFixed(2))
+  } else if (libre - cota(r) < 1.9) {
+    avisa('cubierta', nom(r) + ' queda con ' + (libre - cota(r)).toFixed(2) + ' m libres bajo la cubierta: no se pasa de pie por ese extremo')
+  }
 }
 
 // -- 9. recorrido -----------------------------------------------------------
