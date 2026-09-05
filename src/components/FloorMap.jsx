@@ -173,6 +173,44 @@ const largoMuro = (room, lado) =>
 // Metros con dos decimales y coma, como se leen en obra (sin la unidad).
 const m2 = (v) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 
+/**
+ * El patch de tamaño de una sala. En una rectangular son dos números y ya.
+ *
+ * En una de forma libre el tamaño ES el dibujo, así que cambiarlo es escalar el
+ * contorno: moviendo solo el rectángulo envolvente, el polígono se quedaría con
+ * su tamaño de origen y la sala dejaría de coincidir consigo misma. Los vanos
+ * se escalan con él por la misma razón — en forma libre cada uno se engancha a
+ * la arista más cercana del contorno, con 60 cm de tolerancia, y el que se
+ * quede atrás cuelga de un muro que ya no está ahí: desaparece del recorrido
+ * sin avisar. El ancho del vano no se toca: una puerta de 0,90 sigue midiendo
+ * 0,90 aunque la sala crezca; solo se mueve a donde quedó su muro.
+ */
+function patchTamano(room, ancho, alto) {
+  // Medio metro es el mínimo, no dos: media planta mide menos de dos —el
+  // corredor del comedor, 0,70; los W.C., 1,00.
+  const W = Math.max(0.5, round2(Number(ancho) || Number(room.width) || 0.5))
+  const H = Math.max(0.5, round2(Number(alto) || Number(room.height) || 0.5))
+  const patch = { width: W, height: H }
+  if (!isPoly(room)) return patch
+
+  const sx = Number(room.width) ? W / Number(room.width) : 1
+  const sy = Number(room.height) ? H / Number(room.height) : 1
+  if (sx === 1 && sy === 1) return patch
+
+  patch.points = room.points.map((p) => ({
+    x: round2((Number(p.x) || 0) * sx),
+    y: round2((Number(p.y) || 0) * sy),
+  }))
+  if ((room.doors ?? []).length) {
+    patch.doors = room.doors.map((d) => ({
+      ...d,
+      x: round2((Number(d.x) || 0) * sx),
+      y: round2((Number(d.y) || 0) * sy),
+    }))
+  }
+  return patch
+}
+
 function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, isFarm = false }) {
   const [name, setName] = useState('')
   const [type, setType] = useState(defaultType)
@@ -418,9 +456,8 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                   <MedidaInput
                     value={largoMuro(room, muro)}
                     min={0.5}
-                    disabled={poly}
                     title={poly
-                      ? 'En una sala de forma libre el largo lo da el contorno dibujado'
+                      ? 'En forma libre, cambiar el largo escala el contorno dibujado'
                       : 'Es el ancho o el fondo de la sala'}
                     onCommit={(v) => onWallLength(muro, v)}
                   />
@@ -429,7 +466,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
               <p className="hint" style={{ margin: '8px 0 0' }}>
                 Ahora: {wallHeightLabel(alturas[muro])}.{' '}
                 {poly
-                  ? 'Sala de forma libre: el largo lo da el contorno dibujado.'
+                  ? `Forma libre: cambiar el largo escala el dibujo por el ${EJE_LADO[muro] === 'H' ? 'ancho' : 'fondo'}.`
                   : `Cambiar el largo mueve el ${EJE_LADO[muro] === 'H' ? 'ancho' : 'fondo'} de la sala.`}
               </p>
             </div>
@@ -564,7 +601,12 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
     const clave = EJE_LADO[lado] === 'H' ? 'width' : 'height'
     const v = Math.max(0.5, round2(Number(metros) || 0))
     setForm((f) => ({ ...f, [clave]: v }))
-    onSave(room.id, { [clave]: v })
+    // El otro eje sale de la sala, no del formulario: tocar un muro cambia ese
+    // muro, no arrastra de paso una medida a medio escribir arriba.
+    onSave(
+      room.id,
+      patchTamano(room, clave === 'width' ? v : room.width, clave === 'height' ? v : room.height)
+    )
   }
 
   const submit = async () => {
@@ -577,15 +619,8 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
       rotation: ((Math.round(Number(form.rotation) || 0) % 360) + 360) % 360,
       color: form.useColor ? form.color : null,
     }
-    // Las salas de forma libre conservan su bounding box; solo las rectangulares editan tamaño
-    if (!poly) {
-      // Medio metro, no dos. El tope de 2 m impedia escribir el tamano real de
-      // media planta: el corredor exterior junto al comedor mide 0,70 de ancho,
-      // los cuartos de maquinas 1,80 de fondo y los W.C. 1,00. Aunque se
-      // escribiera el numero, esto lo subia a 2 al guardar.
-      patch.width = Math.max(0.5, Number(form.width) || room.width)
-      patch.height = Math.max(0.5, Number(form.height) || room.height)
-    }
+    // El tamaño viaja siempre, también en forma libre: allí escala el dibujo.
+    Object.assign(patch, patchTamano(room, form.width, form.height))
     const { error } = await onSave(room.id, patch)
     setBusy(false)
     if (error) setErr(error)
@@ -615,20 +650,18 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
             ))}
           </select>
         </label>
-        {poly ? (
-          <label>
-            Tamaño
-            <input type="text" value="Forma libre (dibujada)" disabled />
-          </label>
-        ) : (
-          <label>
-            Tamaño (ancho × alto, metros)
-            <span style={{ display: 'flex', gap: 6 }}>
-              <input type="number" min="0.5" step="0.1" value={form.width} onChange={set('width')} style={{ width: '50%' }} />
-              <input type="number" min="0.5" step="0.1" value={form.height} onChange={set('height')} style={{ width: '50%' }} />
+        <label>
+          Tamaño (ancho × alto, metros)
+          <span style={{ display: 'flex', gap: 6 }}>
+            <input type="number" min="0.5" step="0.1" value={form.width} onChange={set('width')} style={{ width: '50%' }} />
+            <input type="number" min="0.5" step="0.1" value={form.height} onChange={set('height')} style={{ width: '50%' }} />
+          </span>
+          {poly && (
+            <span className="hint" style={{ display: 'block', margin: '4px 0 0', fontSize: 11.5 }}>
+              Forma libre: el contorno dibujado y sus vanos se escalan con estas medidas.
             </span>
-          </label>
-        )}
+          )}
+        </label>
       </div>
 
       {/* Rotación / orientación */}
