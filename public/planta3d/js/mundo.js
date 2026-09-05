@@ -2166,6 +2166,7 @@
       return d
     })
     let tramosContorno = 0
+    let interiores = 0   // paños descartados por caer dentro de la losa, no en su borde
     if (ENTREPISO > 0 && seVeNivel(2)) {
       const PASO = 0.5
       const alza = (cx, cz, largoX, largoZ) => {
@@ -2205,6 +2206,16 @@
         if (puestos.has(k)) return
         puestos.add(k)
         if (!hayPisoArriba(cx + ix * 0.3, cz + iz * 0.3)) return
+        // Y si TAMBIÉN hay losa del otro lado, esto no es un borde: es un muro
+        // plantado en mitad del entrepiso. Pasa donde dos salas de la planta
+        // baja se SOLAPAN en vez de tocarse —la sala de transferencia entra
+        // medio metro en el pasillo túnel, y la de vacunación un metro en el
+        // lavado de nacimiento—: el vecino no cuenta como pegado (el `pega` de
+        // arriba pide 25 cm), el borde se daba por libre y se levantaban cuatro
+        // paños que encerraban un hueco de 2 × 0,5 m y otro de 1,5 × 1, de la
+        // losa a la cubierta. Dos saloncitos que no son ninguna sala, que no
+        // salen en el plano —porque no existen— y que no se podían borrar.
+        if (hayPisoArriba(cx - ix * 0.3, cz - iz * 0.3)) { interiores++; return }
         if (yaSube(cx, cz, lx, lz)) return
         alza(cx, cz, lx, lz)
       }
@@ -2222,7 +2233,8 @@
           }
         }
       }
-      console.info(`[planta3d] contorno del segundo nivel: ${tramosContorno} tramos`)
+      console.info(`[planta3d] contorno del segundo nivel: ${tramosContorno} tramos` +
+        (interiores ? ` (${interiores} descartados por quedar dentro de la losa)` : ''))
     }
 
     // ── Techos internos propios ────────────────────────────────────────────
