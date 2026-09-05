@@ -129,6 +129,50 @@ const DOOR_LABEL = Object.fromEntries(DOOR_TYPES.map((t) => [t.value, t.label]))
 const newId = () =>
   (globalThis.crypto?.randomUUID?.() ?? `d${Date.now()}${Math.random().toString(36).slice(2, 7)}`)
 
+// ── Medidas de un vano cuando no trae las suyas ────────────────────────────
+// Son las que aplica el recorrido 3D (public/planta3d/js/mundo.js) si la
+// puerta o la ventana no llevan escrito su tamaño. La herramienta avanzada las
+// enseña como marca de agua: así se ve qué se está cambiando antes de fijar un
+// número propio, y borrar el campo devuelve el vano a esta regla.
+const VANO_ANCHO_AUTO = { window: 1, loading: 2.6 }
+const anchoAuto = (d) => VANO_ANCHO_AUTO[d?.type] ?? 1.7
+const baseAuto = (d) => (d?.type === 'window' ? 1 : 0)
+const altoAuto = (d) => {
+  if (d?.type === 'window') return 1
+  if (d?.type === 'loading') return 2.8
+  // Un paso de carros mide lo mismo abra como abra: la altura la manda el ancho.
+  return (Number(d?.w) || anchoAuto(d)) >= 1.5 ? 2.3 : 2.15
+}
+const VANO_CORTO = {
+  normal: 'Puerta', sliding: 'Corredera', loading: 'Muelle', open: 'Vano', window: 'Ventana',
+}
+
+// Sitúa un vano sobre uno de los cuatro muros: del lado y de la distancia a lo
+// largo de ese muro salen las coordenadas x/y con las que se guarda. La
+// rotación se acomoda al eje del muro, sin voltear la hoja si ya estaba bien.
+function ubicarVano(room, d, lado, pos) {
+  const span = doorSpan(d)
+  const W = Number(room.width) || 0
+  const H = Number(room.height) || 0
+  const largo = EJE_LADO[lado] === 'H' ? W : H
+  const p = Math.min(Math.max(0, round2(pos)), Math.max(0, round2(largo - span)))
+  const q = ((Math.round((Number(d.rot) || 0) / 90) * 90) % 360 + 360) % 360
+  const rot = (q === 0 || q === 180 ? 'H' : 'V') === EJE_LADO[lado] ? q : (q + 90) % 360
+  const sitio =
+    lado === 'arriba' ? { x: p, y: 0 }
+      : lado === 'abajo' ? { x: p, y: round2(Math.max(0, H - span)) }
+        : lado === 'izquierda' ? { x: 0, y: p }
+          : { x: round2(Math.max(0, W - span)), y: p }
+  return { ...d, ...sitio, lado, rot }
+}
+// Distancia del vano a lo largo de su muro, desde la esquina de arranque.
+const posEnMuro = (d, lado) => (EJE_LADO[lado] === 'H' ? Number(d.x) || 0 : Number(d.y) || 0)
+// Largo de un muro: en una sala rectangular es el ancho o el fondo de la sala.
+const largoMuro = (room, lado) =>
+  round2(Number(EJE_LADO[lado] === 'H' ? room.width : room.height) || 0)
+// Metros con dos decimales y coma, como se leen en obra (sin la unidad).
+const m2 = (v) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
+
 function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, isFarm = false }) {
   const [name, setName] = useState('')
   const [type, setType] = useState(defaultType)
@@ -182,7 +226,321 @@ function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, 
   )
 }
 
-function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm = false }) {
+/**
+ * Campo de medida en metros. Se escribe libre y se guarda al salir del campo o
+ * con Enter —no en cada tecla—, para no mandar una escritura a la base por
+ * cada dígito. Vacío significa automático: entonces la marca de agua enseña la
+ * cifra que pone el recorrido 3D por su cuenta.
+ */
+function MedidaInput({ value, placeholder, min = 0, onCommit, disabled = false, title }) {
+  const [txt, setTxt] = useState(value == null ? '' : String(value))
+  useEffect(() => { setTxt(value == null ? '' : String(value)) }, [value])
+
+  const commit = () => {
+    const t = String(txt).trim().replace(',', '.')
+    if (t === '') {
+      if (value != null) onCommit(null)
+      return
+    }
+    const n = Number(t)
+    if (!Number.isFinite(n)) { setTxt(value == null ? '' : String(value)); return }
+    const v = Math.max(min, round2(n))
+    if (v !== value) onCommit(v)
+    else setTxt(String(v))
+  }
+
+  return (
+    <input
+      type="number" step="0.1" min={min} inputMode="decimal"
+      value={txt} title={title} placeholder={placeholder} disabled={disabled}
+      onChange={(e) => setTxt(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.currentTarget.blur() } }}
+    />
+  )
+}
+
+/**
+ * Herramienta avanzada de la sala: se elige un muro, una puerta o una ventana
+ * —en esta lista o tocándolo en el plano— y se le escriben las medidas.
+ *
+ *   · Muro: altura automática, hasta la cubierta o una cifra fija en metros, y
+ *     el largo, que es el ancho o el fondo de la sala.
+ *   · Puerta o ventana: tipo, muro donde va, distancia desde la esquina,
+ *     ancho, alto libre y a qué altura arranca (el antepecho de una ventana).
+ *
+ * Todo se guarda al momento, igual que arrastrar en el plano. La excepción es
+ * el largo del muro: eso es el tamaño de la sala, y por eso también se refleja
+ * en los campos de arriba. Dejar un campo vacío devuelve ese dato a automático.
+ */
+function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLength, poly, isFarm }) {
+  const [abierta, setAbierta] = useState(true)
+  const doors = room.doors ?? []
+  const alturas = room.wall_heights || {}
+  const muro = sel?.tipo === 'muro' ? sel.lado : null
+  const vano = sel?.tipo === 'vano' ? doors.find((d) => d.id === sel.doorId) : null
+  // En granja no hay recorrido 3D que levante muros: allí solo se editan vanos.
+  const conMuros = !isFarm
+
+  const ladoDe = (d) => (LADOS.includes(d.lado) ? d.lado : ladoDeVano(room, d))
+
+  const setAltura = (lado, valor) => {
+    const wh = { ...alturas }
+    if (valor == null) delete wh[lado]
+    else wh[lado] = valor
+    onPatch({ wall_heights: Object.keys(wh).length ? wh : null })
+  }
+
+  // Un cambio sobre el vano seleccionado. `pos` no es un campo suyo: es la
+  // distancia a lo largo del muro, de donde salen x/y. En una sala de forma
+  // libre no se recoloca nada — allí el muro lo decide la geometría del
+  // contorno, y llevar el vano al borde del rectángulo envolvente lo dejaría
+  // colgado de un muro que no existe.
+  const patchVano = (cambios) => {
+    if (!vano) return
+    const { pos, ...campos } = cambios
+    const doorsNext = doors.map((d) => {
+      if (d.id !== vano.id) return d
+      const nd = { ...d, ...campos }
+      for (const k of ['w', 'h', 'base', 'abre']) if (nd[k] == null) delete nd[k]
+      if (poly) return nd
+      const ladoPrevio = ladoDe(d)
+      const ladoNuevo = LADOS.includes(nd.lado) ? nd.lado : ladoPrevio
+      return ubicarVano(room, nd, ladoNuevo, pos != null ? pos : posEnMuro(d, ladoPrevio))
+    })
+    onPatch({ doors: doorsNext })
+  }
+
+  const quitarVano = () => {
+    onPatch({ doors: doors.filter((d) => d.id !== vano.id) })
+    onSelect(null)
+  }
+
+  return (
+    <div className="room-elems">
+      <div className="room-elems-head">
+        <span className="component-title">Muros, puertas y ventanas</span>
+        <button type="button" className="ghost small" onClick={() => setAbierta((v) => !v)}>
+          {abierta ? 'Ocultar' : 'Abrir herramienta'}
+        </button>
+      </div>
+
+      {abierta && (
+        <>
+          <p className="hint" style={{ margin: '0 0 10px' }}>
+            Elige un elemento aquí —o tócalo en el plano— y escríbele las medidas en metros. Se
+            guardan al momento; deja un campo vacío para devolverlo a automático.
+          </p>
+
+          {conMuros && (
+            <div className="elem-fields" style={{ marginBottom: 10 }}>
+              <label>
+                Altura de la sala (m)
+                <MedidaInput
+                  value={room.altura != null ? Number(room.altura) : null}
+                  placeholder="automática por tipo"
+                  min={0.5}
+                  title="La altura que toman todos sus muros, salvo los que fijes uno a uno"
+                  onCommit={(v) => onPatch({ altura: v })}
+                />
+              </label>
+            </div>
+          )}
+
+          <div className="elem-picker">
+            {conMuros && LADOS.map((lado) => (
+              <button
+                key={lado}
+                type="button"
+                className={`elem-btn${muro === lado ? ' active' : ''}${alturas[lado] != null ? ' tuned' : ''}`}
+                onClick={() => onSelect({ tipo: 'muro', lado })}
+              >
+                Muro {lado}
+                <small>{m2(largoMuro(room, lado))} m · {wallHeightLabel(alturas[lado])}</small>
+              </button>
+            ))}
+            {doors.map((d, i) => (
+              <button
+                key={d.id}
+                type="button"
+                className={`elem-btn${vano?.id === d.id ? ' active' : ''}${(d.w != null || d.h != null || d.base != null) ? ' tuned' : ''}`}
+                onClick={() => onSelect({ tipo: 'vano', doorId: d.id })}
+              >
+                {VANO_CORTO[d.type] ?? 'Vano'} {i + 1}
+                <small>
+                  muro {ladoDe(d)} · {m2(Number(d.w) || anchoAuto(d))} × {m2(Number(d.h) || altoAuto(d))} m
+                </small>
+              </button>
+            ))}
+          </div>
+
+          <div className="elem-add">
+            <span className="hint" style={{ margin: 0 }}>Agregar:</span>
+            {DOOR_TYPES.map((t) => (
+              <button key={t.value} type="button" className="chip ghost" onClick={() => onAddDoor?.(t.value)}>
+                + {t.label}
+              </button>
+            ))}
+          </div>
+
+          {muro && (
+            <div className="elem-editor">
+              <p className="elem-title">Muro {muro} · {m2(largoMuro(room, muro))} m de largo</p>
+              <div className="elem-seg">
+                <button
+                  type="button"
+                  className={`chip${alturas[muro] == null ? ' active' : ' ghost'}`}
+                  onClick={() => setAltura(muro, null)}
+                >
+                  Automática
+                </button>
+                <button
+                  type="button"
+                  className={`chip${alturas[muro] === 'techo' ? ' active' : ' ghost'}`}
+                  onClick={() => setAltura(muro, 'techo')}
+                >
+                  Hasta la cubierta
+                </button>
+              </div>
+              <div className="elem-fields">
+                <label>
+                  Altura fija (m)
+                  <MedidaInput
+                    value={typeof alturas[muro] === 'number' ? alturas[muro] : null}
+                    placeholder={room.altura != null ? `sala: ${m2(room.altura)} m` : 'automática'}
+                    min={0.3}
+                    title="Fija este muro en esa cifra, sin sobremuro"
+                    onCommit={(v) => setAltura(muro, v)}
+                  />
+                </label>
+                <label>
+                  Largo del muro (m)
+                  <MedidaInput
+                    value={largoMuro(room, muro)}
+                    min={0.5}
+                    disabled={poly}
+                    title={poly
+                      ? 'En una sala de forma libre el largo lo da el contorno dibujado'
+                      : 'Es el ancho o el fondo de la sala'}
+                    onCommit={(v) => onWallLength(muro, v)}
+                  />
+                </label>
+              </div>
+              <p className="hint" style={{ margin: '8px 0 0' }}>
+                Ahora: {wallHeightLabel(alturas[muro])}.{' '}
+                {poly
+                  ? 'Sala de forma libre: el largo lo da el contorno dibujado.'
+                  : `Cambiar el largo mueve el ${EJE_LADO[muro] === 'H' ? 'ancho' : 'fondo'} de la sala.`}
+              </p>
+            </div>
+          )}
+
+          {vano && (
+            <div className="elem-editor">
+              <p className="elem-title">
+                {VANO_CORTO[vano.type] ?? 'Vano'} · muro {ladoDe(vano)} ·{' '}
+                {m2(Number(vano.w) || anchoAuto(vano))} × {m2(Number(vano.h) || altoAuto(vano))} m ·
+                arranca a {m2(vano.base != null ? Number(vano.base) : baseAuto(vano))} m del piso
+              </p>
+              <div className="elem-fields">
+                <label>
+                  Tipo
+                  <select value={vano.type} onChange={(e) => patchVano({ type: e.target.value })}>
+                    {DOOR_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Muro
+                  <select
+                    value={ladoDe(vano)}
+                    disabled={poly}
+                    title={poly ? 'En forma libre el muro lo decide la geometría: arrastra el vano en el plano' : undefined}
+                    onChange={(e) => patchVano({ lado: e.target.value })}
+                  >
+                    {LADOS.map((l) => (<option key={l} value={l}>{l}</option>))}
+                  </select>
+                </label>
+                <label>
+                  Desde la esquina (m)
+                  <MedidaInput
+                    value={round2(posEnMuro(vano, ladoDe(vano)))}
+                    min={0}
+                    disabled={poly}
+                    title="Distancia desde el arranque del muro hasta el borde del vano"
+                    onCommit={(v) => patchVano({ pos: v })}
+                  />
+                </label>
+                <label>
+                  Ancho (m)
+                  <MedidaInput
+                    value={vano.w != null ? Number(vano.w) : null}
+                    placeholder={`auto ${m2(anchoAuto(vano))} m`}
+                    min={0.2}
+                    onCommit={(v) => patchVano({ w: v })}
+                  />
+                </label>
+                <label>
+                  Alto libre (m)
+                  <MedidaInput
+                    value={vano.h != null ? Number(vano.h) : null}
+                    placeholder={`auto ${m2(altoAuto(vano))} m`}
+                    min={0.2}
+                    title="Lo que mide el hueco de alto, desde donde arranca"
+                    onCommit={(v) => patchVano({ h: v })}
+                  />
+                </label>
+                <label>
+                  Arranca a (m del piso)
+                  <MedidaInput
+                    value={vano.base != null ? Number(vano.base) : null}
+                    placeholder={`auto ${m2(baseAuto(vano))} m`}
+                    min={0}
+                    title="Antepecho. Con 0 y el alto del muro queda una pared de vidrio entera"
+                    onCommit={(v) => patchVano({ base: v })}
+                  />
+                </label>
+                <label>
+                  Abre hacia
+                  <select value={vano.abre || ''} onChange={(e) => patchVano({ abre: e.target.value || null })}>
+                    <option value="">Automático</option>
+                    <option value="adentro">Adentro de la sala</option>
+                    <option value="afuera">Afuera</option>
+                  </select>
+                </label>
+              </div>
+              <div className="actions row" style={{ flexWrap: 'wrap' }}>
+                <button type="button" className="ghost small" onClick={() => patchVano({ w: null, h: null, base: null })}>
+                  Medidas automáticas
+                </button>
+                <button
+                  type="button"
+                  className="ghost small"
+                  title="Cambia el lado por el que gira la hoja"
+                  onClick={() => patchVano({ rot: ((Number(vano.rot) || 0) + 180) % 360 })}
+                >
+                  Voltear la hoja
+                </button>
+                <button type="button" className="ghost danger small" onClick={quitarVano}>
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!muro && !vano && (
+            <p className="hint" style={{ margin: 0 }}>
+              Nada seleccionado todavía: elige arriba un muro o un vano, o tócalo en el plano.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm = false, sel, onSelect }) {
   const poly = isPoly(room)
   const [form, setForm] = useState({
     name: room.name,
@@ -197,7 +555,17 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const doorCount = (room.doors ?? []).length
+
+  // El largo de un muro ES el tamaño de la sala por ese eje. Se guarda al
+  // momento, como todo lo de la herramienta avanzada, y además se refleja en
+  // los campos de arriba para que «Guardar cambios» no lo devuelva al valor
+  // con el que se abrió el recuadro.
+  const setLargoMuro = (lado, metros) => {
+    const clave = EJE_LADO[lado] === 'H' ? 'width' : 'height'
+    const v = Math.max(0.5, round2(Number(metros) || 0))
+    setForm((f) => ({ ...f, [clave]: v }))
+    onSave(room.id, { [clave]: v })
+  }
 
   const submit = async () => {
     setBusy(true)
@@ -306,19 +674,18 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
         )}
       </div>
 
-      {/* Puertas de la sala */}
-      <div className="room-door-row">
-        <span className="hint" style={{ margin: 0 }}>
-          Puertas: {doorCount}. Agrégalas y arrástralas en el plano al punto donde estén; ✕ para quitarlas.
-        </span>
-        <div className="actions row" style={{ marginTop: 0 }}>
-          {DOOR_TYPES.map((d) => (
-            <button key={d.value} type="button" className="chip ghost" onClick={() => onAddDoor?.(d.value)}>
-              + {d.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Herramienta avanzada: muro por muro y vano por vano. Las puertas se
+          siguen arrastrando en el plano; aquí se les escribe la medida. */}
+      <RoomElementsTool
+        room={room}
+        sel={sel}
+        onSelect={onSelect}
+        onAddDoor={onAddDoor}
+        onPatch={(patch) => onSave(room.id, patch)}
+        onWallLength={setLargoMuro}
+        poly={poly}
+        isFarm={isFarm}
+      />
 
       {/* Plenum sobre esta sala: dibuja a mano alzada un vacío técnico que
           cuelga del cielo raso de ESTA sala (queda como su anfitriona). */}
@@ -434,7 +801,7 @@ function PlenumRoomForm({ hostRooms, initialHostId, onCreate, onCancel }) {
 
 // Etiqueta legible del valor guardado en wall_heights para un muro.
 const wallHeightLabel = (v) =>
-  v == null ? 'automático (regla de siempre)' : v === 'techo' ? 'hasta la cubierta' : `${v} m fijo`
+  v == null ? 'automático (regla de siempre)' : v === 'techo' ? 'hasta la cubierta' : `${m2(v)} m fijo`
 
 // Tamaño fijo por tipo de máquina (en metros). Todas se ubican manualmente con drag.
 // Medidas tomadas en planta: la incubadora es 4 de ancho por 3.5 de fondo y la
@@ -613,9 +980,10 @@ export default function FloorMap({
   const [draftPoints, setDraftPoints] = useState([])
   const [cursor, setCursor] = useState(null)
   const [pendingShape, setPendingShape] = useState(null)
-  // Muro en edición: qué lado de qué sala tiene abierto el selector de altura
-  const [wallEdit, setWallEdit] = useState(null) // { roomId, lado }
-  const [wallHeightInput, setWallHeightInput] = useState('')
+  // Elemento de la envolvente en edición: un muro, una puerta o una ventana de
+  // la sala seleccionada. Se elige tocándolo en el plano o en la herramienta
+  // avanzada del recuadro de edición, y las dos vistas lo resaltan a la vez.
+  const [elemSel, setElemSel] = useState(null) // { roomId, tipo: 'muro'|'vano', lado?, doorId? }
   const containerRef = useRef(null)
   const wrapRef = useRef(null)     // contenedor con scroll: permite desplazar el plano arrastrando
   const didPanRef = useRef(false)  // marca si el último gesto fue un desplazamiento (para no seleccionar sala al soltar)
@@ -675,14 +1043,11 @@ export default function FloorMap({
     }
   }, [expanded, fitToScreen])
 
-  // Al abrir el selector de un muro, precarga el campo numérico con su valor
-  // actual (si ya tenía una cifra fija) para poder ajustarlo sin retipear.
+  // La selección de muro o de vano pertenece a una sala: al cambiar de sala, o
+  // al cerrar el detalle, deja de tener sentido y se suelta.
   useEffect(() => {
-    if (!wallEdit) { setWallHeightInput(''); return }
-    const v = selectedRoom?.wall_heights?.[wallEdit.lado]
-    setWallHeightInput(typeof v === 'number' ? String(v) : '')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallEdit])
+    setElemSel((sel) => (sel && sel.roomId === selectedId ? sel : null))
+  }, [selectedId])
 
   // Empuje con las flechas del teclado. Arrastrar con el ratón sirve para
   // llevar una sala de un sitio a otro, pero para dejarla a ras de su vecina
@@ -859,6 +1224,9 @@ export default function FloorMap({
       ...(type === 'window' ? { w: 1 } : null),
     }
     updateRoom(selectedRoom.id, { doors: [...(selectedRoom.doors ?? []), door] })
+    // Recién puesta queda seleccionada: la herramienta avanzada abre con ella y
+    // se le escriben las medidas sin tener que ir a buscarla en el plano.
+    setElemSel({ roomId: selectedRoom.id, tipo: 'vano', doorId: door.id })
   }
 
   const removeDoor = (room, doorId) => {
@@ -892,6 +1260,10 @@ export default function FloorMap({
         return { ...movida, lado: ladoDeVano(room, movida) }
       })
       updateRoom(room.id, { doors })
+    } else if (canManage) {
+      // Un clic sin arrastre es una selección: el vano se abre en la
+      // herramienta avanzada del recuadro de edición.
+      setElemSel({ roomId: room.id, tipo: 'vano', doorId: door.id })
     }
     setDdrag(null)
   }
@@ -916,17 +1288,6 @@ export default function FloorMap({
       return abre ? { ...resto, abre } : resto
     })
     updateRoom(room.id, { doors })
-  }
-
-  // ── Altura por muro ─────────────────────────────────────────
-  // null/ausente = automático (la regla de siempre, por tipo de sala y
-  // fachada); 'techo' = fuerza el muro hasta la cubierta aunque la regla
-  // automática no lo haría; un número = altura fija en metros, sin sobremuro.
-  const setWallHeight = (room, lado, value) => {
-    const wh = { ...(room.wall_heights || {}) }
-    if (value == null) delete wh[lado]
-    else wh[lado] = value
-    updateRoom(room.id, { wall_heights: Object.keys(wh).length ? wh : null })
   }
 
   // ── Rotación de salas y máquinas ───────────────────────────
@@ -1014,6 +1375,7 @@ export default function FloorMap({
     setDrawing(true)
     setDrawingPlenum(true)
     setEditing(false)
+    setElemSel(null)
   }
 
   const closeArea = () => {
@@ -1281,7 +1643,7 @@ export default function FloorMap({
                   return (
                     <div
                       key={d.id}
-                      className={`door door-${d.type}${isDdrag ? ' dragging' : ''}${editableRoom ? ' editable' : ''}`}
+                      className={`door door-${d.type}${isDdrag ? ' dragging' : ''}${editableRoom ? ' editable' : ''}${elemSel?.tipo === 'vano' && elemSel.doorId === d.id ? ' selected' : ''}`}
                       style={{
                         left: dx * scale,
                         top: dy * scale,
@@ -1336,10 +1698,10 @@ export default function FloorMap({
                 {!isFarm && editableRoom && LADOS.map((lado) => (
                   <div
                     key={lado}
-                    className={`room-wall room-wall-${lado}${room.wall_heights?.[lado] != null ? ' overridden' : ''}${wallEdit?.roomId === room.id && wallEdit?.lado === lado ? ' active' : ''}`}
+                    className={`room-wall room-wall-${lado}${room.wall_heights?.[lado] != null ? ' overridden' : ''}${elemSel?.roomId === room.id && elemSel?.lado === lado ? ' active' : ''}`}
                     title={`Muro ${lado}: ${wallHeightLabel(room.wall_heights?.[lado])}`}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); setWallEdit({ roomId: room.id, lado }) }}
+                    onClick={(e) => { e.stopPropagation(); setElemSel({ roomId: room.id, tipo: 'muro', lado }) }}
                   />
                 ))}
 
@@ -1457,7 +1819,7 @@ export default function FloorMap({
             <div className="actions row" style={{ marginTop: 0 }}>
               {canManage && (
                 <>
-                  <button className="ghost" onClick={() => setEditing(!editing)}>
+                  <button className="ghost" onClick={() => { if (editing) setElemSel(null); setEditing(!editing) }}>
                     {editing ? 'Cerrar edición' : (isFarm ? 'Editar módulo' : 'Editar sala')}
                   </button>
                   <button className="ghost danger" onClick={onDelete}>
@@ -1465,7 +1827,7 @@ export default function FloorMap({
                   </button>
                 </>
               )}
-              <button className="ghost" onClick={() => { setSelectedId(null); setEditing(false); setWallEdit(null) }}>
+              <button className="ghost" onClick={() => { setSelectedId(null); setEditing(false); setElemSel(null) }}>
                 Cerrar
               </button>
             </div>
@@ -1496,47 +1858,13 @@ export default function FloorMap({
               key={selectedRoom.id}
               room={selectedRoom}
               onSave={updateRoom}
-              onCancel={() => setEditing(false)}
+              onCancel={() => { setEditing(false); setElemSel(null) }}
               onAddDoor={addDoor}
               onStartPlenum={startPlenumFor}
               isFarm={isFarm}
+              sel={elemSel?.roomId === selectedRoom.id ? elemSel : null}
+              onSelect={(sel) => setElemSel(sel ? { ...sel, roomId: selectedRoom.id } : null)}
             />
-          )}
-          {editing && canManage && wallEdit && wallEdit.roomId === selectedRoom.id && (
-            <div className="inline-form compact">
-              <p className="component-title" style={{ margin: '0 0 4px' }}>
-                Muro «{wallEdit.lado}» de {selectedRoom.name}
-              </p>
-              <p className="hint" style={{ margin: '0 0 10px' }}>
-                Ahora: {wallHeightLabel(selectedRoom.wall_heights?.[wallEdit.lado])}
-              </p>
-              <div className="actions row" style={{ marginTop: 0, flexWrap: 'wrap' }}>
-                <button className="chip ghost" onClick={() => setWallHeight(selectedRoom, wallEdit.lado, null)}>
-                  Automático
-                </button>
-                <button className="chip ghost" onClick={() => setWallHeight(selectedRoom, wallEdit.lado, 'techo')}>
-                  Hasta la cubierta
-                </button>
-                <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="number" min="0.5" step="0.1" placeholder="metros"
-                    value={wallHeightInput}
-                    onChange={(e) => setWallHeightInput(e.target.value)}
-                    style={{ width: 90 }}
-                  />
-                  <button
-                    className="chip primary"
-                    disabled={!wallHeightInput}
-                    onClick={() => { setWallHeight(selectedRoom, wallEdit.lado, Number(wallHeightInput)); setWallHeightInput('') }}
-                  >
-                    Aplicar
-                  </button>
-                </span>
-              </div>
-              <div className="actions row">
-                <button className="ghost" onClick={() => setWallEdit(null)}>Cerrar</button>
-              </div>
-            </div>
           )}
         </>
       )}
