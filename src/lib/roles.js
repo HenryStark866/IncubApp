@@ -460,7 +460,7 @@ export function leaderTitle(role, area) {
  * Admin de plataforma sin org sigue en Administración.
  */
 /** Export «defaultHomeTab»: API pública de este módulo. Henry Stark Desarrollador */
-export function defaultHomeTab({ role, isPlatformAdmin }) {
+export function defaultHomeTab({ isPlatformAdmin }) {
   // Primero el módulo de negocio del servicio SaaS (no menú del cliente)
   if (isPlatformAdmin) return 'platform-business'
   return 'hoy'

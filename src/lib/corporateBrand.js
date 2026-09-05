@@ -5,7 +5,7 @@
  * Henry Stark Desarrollador · CDH Maker
  */
 
-import { PLATFORM, resolveBrandContext } from './platform'
+import { resolveBrandContext } from './platform'
 import { BRAND, LETTERHEAD } from './brandIdentity'
 
 /** Marca comercial del producto */

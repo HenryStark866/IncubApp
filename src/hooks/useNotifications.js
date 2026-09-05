@@ -58,7 +58,7 @@ export function useNotifications(orgId, userId, { role, area, isOmniscient } = {
         setNotifications(list)
         setError(null)
       }
-    } catch (e) {
+    } catch {
       setError(null)
       setNotifications([])
     }

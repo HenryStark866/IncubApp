@@ -96,7 +96,7 @@ export const PRIVACY_DOMAINS = [
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
      * herramientas de ejecución (actividades, cargue, monitoreo, historial).
      */
-    tabsFor: (role, area) => {
+    tabsFor: (role, _area) => {
       if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production') {
         return ['supervision', 'calibracion', 'horarios', 'monitoreo', 'cargue', 'historial']
       }

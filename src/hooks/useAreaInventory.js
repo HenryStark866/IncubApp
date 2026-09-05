@@ -160,7 +160,6 @@ export function useAreaInventory(orgId, userId) {
     async ({ inventoryId, movement_type, qty, notes }) => {
       const q = Number(qty)
       if (!inventoryId || !q || q <= 0) return { error: 'Cantidad inválida' }
-      const delta = movement_type === 'out' ? -q : movement_type === 'adjust' ? q : q
       // adjust: qty is signed via movement_type in form — for adjust use signed
       const signed =
         movement_type === 'out' ? -Math.abs(q) : movement_type === 'in' ? Math.abs(q) : Number(qty)

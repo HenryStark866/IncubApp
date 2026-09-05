@@ -12,10 +12,9 @@ import { domainsMemberOf, nativeTabsFor } from '../lib/privacyScopes'
  *   active: { role: string, area?: string|null } | null,
  *   onChange: (next: { role: string, area?: string|null } | null) => void,
  *   realRole?: string|null,
- *   realArea?: string|null,
  * }} props
  */
-export default function RolePreviewBar({ active, onChange, realRole, realArea }) {
+export default function RolePreviewBar({ active, onChange, realRole }) {
   const [open, setOpen] = useState(false)
   const role = active?.role || ''
   const area = active?.area || ''

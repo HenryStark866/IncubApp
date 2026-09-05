@@ -47,13 +47,6 @@ function rowsOf(res) {
   return res.data ?? []
 }
 
-function softErr(res) {
-  if (!res?.error) return null
-  const m = res.error.message || ''
-  if (/does not exist|schema cache|Could not find|relation|permission/i.test(m)) return null
-  return m
-}
-
 /**
  * @param {string} orgId
  * @param {string} moduleId

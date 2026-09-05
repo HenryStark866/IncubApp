@@ -787,7 +787,6 @@
             ? (aristas[iCerca].pos > r.y + r.h / 2 ? 'abajo' : 'arriba')
             : (aristas[iCerca].pos > r.x + r.w / 2 ? 'derecha' : 'izquierda')
         const centro = (lado === 'arriba' || lado === 'abajo' ? r.x + d.x : r.y + d.y) + anchoVano(d) / 2
-        const esCarga = d.type === 'loading'
         const vano = {
           c: centro,
           ancho: anchoVano(d),
@@ -1233,7 +1232,10 @@
         if (!cambia) return
         segmentos.delete(k)
         piezas.forEach((z, t) => {
-          if (!z) { z === null && reg.vanos.filter((v) => v.c > cortes[t] && v.c < cortes[t + 1]).forEach((v) => huerfanos.push({ v, reg })); return }
+          if (!z) {
+            if (z === null) reg.vanos.filter((v) => v.c > cortes[t] && v.c < cortes[t + 1]).forEach((v) => huerfanos.push({ v, reg }))
+            return
+          }
           segmentos.set(`b${k}#${t}`, {
             ...reg, a: z.p, b: z.q, alto: z.alto,
             sube: z.sube, subeHasta: z.sube ? reg.subeHasta : null,

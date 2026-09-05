@@ -51,7 +51,6 @@ export default function CoordEngineeringBoard({
   plantId,
   onPlantChange,
   hour,
-  shift,
   shiftLabel,
   lastTakeAt,
   op,

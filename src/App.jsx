@@ -95,11 +95,7 @@ import {
 import { capabilitiesFromTabs, primarySiloLabel } from './lib/privacyScopes'
 import { applyBrandToDocument, resolveBrandContext } from './lib/platform'
 import { recordAccess } from './lib/accessLog'
-import {
-  devicePermissionsAlreadyAsked,
-  markDevicePermissionsAsked,
-  requestOperationalDevicePermissions,
-} from './lib/devicePermissions'
+import { requestOperationalDevicePermissions } from './lib/devicePermissions'
 
 /** Tabs fijos de consola SaaS (evita recrear Set en cada render). */
 const PLATFORM_TAB_IDS = new Set([
@@ -218,24 +214,12 @@ function Workspace({
     applyBrandToDocument(brand)
   }, [brand])
 
-  // Permisos de dispositivo (cámara, GPS, notificaciones) — Removido el auto-prompt de arranque para evitar bloqueos del navegador
-  // Ahora se solicitarán de forma explícita bajo demanda por interacción del usuario.
-  /*
-  useEffect(() => {
-    if (!org?.id || isPlatformAdmin) return
-    if (devicePermissionsAlreadyAsked()) return
-    let cancelled = false
-    const t = setTimeout(() => {
-      if (cancelled) return
-      markDevicePermissionsAsked()
-      requestOperationalDevicePermissions().catch(() => {})
-    }, 1200)
-    return () => {
-      cancelled = true
-      clearTimeout(t)
-    }
-  }, [org?.id, isPlatformAdmin])
-  */
+  // Los permisos de dispositivo (cámara, GPS, notificaciones) NO se piden al
+  // arrancar: el navegador bloquea el diálogo si no viene de un gesto del
+  // usuario. Se piden bajo demanda, al aceptar los términos y al entrar a lo
+  // que los necesita, con `requestOperationalDevicePermissions`. El gate de
+  // «ya se preguntó» vive en lib/devicePermissions.js por si vuelve a hacer
+  // falta.
 
   const {
     online,
@@ -1090,7 +1074,7 @@ export default function App() {
         if (current === null) {
           localStorage.setItem('incubapp_share_location', '1')
         }
-      } catch (e) {}
+      } catch {}
     }
   }, [legal.loading, legal.accepted, userId])
 
@@ -1100,7 +1084,7 @@ export default function App() {
     if (res && !res.error) {
       try {
         localStorage.setItem('incubapp_share_location', '1')
-      } catch (e) {}
+      } catch {}
       // Solicitar el GPS y notificaciones inmediatamente después de la aceptación (bajo interacción del usuario)
       await requestOperationalDevicePermissions({
         camera: false,

@@ -19,7 +19,6 @@ import {
   localDriverMessages,
   localDrivers,
   localRoutes,
-  logUid,
 } from '../lib/logisticsLocalStore'
 
 /** Export «ROUTE_STATUS»: API pública de este módulo. Henry Stark Desarrollador */

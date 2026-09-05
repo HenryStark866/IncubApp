@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useLogisticsFleet,
   ROUTE_STATUS,
@@ -83,9 +83,6 @@ export default function LogisticsPanel({
       fleet.drivers.find((d) => d.id === myDriverId),
     [fleet.drivers, userId, myDriverId]
   )
-
-  const gpsEnabled =
-    Boolean(linkedDriver?.on_route) || view === 'mapa'
 
   const precisionGps = useHighPrecisionGps({
     enabled: Boolean(linkedDriver && (linkedDriver.on_route || view === 'mapa')),

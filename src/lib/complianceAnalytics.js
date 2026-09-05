@@ -6,7 +6,6 @@ import {
   DEFAULT_MIN_ROUNDS_PER_SHIFT,
   LABOR_KEYS,
   bogotaDate,
-  computeComplianceScore,
   defaultTargetsForRole,
   isShiftWorkerRole,
 } from './complianceEngine'

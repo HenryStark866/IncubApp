@@ -52,7 +52,6 @@ export function usePerformance({ orgId, userId, role, area }) {
       return
     }
     setLoading(true)
-    const today = bogotaDate()
 
     const memP = supabase
       .from('organization_members')
@@ -188,9 +187,6 @@ export function usePerformance({ orgId, userId, role, area }) {
 
     setLoading(false)
   }, [orgId, userId])
-
-  /** Asistencia en rango (misma lista cargada 90d; alias semántico para analítica) */
-  const attendanceAll = attendanceToday
 
   useEffect(() => {
     load()

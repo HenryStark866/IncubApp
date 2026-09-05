@@ -134,7 +134,7 @@ export function useSiloDispatches({ orgId, userId, role, area }) {
         cacheWrite(orgId, 'silo_dispatches', cloud)
         setRows(mergeLocal(cloud))
       }
-    } catch (e) {
+    } catch {
       setLocalMode(true)
       setError(null)
       const cached = cacheRead(orgId, 'silo_dispatches')
@@ -194,7 +194,7 @@ export function useSiloDispatches({ orgId, userId, role, area }) {
           const file = photoFile.type?.startsWith('image/')
             ? await compressImage(photoFile, 1280, 0.72)
             : photoFile
-          const safe = (photoFile.name || 'file').replace(/[^\w.\-]+/g, '_')
+          const safe = (photoFile.name || 'file').replace(/[^\w.-]+/g, '_')
           const path = `${orgId}/dispatches/${userId}/${Date.now()}_${safe}`
           const { error: upErr } = await supabase.storage
             .from('machine-checks')
