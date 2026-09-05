@@ -2820,25 +2820,23 @@
       })
 
       // ── Las duchas: el paso obligatorio ──────────────────────────────
-      // Aquí no hay «pasar por al lado». La ducha ES el paso: una barrera de
-      // lado a lado del filtro, partida en cabinas de un metro, y cada cabina
-      // con DOS puertas —una por donde se entra desde la zona sucia y otra por
-      // donde se sale a la limpia—. Todo el que entra a la planta pasa por
-      // dentro de una; de eso vive la bioseguridad.
+      // La ducha ES el paso, no algo al lado del paso: una barrera de muro a
+      // muro con cabinas de un metro, y por dentro de una pasa todo el que
+      // entra a la planta. De eso vive la bioseguridad.
       //
-      // Antes estaban dibujadas como dos cabinas a los costados con el paso
-      // libre por el medio, que es justo lo contrario: se podía cruzar el
-      // filtro sin ducharse.
+      // Cuántas lleva cada filtro no sale de la medida, lo dictó Henry: en zona
+      // limpia una por filtro —damas al occidente, hombres al oriente— y en
+      // zona sucia dos para damas y una para hombres. Lo que no es cabina es
+      // muro macizo; en el filtro el sitio se lo lleva el vestuario, y la
+      // lavandería es el espacio más amplio de esa zona.
+      const DUCHAS = { S29: 1, S30: 1, S38: 2, S39: 1 }
       const centro = largoEnZ ? cz : cx
       const fondoD = 1.25          // fondo de la cabina, en el sentido del paso
-      const altoT = 2.4            // los tabiques suben más que una mampara
-      const ESPESOR = 0.08
+      const altoT = 2.4
+      const ESPESOR = 0.09
+      const ANCHO_CAB = Math.min(1.0, anchoUtil - 0.2)
       const ANCHO_PUERTA = 0.7
-      // Cabinas de un metro, o lo más cerca que dé el ancho útil del filtro:
-      // en los de 3 m salen tres de 0,89.
-      const nCab = Math.max(1, Math.round(anchoUtil / 1.0))
-      const anchoCab = (anchoUtil - (nCab - 1) * ESPESOR) / nCab
-      const v0 = -anchoUtil / 2
+      const nCab = Math.max(1, DUCHAS[r.code] || 1)
 
       // Cilindros en el mismo marco (u = eje largo, v = eje corto) que `pon`.
       const ponCil = (u, v, y, radio, largo, eje, mat) => {
@@ -2848,78 +2846,92 @@
           : muebleCil(u, y, cz + v, radio, largo, ejeMundo, mat)
       }
 
-      // Tabiques entre cabinas: la barrera queda continua de muro a muro.
-      for (let i = 1; i < nCab; i++) {
-        pon(centro, v0 + i * (anchoCab + ESPESOR) - ESPESOR / 2,
-            fondoD, ESPESOR, altoT, altoT / 2, matTabique, true)
-      }
-
+      // La barrera, franja por franja: cabina o macizo.
+      const franjas = []
+      let vCursor = -anchoUtil / 2
       for (let i = 0; i < nCab; i++) {
-        const vC = v0 + i * (anchoCab + ESPESOR) + anchoCab / 2
-        const jamba = (anchoCab - ANCHO_PUERTA) / 2
+        const c = -anchoUtil / 2 + (anchoUtil / nCab) * (i + 0.5)
+        const a = c - ANCHO_CAB / 2
+        const b = c + ANCHO_CAB / 2
+        if (a - vCursor > 0.02) franjas.push([vCursor, a, false])
+        franjas.push([a, b, true])
+        vCursor = b
+      }
+      if (anchoUtil / 2 - vCursor > 0.02) franjas.push([vCursor, anchoUtil / 2, false])
 
-        // Los dos frentes, con su vano y su dintel
+      franjas.forEach(([a, b, esCabina]) => {
+        const ancho = b - a
+        const vC = (a + b) / 2
+        if (!esCabina) {
+          // Macizo de lado a lado del fondo: por aquí no se pasa ni se ve hueco.
+          pon(centro, vC, fondoD, ancho, altoT, altoT / 2, matTabique, true)
+          return
+        }
+
+        // Los dos frentes de la cabina, con su vano y su dintel
+        const jamba = (ancho - ANCHO_PUERTA) / 2
         ;[-1, 1].forEach((cara) => {
           const u = centro + (cara * fondoD) / 2
-          ;[-1, 1].forEach((lado) => {
-            pon(u, vC + lado * (ANCHO_PUERTA / 2 + jamba / 2),
-                ESPESOR, jamba, altoT, altoT / 2, matTabique, true)
-          })
-          pon(u, vC, ESPESOR, ANCHO_PUERTA, altoT - 2.05, 2.05 + (altoT - 2.05) / 2, matTabique, false)
+          if (jamba > 0.02) {
+            ;[-1, 1].forEach((lado) => {
+              pon(u, vC + lado * (ANCHO_PUERTA / 2 + jamba / 2),
+                  ESPESOR, jamba, altoT, altoT / 2, matTabique, true)
+            })
+          }
+          pon(u, vC, ESPESOR, ANCHO_PUERTA, altoT - 2.1, 2.1 + (altoT - 2.1) / 2, matTabique, false)
         })
 
         // Piso de la cabina y rejilla de desagüe
-        pon(centro, vC, fondoD - ESPESOR, anchoCab, 0.012, 0.006, matPlato, false)
+        pon(centro, vC, fondoD - ESPESOR, ancho - 0.02, 0.012, 0.006, matPlato, false)
         pon(centro, vC, 0.18, 0.18, 0.014, 0.014, matRejillaDucha, false)
 
-        // Regadera sobre el tabique de la izquierda de la cabina, apuntando
-        // adentro, y el mezclador a la altura de la mano.
-        const vMuro = vC - anchoCab / 2 + 0.07
-        const haciaDentro = 1
+        // Regadera colgando del brazo y mezclador a la altura de la mano
+        const vMuro = vC - ancho / 2 + 0.08
         ponCil(centro, vMuro, 1.1, 0.02, 2.0, 'y', matGrifo)
-        ponCil(centro, vMuro + haciaDentro * 0.16, 2.08, 0.018, 0.32, 'v', matGrifo)
-        ponCil(centro, vMuro + haciaDentro * 0.3, 2.0, 0.02, 0.14, 'y', matGrifo)
-        const reg = ponCil(centro, vMuro + haciaDentro * 0.3, 1.91, 0.1, 0.05, 'y', matGrifo)
+        ponCil(centro, vMuro + 0.16, 2.08, 0.018, 0.32, 'v', matGrifo)
+        ponCil(centro, vMuro + 0.3, 2.0, 0.02, 0.14, 'y', matGrifo)
+        const reg = ponCil(centro, vMuro + 0.3, 1.91, 0.1, 0.05, 'y', matGrifo)
         reg.scale.y = 0.7
-        pon(centro, vMuro + haciaDentro * 0.04, 0.13, 0.09, 0.15, 1.1, matGrifo, false)
+        pon(centro, vMuro + 0.04, 0.13, 0.09, 0.15, 1.1, matGrifo, false)
         ;[-0.08, 0.08].forEach((du) => {
-          ponCil(centro + du, vMuro + haciaDentro * 0.1, 1.1, 0.025, 0.055, 'v', matGrifo)
+          ponCil(centro + du, vMuro + 0.1, 1.1, 0.025, 0.055, 'v', matGrifo)
         })
 
-        // Las dos hojas. Entran en el mismo sistema de puertas del recorrido:
-        // se abren solas al acercarse, suenan y las manos del visitante se
-        // estiran hacia ellas. Cada una abre hacia SU lado de la barrera, que
-        // es hacia donde se empuja al pasar, y así ninguna roba sitio dentro de
-        // una cabina de 89 cm.
+        // Las dos hojas, CORREDIZAS, una a cada lado. Entran en el sistema de
+        // puertas del recorrido: se abren solas al acercarse, suenan y las manos
+        // del visitante se estiran hacia ellas. Corren hacia el macizo de al
+        // lado, que es donde hay muro para esconderlas.
+        const anchoHoja = ANCHO_PUERTA + 0.06
+        const sentido = vC <= 0 ? -1 : 1
         ;[-1, 1].forEach((cara) => {
           const u = centro + (cara * fondoD) / 2
           const mx = largoEnZ ? cx + vC : u
           const mz = largoEnZ ? u : cz + vC
+
           const pivote = new THREE.Group()
           const hoja = new THREE.Mesh(geoCaja, matHojaPeatonal)
-          hoja.scale.set(largoEnZ ? ANCHO_PUERTA : 0.04, 2.0, largoEnZ ? 0.04 : ANCHO_PUERTA)
-          hoja.position.set(largoEnZ ? ANCHO_PUERTA / 2 : 0, 1.0, largoEnZ ? 0 : ANCHO_PUERTA / 2)
+          hoja.scale.set(largoEnZ ? anchoHoja : 0.04, 2.05, largoEnZ ? 0.04 : anchoHoja)
+          hoja.position.set(0, 1.03, 0)
           hoja.castShadow = true
           pivote.add(hoja)
-          pivote.position.set(
-            largoEnZ ? mx - ANCHO_PUERTA / 2 : mx,
-            cotaActual,
-            largoEnZ ? mz : mz - ANCHO_PUERTA / 2
-          )
+          pivote.position.set(mx, cotaActual, mz)
           gPuertas.add(pivote)
+
+          // Riel sobre el vano, por donde corre
+          pon(u, vC + (sentido * anchoHoja) / 2, 0.05, anchoHoja * 2, 0.05, 2.14, matGrifo, false)
+
           puertas.push({
-            pivote, corre: false, enrolla: false,
-            // No pasa por el repaso que voltea hojas —ese ya corrió cuando se
-            // amuebla— y el sentido lo decide la barrera, no una medición.
+            pivote, corre: true, enrolla: false,
+            // El repaso que voltea hojas ya corrió cuando se amuebla, y aquí el
+            // sentido lo manda el macizo, no una medición.
             fijo: true,
             eje: largoEnZ ? 'h' : 'v',
             px: mx, pz: mz,
-            recorrido: 0, alza: 0,
-            giro: (largoEnZ ? -cara : cara) * (Math.PI / 2),
-            abierta: 0, meta: 0,
+            recorrido: sentido * anchoHoja,
+            alza: 0, giro: 0, abierta: 0, meta: 0,
           })
         })
-      }
+      })
 
       // Vestuarios: bancas contra los dos muros largos, entre locker y ducha
       const altoB = 0.45, fondoB = 0.36
