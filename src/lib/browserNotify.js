@@ -13,6 +13,8 @@
  * Notificaciones del sistema (Web Notification API + permiso).
  */
 
+import { pioNotificacion } from './sonidoPollito'
+
 /** Export «ensureNotifyPermission»: API pública de este módulo. Henry Stark Desarrollador */
 export async function ensureNotifyPermission() {
   if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -30,7 +32,16 @@ export async function ensureNotifyPermission() {
 
 /** Export «showBrowserNotification»: API pública de este módulo. Henry Stark Desarrollador */
 export function showBrowserNotification({ title, body, tag, onClick } = {}) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (typeof window === 'undefined') return
+  // El sonido de la app va PRIMERO y no depende del permiso del sistema: es
+  // nuestro, no del navegador. Casi nadie concede notificaciones de escritorio,
+  // y sin esto la mitad de la planta no se enteraría de nada.
+  try {
+    pioNotificacion()
+  } catch {
+    /* sin audio en este dispositivo: la notificación sigue su camino */
+  }
+  if (!('Notification' in window)) return
   if (Notification.permission !== 'granted') return
   try {
     const n = new Notification(title || 'IncubApp', {

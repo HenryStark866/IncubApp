@@ -2,8 +2,9 @@
  * Splash IncubApp (marca comercial) + firma CDH Maker (operador).
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { IncubAppProductMark, CdhSignature, APP_NAME, APP_SLOGAN } from './Brand'
+import { pioSplash } from '../lib/sonidoPollito'
 
 const DURATION = 1200
 const FADE = 400
@@ -17,12 +18,20 @@ export default function SplashScreen() {
     }
   })
 
+  // El saludo suena una sola vez por montaje: en desarrollo StrictMode corre
+  // este efecto dos veces y si no, el pollito pía cuatro veces en vez de dos.
+  const saludado = useRef(false)
+
   useEffect(() => {
     if (phase !== 'show') return
     try {
       sessionStorage.setItem('cdh_splash_shown', '1')
     } catch {
       /* */
+    }
+    if (!saludado.current) {
+      saludado.current = true
+      pioSplash()
     }
     const t1 = setTimeout(() => setPhase('fade'), DURATION)
     const t2 = setTimeout(() => setPhase('done'), DURATION + FADE)
