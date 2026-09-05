@@ -17,15 +17,16 @@
  *   · La voz está arriba, sobre los 3,3 kHz. Un pollito de un día no grazna,
  *     chilla. Bajarla a 2,8 lo volvía agradable pero dejaba de ser un pollito:
  *     sonaba a silbato.
- *   · Dura casi dos décimas, y entre pío y pío pasan tres. Iba a la mitad de eso
- *     y sonaba a máquina, no a pollito.
+ *   · Dura casi dos décimas, y entre pío y pío pasa casi medio segundo. A un
+ *     tercio de eso sonaba a máquina, no a pollito: piar es pausado.
  *   · Y lo que de verdad lo delata es el BARRIDO: arranca abajo, sube de golpe
  *     en la primera quinta parte y baja despacio el resto. Sin ese barrido, un
  *     tono de 3 kHz es el pitido de un microondas.
  *   · No es un tono puro ni sostenido: el segundo armónico pesa, la frecuencia
- *     TIEMBLA unos 30 Hz —eso es lo que más lo delata— y arranca con un soplo de
- *     ruido. A la salida, un filtro suave le quita el filo metálico de más
- *     arriba sin apagar la caña.
+ *     TIEMBLA —eso es lo que más lo delata— y arranca con un soplo de ruido. Y
+ *     el temblor no es uno solo ni va a compás: son dos, rápido y lento, con
+ *     las fases corridas, y el lento mueve también el volumen. A la salida, un
+ *     filtro suave le quita el filo metálico sin apagar la caña.
  *
  * Cada pío sale con una pizca de azar en el tono y en la duración: dos píos
  * exactamente iguales suenan a máquina, y un pollito nunca repite el mismo.
@@ -38,14 +39,14 @@ const VOLUMEN = 0.14 // el pío se oye mucho: bajo de sobra, y menos que la
 /** «pi-pí» del splash: el segundo, un pelo más agudo y más corto. */
 const SPLASH = [
   { t: 0.0, f0: 3250, dur: 0.19 },
-  { t: 0.32, f0: 3500, dur: 0.16 },
+  { t: 0.5, f0: 3480, dur: 0.17 },
 ]
 
 /** «pío-pío-pío» de una notificación: tres seguidos, el del medio más alto. */
 const NOTIFICACION = [
-  { t: 0.0, f0: 3300, dur: 0.17 },
-  { t: 0.29, f0: 3560, dur: 0.16 },
-  { t: 0.57, f0: 3200, dur: 0.2 },
+  { t: 0.0, f0: 3300, dur: 0.18 },
+  { t: 0.46, f0: 3520, dur: 0.17 },
+  { t: 0.92, f0: 3180, dur: 0.21 },
 ]
 
 let ctx = null
@@ -155,12 +156,34 @@ function pio(t0, { f0, dur }) {
   salida.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.06)
   salida.connect(maestro)
 
-  // El temblor: uno solo para todo el pío, con su profundidad por armónico.
-  const tremulo = ctx.createOscillator()
-  tremulo.type = 'sine'
-  tremulo.frequency.value = 27 + Math.random() * 9
-  tremulo.start(t0)
-  tremulo.stop(t1 + 0.08)
+  // DOS temblores, no uno. Con un solo LFO el vibrato sale medido y suena a
+  // sintetizador: el bicho de verdad no tiembla a compás. Uno rápido de unos
+  // 30 Hz y otro lento de 7, con fases que arrancan a destiempo, y entre los
+  // dos el pulso deja de ser periódico.
+  const rapido = ctx.createOscillator()
+  rapido.type = 'sine'
+  rapido.frequency.value = 26 + Math.random() * 10
+  const lento = ctx.createOscillator()
+  lento.type = 'sine'
+  lento.frequency.value = 6 + Math.random() * 4
+  // Arrancarlos antes del pío les corre la fase: si los dos empiezan en cero
+  // en cada pío, los tres de una notificación tiemblan exactamente igual.
+  // Nunca antes del reloj: con el contexto recién creado, t0 son dos
+  // centésimas y arrancar 0,2 s antes es un tiempo NEGATIVO, que `start()`
+  // rechaza con excepción — y ahí se queda el pío sin sonar.
+  const desfase = 0.05 + Math.random() * 0.2
+  const arranque = Math.max(ctx.currentTime, t0 - desfase)
+  ;[rapido, lento].forEach((o) => { o.start(arranque); o.stop(t1 + 0.08) })
+
+  // El vaivén de volumen va con el de tono, como en el bicho: va en su propio
+  // nodo, en serie, para que la cola siga muriendo del todo al final.
+  const vaiven = ctx.createGain()
+  vaiven.gain.value = 1
+  const profAm = ctx.createGain()
+  profAm.gain.value = 0.09
+  lento.connect(profAm)
+  profAm.connect(vaiven.gain)
+  vaiven.connect(salida)
 
   ;[1, 0.38, 0.13].forEach((peso, i) => {
     const n = i + 1
@@ -171,15 +194,19 @@ function pio(t0, { f0, dur }) {
     o.frequency.exponentialRampToValueAtTime(f0 * 0.95 * n, t0 + dur * 0.55)
     o.frequency.exponentialRampToValueAtTime(f0 * 0.74 * n, t1)
 
-    const prof = ctx.createGain()
-    prof.gain.value = f0 * 0.03 * n
-    tremulo.connect(prof)
-    prof.connect(o.frequency)
+    const pr = ctx.createGain()
+    pr.gain.value = f0 * 0.028 * n
+    rapido.connect(pr)
+    pr.connect(o.frequency)
+    const pl = ctx.createGain()
+    pl.gain.value = f0 * 0.013 * n
+    lento.connect(pl)
+    pl.connect(o.frequency)
 
     const g = ctx.createGain()
     g.gain.value = peso
     o.connect(g)
-    g.connect(salida)
+    g.connect(vaiven)
     o.start(t0)
     o.stop(t1 + 0.06)
   })
