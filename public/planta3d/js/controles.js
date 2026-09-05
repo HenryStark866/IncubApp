@@ -57,15 +57,21 @@
     // suelo es la planta baja aunque encima pase el entrepiso: si no, caminar
     // bajo la losa se leia como querer subirse a ella y no se podia dar un paso.
     const pisoEn = (x, z, desde) => {
+      const cotaAhora = desde == null ? st.piso : desde
       for (let i = 0; i < st.rampas.length; i++) {
         const r = st.rampas[i]
         if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue
         const t = Math.max(0, Math.min(1, (z - r.a0) / (r.a1 - r.a0)))
-        return r.y0 + (r.y1 - r.y0) * t
+        const y = r.y0 + (r.y1 - r.y0) * t
+        // Una rampa solo es suelo si se está A SU ALTURA. El puente de la
+        // escalera cruza el pasillo de zona sucia por encima, a 3,40, y su
+        // huella se leía como piso desde abajo: el paso quedaba prohibido —el
+        // salto era de más de tres metros— y no se podía pasar por debajo.
+        if (Math.abs(y - cotaAhora) > 1.2) continue
+        return y
       }
       const L = st.losa
-      const cerca = desde == null ? st.piso : desde
-      if (L && cerca > L.alto - 0.7) {
+      if (L && cotaAhora > L.alto - 0.7) {
         for (let i = 0; i < L.trozos.length; i++) {
           const t = L.trozos[i]
           if (x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) return L.alto

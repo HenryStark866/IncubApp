@@ -2315,36 +2315,6 @@
     })
     if (cielosRasos) console.info(`[planta3d] ${cielosRasos} techo(s) interno(s) propio(s)`)
 
-    // ── Cielo raso de la planta baja ───────────────────────────────────────
-    // Las salas de abajo no tenían techo: mirando hacia arriba se veía el
-    // interior de la cubierta, y desde el aire el segundo nivel parecía no
-    // tener piso. Va una losa maciza de 5 cm, blanca como los muros, sobre cada
-    // sala de planta baja que NO lleve el entrepiso encima —esas ya tienen la
-    // losa del nivel 2 haciendo de techo, y dos losas a la misma cota se pelean
-    // en pantalla— y que no traiga cielo raso propio declarado.
-    //
-    // Va en su propio grupo, no con la cubierta: la cubierta es traslúcida a
-    // propósito para poder mirar la planta desde arriba, y un cielo raso opaco
-    // ahí dentro taparía el interior en la maqueta. Se enciende solo cuando se
-    // está adentro, caminando o en el recorrido guiado.
-    const matCieloBlanco = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.92, metalness: 0.02 })
-    let cielos = 0
-    datos.rooms.forEach((r) => {
-      if (esNivel2(r) || r.exterior || r.type === 'plenum' || r.parteDe) return
-      if (!r._cat.muro || TECHO_PROPIO[r.code] || llevaEntrepiso(r)) return
-      if (!seVeNivel(1)) return
-      const cota = cotaDe(r) + alturaDe(r)
-      rectangulosDe(r).forEach((q) => {
-        const losa = new THREE.Mesh(geoCaja, matCieloBlanco)
-        losa.scale.set(q.x1 - q.x0, 0.05, q.z1 - q.z0)
-        losa.position.set((q.x0 + q.x1) / 2, cota + 0.025, (q.z0 + q.z1) / 2)
-        losa.receiveShadow = true
-        gCielos.add(losa)
-        cielos++
-      })
-    })
-    if (cielos) console.info(`[planta3d] ${cielos} losa(s) de cielo raso en planta baja`)
-
     // ── Tapa de los tuneles ────────────────────────────────────────────────
     // Los cuatro tuneles almacenan aire limpio del exterior: son volumenes
     // sellados, del mismo panel que el resto de la planta, y solo se abren por
@@ -2443,6 +2413,54 @@
     // La losa se ve siempre que se vea el segundo nivel: es su piso. Solo se
     // apaga al aislar la planta baja, que es cuando estorba.
     gEntrepiso.visible = nivelFiltro !== 1
+
+    // ── Cielo raso de la planta baja ───────────────────────────────────────
+    // Las salas de abajo se veían sin techo: el techo que ya existía es el
+    // traslúcido teñido del color de la sala, y vive en el grupo de la CUBIERTA,
+    // que viene apagado de fábrica para poder mirar la planta desde arriba. Así
+    // que caminando no había nada encima y desde el aire el segundo nivel
+    // parecía no tener piso.
+    //
+    // Va una losa maciza de 5 cm, blanca como los muros:
+    //   · en una sala con entrepiso encima, a la cota del entrepiso, que es el
+    //     piso del nivel 2 — y solo donde la losa de verdad NO llega, porque la
+    //     losa se recorta a la huella que tiene piso arriba y deja fuera salas
+    //     enteras (transferencia, nacedoras 1 y 2);
+    //   · en el resto, a la altura de su propio muro.
+    // Un centímetro por debajo de la losa, para que donde se solapen no se
+    // peleen en pantalla.
+    const matCieloBlanco = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.92, metalness: 0.02 })
+    const losaCubre = (x, z) => trozosLosa.some((t) => x > t.x0 + 0.05 && x < t.x1 - 0.05 && z > t.z0 + 0.05 && z < t.z1 - 0.05)
+    let cielos = 0
+    datos.rooms.forEach((r) => {
+      if (esNivel2(r) || r.exterior || r.type === 'plenum' || r.parteDe) return
+      // Los pasillos también llevan techo: no tienen muro propio —se abren a
+      // las salas— pero están bajo el mismo cielo raso, y sin esto el corredor
+      // de zona sucia se veía a cielo abierto. Fuera quedan solo los espacios
+      // que de verdad son exteriores.
+      if (/^(exterior|green_area|road|parking|tank)$/.test(r.type) || !seVeNivel(1)) return
+      const conLosa = llevaEntrepiso(r)
+      const cota = conLosa ? ENTREPISO - 0.01 : cotaDe(r) + alturaDe(r)
+      rectangulosDe(r).forEach((q) => {
+        // Si la losa del entrepiso ya tapa este trozo entero, ella hace de
+        // techo y aquí no va nada.
+        if (conLosa) {
+          const puntos = [
+            [q.x0 + 0.2, q.z0 + 0.2], [q.x1 - 0.2, q.z0 + 0.2],
+            [q.x0 + 0.2, q.z1 - 0.2], [q.x1 - 0.2, q.z1 - 0.2],
+            [(q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2],
+          ]
+          if (puntos.every(([px, pz]) => losaCubre(px, pz))) return
+        }
+        const losa = new THREE.Mesh(geoCaja, matCieloBlanco)
+        losa.scale.set(q.x1 - q.x0, 0.05, q.z1 - q.z0)
+        losa.position.set((q.x0 + q.x1) / 2, cota + 0.025, (q.z0 + q.z1) / 2)
+        losa.receiveShadow = true
+        gCielos.add(losa)
+        cielos++
+      })
+    })
+    if (cielos) console.info(`[planta3d] ${cielos} losa(s) de cielo raso en planta baja`)
 
     // ── Salas proyectadas: techo propio y aviso ────────────────────────────
     // La cava del huevo aún no existe: se dibuja como quedará. A diferencia del
