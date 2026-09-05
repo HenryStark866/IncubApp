@@ -186,6 +186,11 @@
   function ponerVista(v, silencioso) {
     vista = v
     document.body.classList.toggle('fps', v === 'fps')
+    // El cielo raso se enciende al entrar y se apaga al salir. No cuelga del
+    // interruptor de «Techos» —ese es el de la CUBIERTA, que viene apagada de
+    // fábrica para poder mirar la planta desde arriba— y `aplicarOpciones` solo
+    // corre cuando el usuario toca algo, así que se pone aquí.
+    if (mundo.grupos.cielos) mundo.grupos.cielos.visible = v === 'fps' || v === 'tour'
     $$('#grupoVistas button').forEach((b) => b.classList.toggle('activo', b.dataset.vista === v))
     $('#grupoOrientacion').style.display = v === 'fps' || v === 'tour' ? 'none' : ''
     tour.activo = v === 'tour'
@@ -559,6 +564,9 @@
     mundo.grupos.etiquetas.visible = opciones.etiquetas
     mundo.grupos.equipos.visible = opciones.equipos
     mundo.grupos.techos.visible = opciones.techos
+    // El cielo raso es opaco: desde arriba taparía la planta entera, así que
+    // solo se ve estando dentro.
+    if (mundo.grupos.cielos) mundo.grupos.cielos.visible = vista === 'fps' || vista === 'tour'
     // La losa del entrepiso es el PISO del segundo nivel, no un techo: se ve
     // siempre que se vea ese nivel —traslúcida con los dos a la vista, opaca al
     // aislarlo— y solo se apaga al aislar la planta baja. Atada al interruptor

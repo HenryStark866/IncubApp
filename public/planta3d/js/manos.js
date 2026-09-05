@@ -141,8 +141,12 @@
     raiz.scale.setScalar(0.95)
     camara.add(raiz)
 
-    const der = armarMano(1)
-    const izq = armarMano(-1)
+    // El espejo iba al revés: la mano del lado derecho salía construida como
+    // izquierda —pulgar y abanico de nudillos hacia el lado que no es—. Se ve
+    // en cuanto uno se mira las manos, y en un video de capacitación es de lo
+    // primero que salta.
+    const der = armarMano(-1)
+    const izq = armarMano(1)
     raiz.add(der.grupo, izq.grupo)
 
     // Reposo: entran en diagonal desde las esquinas de abajo, como el brazo

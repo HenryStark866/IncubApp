@@ -95,6 +95,7 @@
     const gPuertas = new THREE.Group(); gPuertas.name = 'puertas'
     const gEquipos = new THREE.Group(); gEquipos.name = 'equipos'
     const gTechos = new THREE.Group(); gTechos.name = 'techos'
+    const gCielos = new THREE.Group(); gCielos.name = 'cielos'   // cielo raso de la planta baja
     // La losa del entrepiso va en su propio grupo: es el TECHO de la planta
     // baja pero el PISO del segundo nivel, y metida con los techos desaparecia
     // en cuanto se apagaban para poder mirar adentro — con lo que el nivel 2
@@ -102,7 +103,7 @@
     const gEntrepiso = new THREE.Group(); gEntrepiso.name = 'entrepiso'
     const gEtiquetas = new THREE.Group(); gEtiquetas.name = 'etiquetas'
     const gCotas = new THREE.Group(); gCotas.name = 'cotas'
-    raiz.add(gPisos, gMuros, gPuertas, gEquipos, gTechos, gEntrepiso, gEtiquetas, gCotas)
+    raiz.add(gPisos, gMuros, gPuertas, gEquipos, gTechos, gCielos, gEntrepiso, gEtiquetas, gCotas)
     // Asidero para inspeccionar la planta ya construida desde la consola:
     // contar vidrios, buscar una sala, medir un muro. No lo usa el recorrido.
     globalThis.__PLANTA3D = { raiz, gPisos, gMuros, gPuertas, gEquipos, gTechos, segmentos: null, puertas: null, colisiones: null, losa: null, rampas: null }
@@ -723,9 +724,22 @@
                    g.a < vano.c - 0.1 && g.b > vano.c + 0.1
           )
           if (!yaHay) {
-            const s2 = horiz
+            let s2 = horiz
               ? { eje: 'h', pos, a: r.x, b: r.x + r.w }
               : { eje: 'v', pos, a: r.y, b: r.y + r.h }
+            // En una sala de forma libre el muro que la puerta obliga a levantar
+            // NO cruza todo el rectángulo envolvente: solo el tramo del CONTORNO
+            // donde está el vano. El plenum de las nacedoras es una L —una
+            // franja detrás de la hilera y una pata por el costado— y su
+            // envolvente son los 12 m del salón: se plantaba un muro de once
+            // metros por delante de las máquinas y al entrar no se veía una sola
+            // nacedora, solo la puertilla del plenum.
+            if (esLibre(r)) {
+              const arista = aristasDe(r).find((z) =>
+                z.eje === s2.eje && Math.abs(z.pos - pos) < 0.06 &&
+                vano.c > z.a - 0.12 && vano.c < z.b + 0.12)
+              if (arista) s2 = { eje: s2.eje, pos, a: arista.a, b: arista.b }
+            }
             // Nunca por encima de la cubierta. Un tabique del segundo nivel
             // arranca a 3,40 y con los 2,90 de rigor remata en 6,30, muy por
             // encima del faldón: hacia la fachada del frente la cubierta va
@@ -1376,6 +1390,9 @@
     const matPlenum = new THREE.MeshStandardMaterial({
       color: 0x5c6f8f, roughness: 0.7, metalness: 0.05, transparent: true, opacity: 0.32,
     })
+    // El tabique que cierra el plenum: chapa clara como el resto del salón, no
+    // un vidrio azul. Lo que se ve desde adentro del salón es esto.
+    const matTabiquePlenum = new THREE.MeshStandardMaterial({ color: 0xe9edf1, roughness: 0.8, metalness: 0.04 })
     const geoBordePlenum = new THREE.EdgesGeometry(geoCaja)
     datos.rooms.forEach((r) => {
       if (r.type !== 'plenum') return
@@ -1394,23 +1411,62 @@
       const base = piso
 
       if (Array.isArray(r.puntos) && r.puntos.length > 2) {
-        const forma = new THREE.Shape()
-        r.puntos.forEach((p, i) => {
-          const px = r.x + p.x, pz = r.y + p.y
-          if (i === 0) forma.moveTo(px, pz)
-          else forma.lineTo(px, pz)
+        // El plenum NO es otra sala. Es el vacío que queda detrás de la hilera
+        // de nacedoras y a su costado, cerrado por un tabique con su puertilla:
+        // un espacio confinado DENTRO del mismo salón. Se dibujaba como un
+        // bloque translúcido de piso a techo sobre toda su huella, y al entrar
+        // al salón uno se daba de narices con esa masa en vez de ver las
+        // máquinas. Ahora se levanta solo el tabique que lo cierra y por dentro
+        // queda hueco, que es lo que hay.
+        const pts = r.puntos.map((p) => ({ x: r.x + p.x, z: r.y + p.y }))
+        // Su alto es el del salón que lo aloja: un tabique más alto que la sala
+        // saldría por el cielo raso.
+        const altoTab = Math.min(alto, alturaDe(host))
+        // Un lado que cae sobre el muro del salón ya está construido: repetirlo
+        // ahí es un tabique dentro de un muro.
+        const sobreElMuro = (a, b) => {
+          const eps = 0.14
+          if (Math.abs(a.x - b.x) < 0.02) {
+            return Math.abs(a.x - host.x) < eps || Math.abs(a.x - (host.x + host.w)) < eps
+          }
+          if (Math.abs(a.z - b.z) < 0.02) {
+            return Math.abs(a.z - host.y) < eps || Math.abs(a.z - (host.y + host.h)) < eps
+          }
+          return false
+        }
+        // El lado que lleva la puertilla ya lo levanta el sistema de vanos, con
+        // su hueco: repetirlo aquí tapia la única entrada al plenum.
+        const conVano = (a, b) => (r.doors || []).some((d) => {
+          const L = ladoDePuerta(r, d)
+          const horizD = L === 'arriba' || L === 'abajo'
+          const posD = L === 'arriba' ? r.y : L === 'abajo' ? r.y + r.h
+                     : L === 'izquierda' ? r.x : r.x + r.w
+          const cD = (horizD ? r.x + d.x : r.y + d.y) + anchoVano(d) / 2
+          const horizE = Math.abs(a.z - b.z) < 0.02
+          if (horizD !== horizE) return false
+          if (Math.abs(posD - (horizE ? a.z : a.x)) > 0.14) return false
+          const e0 = horizE ? Math.min(a.x, b.x) : Math.min(a.z, b.z)
+          const e1 = horizE ? Math.max(a.x, b.x) : Math.max(a.z, b.z)
+          return cD > e0 - 0.2 && cD < e1 + 0.2
         })
-        const geo = new THREE.ExtrudeGeometry(forma, { depth: alto, bevelEnabled: false })
-        // La forma se dibuja en el plano XY y se extruye hacia +Z: se acuesta
-        // para que quede en planta y se sube hasta su cota.
-        geo.rotateX(Math.PI / 2)
-        geo.translate(0, tope, 0)
-        geo.computeVertexNormals()
-        gMuros.add(new THREE.Mesh(geo, matPlenum))
-        gMuros.add(new THREE.LineSegments(
-          new THREE.EdgesGeometry(geo),
-          new THREE.LineBasicMaterial({ color: 0x8fa3c8, transparent: true, opacity: 0.55 })
-        ))
+        for (let k = 0; k < pts.length; k++) {
+          const a = pts[k], b = pts[(k + 1) % pts.length]
+          const dx = Math.abs(b.x - a.x), dz = Math.abs(b.z - a.z)
+          const largo = Math.max(dx, dz)
+          if (largo < 0.06 || sobreElMuro(a, b) || conVano(a, b)) continue
+          const horiz = dz < 0.02
+          const tab = new THREE.Mesh(geoCaja, matTabiquePlenum)
+          tab.scale.set(horiz ? largo : 0.09, altoTab, horiz ? 0.09 : largo)
+          tab.position.set((a.x + b.x) / 2, base + altoTab / 2, (a.z + b.z) / 2)
+          tab.castShadow = true
+          tab.receiveShadow = true
+          gMuros.add(tab)
+          colisiones.push({
+            x0: Math.min(a.x, b.x) - (horiz ? 0 : 0.045), x1: Math.max(a.x, b.x) + (horiz ? 0 : 0.045),
+            z0: Math.min(a.z, b.z) - (horiz ? 0.045 : 0), z1: Math.max(a.z, b.z) + (horiz ? 0.045 : 0),
+            y0: base, y1: base + altoTab,
+          })
+        }
       } else {
         const caja = new THREE.Mesh(geoCaja, matPlenum)
         caja.position.set(r.x + r.w / 2, base + alto / 2, r.y + r.h / 2)
@@ -2258,6 +2314,36 @@
       cielosRasos++
     })
     if (cielosRasos) console.info(`[planta3d] ${cielosRasos} techo(s) interno(s) propio(s)`)
+
+    // ── Cielo raso de la planta baja ───────────────────────────────────────
+    // Las salas de abajo no tenían techo: mirando hacia arriba se veía el
+    // interior de la cubierta, y desde el aire el segundo nivel parecía no
+    // tener piso. Va una losa maciza de 5 cm, blanca como los muros, sobre cada
+    // sala de planta baja que NO lleve el entrepiso encima —esas ya tienen la
+    // losa del nivel 2 haciendo de techo, y dos losas a la misma cota se pelean
+    // en pantalla— y que no traiga cielo raso propio declarado.
+    //
+    // Va en su propio grupo, no con la cubierta: la cubierta es traslúcida a
+    // propósito para poder mirar la planta desde arriba, y un cielo raso opaco
+    // ahí dentro taparía el interior en la maqueta. Se enciende solo cuando se
+    // está adentro, caminando o en el recorrido guiado.
+    const matCieloBlanco = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.92, metalness: 0.02 })
+    let cielos = 0
+    datos.rooms.forEach((r) => {
+      if (esNivel2(r) || r.exterior || r.type === 'plenum' || r.parteDe) return
+      if (!r._cat.muro || TECHO_PROPIO[r.code] || llevaEntrepiso(r)) return
+      if (!seVeNivel(1)) return
+      const cota = cotaDe(r) + alturaDe(r)
+      rectangulosDe(r).forEach((q) => {
+        const losa = new THREE.Mesh(geoCaja, matCieloBlanco)
+        losa.scale.set(q.x1 - q.x0, 0.05, q.z1 - q.z0)
+        losa.position.set((q.x0 + q.x1) / 2, cota + 0.025, (q.z0 + q.z1) / 2)
+        losa.receiveShadow = true
+        gCielos.add(losa)
+        cielos++
+      })
+    })
+    if (cielos) console.info(`[planta3d] ${cielos} losa(s) de cielo raso en planta baja`)
 
     // ── Tapa de los tuneles ────────────────────────────────────────────────
     // Los cuatro tuneles almacenan aire limpio del exterior: son volumenes
@@ -3249,7 +3335,7 @@
     return {
       raiz,
       actualizarPuertas,
-      grupos: { pisos: gPisos, muros: gMuros, puertas: gPuertas, equipos: gEquipos, techos: gTechos, entrepiso: gEntrepiso, etiquetas: gEtiquetas, cotas: gCotas },
+      grupos: { pisos: gPisos, muros: gMuros, puertas: gPuertas, equipos: gEquipos, techos: gTechos, cielos: gCielos, entrepiso: gEntrepiso, etiquetas: gEtiquetas, cotas: gCotas },
       colisiones,
       // Suelo del entrepiso y tramos de escalera: con esto el recorrido a pie
       // tambien se puede hacer arriba, sin caminar sobre el vacio.
