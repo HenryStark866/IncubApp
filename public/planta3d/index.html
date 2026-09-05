@@ -119,11 +119,14 @@
   #ubicacion span{font-size:12px;color:var(--tenue)}
 
   /* ── Joystick táctil ─────────────────────────────────────── */
-  #joystick{position:fixed;z-index:38;left:26px;bottom:120px;width:118px;height:118px;border-radius:50%;
-    border:1px solid var(--borde);background:rgba(11,18,32,.5);display:none;touch-action:none}
+  /* Flotante: JS lo coloca donde cae el pulgar. No recibe punteros —los
+     maneja el lienzo— para que apoyar el dedo cuente desde el primer instante. */
+  #joystick{position:fixed;z-index:38;width:116px;height:116px;border-radius:50%;
+    border:1px solid var(--borde);background:rgba(11,18,32,.42);display:none;
+    touch-action:none;pointer-events:none;backdrop-filter:blur(2px)}
   #joystick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
-    background:rgba(53,214,232,.55);border:1px solid rgba(255,255,255,.4)}
-  body.tactil.fps #joystick{display:block}
+    background:rgba(53,214,232,.55);border:1px solid rgba(255,255,255,.4);transition:transform .04s linear}
+  body.fps #joystick.activo{display:block}
 
   /* ── Cartel del tour ─────────────────────────────────────── */
   #tour{position:fixed;z-index:39;left:50%;bottom:96px;transform:translateX(-50%);display:none;
@@ -300,6 +303,7 @@
 <script src="js/etiquetas.js"></script>
 <script src="js/mundo.js"></script>
 <script src="js/controles.js"></script>
+<script src="js/manos.js"></script>
 <script src="config.js"></script>
 <script src="js/app.js"></script>
 <script src="js/vivo.js"></script>

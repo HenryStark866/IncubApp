@@ -819,28 +819,97 @@
     else document.documentElement.requestFullscreen()
   }
 
-  // ── Joystick táctil ──────────────────────────────────────────────────────
+  // ── Manos del visitante ──────────────────────────────────────────────────
+  // Cuelgan de la cámara, así que la cámara tiene que estar dentro de la
+  // escena: three.js solo dibuja lo que cuelga de lo que se le pasa a render, y
+  // una cámara suelta deja sus hijos sin pintar.
+  escena.add(camara)
+  const manos = Manos(camara)
+
+  // ── Joystick de navegación libre ─────────────────────────────────────────
+  // Flotante, como en un juego: aparece donde se apoya el pulgar en la mitad
+  // izquierda y lo sigue. El anterior era un círculo fijo en una esquina que
+  // solo reaccionaba al ARRASTRAR —apoyar el dedo y dejarlo quieto no movía
+  // nada— y sin zona muerta, así que el roce más leve ya echaba a andar. Y la
+  // mano que lo usaba giraba también la cámara, porque la zona que el control
+  // de primera persona ignoraba era un rectángulo escrito a ojo que no
+  // coincidía con el dibujo.
   if (matchMedia('(pointer:coarse)').matches) document.body.classList.add('tactil')
   const joy = $('#joystick')
   const perilla = joy.querySelector('i')
+  const RADIO_JOY = 58   // px de recorrido útil desde el centro
+  const MUERTA = 0.14    // por debajo, quieto: el pulgar nunca está del todo quieto
+  const CORRE = 0.85     // por encima, a correr
   let joyId = null
-  joy.addEventListener('pointerdown', (e) => {
+  let joyCentro = null
+
+  // Convenio de juego: mitad izquierda para caminar, mitad derecha para mirar.
+  const zonaJoy = () => ({ x0: 0, y0: innerHeight * 0.35, x1: innerWidth * 0.5, y1: innerHeight })
+  const enZonaJoy = (x, y) => {
+    const z = zonaJoy()
+    return x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1
+  }
+  fps.zonaJoystick = zonaJoy()
+  addEventListener('resize', () => { fps.zonaJoystick = zonaJoy() })
+
+  const moverJoy = (cx, cy) => {
+    const dx = (cx - joyCentro.x) / RADIO_JOY
+    const dy = (cy - joyCentro.y) / RADIO_JOY
+    const l = Math.hypot(dx, dy) || 1
+    const m = Math.min(1, l)
+    perilla.style.transform = `translate(${(dx / l) * m * RADIO_JOY * 0.6}px, ${(dy / l) * m * RADIO_JOY * 0.6}px)`
+    // Curva de respuesta: el primer tramo manda poco, para poder acercarse
+    // despacio a una máquina sin pasarse de largo.
+    const fuerza = m < MUERTA ? 0 : Math.pow((m - MUERTA) / (1 - MUERTA), 1.6)
+    fps.joystick((dx / l) * fuerza, (dy / l) * fuerza, m > CORRE)
+  }
+  const soltarJoy = () => {
+    joyId = null
+    perilla.style.transform = ''
+    joy.classList.remove('activo')
+    fps.joystick(0, 0, false)
+  }
+
+  // El lienzo ya está declarado arriba: es el mismo <canvas> del renderer.
+  lienzo.addEventListener('pointerdown', (e) => {
+    if (vista !== 'fps' || joyId !== null) return
+    if (!document.body.classList.contains('tactil')) return
+    if (!enZonaJoy(e.clientX, e.clientY)) return
     joyId = e.pointerId
-    joy.setPointerCapture(e.pointerId)
+    joyCentro = { x: e.clientX, y: e.clientY }
+    joy.style.left = `${e.clientX - RADIO_JOY}px`
+    joy.style.top = `${e.clientY - RADIO_JOY}px`
+    joy.classList.add('activo')
+    // Capturar puede fallar si el puntero ya se soltó (o si es sintético, como
+    // en las pruebas): el joystick sigue funcionando sin captura.
+    try { lienzo.setPointerCapture(e.pointerId) } catch { /* sin captura */ }
+    moverJoy(e.clientX, e.clientY)   // vale desde el primer toque, sin arrastrar
   })
-  joy.addEventListener('pointermove', (e) => {
-    if (joyId !== e.pointerId) return
-    const r = joy.getBoundingClientRect()
-    let dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2)
-    let dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2)
-    const l = Math.hypot(dx, dy)
-    if (l > 1) { dx /= l; dy /= l }
-    perilla.style.transform = `translate(${dx * 32}px, ${dy * 32}px)`
-    fps.joystick(dx, dy)
+  lienzo.addEventListener('pointermove', (e) => {
+    if (joyId === e.pointerId) moverJoy(e.clientX, e.clientY)
   })
-  const soltarJoy = () => { joyId = null; perilla.style.transform = ''; fps.joystick(0, 0) }
-  joy.addEventListener('pointerup', soltarJoy)
-  joy.addEventListener('pointercancel', soltarJoy)
+  lienzo.addEventListener('pointerup', (e) => { if (joyId === e.pointerId) soltarJoy() })
+  lienzo.addEventListener('pointercancel', (e) => { if (joyId === e.pointerId) soltarJoy() })
+
+  // ── Mando de consola ─────────────────────────────────────────────────────
+  // Palanca izquierda para caminar, derecha para mirar, gatillo o palanca
+  // pulsada para correr. Para grabar los videos de capacitación un mando da un
+  // movimiento parejo que con teclado y ratón no sale.
+  const MUERTA_MANDO = 0.16
+  const limpio = (v) => (Math.abs(v) < MUERTA_MANDO ? 0 : (v - Math.sign(v) * MUERTA_MANDO) / (1 - MUERTA_MANDO))
+  function leerMando(dt) {
+    const lista = navigator.getGamepads ? navigator.getGamepads() : []
+    let g = null
+    for (const p of lista) if (p && p.connected) { g = p; break }
+    if (!g || vista !== 'fps') return
+    const mx = limpio(g.axes[0] || 0), my = limpio(g.axes[1] || 0)
+    const vx = limpio(g.axes[2] || 0), vy = limpio(g.axes[3] || 0)
+    const corre = !!(g.buttons[10]?.pressed || (g.buttons[7]?.value || 0) > 0.5)
+    if (mx || my) fps.joystick(mx, my, corre)
+    else if (joyId === null) fps.joystick(0, 0, false)
+    if (vx || vy) fps.mirar(vx * 2.6 * dt, vy * 1.9 * dt)
+  }
+  addEventListener('gamepadconnected', (e) => aviso(`Mando conectado: ${e.gamepad.id.split('(')[0].trim()}`))
 
   // ── Portada ──────────────────────────────────────────────────────────────
   $('#tituloPlanta').textContent = D.meta.nombre
@@ -882,7 +951,7 @@
     requestAnimationFrame(bucle)
     const dt = Math.min(0.06, reloj.getDelta())
 
-    if (vista === 'fps') fps.actualizar(dt)
+    if (vista === 'fps') { leerMando(dt); fps.actualizar(dt) }
     else if (vista === 'tour') actualizarTour(dt)
     else orbita.actualizar(dt)
 
@@ -898,7 +967,33 @@
     // Las puertas se abren solas al acercarse. En primera persona manda la
     // posición del visitante; en las vistas de conjunto, la de la cámara, que
     // es lo que hace que se abran al bajar a mirar de cerca.
-    mundo.actualizarPuertas(vista === 'fps' ? fps.estado.pos : camara.position, dt)
+    const puertaCerca = mundo.actualizarPuertas(vista === 'fps' ? fps.estado.pos : camara.position, dt)
+
+    // Las manos solo existen caminando en primera persona. Se estira la que
+    // queda del lado de la puerta, y solo si la tiene DELANTE: pasar de largo
+    // por una puerta abierta no es ir a empujarla.
+    if (vista === 'fps') {
+      let puerta = null
+      if (puertaCerca) {
+        const yaw = fps.estado.yaw
+        const dx = puertaCerca.x - fps.estado.pos.x
+        const dz = puertaCerca.z - fps.estado.pos.z
+        // Delante = −Z de la cámara; a la derecha = +X. Los dos en el marco del
+        // visitante, girando el vector por −yaw.
+        const cos = Math.cos(-yaw), sin = Math.sin(-yaw)
+        const adelante = -(dz * cos - dx * sin)
+        const lateral = dx * cos + dz * sin
+        if (adelante > 0.1) {
+          const cerca = Math.max(0, Math.min(1, (2.3 - puertaCerca.dist) / 1.5))
+          puerta = { lado: lateral >= 0 ? 1 : -1, cerca }
+        }
+      }
+      const j = fps.estado.joystick
+      const vel = Math.hypot(j.x, j.y) || (Object.values(fps.estado.teclas).some(Boolean) ? 1 : 0)
+      manos.actualizar(dt, { visible: true, velocidad: vel, puerta })
+    } else {
+      manos.actualizar(dt, { visible: false })
+    }
 
     acum += dt
     if (acum > 0.08) { pintarMini(); acum = 0 }

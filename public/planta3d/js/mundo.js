@@ -2731,6 +2731,7 @@
     const matTabique = new THREE.MeshStandardMaterial({ color: 0xe7ebee, roughness: 0.55, metalness: 0.05 })
     const matGrifo = new THREE.MeshStandardMaterial({ color: 0xb9c2cf, roughness: 0.3, metalness: 0.7 })
     const matPlato = new THREE.MeshStandardMaterial({ color: 0xcfd6db, roughness: 0.35, metalness: 0.05 })
+    const matRejillaDucha = new THREE.MeshStandardMaterial({ color: 0x8b949e, roughness: 0.5, metalness: 0.6 })
 
     // Cota de la sala que se está amoblando en este momento: amoblarFiltro/
     // amoblarBano/amoblarOficina calculan sus muebles en coordenadas LOCALES
@@ -2764,6 +2765,17 @@
     })
     const tapaUnVano = (x0, x1, z0, z1, cota) => zonasPaso.some((p) =>
       Math.abs(p.cota - cota) < 0.05 && x1 > p.x0 && x0 < p.x1 && z1 > p.z0 && z0 < p.z1)
+
+    /** Cilindro para tubería, grifería y regaderas. `eje` es 'x', 'y' o 'z'. */
+    function muebleCil(cx, cy, cz, radio, largo, eje, material) {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, largo, 14), material)
+      m.position.set(cx, cy + cotaActual, cz)
+      if (eje === 'x') m.rotation.z = Math.PI / 2
+      else if (eje === 'z') m.rotation.x = Math.PI / 2
+      m.castShadow = true
+      gEquipos.add(m)
+      return m
+    }
 
     function mueble(cx, cy, cz, sx, sy, sz, material, esColision) {
       // Solo se descarta lo que de verdad estorba el paso: un plato de ducha o
@@ -2807,19 +2819,57 @@
         })
       })
 
-      // Ducha en la mitad: dos tabiques que dejan el paso libre en el centro
+      // ── Las duchas, en la mitad ──────────────────────────────────────
+      // Aquí estaba lo que hacía de ducha: dos tabiques, una bandeja y un palo
+      // vertical. Para un video de capacitación eso no se lee como una ducha, y
+      // este es el punto donde el operario se detiene y se baña: es LA escena
+      // del filtro. Van dos cabinas de verdad, una a cada lado, mirando al paso
+      // central por donde se cruza de zona sucia a zona limpia.
       const centro = largoEnZ ? cz : cx
       const fondoD = 1.15, altoT = 2.1, paso = 0.9
       const alaT = (anchoUtil - paso) / 2
+
+      // Cilindros en el mismo marco (u = eje largo, v = eje corto) que `pon`.
+      const ponCil = (u, v, y, radio, largo, eje, mat) => {
+        const ejeMundo = eje === 'y' ? 'y' : largoEnZ ? (eje === 'u' ? 'z' : 'x') : (eje === 'u' ? 'x' : 'z')
+        return largoEnZ
+          ? muebleCil(cx + v, y, u, radio, largo, ejeMundo, mat)
+          : muebleCil(u, y, cz + v, radio, largo, ejeMundo, mat)
+      }
+
+      // Tabiques que forman las dos cabinas y dejan el paso libre en el centro
       ;[-fondoD / 2, fondoD / 2].forEach((du) => {
         ;[-1, 1].forEach((lado) => {
           pon(centro + du, lado * (paso / 2 + alaT / 2), 0.1, alaT, altoT, altoT / 2, matTabique, true)
         })
       })
 
-      // Plato y regadera
-      pon(centro, 0, fondoD, anchoUtil * 0.9, 0.06, 0.03, matPlato, false)
-      pon(centro, 0, 0.1, 0.1, 0.5, 2.15, matGrifo, false)
+      ;[-1, 1].forEach((lado) => {
+        const vCentro = lado * (paso / 2 + alaT / 2)      // eje de la cabina
+        const vMuro = lado * (anchoUtil / 2 - 0.05)       // pegado al muro de afuera
+        const haciaDentro = -lado                        // del muro hacia el paso
+
+        // Plato con su faldón y la rejilla de desagüe en el medio
+        pon(centro, vCentro, fondoD - 0.08, alaT - 0.06, 0.1, 0.05, matPlato, false)
+        pon(centro, vCentro, 0.16, 0.16, 0.012, 0.104, matRejillaDucha, false)
+
+        // Montante contra el muro; de él sale el brazo y de la punta del brazo
+        // CUELGA la regadera. Puesta encima del montante parecía un farol.
+        ponCil(centro, vMuro, 1.08, 0.022, 1.96, 'y', matGrifo)
+        ponCil(centro, vMuro + haciaDentro * 0.24, 2.06, 0.02, 0.48, 'v', matGrifo)
+        ponCil(centro, vMuro + haciaDentro * 0.46, 1.99, 0.022, 0.14, 'y', matGrifo)   // codo
+        const reg = ponCil(centro, vMuro + haciaDentro * 0.46, 1.9, 0.115, 0.05, 'y', matGrifo)
+        reg.scale.y = 0.7
+
+        // Mezclador a la altura de la mano, con sus dos llaves
+        pon(centro, vMuro + haciaDentro * 0.05, 0.14, 0.1, 0.16, 1.08, matGrifo, false)
+        ;[-0.09, 0.09].forEach((du) => {
+          ponCil(centro + du, vMuro + haciaDentro * 0.12, 1.08, 0.028, 0.06, 'v', matGrifo)
+        })
+
+        // Percha para la ropa, en el tabique de la zona sucia
+        ponCil(centro - fondoD / 2 + 0.06, vCentro, 1.62, 0.014, alaT * 0.6, 'v', matGrifo)
+      })
 
       // Vestuarios: bancas contra los dos muros largos, entre locker y ducha
       const altoB = 0.45, fondoB = 0.36
@@ -3022,11 +3072,15 @@
       // sonido se oiría al doble de volumen y con eco, así que se agrupan por
       // vano y solo suena la primera de cada uno.
       let sonando = null
+      // La más cercana de las que se están abriendo, para que las manos del
+      // visitante sepan hacia dónde estirarse.
+      let masCerca = null
       for (const p of puertas) {
         const dx = pos.x - p.px, dz = pos.z - p.pz
         const d2 = dx * dx + dz * dz
         const cerca = d2 < DIST_ABRE * DIST_ABRE
         const meta = cerca ? 1 : 0
+        if (cerca && (!masCerca || d2 < masCerca.d2)) masCerca = { d2, x: p.px, z: p.pz, abierta: p.abierta }
         // El sonido va en el instante en que cambia la intención, no mientras
         // se mueve: así suena una vez por apertura y no en cada cuadro.
         if (meta !== p.meta) {
@@ -3059,6 +3113,7 @@
           p.pivote.rotation.y = p.giro * t
         }
       }
+      return masCerca && { x: masCerca.x, z: masCerca.z, dist: Math.sqrt(masCerca.d2), abierta: masCerca.abierta }
     }
 
     // ── Etiquetas de sala ──────────────────────────────────────────────────

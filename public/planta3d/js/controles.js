@@ -46,7 +46,7 @@
       // por donde se cambia de nivel a pie.
       losa: null,
       rampas: [],
-      joystick: { activo: false, x: 0, y: 0 },
+      joystick: { x: 0, y: 0, correr: false },
       sensibilidad: 0.0022,
       onEstado: null,
     }
@@ -123,11 +123,20 @@
     const onKeyUp = (e) => { st.teclas[e.code] = false }
 
     // ── Táctil: arrastrar en la pantalla para mirar ──
+    // La mano del joystick no mueve la vista. Antes se descartaba un rectángulo
+    // fijo —el 38 % izquierdo por debajo de la mitad— escrito a ojo: si el
+    // joystick se movía o cambiaba de tamaño, o dejaba de responder o se comía
+    // media pantalla. Ahora quien dibuja el joystick declara aquí su zona.
+    st.zonaJoystick = null
     let tocando = null
+    const enJoystick = (x, y) => {
+      const z = st.zonaJoystick
+      return !!z && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1
+    }
     const onTouchStart = (e) => {
       if (!st.activo) return
       const t = e.changedTouches[0]
-      if (t.clientX < window.innerWidth * 0.38 && t.clientY > window.innerHeight * 0.5) return // zona joystick
+      if (enJoystick(t.clientX, t.clientY)) return
       tocando = { id: t.identifier, x: t.clientX, y: t.clientY }
     }
     const onTouchMove = (e) => {
@@ -156,7 +165,14 @@
       set colisiones(v) { st.colisiones = v },
       set losa(v) { st.losa = v },
       set rampas(v) { st.rampas = v || [] },
-      pedirBloqueo() { dom.requestPointerLock?.() },
+      pedirBloqueo() {
+        // Devuelve promesa en los navegadores nuevos, y hay sitios donde el
+        // bloqueo de puntero está prohibido —una página incrustada, por
+        // ejemplo—: sin capturarla, cada intento deja un error suelto en la
+        // consola. Se camina igual, solo que mirando con arrastre.
+        const p = dom.requestPointerLock?.()
+        if (p && p.catch) p.catch(() => {})
+      },
       soltarBloqueo() { document.exitPointerLock?.() },
       activar(v) {
         st.activo = v
@@ -175,7 +191,23 @@
         if (yawGrados != null) st.yaw = yawGrados * RAD
         st.pitch = 0
       },
-      joystick(x, y) { st.joystick.x = x; st.joystick.y = y },
+      /**
+       * Empuje del joystick o del mando, de −1 a 1. `correr` llega cuando el
+       * dedo o la palanca pasan del 85 % del recorrido: en un mando no hay
+       * tecla Shift, y sin esto no había forma de correr sin teclado.
+       */
+      joystick(x, y, correr) {
+        st.joystick.x = x
+        st.joystick.y = y
+        st.joystick.correr = !!correr
+      },
+      /** Giro de cámara desde fuera (palanca derecha del mando). En radianes. */
+      mirar(dYaw, dPitch) {
+        st.yaw -= dYaw
+        st.pitch = Math.max(-89 * RAD, Math.min(89 * RAD, st.pitch - dPitch))
+      },
+      /** Rectángulo de pantalla que ocupa el joystick, para no mirar con esa mano. */
+      set zonaJoystick(z) { st.zonaJoystick = z },
       actualizar(dt) {
         if (!st.activo) return
         const k = st.teclas
@@ -189,7 +221,7 @@
         av += -st.joystick.y
         lat += st.joystick.x
 
-        const correr = !!(k.ShiftLeft || k.ControlLeft)
+        const correr = !!(k.ShiftLeft || k.ControlLeft || st.joystick.correr)
         const vel = (correr ? o.velocidadCorrer : o.velocidad) * (st.volar ? 2.2 : 1)
         const len = Math.hypot(av, lat)
         if (len > 1) { av /= len; lat /= len }
