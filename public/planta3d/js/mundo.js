@@ -2819,15 +2819,26 @@
         })
       })
 
-      // ── Las duchas, en la mitad ──────────────────────────────────────
-      // Aquí estaba lo que hacía de ducha: dos tabiques, una bandeja y un palo
-      // vertical. Para un video de capacitación eso no se lee como una ducha, y
-      // este es el punto donde el operario se detiene y se baña: es LA escena
-      // del filtro. Van dos cabinas de verdad, una a cada lado, mirando al paso
-      // central por donde se cruza de zona sucia a zona limpia.
+      // ── Las duchas: el paso obligatorio ──────────────────────────────
+      // Aquí no hay «pasar por al lado». La ducha ES el paso: una barrera de
+      // lado a lado del filtro, partida en cabinas de un metro, y cada cabina
+      // con DOS puertas —una por donde se entra desde la zona sucia y otra por
+      // donde se sale a la limpia—. Todo el que entra a la planta pasa por
+      // dentro de una; de eso vive la bioseguridad.
+      //
+      // Antes estaban dibujadas como dos cabinas a los costados con el paso
+      // libre por el medio, que es justo lo contrario: se podía cruzar el
+      // filtro sin ducharse.
       const centro = largoEnZ ? cz : cx
-      const fondoD = 1.15, altoT = 2.1, paso = 0.9
-      const alaT = (anchoUtil - paso) / 2
+      const fondoD = 1.25          // fondo de la cabina, en el sentido del paso
+      const altoT = 2.4            // los tabiques suben más que una mampara
+      const ESPESOR = 0.08
+      const ANCHO_PUERTA = 0.7
+      // Cabinas de un metro, o lo más cerca que dé el ancho útil del filtro:
+      // en los de 3 m salen tres de 0,89.
+      const nCab = Math.max(1, Math.round(anchoUtil / 1.0))
+      const anchoCab = (anchoUtil - (nCab - 1) * ESPESOR) / nCab
+      const v0 = -anchoUtil / 2
 
       // Cilindros en el mismo marco (u = eje largo, v = eje corto) que `pon`.
       const ponCil = (u, v, y, radio, largo, eje, mat) => {
@@ -2837,44 +2848,89 @@
           : muebleCil(u, y, cz + v, radio, largo, ejeMundo, mat)
       }
 
-      // Tabiques que forman las dos cabinas y dejan el paso libre en el centro
-      ;[-fondoD / 2, fondoD / 2].forEach((du) => {
-        ;[-1, 1].forEach((lado) => {
-          pon(centro + du, lado * (paso / 2 + alaT / 2), 0.1, alaT, altoT, altoT / 2, matTabique, true)
+      // Tabiques entre cabinas: la barrera queda continua de muro a muro.
+      for (let i = 1; i < nCab; i++) {
+        pon(centro, v0 + i * (anchoCab + ESPESOR) - ESPESOR / 2,
+            fondoD, ESPESOR, altoT, altoT / 2, matTabique, true)
+      }
+
+      for (let i = 0; i < nCab; i++) {
+        const vC = v0 + i * (anchoCab + ESPESOR) + anchoCab / 2
+        const jamba = (anchoCab - ANCHO_PUERTA) / 2
+
+        // Los dos frentes, con su vano y su dintel
+        ;[-1, 1].forEach((cara) => {
+          const u = centro + (cara * fondoD) / 2
+          ;[-1, 1].forEach((lado) => {
+            pon(u, vC + lado * (ANCHO_PUERTA / 2 + jamba / 2),
+                ESPESOR, jamba, altoT, altoT / 2, matTabique, true)
+          })
+          pon(u, vC, ESPESOR, ANCHO_PUERTA, altoT - 2.05, 2.05 + (altoT - 2.05) / 2, matTabique, false)
         })
-      })
 
-      ;[-1, 1].forEach((lado) => {
-        const vCentro = lado * (paso / 2 + alaT / 2)      // eje de la cabina
-        const vMuro = lado * (anchoUtil / 2 - 0.05)       // pegado al muro de afuera
-        const haciaDentro = -lado                        // del muro hacia el paso
+        // Piso de la cabina y rejilla de desagüe
+        pon(centro, vC, fondoD - ESPESOR, anchoCab, 0.012, 0.006, matPlato, false)
+        pon(centro, vC, 0.18, 0.18, 0.014, 0.014, matRejillaDucha, false)
 
-        // Plato con su faldón y la rejilla de desagüe en el medio
-        pon(centro, vCentro, fondoD - 0.08, alaT - 0.06, 0.1, 0.05, matPlato, false)
-        pon(centro, vCentro, 0.16, 0.16, 0.012, 0.104, matRejillaDucha, false)
-
-        // Montante contra el muro; de él sale el brazo y de la punta del brazo
-        // CUELGA la regadera. Puesta encima del montante parecía un farol.
-        ponCil(centro, vMuro, 1.08, 0.022, 1.96, 'y', matGrifo)
-        ponCil(centro, vMuro + haciaDentro * 0.24, 2.06, 0.02, 0.48, 'v', matGrifo)
-        ponCil(centro, vMuro + haciaDentro * 0.46, 1.99, 0.022, 0.14, 'y', matGrifo)   // codo
-        const reg = ponCil(centro, vMuro + haciaDentro * 0.46, 1.9, 0.115, 0.05, 'y', matGrifo)
+        // Regadera sobre el tabique de la izquierda de la cabina, apuntando
+        // adentro, y el mezclador a la altura de la mano.
+        const vMuro = vC - anchoCab / 2 + 0.07
+        const haciaDentro = 1
+        ponCil(centro, vMuro, 1.1, 0.02, 2.0, 'y', matGrifo)
+        ponCil(centro, vMuro + haciaDentro * 0.16, 2.08, 0.018, 0.32, 'v', matGrifo)
+        ponCil(centro, vMuro + haciaDentro * 0.3, 2.0, 0.02, 0.14, 'y', matGrifo)
+        const reg = ponCil(centro, vMuro + haciaDentro * 0.3, 1.91, 0.1, 0.05, 'y', matGrifo)
         reg.scale.y = 0.7
-
-        // Mezclador a la altura de la mano, con sus dos llaves
-        pon(centro, vMuro + haciaDentro * 0.05, 0.14, 0.1, 0.16, 1.08, matGrifo, false)
-        ;[-0.09, 0.09].forEach((du) => {
-          ponCil(centro + du, vMuro + haciaDentro * 0.12, 1.08, 0.028, 0.06, 'v', matGrifo)
+        pon(centro, vMuro + haciaDentro * 0.04, 0.13, 0.09, 0.15, 1.1, matGrifo, false)
+        ;[-0.08, 0.08].forEach((du) => {
+          ponCil(centro + du, vMuro + haciaDentro * 0.1, 1.1, 0.025, 0.055, 'v', matGrifo)
         })
 
-        // Percha para la ropa, en el tabique de la zona sucia
-        ponCil(centro - fondoD / 2 + 0.06, vCentro, 1.62, 0.014, alaT * 0.6, 'v', matGrifo)
-      })
+        // Las dos hojas. Entran en el mismo sistema de puertas del recorrido:
+        // se abren solas al acercarse, suenan y las manos del visitante se
+        // estiran hacia ellas. Cada una abre hacia SU lado de la barrera, que
+        // es hacia donde se empuja al pasar, y así ninguna roba sitio dentro de
+        // una cabina de 89 cm.
+        ;[-1, 1].forEach((cara) => {
+          const u = centro + (cara * fondoD) / 2
+          const mx = largoEnZ ? cx + vC : u
+          const mz = largoEnZ ? u : cz + vC
+          const pivote = new THREE.Group()
+          const hoja = new THREE.Mesh(geoCaja, matHojaPeatonal)
+          hoja.scale.set(largoEnZ ? ANCHO_PUERTA : 0.04, 2.0, largoEnZ ? 0.04 : ANCHO_PUERTA)
+          hoja.position.set(largoEnZ ? ANCHO_PUERTA / 2 : 0, 1.0, largoEnZ ? 0 : ANCHO_PUERTA / 2)
+          hoja.castShadow = true
+          pivote.add(hoja)
+          pivote.position.set(
+            largoEnZ ? mx - ANCHO_PUERTA / 2 : mx,
+            cotaActual,
+            largoEnZ ? mz : mz - ANCHO_PUERTA / 2
+          )
+          gPuertas.add(pivote)
+          puertas.push({
+            pivote, corre: false, enrolla: false,
+            // No pasa por el repaso que voltea hojas —ese ya corrió cuando se
+            // amuebla— y el sentido lo decide la barrera, no una medición.
+            fijo: true,
+            eje: largoEnZ ? 'h' : 'v',
+            px: mx, pz: mz,
+            recorrido: 0, alza: 0,
+            giro: (largoEnZ ? -cara : cara) * (Math.PI / 2),
+            abierta: 0, meta: 0,
+          })
+        })
+      }
 
       // Vestuarios: bancas contra los dos muros largos, entre locker y ducha
       const altoB = 0.45, fondoB = 0.36
-      const tramoA = [a0 + largoL, centro - fondoD / 2]
-      const tramoB = [centro + fondoD / 2, a1 - largoL]
+      // Delante de la barrera de duchas queda una franja libre a todo lo ancho.
+      // Sin ella la banca llega hasta el tabique y, para meterse en la cabina
+      // del extremo, hay que pasar por encima: el visitante se queda trabado
+      // contra la banca sin poder entrar a ducharse, que es justo lo que no
+      // puede pasar en el único paso obligatorio de la planta.
+      const APRON = 0.75
+      const tramoA = [a0 + largoL, centro - fondoD / 2 - APRON]
+      const tramoB = [centro + fondoD / 2 + APRON, a1 - largoL]
       // Solo se ponen bancas contra el muro largo que NO tiene vano: por el otro
       // se comunica con la salita de ingreso y una banca corrida tapaba el paso.
       // OJO: esa puerta pertenece a la SALITA, no al filtro, así que no basta
