@@ -14,33 +14,38 @@
 /**
  * Cómo se hace un pío de pollito recién nacido:
  *
- *   · La voz está arriba, entre 3 y 4 kHz. Un pollito de un día no grazna, silba.
- *   · Dura poco más de una décima de segundo.
+ *   · La voz está arriba, sobre los 3,3 kHz. Un pollito de un día no grazna,
+ *     chilla. Bajarla a 2,8 lo volvía agradable pero dejaba de ser un pollito:
+ *     sonaba a silbato.
+ *   · Dura casi dos décimas, y entre pío y pío pasan tres. Iba a la mitad de eso
+ *     y sonaba a máquina, no a pollito.
  *   · Y lo que de verdad lo delata es el BARRIDO: arranca abajo, sube de golpe
  *     en la primera quinta parte y baja despacio el resto. Sin ese barrido, un
  *     tono de 3 kHz es el pitido de un microondas.
- *   · No es un tono puro: lleva dos armónicos por encima, que son los que le
- *     ponen la caña, y un soplo de ruido de dos centésimas al arrancar, que es
- *     lo que lo hace bicho y no sintetizador.
+ *   · No es un tono puro ni sostenido: el segundo armónico pesa, la frecuencia
+ *     TIEMBLA unos 30 Hz —eso es lo que más lo delata— y arranca con un soplo de
+ *     ruido. A la salida, un filtro suave le quita el filo metálico de más
+ *     arriba sin apagar la caña.
  *
  * Cada pío sale con una pizca de azar en el tono y en la duración: dos píos
  * exactamente iguales suenan a máquina, y un pollito nunca repite el mismo.
  */
 
 const CLAVE_PREF = 'incubapp_sonido'
-const VOLUMEN = 0.18 // el pío es agudo y se oye mucho: bajo de sobra
+const VOLUMEN = 0.14 // el pío se oye mucho: bajo de sobra, y menos que la
+                     // primera versión, que además de picar iba 4 dB más alto
 
 /** «pi-pí» del splash: el segundo, un pelo más agudo y más corto. */
 const SPLASH = [
-  { t: 0.0, f0: 3150, dur: 0.14 },
-  { t: 0.2, f0: 3520, dur: 0.115 },
+  { t: 0.0, f0: 3250, dur: 0.19 },
+  { t: 0.32, f0: 3500, dur: 0.16 },
 ]
 
 /** «pío-pío-pío» de una notificación: tres seguidos, el del medio más alto. */
 const NOTIFICACION = [
-  { t: 0.0, f0: 3280, dur: 0.115 },
-  { t: 0.17, f0: 3560, dur: 0.11 },
-  { t: 0.34, f0: 3180, dur: 0.135 },
+  { t: 0.0, f0: 3300, dur: 0.17 },
+  { t: 0.29, f0: 3560, dur: 0.16 },
+  { t: 0.57, f0: 3200, dur: 0.2 },
 ]
 
 let ctx = null
@@ -75,7 +80,15 @@ function crear() {
   ctx = new AC()
   maestro = ctx.createGain()
   maestro.gain.value = VOLUMEN
-  maestro.connect(ctx.destination)
+  // Un filtro suave a la salida: le quita el brillo metálico de arriba sin
+  // apagar el pío. Sin él, lo poco que se cuela por encima de 6 kHz es
+  // justo lo que picaba en el oído.
+  const dulce = ctx.createBiquadFilter()
+  dulce.type = 'lowpass'
+  dulce.frequency.value = 7600
+  dulce.Q.value = 0.7
+  maestro.connect(dulce)
+  dulce.connect(ctx.destination)
   return ctx
 }
 
@@ -103,8 +116,8 @@ function soplo(t0, dur, vol) {
   s.buffer = bufSoplo
   const f = ctx.createBiquadFilter()
   f.type = 'bandpass'
-  f.frequency.value = 4200
-  f.Q.value = 1.1
+  f.frequency.value = 3600
+  f.Q.value = 0.9
   const g = ctx.createGain()
   g.gain.setValueAtTime(vol, t0)
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
@@ -115,34 +128,63 @@ function soplo(t0, dur, vol) {
   s.stop(t0 + dur + 0.01)
 }
 
-/** Un pío. `t0` es el reloj del contexto, no el del navegador. */
+/**
+ * Un pío. `t0` es el reloj del contexto, no el del navegador.
+ *
+ * Tres cosas hacen que suene a pollito y no a flauta, y las tres hacen falta
+ * juntas —la primera versión suave las tenía a medias y sonaba a silbato—:
+ *
+ *   1. El TEMBLOR. Un pollito no sostiene el tono: le vibra. Un LFO de unos
+ *      30 Hz mueve la frecuencia un 3 % arriba y abajo. Esto es lo que más se
+ *      nota al quitarlo.
+ *   2. El SEGUNDO ARMÓNICO fuerte. Es lo que le da la caña de bicho; con el
+ *      fundamental casi solo queda un silbido de olla.
+ *   3. La CAÍDA. El pío sube de golpe en la primera sexta parte y luego cae
+ *      largo, hasta un cuarto por debajo de donde arrancó. Sin esa cola
+ *      descendente es un bip.
+ */
 function pio(t0, { f0, dur }) {
   const t1 = t0 + dur
+
   const salida = ctx.createGain()
+  // Ataque rápido pero sin chasquido, y una caída larga en vez de una meseta:
+  // la meseta plana es lo que sonaba a aparato.
   salida.gain.setValueAtTime(0.0001, t0)
-  salida.gain.exponentialRampToValueAtTime(1, t0 + 0.008) // ataque de golpe
-  salida.gain.setValueAtTime(1, t0 + dur * 0.45)
-  salida.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.02)
+  salida.gain.exponentialRampToValueAtTime(1, t0 + 0.014)
+  salida.gain.exponentialRampToValueAtTime(0.55, t0 + dur * 0.55)
+  salida.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.06)
   salida.connect(maestro)
 
-  // El fundamental y sus dos armónicos, cada uno con el mismo barrido.
-  ;[1, 0.26, 0.09].forEach((peso, i) => {
+  // El temblor: uno solo para todo el pío, con su profundidad por armónico.
+  const tremulo = ctx.createOscillator()
+  tremulo.type = 'sine'
+  tremulo.frequency.value = 27 + Math.random() * 9
+  tremulo.start(t0)
+  tremulo.stop(t1 + 0.08)
+
+  ;[1, 0.38, 0.13].forEach((peso, i) => {
     const n = i + 1
     const o = ctx.createOscillator()
-    o.type = i === 0 ? 'sine' : 'triangle'
-    o.frequency.setValueAtTime(f0 * 0.78 * n, t0)
-    o.frequency.exponentialRampToValueAtTime(f0 * 1.24 * n, t0 + dur * 0.18)
-    o.frequency.exponentialRampToValueAtTime(f0 * 0.95 * n, t0 + dur * 0.62)
-    o.frequency.exponentialRampToValueAtTime(f0 * 0.8 * n, t1)
+    o.type = 'sine'
+    o.frequency.setValueAtTime(f0 * 0.84 * n, t0)
+    o.frequency.exponentialRampToValueAtTime(f0 * 1.08 * n, t0 + dur * 0.16)
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.95 * n, t0 + dur * 0.55)
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.74 * n, t1)
+
+    const prof = ctx.createGain()
+    prof.gain.value = f0 * 0.03 * n
+    tremulo.connect(prof)
+    prof.connect(o.frequency)
+
     const g = ctx.createGain()
     g.gain.value = peso
     o.connect(g)
     g.connect(salida)
     o.start(t0)
-    o.stop(t1 + 0.05)
+    o.stop(t1 + 0.06)
   })
 
-  soplo(t0, 0.022, 0.05)
+  soplo(t0, 0.035, 0.045)
 }
 
 /** Programa una secuencia entera. Devuelve false si el navegador no deja sonar. */
