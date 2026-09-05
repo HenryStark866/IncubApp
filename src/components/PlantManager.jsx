@@ -305,6 +305,8 @@ export default function PlantManager({
                 roomsApi={roomsApi}
                 machines={machinesApi.machines}
                 updateMachine={machinesApi.updateMachine}
+                createMachine={machinesApi.createMachine}
+                deleteMachine={machinesApi.deleteMachine}
                 selectedMachineId={selectedMachineId}
                 onSelectMachine={setSelectedMachineId}
                 livePeople={livePeople}

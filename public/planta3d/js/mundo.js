@@ -1304,6 +1304,11 @@
     const matLed = new THREE.MeshBasicMaterial({ color: 0x39e07a })
     const matMando = new THREE.MeshBasicMaterial({ color: 0x2b6fb8 })
     const matParo = new THREE.MeshStandardMaterial({ color: 0xd7541f, roughness: 0.5 })
+    // Chiller y compresor: rejilla de aletas, calderín de acero y el aislante
+    // negro de las tuberías de agua helada.
+    const matRejilla = new THREE.MeshStandardMaterial({ color: 0x3b4757, roughness: 0.85, metalness: 0.35 })
+    const matTanque = new THREE.MeshStandardMaterial({ color: 0xb9c3d2, roughness: 0.3, metalness: 0.8 })
+    const matAislante = new THREE.MeshStandardMaterial({ color: 0x1b2029, roughness: 0.9 })
     // Marco de ventana: blanco, que es como estan en planta.
     const matMarcoVentana = new THREE.MeshStandardMaterial({
       color: 0xf2f4f7, roughness: 0.55, metalness: 0.04,
@@ -2388,14 +2393,27 @@
       if (!seVeNivel(esNivel2(sala) ? 2 : 1)) return
       const cat = datos.tiposEquipo[m.type] || datos.tiposEquipo.other
       const est = datos.estadosEquipo[m.status] || datos.estadosEquipo.idle
+      // Medidas propias del equipo si las trae; si no, las de su tipo. Dos
+      // chillers distintos ya no tienen por qué medir lo mismo.
+      const dim = {
+        w: Number(m.w) > 0 ? Number(m.w) : cat.w,
+        d: Number(m.d) > 0 ? Number(m.d) : cat.d,
+        h: Number(m.h) > 0 ? Number(m.h) : cat.h,
+      }
 
       const g = new THREE.Group()
-      const cx = sala.x + m.x + cat.w / 2
-      const cz = sala.y + m.y + cat.d / 2
+      const cx = sala.x + m.x + dim.w / 2
+      const cz = sala.y + m.y + dim.d / 2
       g.position.set(cx, cotaDe(sala), cz)
       g.rotation.y = (-(Number(m.rot) || 0) * Math.PI) / 180
 
-      // Cuerpo en acero claro: contrasta con el piso de color de la sala
+      // Cuerpo en acero claro: contrasta con el piso de color de la sala.
+      // El compresor no es una caja entera: el gabinete llega a dos tercios y
+      // encima va el calderín, así que su cuerpo se dibuja más bajo. Todo cabe
+      // dentro del alto declarado — de ahí salen la caja de colisión, el
+      // piloto y el rótulo, y si algo sobresale, el recorrido a pie se
+      // tropieza con lo que no ve.
+      const altoCuerpo = m.type === 'compressor' ? dim.h * 0.62 : dim.h
       const cuerpo = new THREE.Mesh(
         geoCaja,
         new THREE.MeshStandardMaterial({ color: 0x9aa6b8, roughness: 0.38, metalness: 0.55 })
@@ -2403,91 +2421,222 @@
       // Se deja una junta de 8 cm para que se distingan las unidades contiguas
       // Sin recorte en el ancho: con las incubadoras en banco corrido, ese
       // margen dejaba una costura visible de 8 cm entre máquina y máquina.
-      cuerpo.scale.set(cat.w, cat.h, cat.d - 0.06)
-      cuerpo.position.y = cat.h / 2
+      cuerpo.scale.set(dim.w, altoCuerpo, dim.d - 0.06)
+      cuerpo.position.y = altoCuerpo / 2
       cuerpo.castShadow = true
       cuerpo.receiveShadow = true
       cuerpo.userData = { tipo: 'equipo', equipo: m, sala, cat, est }
       g.add(cuerpo)
       seleccionables.push(cuerpo)
 
-      // Franja superior con el color del tipo de equipo (se distingue desde el aire)
-      const franja = new THREE.Mesh(
-        geoCaja,
-        new THREE.MeshStandardMaterial({
-          color: new THREE.Color(cat.color),
-          emissive: new THREE.Color(cat.color).multiplyScalar(0.22),
-          roughness: 0.5,
-        })
-      )
-      franja.scale.set(cat.w - 0.16, 0.26, cat.d - 0.02)
-      franja.position.y = cat.h - 0.13
-      franja.castShadow = true
-      g.add(franja)
-
       // Zócalo oscuro
       const base = new THREE.Mesh(geoCaja, new THREE.MeshStandardMaterial({ color: 0x2a3444, roughness: 0.8 }))
-      base.scale.set(cat.w - 0.02, 0.16, cat.d - 0.02)
+      base.scale.set(dim.w - 0.02, 0.16, dim.d - 0.02)
       base.position.y = 0.08
       g.add(base)
 
-      // ── Frente, copiado de las fotos de la planta ──────────────────────
-      // Dos hojas blancas con una franja de visor ancha, la columna de mando
-      // negra al medio con su pantalla, el pulsador de emergencia naranja, las
-      // dos tiras LED verdes a los costados y la placa con el número de máquina.
-      const zF = -cat.d / 2
-      const anchoHoja = (cat.w - 0.5) / 2
-      ;[-1, 1].forEach((s) => {
-        const cx = s * (anchoHoja / 2 + 0.26)
-        const hoja = new THREE.Mesh(geoCaja, matHojaEquipo)
-        hoja.scale.set(anchoHoja, cat.h * 0.86, 0.06)
-        hoja.position.set(cx, cat.h * 0.47, zF - 0.03)
-        g.add(hoja)
+      // ── Cada equipo con su facha ───────────────────────────────────────
+      // El frente de dos hojas con visor, columna de mando y placa numerada es
+      // el de las máquinas Petersime: incubadoras, combinadas y nacedoras. Un
+      // chiller y un compresor no se parecen en nada a eso —en el plano 2D
+      // cada uno ya tenía su dibujo—, y aquí salían los tres iguales, con
+      // puertas de incubadora y todo. Cada familia tiene ahora la suya.
+      const zF = -dim.d / 2
+      if (m.type === 'chiller') {
+        // Chiller de aire: lo que lo identifica desde cualquier punto de la
+        // sala son los dos ventiladores del techo y el serpentín de aletas de
+        // los costados largos.
+        const nVent = 2
+        const rad = Math.min((dim.w / nVent) * 0.42, dim.d * 0.38)
+        for (let i = 0; i < nVent; i++) {
+          const vx = (i - (nVent - 1) / 2) * (dim.w / nVent)
+          const aro = new THREE.Mesh(
+            new THREE.CylinderGeometry(rad, rad * 0.94, 0.14, 22, 1, true),
+            new THREE.MeshStandardMaterial({
+              color: new THREE.Color(cat.color), roughness: 0.45, metalness: 0.5,
+              side: THREE.DoubleSide,
+            })
+          )
+          aro.position.set(vx, dim.h - 0.03, 0)
+          aro.castShadow = true
+          g.add(aro)
 
-        // Franja de visor: en las máquinas reales cruza casi toda la hoja
-        const visor = new THREE.Mesh(geoCaja, matVisorEquipo)
-        visor.scale.set(anchoHoja * 0.92, cat.h * 0.085, 0.03)
-        visor.position.set(cx, cat.h * 0.63, zF - 0.07)
-        g.add(visor)
+          const eje = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.09, 10), matColumna)
+          eje.position.set(vx, dim.h - 0.05, 0)
+          g.add(eje)
+          for (let a = 0; a < 4; a++) {
+            const ang = (a * Math.PI) / 2
+            const aspa = new THREE.Mesh(geoCaja, matAluminio)
+            aspa.scale.set(rad * 0.86, 0.02, 0.15)
+            aspa.position.set(vx + Math.cos(ang) * rad * 0.44, dim.h - 0.05, Math.sin(ang) * rad * 0.44)
+            aspa.rotation.y = -ang
+            g.add(aspa)
+          }
+        }
 
-        // Manija de palanca, horizontal y larga
-        const manija = new THREE.Mesh(geoCaja, matAluminio)
-        manija.scale.set(anchoHoja * 0.34, 0.045, 0.05)
-        manija.position.set(cx - s * anchoHoja * 0.26, cat.h * 0.45, zF - 0.09)
-        g.add(manija)
-      })
+        // Serpentín: las dos caras largas son rejilla, no chapa lisa
+        ;[-1, 1].forEach((s) => {
+          const rejilla = new THREE.Mesh(geoCaja, matRejilla)
+          rejilla.scale.set(dim.w * 0.92, dim.h * 0.6, 0.03)
+          rejilla.position.set(0, dim.h * 0.48, s * (dim.d / 2 - 0.02))
+          g.add(rejilla)
+        })
 
-      // Columna de mando
-      const columna = new THREE.Mesh(geoCaja, matColumna)
-      columna.scale.set(0.5, cat.h * 0.92, 0.1)
-      columna.position.set(0, cat.h * 0.48, zF - 0.05)
-      g.add(columna)
+        // Cuadro eléctrico a un costado del frente: el centro queda libre para
+        // la pantalla de ronda.
+        const cuadro = new THREE.Mesh(geoCaja, matColumna)
+        cuadro.scale.set(dim.w * 0.26, dim.h * 0.3, 0.09)
+        cuadro.position.set(-dim.w * 0.31, dim.h * 0.4, zF - 0.05)
+        g.add(cuadro)
+        const display = new THREE.Mesh(geoCaja, matMando)
+        display.scale.set(dim.w * 0.14, 0.1, 0.03)
+        display.position.set(-dim.w * 0.31, dim.h * 0.47, zF - 0.1)
+        g.add(display)
+        const paroCh = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.035, 12), matParo)
+        paroCh.rotation.x = Math.PI / 2
+        paroCh.position.set(-dim.w * 0.31, dim.h * 0.32, zF - 0.1)
+        g.add(paroCh)
 
-      // Tiras LED verdes a lado y lado, a la altura del visor
-      ;[-1, 1].forEach((s) => {
-        const led = new THREE.Mesh(geoCaja, matLed)
-        led.scale.set(0.055, cat.h * 0.11, 0.04)
-        led.position.set(s * 0.3, cat.h * 0.63, zF - 0.1)
-        g.add(led)
-      })
+        // Las dos tuberías de agua helada, por el costado
+        ;[-0.14, 0.14].forEach((dz) => {
+          const tubo = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, dim.h * 0.55, 12), matAislante)
+          tubo.position.set(dim.w / 2 + 0.08, dim.h * 0.34, dz)
+          g.add(tubo)
+        })
+      } else if (m.type === 'compressor') {
+        // Compresor de tornillo: gabinete con su rejilla de ventilación y el
+        // calderín horizontal encima, sobre sus cunas.
+        const rTanque = Math.min(dim.d * 0.32, (dim.h - altoCuerpo) / 2 - 0.05)
+        const tanque = new THREE.Mesh(
+          new THREE.CylinderGeometry(rTanque, rTanque, dim.w * 0.8, 18),
+          matTanque
+        )
+        tanque.rotation.z = Math.PI / 2
+        tanque.position.set(0, altoCuerpo + rTanque + 0.04, 0)
+        tanque.castShadow = true
+        g.add(tanque)
+        ;[-1, 1].forEach((s) => {
+          const tapa = new THREE.Mesh(new THREE.SphereGeometry(rTanque, 16, 10), matTanque)
+          tapa.scale.set(0.45, 1, 1)
+          tapa.position.set(s * dim.w * 0.4, altoCuerpo + rTanque + 0.04, 0)
+          g.add(tapa)
+          const cuna = new THREE.Mesh(geoCaja, matColumna)
+          cuna.scale.set(0.1, 0.1, dim.d * 0.55)
+          cuna.position.set(s * dim.w * 0.26, altoCuerpo + 0.05, 0)
+          g.add(cuna)
+        })
 
-      // Pantalla de mando y pulsador de emergencia
-      const mando = new THREE.Mesh(geoCaja, matMando)
-      mando.scale.set(0.3, 0.22, 0.03)
-      mando.position.set(0, cat.h * 0.71, zF - 0.11)
-      g.add(mando)
-      const paro = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.035, 12), matParo)
-      paro.rotation.x = Math.PI / 2
-      paro.position.set(0, cat.h * 0.55, zF - 0.11)
-      g.add(paro)
+        // Banda del color del tipo por el frente del gabinete: es lo que
+        // distingue un compresor de un chiller desde el aire, ahora que
+        // ninguno de los dos lleva la franja superior.
+        const banda = new THREE.Mesh(
+          geoCaja,
+          new THREE.MeshStandardMaterial({
+            color: new THREE.Color(cat.color),
+            emissive: new THREE.Color(cat.color).multiplyScalar(0.2),
+            roughness: 0.5,
+          })
+        )
+        banda.scale.set(dim.w * 0.98, 0.12, dim.d * 0.99)
+        banda.position.set(0, altoCuerpo - 0.08, 0)
+        g.add(banda)
 
-      // Placa con el número de la máquina, como la de las fotos
-      const numero = (m.code.match(/(\d+)\s*$/) || [])[1]
-      if (numero) {
-        const placa = new THREE.Mesh(geoCaja, materialPlaca(numero))
-        placa.scale.set(0.34, 0.26, 0.02)
-        placa.position.set(0, cat.h * 0.3, zF - 0.11)
-        g.add(placa)
+        // Rejilla de ventilación y cuadro de mando, a los costados del frente
+        const rejilla = new THREE.Mesh(geoCaja, matRejilla)
+        rejilla.scale.set(dim.w * 0.3, altoCuerpo * 0.5, 0.03)
+        rejilla.position.set(dim.w * 0.3, altoCuerpo * 0.45, zF - 0.02)
+        g.add(rejilla)
+        const cuadro = new THREE.Mesh(geoCaja, matColumna)
+        cuadro.scale.set(dim.w * 0.28, altoCuerpo * 0.34, 0.08)
+        cuadro.position.set(-dim.w * 0.3, altoCuerpo * 0.52, zF - 0.04)
+        g.add(cuadro)
+        const display = new THREE.Mesh(geoCaja, matMando)
+        display.scale.set(dim.w * 0.15, 0.1, 0.03)
+        display.position.set(-dim.w * 0.3, altoCuerpo * 0.6, zF - 0.09)
+        g.add(display)
+        const paroCo = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.035, 12), matParo)
+        paroCo.rotation.x = Math.PI / 2
+        paroCo.position.set(-dim.w * 0.3, altoCuerpo * 0.42, zF - 0.09)
+        g.add(paroCo)
+
+        // Tubo de descarga del calderín hacia el techo
+        const tubo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, dim.h * 0.35, 10), matAluminio)
+        tubo.position.set(dim.w * 0.42, altoCuerpo + rTanque * 1.4, dim.d * 0.22)
+        g.add(tubo)
+      } else {
+        // Franja superior con el color del tipo (se distingue desde el aire).
+        // Solo la llevan las Petersime: en el chiller la ocupan los
+        // ventiladores y en el compresor, el calderín.
+        const franja = new THREE.Mesh(
+          geoCaja,
+          new THREE.MeshStandardMaterial({
+            color: new THREE.Color(cat.color),
+            emissive: new THREE.Color(cat.color).multiplyScalar(0.22),
+            roughness: 0.5,
+          })
+        )
+        franja.scale.set(dim.w - 0.16, 0.26, dim.d - 0.02)
+        franja.position.y = dim.h - 0.13
+        franja.castShadow = true
+        g.add(franja)
+
+        // ── Frente, copiado de las fotos de la planta ────────────────────
+        // Dos hojas blancas con una franja de visor ancha, la columna de mando
+        // negra al medio con su pantalla, el pulsador de emergencia naranja,
+        // las dos tiras LED verdes a los costados y la placa con el número.
+        const anchoHoja = (dim.w - 0.5) / 2
+        ;[-1, 1].forEach((s) => {
+          const hx = s * (anchoHoja / 2 + 0.26)
+          const hoja = new THREE.Mesh(geoCaja, matHojaEquipo)
+          hoja.scale.set(anchoHoja, dim.h * 0.86, 0.06)
+          hoja.position.set(hx, dim.h * 0.47, zF - 0.03)
+          g.add(hoja)
+
+          // Franja de visor: en las máquinas reales cruza casi toda la hoja
+          const visor = new THREE.Mesh(geoCaja, matVisorEquipo)
+          visor.scale.set(anchoHoja * 0.92, dim.h * 0.085, 0.03)
+          visor.position.set(hx, dim.h * 0.63, zF - 0.07)
+          g.add(visor)
+
+          // Manija de palanca, horizontal y larga
+          const manija = new THREE.Mesh(geoCaja, matAluminio)
+          manija.scale.set(anchoHoja * 0.34, 0.045, 0.05)
+          manija.position.set(hx - s * anchoHoja * 0.26, dim.h * 0.45, zF - 0.09)
+          g.add(manija)
+        })
+
+        // Columna de mando
+        const columna = new THREE.Mesh(geoCaja, matColumna)
+        columna.scale.set(0.5, dim.h * 0.92, 0.1)
+        columna.position.set(0, dim.h * 0.48, zF - 0.05)
+        g.add(columna)
+
+        // Tiras LED verdes a lado y lado, a la altura del visor
+        ;[-1, 1].forEach((s) => {
+          const led = new THREE.Mesh(geoCaja, matLed)
+          led.scale.set(0.055, dim.h * 0.11, 0.04)
+          led.position.set(s * 0.3, dim.h * 0.63, zF - 0.1)
+          g.add(led)
+        })
+
+        // Pantalla de mando y pulsador de emergencia
+        const mando = new THREE.Mesh(geoCaja, matMando)
+        mando.scale.set(0.3, 0.22, 0.03)
+        mando.position.set(0, dim.h * 0.71, zF - 0.11)
+        g.add(mando)
+        const paro = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.035, 12), matParo)
+        paro.rotation.x = Math.PI / 2
+        paro.position.set(0, dim.h * 0.55, zF - 0.11)
+        g.add(paro)
+
+        // Placa con el número de la máquina, como la de las fotos
+        const numero = (m.code.match(/(\d+)\s*$/) || [])[1]
+        if (numero) {
+          const placa = new THREE.Mesh(geoCaja, materialPlaca(numero))
+          placa.scale.set(0.34, 0.26, 0.02)
+          placa.position.set(0, dim.h * 0.3, zF - 0.11)
+          g.add(placa)
+        }
       }
 
       // ── Pantalla de control ────────────────────────────────────────────
@@ -2495,8 +2644,8 @@
       // si está operando: lo que decide es tener foto. La pantalla nace oscura y
       // solo se enciende cuando la imagen termina de cargar, así un equipo sin
       // archivo se ve apagado en vez de encendido y vacío.
-      const yPantalla = cat.h * 0.72
-      const zPantalla = -cat.d / 2 - 0.11
+      const yPantalla = dim.h * 0.72
+      const zPantalla = -dim.d / 2 - 0.11
 
       const marco = new THREE.Mesh(geoCaja, new THREE.MeshStandardMaterial({ color: 0x161e2c, roughness: 0.55, metalness: 0.3 }))
       marco.scale.set(ANCHO_PANTALLA + 0.07, ALTO_PANTALLA + 0.07, 0.05)
@@ -2529,7 +2678,7 @@
         new THREE.SphereGeometry(0.11, 16, 12),
         new THREE.MeshStandardMaterial({ color: est.color, emissive: new THREE.Color(est.color).multiplyScalar(0.6), roughness: 0.3 })
       )
-      piloto.position.set(0, cat.h + 0.13, 0)
+      piloto.position.set(0, dim.h + 0.13, 0)
       g.add(piloto)
 
       const et = Etiquetas.crearEtiqueta(m.code, {
@@ -2538,18 +2687,22 @@
         fondo: 'rgba(8,14,24,0.82)',
         borde: est.color,
       })
-      et.position.set(0, cat.h + 0.72, 0)
+      et.position.set(0, dim.h + 0.72, 0)
       et.userData.tipoEtiqueta = 'equipo'
       g.add(et)
 
       gEquipos.add(g)
       colisiones.push({
-        x0: cx - cat.w / 2, x1: cx + cat.w / 2, z0: cz - cat.d / 2, z1: cz + cat.d / 2,
-        y0: cotaDe(sala), y1: cotaDe(sala) + cat.h,
+        x0: cx - dim.w / 2, x1: cx + dim.w / 2, z0: cz - dim.d / 2, z1: cz + dim.d / 2,
+        y0: cotaDe(sala), y1: cotaDe(sala) + dim.h,
       })
 
       m._sala = sala
       m._cat = cat
+      // Las medidas con las que se dibujó de verdad: la ficha del equipo las
+      // enseña, y enseñar las del tipo cuando el equipo trae las suyas es
+      // mentir sobre lo que se está viendo.
+      m._dim = dim
       m._est = est
       m._pos = { x: cx, z: cz }
       m._grupo = g

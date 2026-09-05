@@ -82,7 +82,7 @@ const plants = await traer('plants', 'select=id,name,code,address,city&limit=1')
 const planta = plants[0] || {}
 const rooms = await traer('rooms', 'select=id,code,name,type,nivel,pos_x,pos_y,width,height,rotation,color,doors,parte_de,altura,wall_heights,points&order=code')
 const machines = await traer('machines',
-  'select=id,code,name,type,brand,status,room_id,pos_x,pos_y,rotation&status=neq.decommissioned&order=code')
+  'select=id,code,name,type,brand,status,room_id,pos_x,pos_y,rotation,width,depth,height&status=neq.decommissioned&order=code')
 
 // ── salas ──────────────────────────────────────────────────────────────────
 const lineasSalas = rooms.map((r) => {
@@ -150,9 +150,14 @@ const lineasMaquinas = machines.map((m) => {
   if (ex.ops === undefined) sinPrevio++
   const ops = ex.ops || 'idle'
   const foto = ex.foto === undefined ? `${m.code}.jpg` : ex.foto
+  // Las medidas propias solo se escriben si las tiene: sin ellas manda la
+  // medida de su tipo, que es lo que ha valido siempre para casi todos.
+  const medidas = ['width', 'depth', 'height']
+    .map((k, i) => (m[k] == null ? '' : `${'wdh'[i]}: ${num(m[k])}, `))
+    .join('')
   return `    { id: ${txt(m.id)}, code: ${txt(m.code)}, name: ${txt(m.name)}, type: ${txt(m.type)}, ` +
     `brand: ${txt(m.brand)}, status: ${txt(m.status)}, room: ${txt(m.room_id)}, ` +
-    `x: ${num(m.pos_x)}, y: ${num(m.pos_y)}, rot: ${num(m.rotation)}, ops: ${txt(ops)}, foto: ${txt(foto)} },`
+    `x: ${num(m.pos_x)}, y: ${num(m.pos_y)}, rot: ${num(m.rotation)}, ${medidas}ops: ${txt(ops)}, foto: ${txt(foto)} },`
 }).join('\n')
 
 // ── se reemplazan solo los dos bloques; el resto del archivo queda igual ────

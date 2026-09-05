@@ -29,7 +29,7 @@ export function useMachines(plantId) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('machines')
-      .select('id, code, name, type, brand, model, capacity_eggs, status, room_id, pos_x, pos_y, rotation, installed_at, created_at')
+      .select('id, code, name, type, brand, model, capacity_eggs, status, room_id, pos_x, pos_y, rotation, width, depth, height, installed_at, created_at')
       .eq('plant_id', plantId)
       .order('created_at', { ascending: true })
     if (err) setError(err.message)
@@ -56,10 +56,12 @@ export function useMachines(plantId) {
   }, [plantId, loadMachines])
 
   const createMachine = useCallback(
-    async ({ code, name, type, brand, model, capacity_eggs, room_id, installed_at }) => {
+    async ({ code, name, type, brand, model, capacity_eggs, room_id, installed_at, pos_x, pos_y }) => {
       if (!plantId) return { error: 'Selecciona una planta primero' }
       setError(null)
-      const { error: err } = await supabase.from('machines').insert({
+      // Devuelve la fila creada: quien la crea desde el plano necesita su id
+      // para seleccionarla y escribirle ahí mismo el tipo y la medida.
+      const { data, error: err } = await supabase.from('machines').insert({
         plant_id: plantId,
         code: code.trim(),
         name: name.trim(),
@@ -69,13 +71,17 @@ export function useMachines(plantId) {
         capacity_eggs: capacity_eggs ? Number(capacity_eggs) : null,
         room_id: room_id || null,
         installed_at: installed_at || null,
-      })
+        // Un equipo nace donde se pidió ponerlo. Sin esto, uno creado desde el
+        // plano caía en 0,0 —la esquina de su sala— encima de lo que hubiera.
+        ...(pos_x != null ? { pos_x } : null),
+        ...(pos_y != null ? { pos_y } : null),
+      }).select('id, code').single()
       if (err) {
         const msg = err.code === '23505' ? 'Ya existe una máquina con ese código en la planta' : err.message
         setError(msg)
         return { error: msg }
       }
-      return { error: null }
+      return { error: null, data }
     },
     [plantId]
   )

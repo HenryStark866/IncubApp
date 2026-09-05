@@ -64,7 +64,7 @@
   async function traerPlano(token) {
     const [rooms, machines] = await Promise.all([
       pedir(`rooms?plant_id=eq.${PLANTA}&select=id,code,name,type,nivel,pos_x,pos_y,width,height,rotation,color,doors,parte_de,altura,wall_heights,points`, token),
-      pedir(`machines?plant_id=eq.${PLANTA}&select=id,code,name,type,brand,status,room_id,pos_x,pos_y,rotation`, token),
+      pedir(`machines?plant_id=eq.${PLANTA}&select=id,code,name,type,brand,status,room_id,pos_x,pos_y,rotation,width,depth,height`, token),
     ])
 
     // Lo que NO vive en la base se conserva de la instantánea: los nombres con
@@ -126,6 +126,11 @@
         brand: m.brand ?? null, status: m.status,
         room: m.room_id,
         x: num(m.pos_x), y: num(m.pos_y), rot: num(m.rotation),
+        // Medidas propias del equipo. Ausentes, manda la medida de su tipo:
+        // por eso van solo si vienen, en vez de caer a cero.
+        ...(m.width != null ? { w: num(m.width) } : null),
+        ...(m.depth != null ? { d: num(m.depth) } : null),
+        ...(m.height != null ? { h: num(m.height) } : null),
         // `ops` y `foto` son derivados: no viven en la tabla.
         ops: p.ops || 'idle',
         foto: p.foto !== undefined ? p.foto : `${m.code}.jpg`,

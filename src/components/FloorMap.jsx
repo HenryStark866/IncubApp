@@ -270,7 +270,7 @@ function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, 
  * cada dígito. Vacío significa automático: entonces la marca de agua enseña la
  * cifra que pone el recorrido 3D por su cuenta.
  */
-function MedidaInput({ value, placeholder, min = 0, onCommit, disabled = false, title }) {
+function MedidaInput({ value, placeholder, min = 0, step = 0.1, onCommit, disabled = false, title }) {
   const [txt, setTxt] = useState(value == null ? '' : String(value))
   useEffect(() => { setTxt(value == null ? '' : String(value)) }, [value])
 
@@ -289,7 +289,7 @@ function MedidaInput({ value, placeholder, min = 0, onCommit, disabled = false, 
 
   return (
     <input
-      type="number" step="0.1" min={min} inputMode="decimal"
+      type="number" step={step} min={min} inputMode="decimal"
       value={txt} title={title} placeholder={placeholder} disabled={disabled}
       onChange={(e) => setTxt(e.target.value)}
       onBlur={commit}
@@ -847,7 +847,15 @@ const MACHINE_SIZES = {
   compressor: { w: 2.6, h: 1.8 },
 }
 const DEFAULT_SIZE = { w: 2.6, h: 1.8 }
-const machineSize = (m) => {
+// Alto de cada tipo (m). Aquí no se dibuja —el plano es en planta— pero es lo
+// que usa el recorrido 3D cuando el equipo no trae alto propio, y hay que
+// enseñarlo al editarlo para saber qué se está cambiando.
+const MACHINE_ALTO = { setter: 2.4, combo: 2.4, hatcher: 2.4, chiller: 2.1, compressor: 1.7 }
+const DEFAULT_ALTO = 1.8
+const machineAlto = (m) => (Number(m?.height) > 0 ? Number(m.height) : (MACHINE_ALTO[m?.type] ?? DEFAULT_ALTO))
+
+// Medida por tipo, antes de mirar la del equipo. Un galpón la saca de `model`.
+const machineSizeTipo = (m) => {
   if (m.brand === 'galpon_p1' || m.brand === 'galpon_p2') {
     // El largo real varía por edificio y se guarda en `model` como ANCHOxLARGO (ej. "14x80")
     const mm = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(m.model || '')
@@ -855,6 +863,15 @@ const machineSize = (m) => {
     return { w: 14, h: 100 } // por defecto: galpón estándar
   }
   return MACHINE_SIZES[m.type] ?? DEFAULT_SIZE
+}
+// Y la de verdad: la que tenga escrita el equipo gana. Hasta 2026-09-04 el
+// tamaño estaba clavado por tipo y dos chillers distintos se dibujaban iguales.
+const machineSize = (m) => {
+  const tipo = machineSizeTipo(m)
+  return {
+    w: Number(m.width) > 0 ? Number(m.width) : tipo.w,
+    h: Number(m.depth) > 0 ? Number(m.depth) : tipo.h,
+  }
 }
 
 // ── Geometría de forma libre y rotación ──────────────────────
@@ -960,12 +977,177 @@ function MachineGlyph({ m }) {
 }
 
 
+/**
+ * Campo de texto que se guarda al salir del campo o con Enter — el mismo trato
+ * que MedidaInput, pero para el nombre y el código.
+ */
+function TextoInput({ value, onCommit, placeholder, minLargo = 1 }) {
+  const [txt, setTxt] = useState(value ?? '')
+  useEffect(() => { setTxt(value ?? '') }, [value])
+  const commit = () => {
+    const t = txt.trim()
+    if (t.length < minLargo || t === (value ?? '')) { setTxt(value ?? ''); return }
+    onCommit(t)
+  }
+  return (
+    <input
+      type="text" value={txt} placeholder={placeholder}
+      onChange={(e) => setTxt(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.currentTarget.blur() } }}
+    />
+  )
+}
+
+/**
+ * Editor del equipo seleccionado, dentro del plano: identidad, medidas propias
+ * y ubicación en su sala. Todo se guarda al momento, como el arrastre.
+ *
+ * Una medida vacía significa «la de su tipo» —una incubadora mide 4 × 3,5 × 2,4
+ * si nadie dice otra cosa— y la marca de agua enseña esa cifra. La ubicación es
+ * la misma que se cambia arrastrando, pero escrita: arrastrando no se acierta a
+ * dejar dos equipos a ras, y en un banco corrido de incubadoras eso se nota.
+ */
+function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFarm }) {
+  const tipo = machineSizeTipo(machine)
+  const { w, h } = machineSize(machine)
+  const dentro = (v, max) => Math.min(Math.max(0, round2(v)), Math.max(0, round2(max)))
+
+  return (
+    <div className="inline-form compact">
+      <div className="room-elems-head">
+        <span className="component-title">
+          Equipo {machine.code}{room ? ` · ${room.name}` : ' · sin ubicar'}
+        </span>
+        <button type="button" className="ghost small" onClick={onClose}>Cerrar</button>
+      </div>
+      <p className="hint" style={{ margin: '0 0 10px' }}>
+        {MACHINE_TYPE_LABELS[machine.type] ?? machine.type} · {m2(w)} × {m2(h)} m en planta ·{' '}
+        {m2(machineAlto(machine))} m de alto. Se guarda al momento; deja una medida vacía para
+        devolverla a la de su tipo.
+      </p>
+
+      <div className="elem-fields">
+        <label>
+          Nombre
+          <TextoInput value={machine.name} onCommit={(v) => onPatch({ name: v })} minLargo={2} />
+        </label>
+        <label>
+          Código
+          <TextoInput value={machine.code} onCommit={(v) => onPatch({ code: v })} />
+        </label>
+        <label>
+          Tipo
+          <select value={machine.type} onChange={(e) => onPatch({ type: e.target.value })}>
+            {Object.entries(MACHINE_TYPE_LABELS).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Estado
+          <select value={machine.status} onChange={(e) => onPatch({ status: e.target.value })}>
+            {Object.entries(MACHINE_STATUS).map(([v, st]) => (
+              <option key={v} value={v}>{st.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <p className="elem-title" style={{ margin: '12px 0 6px' }}>Medidas propias (m)</p>
+      <div className="elem-fields">
+        <label>
+          Ancho
+          <MedidaInput
+            value={machine.width != null ? Number(machine.width) : null}
+            placeholder={`tipo ${m2(tipo.w)} m`} min={0.2}
+            onCommit={(v) => onPatch({ width: v })}
+          />
+        </label>
+        <label>
+          Fondo
+          <MedidaInput
+            value={machine.depth != null ? Number(machine.depth) : null}
+            placeholder={`tipo ${m2(tipo.h)} m`} min={0.2}
+            onCommit={(v) => onPatch({ depth: v })}
+          />
+        </label>
+        <label>
+          Alto
+          <MedidaInput
+            value={machine.height != null ? Number(machine.height) : null}
+            placeholder={`tipo ${m2(MACHINE_ALTO[machine.type] ?? DEFAULT_ALTO)} m`} min={0.2}
+            title="En el plano no se ve: el alto lo usa el recorrido 3D"
+            onCommit={(v) => onPatch({ height: v })}
+          />
+        </label>
+      </div>
+
+      <p className="elem-title" style={{ margin: '12px 0 6px' }}>Ubicación</p>
+      <div className="elem-fields">
+        <label>
+          {isFarm ? 'Módulo' : 'Sala'}
+          <select
+            value={machine.room_id || ''}
+            onChange={(e) => onPatch({ room_id: e.target.value || null })}
+          >
+            <option value="">Sin ubicar</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>{r.code} · {r.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Desde el borde izquierdo (m)
+          <MedidaInput
+            value={round2(Number(machine.pos_x) || 0)} min={0} disabled={!room}
+            title={room ? 'Distancia al muro izquierdo de la sala' : 'El equipo no está en ninguna sala'}
+            onCommit={(v) => onPatch({ pos_x: dentro(v, Number(room?.width || 0) - w) })}
+          />
+        </label>
+        <label>
+          Desde el borde superior (m)
+          <MedidaInput
+            value={round2(Number(machine.pos_y) || 0)} min={0} disabled={!room}
+            onCommit={(v) => onPatch({ pos_y: dentro(v, Number(room?.height || 0) - h) })}
+          />
+        </label>
+        <label>
+          Giro (°)
+          <MedidaInput
+            value={round2(Number(machine.rotation) || 0)} min={0} step={15}
+            onCommit={(v) => onPatch({ rotation: ((Math.round(v) % 360) + 360) % 360 })}
+          />
+        </label>
+      </div>
+
+      <div className="actions row" style={{ flexWrap: 'wrap' }}>
+        <button
+          type="button" className="ghost small"
+          onClick={() => onPatch({ width: null, depth: null, height: null })}
+        >
+          Medidas del tipo
+        </button>
+        {onDelete && (
+          <button type="button" className="ghost danger small" onClick={onDelete}>
+            Eliminar equipo
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function FloorMap({
+
   canManage,
   canExpand = false,
   roomsApi,
   machines = [],
   updateMachine,
+  /** Opcionales: sin ellas el plano edita equipos pero no los crea ni los borra. */
+  createMachine,
+  deleteMachine,
   selectedMachineId,
   onSelectMachine,
   isFarm = false,
@@ -1022,6 +1204,8 @@ export default function FloorMap({
   const didPanRef = useRef(false)  // marca si el último gesto fue un desplazamiento (para no seleccionar sala al soltar)
 
   const selectedRoom = rooms.find((r) => r.id === selectedId) ?? null
+  const selectedMachine = machines.find((m) => m.id === selectedMachineId) ?? null
+  const machineRoom = selectedMachine ? allRooms.find((r) => r.id === selectedMachine.room_id) ?? null : null
   // Todos los componentes de la sala seleccionada (incluye fuera de servicio, para el detalle)
   const selectedRoomMachines = selectedRoom ? machines.filter((m) => m.room_id === selectedRoom.id) : []
 
@@ -1424,6 +1608,37 @@ export default function FloorMap({
     setDrawing(false)
     setDraftPoints([])
     setCursor(null)
+  }
+
+  // ── Equipos ────────────────────────────────────────────────────────────
+  // Nace en la sala seleccionada, medio metro adentro de su esquina, y queda
+  // seleccionado: el tipo y la medida se le escriben ahí mismo, sin ir al
+  // listado de equipos y volver.
+  const crearEquipo = async () => {
+    if (!selectedRoom || !createMachine) return
+    let n = 1
+    machines.forEach((m) => {
+      const q = /^EQ(\d+)$/i.exec(m.code || '')
+      if (q && Number(q[1]) >= n) n = Number(q[1]) + 1
+    })
+    const { error: err, data } = await createMachine({
+      code: `EQ${n}`,
+      name: `Equipo ${n}`,
+      type: 'other',
+      room_id: selectedRoom.id,
+      pos_x: 0.5,
+      pos_y: 0.5,
+    })
+    if (!err && data?.id) onSelectMachine?.(data.id)
+  }
+
+  const eliminarEquipo = async () => {
+    if (!selectedMachine || !deleteMachine) return
+    if (!window.confirm(
+      `¿Eliminar el equipo "${selectedMachine.name}" (${selectedMachine.code})? Esta acción no se puede deshacer.`
+    )) return
+    const { error: err } = await deleteMachine(selectedMachine.id)
+    if (!err) onSelectMachine?.(null)
   }
 
   const onDelete = async () => {
@@ -1855,6 +2070,11 @@ export default function FloorMap({
                   <button className="ghost" onClick={() => { if (editing) setElemSel(null); setEditing(!editing) }}>
                     {editing ? 'Cerrar edición' : (isFarm ? 'Editar módulo' : 'Editar sala')}
                   </button>
+                  {createMachine && (
+                    <button className="ghost" onClick={crearEquipo}>
+                      + {isFarm ? 'Componente' : 'Equipo'}
+                    </button>
+                  )}
                   <button className="ghost danger" onClick={onDelete}>
                     {isFarm ? 'Eliminar módulo' : 'Eliminar sala'}
                   </button>
@@ -1900,6 +2120,20 @@ export default function FloorMap({
             />
           )}
         </>
+      )}
+
+      {/* Equipo seleccionado: identidad, medidas y ubicación */}
+      {canManage && selectedMachine && (
+        <MachineEditor
+          key={selectedMachine.id}
+          machine={selectedMachine}
+          room={machineRoom}
+          rooms={visibles}
+          isFarm={isFarm}
+          onPatch={(patch) => updateMachine?.(selectedMachine.id, patch)}
+          onDelete={deleteMachine ? eliminarEquipo : null}
+          onClose={() => onSelectMachine?.(null)}
+        />
       )}
     </div>
   )

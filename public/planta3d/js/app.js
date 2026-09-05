@@ -332,15 +332,17 @@
   function mostrarEquipo(m) {
     seleccion = { tipo: 'equipo', equipo: m }
     const cat = m._cat, est = m._est, sala = m._sala
+    // Medidas reales del equipo: las suyas si las tiene, las del tipo si no.
+    const dim = m._dim || cat
     marcar({
-      x0: m._pos.x - cat.w / 2, x1: m._pos.x + cat.w / 2,
-      z0: m._pos.z - cat.d / 2, z1: m._pos.z + cat.d / 2, alto: cat.h,
+      x0: m._pos.x - dim.w / 2, x1: m._pos.x + dim.w / 2,
+      z0: m._pos.z - dim.d / 2, z1: m._pos.z + dim.d / 2, alto: dim.h,
     })
     $('#cuerpoInfo').innerHTML =
       `<h3>${m.name}</h3><div class="codigo">${m.code} · <span class="pill" style="background:${est.color}22;color:${est.color}">${est.label}</span></div>` +
       fila('Tipo', cat.label) +
       (m.brand ? fila('Marca', m.brand) : '') +
-      fila('Medidas', `${cat.w} × ${cat.d} × ${cat.h} m`) +
+      fila('Medidas', `${dim.w} × ${dim.d} × ${dim.h} m`) +
       fila('Sala', `${sala.name} (${sala.code})`) +
       fila('Posición en la sala', `x ${m.x} m · y ${m.y} m`) +
       fila('Posición en el plano', `x ${Math.round(m._pos.x * 10) / 10} m · y ${Math.round(m._pos.z * 10) / 10} m`) +
