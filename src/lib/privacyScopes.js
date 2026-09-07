@@ -107,7 +107,7 @@ export const PRIVACY_DOMAINS = [
         return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion']
       }
       // supervisor y líder de área de planta: dominio completo
-      return [
+      const completo = [
         'panel',
         'monitoreo',
         'plantas',
@@ -119,6 +119,22 @@ export const PRIVACY_DOMAINS = [
         'huevos',
         'historial',
       ]
+      // El líder ve además la producción, que es lo que dirige: la de la planta
+      // (`datos-op` — lotes, cantidades, fechas y cargas actuales en incubadora,
+      // que nace en el dominio de gerencia) y la de granja (`produccion`, los
+      // lotes en levante). Se le conceden esas DOS pestañas y nada más: sumarlo
+      // como miembro de gerencia o de granja le abriría también el cockpit, los
+      // informes y los planos de granja, que no dirige.
+      //
+      // Va aquí y no en el array `tabs` de arriba a propósito: `tabs` es lo que
+      // entrega un grant temporal del dominio completo, y quien reciba planta
+      // prestada no tiene por qué llevarse la producción de paso.
+      //
+      // A esta rama solo llegan el supervisor y los líderes del dominio de
+      // planta, así que basta con distinguir el rol: el supervisor NO las lleva
+      // —ejecuta el turno, no dirige la producción.
+      if (role === 'coordinator') return [...completo, 'datos-op', 'produccion']
+      return completo
     },
     members: (role, area) =>
       role === 'supervisor' ||
