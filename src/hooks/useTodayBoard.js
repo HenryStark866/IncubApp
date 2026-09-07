@@ -805,7 +805,7 @@ async function boardBarn({ orgId, roleName }) {
         : [],
     actions: [
       { tab: 'huevos', label: 'Registrar huevos' },
-      { tab: 'produccion', label: 'Levantes' },
+      { tab: 'produccion', label: 'Producción' },
       { tab: 'historial', label: 'Mi historial' },
     ],
     lines: (reports.data || []).slice(0, 4).map((r) => ({

@@ -16,7 +16,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
   description:
     'Estructura base del producto: supervisión, OT, gerencia, comercial, granja, sanidad, IoT, misionales y administración de la empresa. Se aplica al crear un tenant y se actualiza cuando se adecua el producto.',
   sourceClient: 'Plantilla base IncubApp (CDH Maker)',
-  version: 7,
+  version: 8,
   /**
    * Ítems del menú operativo del cliente (plantilla).
    * group = agrupación en el menú del tenant (no CDH Maker).
@@ -93,7 +93,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'mantenimiento', label: 'Órdenes de trabajo', group: 'Operación', tab: 'mantenimiento' },
     { id: 'horarios', label: 'Horarios de turno', group: 'Operación', tab: 'horarios' },
     { id: 'monitoreo', label: 'Modo monitoreo', group: 'Operación', tab: 'monitoreo' },
-    { id: 'produccion', label: 'Levantes', group: 'Operación', tab: 'produccion' },
+    { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
     { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Operación', tab: 'recepcion' },
     {

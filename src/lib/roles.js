@@ -302,7 +302,7 @@ export const DEPARTMENT_MODULES = [
       { tab: 'logistica', label: 'Logística / remisiones' },
       { tab: 'inventarios', label: 'Inventarios' },
       { tab: 'mantenimiento', label: 'Órdenes de trabajo' },
-      { tab: 'produccion', label: 'Levantes' },
+      { tab: 'produccion', label: 'Producción' },
     ],
   },
   {
@@ -321,7 +321,7 @@ export const DEPARTMENT_MODULES = [
     quickLinks: [
       { tab: 'logistica', label: 'Logística (despacho)' },
       { tab: 'inventarios', label: 'Inventarios' },
-      { tab: 'produccion', label: 'Levantes' },
+      { tab: 'produccion', label: 'Producción' },
       { tab: 'cargue', label: 'Cargue' },
     ],
   },
