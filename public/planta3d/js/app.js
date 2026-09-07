@@ -422,6 +422,7 @@
     if (esMovil()) cerrarHojas(sel)
     $(sel).classList.add(cls)
     marcarHoja()
+    abrirMenu(true)
   }
 
   $('#btnAreas').onclick = () => {
@@ -431,6 +432,21 @@
   }
   $('#velo').onclick = () => cerrarHojas()
   window.addEventListener('resize', marcarHoja)
+
+  // ── Menú unificado ───────────────────────────────────────────────────────
+  // Un solo cajón al costado con TODO lo que antes flotaba sobre el recorrido.
+  // Las «hojas» de aquí arriba siguen tal cual —son las que deciden qué sección
+  // se muestra—, solo que ahora viven dentro del cajón: por eso abrir una
+  // sección abre también el cajón, o el detalle de una sala se abriría sin que
+  // se viera nada.
+  const cajon = $('#menuMapa')
+  const abrirMenu = (v) => {
+    cajon.classList.toggle('abierto', v)
+    document.body.classList.toggle('menu-abierto', v)
+    $('#btnMenuMapa').setAttribute('aria-expanded', v ? 'true' : 'false')
+  }
+  $('#btnMenuMapa').onclick = () => abrirMenu(!cajon.classList.contains('abierto'))
+  $('#btnCerrarMenu').onclick = () => abrirMenu(false)
 
   // ── Listado de áreas ─────────────────────────────────────────────────────
   function pintarLista(filtro) {

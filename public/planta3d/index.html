@@ -191,6 +191,61 @@
 }
 .avisoSala.proyectada { background: rgba(169,216,232,.13); border-color: rgba(169,216,232,.5); color: #a9d8e8; }
 .avisoSala.medida     { background: rgba(127,212,168,.12); border-color: rgba(127,212,168,.45); color: #7fd4a8; }
+
+  /* ── Menú unificado del mapa ─────────────────────────────────
+     Antes había siete cosas flotando sobre el recorrido: la barra de vistas,
+     el listado de áreas, las opciones, el minimapa, el detalle, el rótulo de
+     ubicación y la franja de ayuda. Ahora hay UNA, este cajón pegado al
+     costado izquierdo, y el mapa se queda con el mapa. Lo que se movió adentro
+     pierde su caja flotante y pasa a ser una sección más de la lista. */
+  #btnMenuMapa{position:fixed;z-index:42;top:12px;left:12px;display:inline-flex;align-items:center;
+    gap:7px;padding:9px 14px;font-size:13px;font-weight:600;border-radius:10px}
+  #menuMapa{position:fixed;z-index:41;top:0;left:0;bottom:0;width:302px;max-width:88vw;
+    display:flex;flex-direction:column;background:var(--panel);border-right:1px solid var(--borde);
+    backdrop-filter:blur(10px);box-shadow:0 0 60px rgba(0,0,0,.55);
+    transform:translateX(-100%);transition:transform .18s ease;visibility:hidden}
+  #menuMapa.abierto{transform:none;visibility:visible}
+  body.menu-abierto #btnMenuMapa{opacity:0;pointer-events:none}
+  .mm-cabeza{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px;border-bottom:1px solid var(--borde);flex:0 0 auto}
+  #btnCerrarMenu{padding:4px 10px;font-size:13px;border-radius:8px}
+  .mm-cuerpo{flex:1;overflow-y:auto;padding:12px 14px 20px;display:flex;flex-direction:column;gap:6px}
+  /* El cajón es una columna flex que desborda, y ahí los hijos se comprimen:
+     el listado de áreas y el detalle se quedaban en cero de alto con su
+     contenido recortado dentro. Nadie se encoge; quien desplaza es el cajón. */
+  .mm-cuerpo > *{flex:0 0 auto}
+  .mm-titulo{margin:12px 0 2px;font-size:11px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--tenue)}
+  .mm-cuerpo > .mm-titulo:first-of-type{margin-top:4px}
+
+  /* Lo movido: sin posición fija, sin caja propia, sin desenfoque */
+  #menuMapa aside,#menuMapa #panelOpciones,#menuMapa #minimapa,#menuMapa #ubicacion,#menuMapa #ayuda{
+    position:static;width:auto;max-width:none;max-height:none;inset:auto;transform:none;
+    background:transparent;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;
+    padding:0;margin:0;overflow:visible}
+  #menuMapa #panelSalas,#menuMapa #panelOpciones{display:block}
+  #menuMapa #panelInfo{display:none}
+  #menuMapa #panelInfo.visible{display:block}
+  #menuMapa #ubicacion{display:block;text-align:left;padding:8px 10px;border-radius:9px;
+    background:rgba(255,255,255,.05);border:1px solid var(--borde)}
+  #menuMapa #ubicacion b{font-size:14px;text-shadow:none}
+  #menuMapa .grupo{width:100%}
+  #menuMapa .grupo button{flex:1 1 auto}
+  #menuMapa #buscar{margin:6px 0;width:100%}
+  #menuMapa #listaSalas{max-height:32vh;padding:2px 0 6px}
+  #menuMapa #panelInfo header{padding:0 0 6px;margin-bottom:6px}
+  #menuMapa #minimapa canvas{width:100%;height:auto}
+  /* La franja de ayuda solo se dibujaba caminando (body.fps); dentro del
+     cajón es una sección más y se lee siempre. */
+  #menuMapa #ayuda{display:block;font-size:12px;color:var(--tenue);line-height:1.5}
+
+  /* Lo que ya no se dibuja. Siguen en el DOM porque app.js los engancha. */
+  #barra,#btnAreas,#velo{display:none !important}
+
+  @media (max-width:820px){
+    #menuMapa{width:min(320px,92vw)}
+    #menuMapa #listaSalas{max-height:26vh}
+  }
 </style>
 </head>
 <body>
@@ -227,72 +282,96 @@
   </div>
 </div>
 
-<header id="barra">
-  <div class="marca">
-    <strong id="tituloPlanta">PLANTA INCUBANT</strong>
-    <span id="subPlanta">—</span>
-  </div>
-  <div class="grupo" id="grupoVistas">
-    <button data-vista="fps">🚶 Recorrer</button>
-    <button data-vista="orbita">🛰️ Maqueta</button>
-    <button data-vista="cenital">🗺️ Planta</button>
-    <button data-vista="iso">📐 Isométrica</button>
-    <button data-vista="tour">🎬 Tour</button>
-  </div>
-  <div class="grupo" id="grupoOrientacion">
-    <button data-orientacion="norte">Norte</button>
-    <button data-orientacion="sur">Sur</button>
-    <button data-orientacion="este">Este</button>
-    <button data-orientacion="oeste">Oeste</button>
-  </div>
-  <div class="espacio"></div>
-  <div class="grupo">
-    <button id="btnOpciones">⚙️ Opciones</button>
-    <button id="btnFoto">📷 Foto</button>
-    <button id="btnPantalla">⛶</button>
-  </div>
-</header>
+<!-- ── Menú unificado ───────────────────────────────────────────────────────
+     Todo lo que antes flotaba sobre el recorrido —la barra de vistas, el
+     listado de áreas, las opciones, el minimapa, el detalle y la ayuda— vive
+     ahora en UN solo cajón, a un costado. El mapa se queda con el mapa.
+     Los ids se conservan tal cual: app.js engancha por id, y lo único que
+     cambia es de qué cuelgan y cómo se ven. -->
+<button id="btnMenuMapa" aria-expanded="false" title="Menú de la planta">☰ Menú</button>
 
-<aside id="panelSalas">
-  <header><b>Áreas de la planta</b><span id="contSalas" style="font-size:11px;color:var(--tenue)"></span></header>
-  <input id="buscar" type="search" placeholder="Buscar sala o equipo…" />
-  <div id="listaSalas"></div>
-</aside>
-
-<aside id="panelInfo">
-  <header><b>Detalle</b><button id="cerrarInfo" style="padding:3px 9px;font-size:12px">✕</button></header>
-  <div id="cuerpoInfo"></div>
-</aside>
-
-<div id="panelOpciones">
-  <b>Opciones de vista</b>
-  <div class="grupo" id="grupoNivel" role="group" aria-label="Nivel" style="margin:0 0 10px;width:100%">
-    <button data-nivel="ambos" class="activo" title="Los dos niveles juntos, tal como está construida" style="flex:1;padding:7px 4px">Ambos</button>
-    <button data-nivel="1" title="Aislar solo la planta baja" style="flex:1;padding:7px 4px">Nivel 1</button>
-    <button data-nivel="2" title="Aislar solo el entrepiso" style="flex:1;padding:7px 4px">Nivel 2</button>
+<div id="menuMapa">
+  <div class="mm-cabeza">
+    <div class="marca">
+      <strong id="tituloPlanta">PLANTA INCUBANT</strong>
+      <span id="subPlanta">—</span>
+    </div>
+    <button id="btnCerrarMenu" title="Cerrar el menú">✕</button>
   </div>
-  <div class="opcion" data-op="etiquetas"><span>Nombres flotantes</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="equipos"><span>Equipos</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="techos"><span>Techos</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="cotas"><span>Cotas y norte</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="sombras"><span>Sombras</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="atravesar"><span>Atravesar muros</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="volar"><span>Modo vuelo (F)</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="giro"><span>Giro automático</span><i class="interruptor"></i></div>
-  <div class="opcion" data-op="sonido"><span>Sonido de puertas</span><i class="interruptor"></i></div>
+
+  <div class="mm-cuerpo">
+    <div id="ubicacion"><b id="ubicNombre">—</b><span id="ubicDato"></span></div>
+
+    <p class="mm-titulo">Vista</p>
+    <div class="grupo" id="grupoVistas">
+      <button data-vista="fps">🚶 Recorrer</button>
+      <button data-vista="orbita">🛰️ Maqueta</button>
+      <button data-vista="cenital">🗺️ Planta</button>
+      <button data-vista="iso">📐 Isométrica</button>
+      <button data-vista="tour">🎬 Tour</button>
+    </div>
+
+    <p class="mm-titulo">Orientación</p>
+    <div class="grupo" id="grupoOrientacion">
+      <button data-orientacion="norte">Norte</button>
+      <button data-orientacion="sur">Sur</button>
+      <button data-orientacion="este">Este</button>
+      <button data-orientacion="oeste">Oeste</button>
+    </div>
+
+    <p class="mm-titulo">Nivel y capas</p>
+    <div id="panelOpciones">
+      <div class="grupo" id="grupoNivel" role="group" aria-label="Nivel">
+        <button data-nivel="ambos" class="activo" title="Los dos niveles juntos, tal como está construida">Ambos</button>
+        <button data-nivel="1" title="Aislar solo la planta baja">Nivel 1</button>
+        <button data-nivel="2" title="Aislar solo el entrepiso">Nivel 2</button>
+      </div>
+      <div class="opcion" data-op="etiquetas"><span>Nombres flotantes</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="equipos"><span>Equipos</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="techos"><span>Techos</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="cotas"><span>Cotas y norte</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="sombras"><span>Sombras</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="atravesar"><span>Atravesar muros</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="volar"><span>Modo vuelo (F)</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="giro"><span>Giro automático</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="sonido"><span>Sonido de puertas</span><i class="interruptor"></i></div>
+    </div>
+
+    <aside id="panelSalas">
+      <p class="mm-titulo">Áreas de la planta <span id="contSalas"></span></p>
+      <input id="buscar" type="search" placeholder="Buscar sala o equipo…" />
+      <div id="listaSalas"></div>
+    </aside>
+
+    <aside id="panelInfo">
+      <header><b>Detalle</b><button id="cerrarInfo">✕</button></header>
+      <div id="cuerpoInfo"></div>
+    </aside>
+
+    <p class="mm-titulo">Plano de ubicación</p>
+    <div id="minimapa">
+      <canvas id="lienzoMini" width="260" height="120"></canvas>
+      <div class="pie" id="pieMini">Plano de ubicación</div>
+    </div>
+
+    <p class="mm-titulo">Acciones</p>
+    <div class="grupo">
+      <button id="btnFoto">📷 Foto</button>
+      <button id="btnPantalla">⛶ Pantalla completa</button>
+    </div>
+
+    <p class="mm-titulo">Controles</p>
+    <p id="ayuda">W A S D caminar · Mouse mirar · Shift correr · F volar · Clic para ver detalle · Esc salir</p>
+  </div>
 </div>
 
+<!-- Siguen en el DOM aunque ya no se dibujen: app.js los engancha por id y
+     quitarlos dejaría sus manejadores apuntando a nada. -->
+<header id="barra" hidden><button id="btnOpciones">⚙️ Opciones</button></header>
 <div id="velo"></div>
 <button id="btnAreas">☰ Áreas</button>
 
-<div id="minimapa">
-  <canvas id="lienzoMini" width="260" height="120"></canvas>
-  <div class="pie" id="pieMini">Plano de ubicación</div>
-</div>
-
 <div id="mira"></div>
-<div id="ubicacion"><b id="ubicNombre">—</b><span id="ubicDato"></span></div>
-<div id="ayuda">W A S D caminar · Mouse mirar · Shift correr · F volar · Clic para ver detalle · Esc salir</div>
 <div id="joystick"><i></i></div>
 <div id="tour"><b id="tourTitulo">—</b><small id="tourPaso"></small></div>
 <div id="aviso"></div>
