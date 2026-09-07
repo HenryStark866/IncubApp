@@ -40,7 +40,8 @@ import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 /**
  * Tabs que son HERRAMIENTAS PARA HACER (turnos, rondas, OT, calibración,
  * asistencia, misionales): el líder de área de este panel solo necesita ver
- * datos, no ejecutar esas tareas. Editar esta lista ajusta qué iconos flotan.
+ * datos, no ejecutar esas tareas. Editar esta lista ajusta qué entradas salen
+ * en la sección «Módulos» del menú.
  */
 const EXCLUDED_TOOL_TABS = new Set([
   'horarios',
@@ -52,35 +53,6 @@ const EXCLUDED_TOOL_TABS = new Set([
   'preoperacional',
   'hoy',
 ])
-
-const TAB_ICON = {
-  informes: '📈',
-  'datos-op': '📊',
-  huevos: '🥚',
-  recepcion: '📥',
-  cargue: '🚛',
-  cumplimiento: '🏆',
-  iot: '🛰️',
-  historial: '🕓',
-  monitoreo: '🧭',
-  gerencia: '🏢',
-  panel: '🗂️',
-  rrhh: '🧑‍🤝‍🧑',
-  contabilidad: '💰',
-  ventas: '💵',
-  logistica: '🚚',
-  veterinaria: '🩺',
-  sst: '🦺',
-  ambiental: '🌿',
-  inventarios: '📦',
-  plantas: '🏭',
-  granjas: '🌾',
-  produccion: '🐣',
-  admin: '⚙️',
-  reportes: '💬',
-  accesos: '🔑',
-}
-const iconFor = (id) => TAB_ICON[id] || '📁'
 
 const FILTER_DEFS = [
   { key: 'personId', icon: '👤', label: 'Persona' },
@@ -186,8 +158,7 @@ function MenuLider({ abierto, onAbrir, secciones }) {
                     title={it.hint}
                     onClick={() => onAbrir(false)}
                   >
-                    <span className="lom-menu-icono" aria-hidden="true">{it.icono}</span>
-                    <span>{it.label}</span>
+                    {it.label}
                   </a>
                 ) : (
                   <button
@@ -202,9 +173,7 @@ function MenuLider({ abierto, onAbrir, secciones }) {
                       if (!it.mantenerAbierto) onAbrir(false)
                     }}
                   >
-                    <span className="lom-menu-icono" aria-hidden="true">{it.icono}</span>
-                    <span>{it.label}</span>
-                    {it.activo && <span className="lom-menu-check" aria-hidden="true">✓</span>}
+                    {it.label}
                   </button>
                 )
               )}
@@ -474,7 +443,6 @@ export default function LeaderOpsMap({
       items: [
         puede3D && {
           id: 'v3d',
-          icono: '🕶️',
           label: 'Planta 3D',
           hint: 'Recorrido virtual de la planta, en primera persona',
           activo: vista === '3d',
@@ -482,7 +450,6 @@ export default function LeaderOpsMap({
         },
         {
           id: 'v2d',
-          icono: '🗺️',
           label: 'Plano en vivo',
           hint: 'Plano 2D con las máquinas por su condición real y el personal por GPS',
           activo: vista === '2d',
@@ -494,7 +461,6 @@ export default function LeaderOpsMap({
       titulo: 'Módulos',
       items: tools.map((t) => ({
         id: t.id,
-        icono: iconFor(t.id),
         label: t.label,
         hint: t.hint || t.label,
         onClick: () => onNavigate?.(t.id),
@@ -505,7 +471,6 @@ export default function LeaderOpsMap({
       items: [
         {
           id: 'reporte',
-          icono: exporting ? '⏳' : '📥',
           label: 'Reporte de operación',
           hint: 'Descargar Excel con turnos, operarios, rondas, cargues y transferencias',
           disabled: exporting,
@@ -513,7 +478,6 @@ export default function LeaderOpsMap({
         },
         puede3D && {
           id: 'tour-aparte',
-          icono: '↗',
           label: 'Abrir la planta 3D aparte',
           hint: 'El recorrido a pantalla completa, en otra pestaña',
           href: PLANT_3D_TOUR_URL,

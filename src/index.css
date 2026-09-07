@@ -6127,18 +6127,19 @@ button.primary:hover:not(:disabled) {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  background: rgba(11, 20, 40, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  /* Plano y opaco, como el resto de la app: superficie sólida, una línea de
+     1 px y nada de cristal. El desenfoque translúcido era lo que lo hacía
+     parecer un juego y no una herramienta de la empresa. */
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
   padding: 8px 12px;
   pointer-events: none;
 }
 .lom-hud-top > * { pointer-events: auto; }
 .lom-hud-title {
   display: flex; align-items: center; gap: 8px;
-  font-size: 0.92rem; color: #e8eefc; white-space: nowrap;
+  font-size: 0.92rem; color: var(--text); white-space: nowrap;
 }
 .lom-hud-status { display: flex; gap: 6px; flex-wrap: wrap; }
 .lom-hud-status .pill { margin: 0; font-size: 0.72rem; padding: 2px 8px; }
@@ -6155,45 +6156,48 @@ button.primary:hover:not(:disabled) {
   gap: 8px;
 }
 .lom-filter-icon-wrap { position: relative; }
+/* Los filtros del plano 2D, en el mismo lenguaje plano: cuadrados con borde
+   de 1 px sobre superficie opaca, no burbujas de cristal. */
 .lom-filter-icon {
   display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px;
-  background: rgba(16, 29, 58, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #e8eefc;
-  border-radius: 50%;
+  width: 36px; height: 36px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1.05rem;
+  font-size: 1rem;
   position: relative;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.12s, border-color 0.12s;
 }
-.lom-filter-icon:hover, .lom-filter-icon.open { background: rgba(30, 136, 229, 0.7); }
-.lom-filter-icon.active { border-color: var(--amber, #f0b34a); }
+.lom-filter-icon:hover, .lom-filter-icon.open { background: var(--bg-0); }
+.lom-filter-icon.open { border-color: var(--accent); }
+.lom-filter-icon.active { border-color: var(--accent); }
 .lom-filter-dot {
-  position: absolute; top: 2px; right: 2px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--amber, #f0b34a);
-  border: 1.5px solid rgba(0,0,0,0.4);
+  position: absolute; top: 3px; right: 3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
 }
-.lom-filter-clear { font-size: 0.9rem; color: #ffb4b4; }
+.lom-filter-clear { font-size: 0.9rem; color: var(--danger); }
 .lom-filter-popover {
   position: absolute;
-  left: 46px;
+  left: 44px;
   top: 0;
   z-index: 960;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(11, 20, 40, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   padding: 8px 10px;
   min-width: 180px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 12px 32px rgba(3, 7, 18, 0.18);
 }
-.lom-filter-popover-title { font-size: 0.72rem; color: #8fa3c8; text-transform: uppercase; letter-spacing: 0.04em; }
+.lom-filter-popover-title {
+  font-size: 11px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
 .lom-filter-popover select,
 .lom-filter-popover input[type='date'] {
   background: var(--bg-2); color: var(--text); border: 1px solid var(--line);
@@ -6212,71 +6216,73 @@ button.primary:hover:not(:disabled) {
   background: #070b14;
 }
 
-/* Menú del líder — un solo desplegable arriba a la derecha. Sustituye al dock
-   de iconos que rodeaba el mapa: aquí es donde se van sumando las
-   funcionalidades del perfil, cada una en su sección. */
+/* Menú del líder — un solo desplegable arriba a la derecha. Mismo lenguaje
+   que el módulo de misionales y el resto de la consola: superficie opaca,
+   borde de 1 px, títulos en versalitas y entradas de TEXTO. Sin emoji: la
+   navegación del producto no los usa en ningún otro sitio. */
 .lom-menu-wrap { position: relative; margin-left: auto; }
 .lom-menu-btn {
   display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(16, 29, 58, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #e8eefc;
-  border-radius: 999px;
-  padding: 7px 14px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 13px;
   font-size: 0.82rem; font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s, border-color 0.12s;
 }
-.lom-menu-btn:hover, .lom-menu-btn:focus-visible, .lom-menu-btn.open {
-  background: rgba(30, 136, 229, 0.75);
-}
+.lom-menu-btn:hover, .lom-menu-btn:focus-visible { background: var(--bg-2); }
+.lom-menu-btn.open { border-color: var(--accent); color: var(--accent); }
 .lom-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   right: 0;
   z-index: 1000;
-  width: 262px;
+  width: 258px;
   max-height: min(70vh, 520px);
   overflow-y: auto;
-  background: rgba(11, 20, 40, 0.96);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
-  padding: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(3, 7, 18, 0.18);
+  padding: 6px;
 }
 .lom-menu-grupo + .lom-menu-grupo {
-  margin-top: 6px; padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 4px; padding-top: 4px;
+  border-top: 1px solid var(--line);
 }
+/* Mismo tratamiento que .component-title del resto de la consola */
 .lom-menu-titulo {
-  margin: 2px 8px 4px;
-  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
-  color: #8fa3c8;
+  margin: 6px 9px 4px;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim);
 }
 .lom-menu-item {
-  display: flex; align-items: center; gap: 10px;
+  display: block;
   width: 100%;
   background: transparent;
   border: 0;
-  color: #e8eefc;
+  border-left: 2px solid transparent;
+  color: var(--text);
   text-align: left;
   text-decoration: none;
-  border-radius: 8px;
-  padding: 8px 9px;
+  border-radius: 6px;
+  padding: 7px 10px;
   font-size: 0.84rem;
   cursor: pointer;
 }
 .lom-menu-item:hover:not(:disabled),
-.lom-menu-item:focus-visible { background: rgba(30, 136, 229, 0.28); }
-.lom-menu-item:disabled { opacity: 0.55; cursor: default; }
-.lom-menu-item.activo { background: rgba(30, 136, 229, 0.2); font-weight: 600; }
-.lom-menu-icono {
-  font-size: 1.02rem; line-height: 1; flex-shrink: 0;
-  width: 1.3em; text-align: center;
+.lom-menu-item:focus-visible { background: var(--bg-0); }
+.lom-menu-item:disabled { opacity: 0.5; cursor: default; }
+/* La vista activa se marca con la barra de acento, no con un signo */
+.lom-menu-item.activo {
+  border-left-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  border-radius: 0 6px 6px 0;
 }
-.lom-menu-check { margin-left: auto; color: var(--acento, #35d6e8); }
 a.plant3d-link {
   display: inline-flex;
   align-items: center;
