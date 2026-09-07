@@ -395,7 +395,12 @@
     const SOFITO = ENTREPISO > 0 ? ENTREPISO - 0.1 : 0
 
     const remateHasta = (r, lado) => {
-      if (esBano(r)) return null
+      // Un W.C. es un cubiculo y muere donde acaba su tabique... salvo que ESE
+      // lado sea fachada. Los dos W.C. del comedor de zona limpia se apoyan en
+      // el muro de poniente, y en cuanto el comedor se recorto alrededor de
+      // ellos pasaron a ser quienes cierran ahi: con el remate en null quedaba
+      // un boquete de 2 m abierto entre el cubiculo y la cubierta.
+      if (esBano(r)) return esFachada(r, lado) ? 'techo' : null
       if (esCuartoMaquinasIncubadoras(r)) return 'techo'
       if (esCuartoMaquinas(r) || esTunel(r)) return null
       // Un muro que CARGA el entrepiso muere en la losa aunque sea fachada, y
@@ -821,16 +826,32 @@
       // z=28, cuando el contorno por ahí va por z=23,5: se quedaba sin arista
       // donde abrirse y no se dibujaba. Para esas salas manda la geometría: se
       // busca la arista del contorno más cercana al punto de la puerta.
+      const ladoDeArista = (s) =>
+        s.eje === 'h'
+          ? (s.pos > r.y + r.h / 2 ? 'abajo' : 'arriba')
+          : (s.pos > r.x + r.w / 2 ? 'derecha' : 'izquierda')
       const aristaCercana = (d) => {
-        let mejor = -1, dMin = Infinity
-        aristas.forEach((s, i) => {
-          const horiz = s.eje === 'h'
-          const along = horiz ? r.x + d.x : r.y + d.y
-          if (along < s.a - 0.6 || along > s.b + 0.6) return
-          const dist = Math.abs((horiz ? r.y + d.y : r.x + d.x) - s.pos)
-          if (dist < dMin) { dMin = dist; mejor = i }
-        })
-        return mejor
+        // El muro que trae ESCRITO el vano manda sobre la distancia. Recortar
+        // una sala le hace nacer aristas nuevas: al recortar el comedor de zona
+        // limpia alrededor de sus dos W.C. le apareció un tabique vertical a
+        // medio metro de su puerta, más cerca que su propio muro del sur, y la
+        // puerta se pasó sola a él — el comedor se quedó sin un solo acceso.
+        // Solo si el lado declarado no tiene ninguna arista en rango se cae a la
+        // búsqueda por pura distancia, que es para lo que se escribió esto.
+        const buscar = (soloDelLado) => {
+          let mejor = -1, dMin = Infinity
+          aristas.forEach((s, i) => {
+            if (soloDelLado && ladoDeArista(s) !== soloDelLado) return
+            const horiz = s.eje === 'h'
+            const along = horiz ? r.x + d.x : r.y + d.y
+            if (along < s.a - 0.6 || along > s.b + 0.6) return
+            const dist = Math.abs((horiz ? r.y + d.y : r.x + d.x) - s.pos)
+            if (dist < dMin) { dMin = dist; mejor = i }
+          })
+          return mejor
+        }
+        const conLado = LADOS_VALIDOS.has(d.lado) ? buscar(d.lado) : -1
+        return conLado >= 0 ? conLado : buscar(null)
       }
       const vanos = { arriba: [], abajo: [], izquierda: [], derecha: [] }
       const vanosPorArista = new Map()
