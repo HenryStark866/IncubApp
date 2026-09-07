@@ -110,6 +110,11 @@
 
     const colisiones = []            // AABB {x0,x1,z0,z1} para caminar
     const trozosLosa = []            // suelo del entrepiso, para caminar por el
+    // Suelos que quedan POR DEBAJO del entrepiso: el de los cuartos de
+    // maquinas de las incubadoras, que cuelgan un metro. Van aparte porque no
+    // son losa —la losa esta recortada justo encima de ellos— pero si son
+    // suelo que se pisa, y cada uno lleva su propia cota.
+    const suelosHundidos = []
     const rampas = []                // tramos de escalera: por ahi se cambia de nivel
     const seleccionables = []        // meshes con userData para el raycaster
     const salasPorId = new Map()
@@ -405,7 +410,7 @@
       // hay nada arriba—, asi que ahi no hay volumen que siga cerrando y el
       // muro tiene que subir el mismo o queda un boquete de fachada entre la
       // losa y el faldon.
-      if (llevaEntrepiso(r) && hayNivel2Sobre(r)) return 'entrepiso'
+      if (llevaEntrepiso(r) && hayNivel2Sobre(r) && hayNivel2SobreLado(r, lado)) return 'entrepiso'
       // Un muro que da a la calle por su otra cara sube hasta la cubierta: es
       // la envolvente. Todos los demas —los internos— mueren en la cara
       // inferior de la losa, a 3,30, tengan o no entrepiso encima. Antes solo
@@ -523,6 +528,28 @@
       }
       return tot === 0 || dentro > tot * 0.5
     }
+    // ¿Y hay piso de segundo nivel sobre ESTE LADO? Por sala entera no basta:
+    // el PASILLO S25 va de x 6 a x 33 y el area tecnica arranca en x 12, asi
+    // que su punta de poniente asoma fuera de la losa aunque el 78 % de la sala
+    // si la tenga encima. Decidido por sala, ese muro de fachada moria a 3,40 y
+    // dejaba un boquete de 1,50 m abierto hasta la cubierta — el que se veia
+    // desde el corredor exterior de zona limpia.
+    const hayNivel2SobreLado = (r, lado) => {
+      const rr = rectsNivel2()
+      const d = 0.25
+      const puntos = []
+      if (lado === 'arriba' || lado === 'abajo') {
+        const z = lado === 'arriba' ? r.y + d : r.y + r.h - d
+        for (let x = r.x + d; x < r.x + r.w; x += 0.5) puntos.push([x, z])
+      } else {
+        const x = lado === 'izquierda' ? r.x + d : r.x + r.w - d
+        for (let z = r.y + d; z < r.y + r.h; z += 0.5) puntos.push([x, z])
+      }
+      if (!puntos.length) return true
+      const dentro = puntos.filter(([x, z]) =>
+        rr.some((u) => x > u.x0 && x < u.x1 && z > u.z0 && z < u.z1)).length
+      return dentro > puntos.length * 0.5
+    }
     const areaDe = (r) => {
       if (!esLibre(r)) return r.w * r.h
       const p = contornoDe(r)
@@ -539,6 +566,30 @@
       p.forEach((q, i) => (i === 0 ? f.moveTo(q.x, -q.z) : f.lineTo(q.x, -q.z)))
       f.closePath()
       return f
+    }
+
+    // El piso de cada sala se pintaba con un material nuevo: 75 materiales para
+    // 11 combinaciones reales de (¿lleva muro?, color). El color depende solo de
+    // esas dos entradas, asi que se reparten. La clave lleva el booleano ademas
+    // del color porque el mismo cian da gris claro mezclado sobre 0x8e8f8c y
+    // gris azulado sobre 0x4a5058: con la clave solo por color, salas del color
+    // equivocado. Las mallas siguen siendo 75 —cada piso es el blanco del
+    // raycast de su sala—, lo que se ahorra son cambios de estado por cuadro,
+    // tambien en la pasada de sombras.
+    const matsPiso = new Map()
+    const materialPiso = (conMuro, color) => {
+      const clave = (conMuro ? 'M' : 'x') + color
+      if (!matsPiso.has(clave)) {
+        matsPiso.set(clave, new THREE.MeshStandardMaterial({
+          // Concreto gris con un dejo del color del tipo de sala: se ve como el
+          // piso real sin perder la lectura por zonas desde la vista cenital.
+          color: new THREE.Color(conMuro ? 0x8e8f8c : 0x4a5058)
+            .lerp(new THREE.Color(color), conMuro ? 0.22 : 0.35),
+          roughness: 0.88,
+          metalness: 0.02,
+        }))
+      }
+      return matsPiso.get(clave)
     }
 
     const porArea = datos.rooms.slice().sort((a, b) => b.w * b.h - a.w * a.h)
@@ -570,16 +621,7 @@
       const geoPiso = esLibre(r)
         ? (() => { const g = new THREE.ShapeGeometry(formaDe(r)); g.rotateX(-Math.PI / 2); return g })()
         : new THREE.PlaneGeometry(r.w, r.h)
-      const piso = new THREE.Mesh(
-        geoPiso,
-        new THREE.MeshStandardMaterial({
-          // Concreto gris con un dejo del color del tipo de sala: se ve como el
-          // piso real sin perder la lectura por zonas desde la vista cenital.
-          color: new THREE.Color(cat.muro ? 0x8e8f8c : 0x4a5058).lerp(new THREE.Color(color), cat.muro ? 0.22 : 0.35),
-          roughness: 0.88,
-          metalness: 0.02,
-        })
-      )
+      const piso = new THREE.Mesh(geoPiso, materialPiso(cat.muro, color))
       // La geometria libre ya viene en coordenadas del mundo y acostada.
       if (!esLibre(r)) {
         piso.rotation.x = -Math.PI / 2
@@ -1341,6 +1383,29 @@
     const matNegro = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.6 })
     const matLuminaria = new THREE.MeshBasicMaterial({ color: 0xfdfbf2 })
 
+    // Materiales de equipo que NO dependen de la maquina. Eran ocho
+    // `new MeshStandardMaterial` dentro del bucle y con 41 maquinas salian 249
+    // materiales para ocho aspectos. three.js no agrupa nada solo: cada
+    // material distinto es un programa que revalidar y un cambio de estado por
+    // cuadro. El patron es el de `materialPlaca` de aqui abajo.
+    const matCuerpoEquipo = new THREE.MeshStandardMaterial({ color: 0x9aa6b8, roughness: 0.38, metalness: 0.55 })
+    const matBaseEquipo = new THREE.MeshStandardMaterial({ color: 0x2a3444, roughness: 0.8 })
+    const matMarcoPantalla = new THREE.MeshStandardMaterial({ color: 0x161e2c, roughness: 0.55, metalness: 0.3 })
+    // Los tenidos del color de su familia: el aro del chiller, la banda del
+    // compresor, la franja de las Petersime y el piloto de estado. El factor de
+    // emissive va en la clave a proposito: la banda usa 0,20 y la franja 0,22, y
+    // unificarlos cambiaria el brillo del compresor.
+    const tenidos = new Map()
+    const matTenido = (color, emisivo, extra) => {
+      const clave = `${color}|${emisivo}|${extra ? JSON.stringify(extra) : ''}`
+      if (!tenidos.has(clave)) {
+        const receta = { color: new THREE.Color(color), roughness: 0.5, ...(extra || {}) }
+        if (emisivo) receta.emissive = new THREE.Color(color).multiplyScalar(emisivo)
+        tenidos.set(clave, new THREE.MeshStandardMaterial(receta))
+      }
+      return tenidos.get(clave)
+    }
+
     // Placa numerada de la máquina: se pinta el número en un lienzo.
     const placas = new Map()
     function materialPlaca(txt) {
@@ -1997,6 +2062,92 @@
     // muro y los dos pares de corredizas que se montaban una sobre otra. Solo se
     // cambia lo que mejora de forma clara: la hoja que ya estaba en su mejor lado
     // se queda donde estaba.
+    /**
+     * Funde las mallas estaticas de un grupo en una sola por material.
+     *
+     * three.js dibuja UNA llamada por malla: 907 tabiques son 907 llamadas para
+     * 10.884 triangulos, y el cuello de esta escena no son los triangulos sino
+     * las llamadas. Todos comparten la misma caja y once materiales, asi que se
+     * juntan en once mallas sin que cambie un pixel.
+     *
+     * Lo que se pierde es el descarte por camara de cada muro: la malla fundida
+     * se dibuja siempre. A cambio de bajar de 907 llamadas a once, dibujar unos
+     * miles de triangulos de mas no se nota.
+     *
+     * La union va a mano porque el three que trae el proyecto (r149, global sin
+     * modulos) NO incluye BufferGeometryUtils — lo unico que aparece con ese
+     * nombre es el texto del aviso de `BufferGeometry.merge()`. Se normaliza
+     * todo a no indexado antes de concatenar: la caja es indexada y los faldones
+     * de cubierta vienen crudos y sin `uv`, y sin normalizar los atributos se
+     * desalinean.
+     *
+     * CUANDO: al final del microtask del estorbo, nunca antes. Ese microtask
+     * mide una caja POR MALLA para decidir hacia donde abre cada hoja; con los
+     * muros ya fundidos veria diez cajas del tamano de la planta y voltearia
+     * puertas que estaban bien. El sintoma no seria un error en consola, seria
+     * un puñado de puertas abriendo al lado que no.
+     */
+    function fusionarEstaticos(grupo, saltar, profundo) {
+      grupo.updateMatrixWorld(true)
+      const aLocal = grupo.matrixWorld.clone().invert()
+      const cubos = new Map()
+      // `profundo` entra en los subgrupos: los equipos no cuelgan sueltos del
+      // grupo, cada maquina es un grupo con sus veintitantas piezas dentro.
+      const candidatos = []
+      if (profundo) grupo.traverse((o) => candidatos.push(o))
+      else candidatos.push(...grupo.children)
+      candidatos.forEach((o) => {
+        const g = o.geometry
+        if (!o.isMesh || !o.visible || Array.isArray(o.material) || !g || !g.attributes ||
+            !g.attributes.position || (saltar && saltar(o))) return
+        // Se agrupa tambien por sombra y orden de dibujo: fundir una malla que
+        // no proyecta con otra que si le cambiaria la sombra.
+        const clave = `${o.material.uuid}|${o.castShadow ? 1 : 0}|${o.receiveShadow ? 1 : 0}|${o.renderOrder}`
+        if (!cubos.has(clave)) cubos.set(clave, [])
+        cubos.get(clave).push(o)
+      })
+      let ahorradas = 0
+      cubos.forEach((lista) => {
+        if (lista.length < 2) return
+        const partes = []
+        let vertices = 0
+        lista.forEach((o) => {
+          const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()
+          g.applyMatrix4(o.matrixWorld)
+          g.applyMatrix4(aLocal)
+          partes.push(g)
+          vertices += g.attributes.position.count
+        })
+        const pos = new Float32Array(vertices * 3)
+        const nor = new Float32Array(vertices * 3)
+        const uv = new Float32Array(vertices * 2)
+        let d3 = 0, d2 = 0
+        partes.forEach((g) => {
+          const a = g.attributes
+          pos.set(a.position.array, d3)
+          if (a.normal) nor.set(a.normal.array, d3)
+          if (a.uv) uv.set(a.uv.array, d2)
+          d3 += a.position.count * 3
+          d2 += a.position.count * 2
+          g.dispose()
+        })
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+        geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3))
+        geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+        geo.computeBoundingSphere()
+        const malla = new THREE.Mesh(geo, lista[0].material)
+        malla.castShadow = lista[0].castShadow
+        malla.receiveShadow = lista[0].receiveShadow
+        malla.renderOrder = lista[0].renderOrder
+        malla.name = `${grupo.name}-fundido`
+        lista.forEach((o) => o.parent && o.parent.remove(o))
+        grupo.add(malla)
+        ahorradas += lista.length - 1
+      })
+      return ahorradas
+    }
+
     queueMicrotask(() => {
       const Y_BAJO = 0.10, Y_ALTO = 1.90   // franja del cuerpo al pasar
       const recorta = (b) => {
@@ -2077,11 +2228,29 @@
         }
       }
       globalThis.__PLANTA3D.hojasRecolocadas = recolocadas
+
+      // Y solo ahora, con el estorbo ya medido malla por malla y las hojas en
+      // su sitio definitivo, se funden los estaticos. Ni un cuadro antes.
+      // Quedan fuera a proposito: los pisos y los cuerpos de los equipos, que
+      // son el blanco del clic para ver detalle; las puertas, que se mueven; y
+      // la cubierta, que viene apagada y no cuesta llamadas.
+      // De los equipos se conservan intactas las dos piezas que hacen falta por
+      // maquina: el CUERPO, que es el blanco del clic para ver detalle, y el
+      // rotulo, que es un sprite y no entra. Lo demas —bases, aros, bandas,
+      // franjas, marcos, pilotos, placas— es decoracion que ni se pincha ni se
+      // mueve. Esto solo funde algo porque antes se repartieron los materiales:
+      // con un material nuevo por maquina no habria dos mallas que juntar.
+      const ahorradas = fusionarEstaticos(gMuros, (o) => rieles.has(o))
+        + fusionarEstaticos(gCielos)
+        + fusionarEstaticos(gEntrepiso)
+        + fusionarEstaticos(gEquipos, (o) => !!(o.userData && o.userData.tipo), true)
+      globalThis.__PLANTA3D.llamadasAhorradas = ahorradas
+      if (ahorradas) console.info(`[planta3d] ${ahorradas} llamada(s) de dibujo menos al fundir estaticos`)
     })
 
     globalThis.__PLANTA3D.puertas = puertas
     globalThis.__PLANTA3D.colisiones = colisiones
-    globalThis.__PLANTA3D.losa = { alto: ENTREPISO, trozos: trozosLosa }
+    globalThis.__PLANTA3D.losa = { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosHundidos }
     globalThis.__PLANTA3D.rampas = rampas
     globalThis.__PLANTA3D.segmentos = [...segmentos.entries()].map(([clave, r]) => ({
       clave,
@@ -2343,11 +2512,49 @@
       color: 0xb9c4d0, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
       transparent: nivelFiltro !== 2, opacity: nivelFiltro === 2 ? 1 : 0.55,
     })
-    // Los cuartos de maquinas de las NACEDORAS van despejados por arriba: no
-    // llevan techo ni puerta, se abren al segundo nivel. Asi que la losa se
-    // recorta sobre ellos. Los de las incubadoras no: esos si van cerrados.
-    const huecosLosa = datos.rooms.filter((o) =>
-      esCuartoMaquinas(o) && !esCuartoMaquinasIncubadoras(o))
+    // Los cuartos de maquinas cuelgan un metro del entrepiso: su piso esta a
+    // 2,40 y la losa NO pasa por encima de ninguno. Los de las nacedoras quedan
+    // asi como fosos abiertos —se ven desde el nivel 2 y no se cruzan, que es
+    // como estan en la planta— y los de las incubadoras como salas hundidas, en
+    // las que se baja ese metro. Mientras la losa los tapaba a todos, en las
+    // incubadoras se caminaba sobre un suelo que no existe.
+    //
+    // La excepcion es el foso de NAC 4: la puerta del area tecnica cae justo
+    // encima, y sin un panel delante no habria por donde llegar a ella. Ese
+    // panel es el unico trozo de losa que cruza un foso, y se coloca DONDE
+    // ESTA LA PUERTA, no a ojo: si la puerta se mueve en el plano, el panel la
+    // sigue. Las puertas se buscan solo en las salas del nivel 2 que no son
+    // cuartos de maquinas ni tuneles —la del propio cuarto de maquinas de
+    // incubadoras no pide panel, porque ahi si se entra bajando.
+    const PANEL_PUERTA = 1.6
+    const puertasDelNivel2 = datos.rooms
+      .filter((o) => esNivel2(o) && !esCuartoMaquinas(o) && !esTunel(o))
+      .flatMap((o) => (o.doors ?? []).map((d) => ({
+        x: o.x + (Number(d.x) || 0), z: o.y + (Number(d.y) || 0),
+      })))
+    const huecosLosa = []
+    let panelesSobreFoso = 0
+    datos.rooms.filter(esCuartoMaquinas).forEach((o) => {
+      const entero = { x: o.x, y: o.y, w: o.w, h: o.h }
+      // Solo los fosos abiertos —los de nacedoras— necesitan panel: en los de
+      // incubadoras se entra bajando el metro, no cruzando por encima.
+      const puerta = esCuartoMaquinasIncubadoras(o) ? null : puertasDelNivel2.find((d) =>
+        d.x > o.x && d.x < o.x + o.w && d.z > o.y - 1.2 && d.z < o.y + o.h + 1.2)
+      if (!puerta) { huecosLosa.push(entero); return }
+      const a = Math.max(o.x, puerta.x - PANEL_PUERTA / 2)
+      const b = Math.min(o.x + o.w, puerta.x + PANEL_PUERTA / 2)
+      if (a - o.x > 0.02) huecosLosa.push({ x: o.x, y: o.y, w: a - o.x, h: o.h })
+      if (o.x + o.w - b > 0.02) huecosLosa.push({ x: b, y: o.y, w: o.x + o.w - b, h: o.h })
+      panelesSobreFoso++
+    })
+    if (panelesSobreFoso) console.info(`[planta3d] ${panelesSobreFoso} panel(es) de paso sobre foso`)
+
+    // Y el piso de los cuartos de maquinas de INCUBADORAS pasa a ser suelo que
+    // se camina, a su cota real. Los de nacedoras no: son fosos de 1,80 de
+    // ancho con la maquinaria dentro, no sitio por donde andar.
+    datos.rooms.filter(esCuartoMaquinasIncubadoras).forEach((o) => {
+      suelosHundidos.push({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, y: cotaDe(o) })
+    })
 
     let salasConEntrepiso = 0
     datos.rooms.forEach((r) => {
@@ -2431,6 +2638,25 @@
     // peleen en pantalla.
     const matCieloBlanco = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.92, metalness: 0.02 })
     const losaCubre = (x, z) => trozosLosa.some((t) => x > t.x0 + 0.05 && x < t.x1 - 0.05 && z > t.z0 + 0.05 && z < t.z1 - 0.05)
+
+    // Bajo un cuarto de maquinas no va cielo raso: lo que cierra por arriba es
+    // el piso propio del cuarto, que esta a 2,40 —un metro por debajo del
+    // entrepiso—. Sin este recorte la losa blanca del cielo raso volvia a tapar
+    // los cuatro fosos de las nacedoras, que van despejados por arriba, y en
+    // los de incubadoras aparecia un techo justo donde acabo de quitar la losa.
+    const fososMaquinas = datos.rooms.filter(esCuartoMaquinas)
+      .map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, cota: cotaDe(o) }))
+    const sinFosos = (q) => fososMaquinas.reduce((trozos, o) => trozos.flatMap((t) => {
+      const ax = Math.max(t.x0, o.x0), bx = Math.min(t.x1, o.x1)
+      const az = Math.max(t.z0, o.z0), bz = Math.min(t.z1, o.z1)
+      if (bx - ax < 0.02 || bz - az < 0.02) return [t]
+      const out = []
+      if (az - t.z0 > 0.02) out.push({ ...t, z1: az })
+      if (t.z1 - bz > 0.02) out.push({ ...t, z0: bz })
+      if (ax - t.x0 > 0.02) out.push({ x0: t.x0, x1: ax, z0: az, z1: bz })
+      if (t.x1 - bx > 0.02) out.push({ x0: bx, x1: t.x1, z0: az, z1: bz })
+      return out
+    }), [q])
     let cielos = 0
     datos.rooms.forEach((r) => {
       if (esNivel2(r) || r.exterior || r.type === 'plenum' || r.parteDe) return
@@ -2441,10 +2667,27 @@
       if (/^(exterior|green_area|road|parking|tank)$/.test(r.type) || !seVeNivel(1)) return
       const conLosa = llevaEntrepiso(r)
       const cota = conLosa ? ENTREPISO - 0.01 : cotaDe(r) + alturaDe(r)
+      // El trozo que cae bajo un cuarto de maquinas lleva su cielo raso MAS
+      // BAJO: pegado por debajo del piso del cuarto, que cuelga un metro del
+      // entrepiso. Ese piso es en realidad el techo de la sala de abajo, pero
+      // es una cara que mira hacia arriba y desde abajo no se ve — al quitar la
+      // losa de encima de los cuartos, las dos salas de incubadoras se quedaron
+      // mirando al vacio. La losa blanca va debajo del piso, asi que no cierra
+      // por arriba los fosos de las nacedoras, que siguen despejados.
+      const piezas = []
       rectangulosDe(r).forEach((q) => {
+        fososMaquinas.forEach((o) => {
+          const ax = Math.max(q.x0, o.x0), bx = Math.min(q.x1, o.x1)
+          const az = Math.max(q.z0, o.z0), bz = Math.min(q.z1, o.z1)
+          if (bx - ax > 0.02 && bz - az > 0.02)
+            piezas.push({ x0: ax, x1: bx, z0: az, z1: bz, cota: o.cota - 0.06, bajoLosa: false })
+        })
+        sinFosos(q).forEach((t) => piezas.push({ ...t, cota, bajoLosa: conLosa }))
+      })
+      piezas.forEach((q) => {
         // Si la losa del entrepiso ya tapa este trozo entero, ella hace de
         // techo y aquí no va nada.
-        if (conLosa) {
+        if (q.bajoLosa) {
           const puntos = [
             [q.x0 + 0.2, q.z0 + 0.2], [q.x1 - 0.2, q.z0 + 0.2],
             [q.x0 + 0.2, q.z1 - 0.2], [q.x1 - 0.2, q.z1 - 0.2],
@@ -2454,7 +2697,7 @@
         }
         const losa = new THREE.Mesh(geoCaja, matCieloBlanco)
         losa.scale.set(q.x1 - q.x0, 0.05, q.z1 - q.z0)
-        losa.position.set((q.x0 + q.x1) / 2, cota + 0.025, (q.z0 + q.z1) / 2)
+        losa.position.set((q.x0 + q.x1) / 2, q.cota + 0.025, (q.z0 + q.z1) / 2)
         losa.receiveShadow = true
         gCielos.add(losa)
         cielos++
@@ -2532,7 +2775,7 @@
       const altoCuerpo = m.type === 'compressor' ? dim.h * 0.62 : dim.h
       const cuerpo = new THREE.Mesh(
         geoCaja,
-        new THREE.MeshStandardMaterial({ color: 0x9aa6b8, roughness: 0.38, metalness: 0.55 })
+        matCuerpoEquipo
       )
       // Se deja una junta de 8 cm para que se distingan las unidades contiguas
       // Sin recorte en el ancho: con las incubadoras en banco corrido, ese
@@ -2546,7 +2789,7 @@
       seleccionables.push(cuerpo)
 
       // Zócalo oscuro
-      const base = new THREE.Mesh(geoCaja, new THREE.MeshStandardMaterial({ color: 0x2a3444, roughness: 0.8 }))
+      const base = new THREE.Mesh(geoCaja, matBaseEquipo)
       base.scale.set(dim.w - 0.02, 0.16, dim.d - 0.02)
       base.position.y = 0.08
       g.add(base)
@@ -2568,10 +2811,7 @@
           const vx = (i - (nVent - 1) / 2) * (dim.w / nVent)
           const aro = new THREE.Mesh(
             new THREE.CylinderGeometry(rad, rad * 0.94, 0.14, 22, 1, true),
-            new THREE.MeshStandardMaterial({
-              color: new THREE.Color(cat.color), roughness: 0.45, metalness: 0.5,
-              side: THREE.DoubleSide,
-            })
+            matTenido(cat.color, 0, { roughness: 0.45, metalness: 0.5, side: THREE.DoubleSide })
           )
           aro.position.set(vx, dim.h - 0.03, 0)
           aro.castShadow = true
@@ -2647,11 +2887,7 @@
         // ninguno de los dos lleva la franja superior.
         const banda = new THREE.Mesh(
           geoCaja,
-          new THREE.MeshStandardMaterial({
-            color: new THREE.Color(cat.color),
-            emissive: new THREE.Color(cat.color).multiplyScalar(0.2),
-            roughness: 0.5,
-          })
+          matTenido(cat.color, 0.2)
         )
         banda.scale.set(dim.w * 0.98, 0.12, dim.d * 0.99)
         banda.position.set(0, altoCuerpo - 0.08, 0)
@@ -2685,11 +2921,7 @@
         // ventiladores y en el compresor, el calderín.
         const franja = new THREE.Mesh(
           geoCaja,
-          new THREE.MeshStandardMaterial({
-            color: new THREE.Color(cat.color),
-            emissive: new THREE.Color(cat.color).multiplyScalar(0.22),
-            roughness: 0.5,
-          })
+          matTenido(cat.color, 0.22)
         )
         franja.scale.set(dim.w - 0.16, 0.26, dim.d - 0.02)
         franja.position.y = dim.h - 0.13
@@ -2763,7 +2995,7 @@
       const yPantalla = dim.h * 0.72
       const zPantalla = -dim.d / 2 - 0.11
 
-      const marco = new THREE.Mesh(geoCaja, new THREE.MeshStandardMaterial({ color: 0x161e2c, roughness: 0.55, metalness: 0.3 }))
+      const marco = new THREE.Mesh(geoCaja, matMarcoPantalla)
       marco.scale.set(ANCHO_PANTALLA + 0.07, ALTO_PANTALLA + 0.07, 0.05)
       marco.position.set(0, yPantalla, zPantalla)
       g.add(marco)
@@ -2792,7 +3024,7 @@
       // Piloto de estado
       const piloto = new THREE.Mesh(
         new THREE.SphereGeometry(0.11, 16, 12),
-        new THREE.MeshStandardMaterial({ color: est.color, emissive: new THREE.Color(est.color).multiplyScalar(0.6), roughness: 0.3 })
+        matTenido(est.color, 0.6, { roughness: 0.3 })
       )
       piloto.position.set(0, dim.h + 0.13, 0)
       g.add(piloto)
@@ -3357,7 +3589,7 @@
       colisiones,
       // Suelo del entrepiso y tramos de escalera: con esto el recorrido a pie
       // tambien se puede hacer arriba, sin caminar sobre el vacio.
-      losa: { alto: ENTREPISO, trozos: trozosLosa },
+      losa: { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosHundidos },
       rampas,
       seleccionables,
       salasPorId,

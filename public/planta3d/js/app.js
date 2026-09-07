@@ -561,7 +561,14 @@
   }
 
   function aplicarOpciones() {
-    mundo.grupos.etiquetas.visible = opciones.etiquetas
+    // Los rótulos de sala cuelgan 1,5 m POR ENCIMA del remate de muro: desde
+    // arriba son la guía para saber qué se está mirando, pero caminando no se
+    // ven nunca —los tapa el cielo raso— salvo en el entrepiso, donde la
+    // cámara va justo a su altura y uno se los lleva por delante de la cara.
+    // En primera persona se apagan: dentro de la planta se lee el letrero de
+    // la puerta, no un cartel flotando en el aire.
+    const dentro = vista === 'fps' || vista === 'tour'
+    mundo.grupos.etiquetas.visible = opciones.etiquetas && !dentro
     mundo.grupos.equipos.visible = opciones.equipos
     mundo.grupos.techos.visible = opciones.techos
     // El cielo raso es opaco: desde arriba taparía la planta entera, así que
@@ -827,12 +834,15 @@
     else document.documentElement.requestFullscreen()
   }
 
-  // ── Manos del visitante ──────────────────────────────────────────────────
-  // Cuelgan de la cámara, así que la cámara tiene que estar dentro de la
-  // escena: three.js solo dibuja lo que cuelga de lo que se le pasa a render, y
-  // una cámara suelta deja sus hijos sin pintar.
-  escena.add(camara)
-  const manos = Manos(camara)
+  // ── Manos del visitante: desmontadas ─────────────────────────────────────
+  // El modelo de manos que hay en js/manos.js es de pocos poligonos y de cerca
+  // se nota; para un video de capacitacion vale mas no ponerlas que ponerlas a
+  // medias. El archivo se queda en el repo tal cual. Para volver a montarlas
+  // hacen falta tres cosas y ninguna mas: descomentar su <script> en
+  // index.html, `escena.add(camara)` y `const manos = Manos(camara)` aqui, y el
+  // bloque de `manos.actualizar` del bucle de dibujo, mas abajo. La camara
+  // tiene que entrar en la escena porque three.js solo pinta lo que cuelga de
+  // lo que se le pasa a render, y las manos cuelgan de ella.
 
   // ── Joystick de navegación libre ─────────────────────────────────────────
   // Flotante, como en un juego: aparece donde se apoya el pulgar en la mitad
@@ -975,33 +985,12 @@
     // Las puertas se abren solas al acercarse. En primera persona manda la
     // posición del visitante; en las vistas de conjunto, la de la cámara, que
     // es lo que hace que se abran al bajar a mirar de cerca.
-    const puertaCerca = mundo.actualizarPuertas(vista === 'fps' ? fps.estado.pos : camara.position, dt)
+    mundo.actualizarPuertas(vista === 'fps' ? fps.estado.pos : camara.position, dt)
 
-    // Las manos solo existen caminando en primera persona. Se estira la que
-    // queda del lado de la puerta, y solo si la tiene DELANTE: pasar de largo
-    // por una puerta abierta no es ir a empujarla.
-    if (vista === 'fps') {
-      let puerta = null
-      if (puertaCerca) {
-        const yaw = fps.estado.yaw
-        const dx = puertaCerca.x - fps.estado.pos.x
-        const dz = puertaCerca.z - fps.estado.pos.z
-        // Delante = −Z de la cámara; a la derecha = +X. Los dos en el marco del
-        // visitante, girando el vector por −yaw.
-        const cos = Math.cos(-yaw), sin = Math.sin(-yaw)
-        const adelante = -(dz * cos - dx * sin)
-        const lateral = dx * cos + dz * sin
-        if (adelante > 0.1) {
-          const cerca = Math.max(0, Math.min(1, (2.3 - puertaCerca.dist) / 1.5))
-          puerta = { lado: lateral >= 0 ? 1 : -1, cerca }
-        }
-      }
-      const j = fps.estado.joystick
-      const vel = Math.hypot(j.x, j.y) || (Object.values(fps.estado.teclas).some(Boolean) ? 1 : 0)
-      manos.actualizar(dt, { visible: true, velocidad: vel, puerta })
-    } else {
-      manos.actualizar(dt, { visible: false })
-    }
+    // Aqui iba el gobierno de las manos del visitante, que se estiraban hacia
+    // la puerta que tuvieran delante. Desmontado por ahora: ver el comentario
+    // de «Manos del visitante» mas arriba. `puertaCerca` era para ellas; la
+    // llamada de encima sigue haciendo falta, que es la que abre las puertas.
 
     acum += dt
     if (acum > 0.08) { pintarMini(); acum = 0 }

@@ -51,8 +51,14 @@
       onEstado: null,
     }
 
-    // Cota del suelo bajo un punto: la rampa si se esta sobre una, el entrepiso
-    // si se esta sobre su losa, y si no la planta baja.
+    // Lo que se sube o se baja de UN PASO, sin escalera. Es la medida que separa
+    // un desnivel que se salva andando de uno al que hay que subir por rampa, y
+    // vale 1,05 por los cuartos de maquinas: su piso cuelga un metro justo del
+    // entrepiso, y ahi se entra bajando ese metro y se sale subiendolo. Por
+    // encima de eso no se pasa, asi que del borde del entrepiso —3,40 al vacio—
+    // se sigue sin poder caer.
+    const ESCALON = 1.05
+
     // Cota del suelo bajo un punto PARA QUIEN ESTA EN `desde`. Estando abajo, el
     // suelo es la planta baja aunque encima pase el entrepiso: si no, caminar
     // bajo la losa se leia como querer subirse a ella y no se podia dar un paso.
@@ -71,10 +77,22 @@
         return y
       }
       const L = st.losa
-      if (L && cotaAhora > L.alto - 0.7) {
-        for (let i = 0; i < L.trozos.length; i++) {
-          const t = L.trozos[i]
-          if (x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) return L.alto
+      if (L) {
+        // Los suelos hundidos van primero: donde hay uno, la losa esta recortada
+        // justo encima y manda el. Es el caso de los cuartos de maquinas de las
+        // incubadoras, con el piso un metro por debajo del entrepiso; mientras
+        // la losa los tapaba se caminaba sobre un suelo que no existe.
+        const listas = L.hundidos && L.hundidos.length ? [L.hundidos, L.trozos] : [L.trozos]
+        for (let n = 0; n < listas.length; n++) {
+          const lista = listas[n]
+          for (let i = 0; i < lista.length; i++) {
+            const t = lista[i]
+            if (x <= t.x0 || x >= t.x1 || z <= t.z0 || z >= t.z1) continue
+            // Los trozos no se solapan: el primero que cubre el punto es EL
+            // suelo de ahi arriba, y solo cuenta si se alcanza de un paso.
+            const y = t.y == null ? L.alto : t.y
+            return Math.abs(y - cotaAhora) <= ESCALON ? y : 0
+          }
         }
       }
       return 0
@@ -238,12 +256,12 @@
         const dz = (-cos * av - sin * lat) * vel * dt
 
         // Un paso solo vale si ademas hay suelo al que ir: se sube y se baja por
-        // rampa, pero no se cae del borde del entrepiso ni se salta un metro.
+        // rampa y se salva el escalon de los cuartos de maquinas, pero no se
+        // cae del borde del entrepiso ni se cruza un foso abierto.
         // Sin esto, caminar por el segundo nivel era caminar sobre el vacio.
-        const PASO_ARRIBA = 0.6
         const pisoOk = (x, z) => {
           if (st.volar || st.atravesar) return true
-          return Math.abs(pisoEn(x, z, st.piso) - st.piso) <= PASO_ARRIBA
+          return Math.abs(pisoEn(x, z, st.piso) - st.piso) <= ESCALON
         }
         let nx = st.pos.x + dx
         let nz = st.pos.z + dz
