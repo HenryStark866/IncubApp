@@ -4,7 +4,7 @@
  * Todas las medidas están en METROS, con el mismo sistema del plano 2D de IncubApp:
  *   +X hacia el oriente del plano (derecha) · +Y hacia el sur del plano (abajo)
  * En 3D se usa: X = x del plano · Z = y del plano · Y = altura.
- * Instantánea tomada el 2026-09-05. Para actualizarla, vuelva a exportar de IncubApp.
+ * Instantánea tomada el 2026-09-07. Para actualizarla, vuelva a exportar de IncubApp.
  *
  * NOTA SOBRE LOS NOMBRES: la geometría es un volcado literal de Supabase, los rótulos no.
  * El 2026-07-29 se normalizaron en la base las erratas de S45, S47, S35, S50, S51 y S64,
@@ -22,7 +22,7 @@ window.PLANTA = {
     empresa: 'Antioqueña de Incubación SAS',
     ciudad: 'HISPANIA',
     direccion: 'Km 2, vía Hispania-Andes, vereda La Seca.',
-    snapshot: '2026-09-05',
+    snapshot: '2026-09-07',
     alturaMuro: 2.9, // altura libre contra la fachada del frente (m)
     // La nave va a dos aguas pero NO es simetrica: arranca en 5,60 contra la
     // fachada de atras —la del norte, donde esta el ala de incubadoras—, sube
@@ -78,7 +78,7 @@ window.PLANTA = {
     { id: 'fec06f28-f257-4ed6-a340-a7b6c53bfc44', code: 'S23', name: 'PASILLO', type: 'hallway', x: 39, y: 21, w: 2, h: 2.4, rot: 0, color: null, parteDe: '7bd56237-435a-4105-aaaf-ae6707a4c03e', doors: [{ x: 0.55, y: 1.5, rot: 180, w: 0.9, lado: 'abajo', type: 'normal' }] },
     { id: '7bd56237-435a-4105-aaaf-ae6707a4c03e', code: 'S24', name: 'PASILLO', type: 'hallway', x: 33, y: 17.5, w: 8, h: 3.5, rot: 0, color: null, doors: [{ x: 0, y: 0, rot: 270, lado: 'izquierda', type: 'sliding' }, { x: 6.4, y: 1.8, rot: 90, lado: 'derecha', type: 'sliding' }] },
     { id: '700c88ff-37dd-4398-9b8c-00d73c829a83', code: 'S25', name: 'PASILLO', type: 'hallway', x: 6, y: 17.5, w: 27, h: 1.5, rot: 0, color: null, doors: [{ x: 19.6, y: 0, lado: 'arriba', type: 'sliding' }, { x: 19.6, y: 0.4, rot: 180, lado: 'abajo', type: 'sliding' }, { x: 2.2, y: 0, rot: 0, lado: 'abajo', abre: 'afuera', type: 'normal' }] },
-    { id: 'a28b607f-357a-47d6-9782-2dc3c1f2cd80', code: 'S28', name: 'COMEDOR ZONA LIMPIA', type: 'other', x: 6, y: 6, w: 6, h: 11.5, rot: 0, color: null, doors: [{ x: 0, y: 4, w: 1, lado: 'izquierda', type: 'window' }, { x: 2.5, y: 10.6, rot: 180, w: 0.9, lado: 'abajo', type: 'normal' }] },
+    { id: 'a28b607f-357a-47d6-9782-2dc3c1f2cd80', code: 'S28', name: 'COMEDOR ZONA LIMPIA', type: 'other', x: 6, y: 6, w: 6, h: 11.5, rot: 0, color: null, puntos: [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 3.5 }, { x: 6, y: 3.5 }, { x: 6, y: 11.5 }, { x: 0, y: 11.5 }], doors: [{ x: 0, y: 4, w: 1, lado: 'izquierda', type: 'window' }, { x: 2.5, y: 10.6, rot: 180, w: 0.9, lado: 'abajo', type: 'normal' }] },
     { id: '4e925203-b6dd-4cfb-93ff-cc2158614a75', code: 'S29', name: 'FILTRO SANITARIO DAMAS', type: 'other', x: 6, y: 19, w: 2, h: 9, rot: 0, color: null, doors: [{ x: 0.55, y: 0, w: 0.9, lado: 'arriba', type: 'normal' }] },
     { id: 'dcbcb77f-e012-445f-88b2-3dfb305218f3', code: 'S30', name: 'FILTRO SANITARIO HOMBRES', type: 'other', x: 10, y: 19, w: 2, h: 9, rot: 0, color: null, doors: [{ x: 0.55, y: 0, w: 0.9, lado: 'arriba', type: 'normal' }] },
     { id: 'e90fbe82-b288-415f-87e8-e58a09477335', code: 'S31', name: 'LAVANDERÍA ZONA LIMPIA', type: 'washing', x: 8, y: 19, w: 2, h: 4, rot: 0, color: null, doors: [{ x: 0.2, y: 2.4, rot: 180, lado: 'abajo', type: 'normal' }, { x: 0.2, y: 0, lado: 'arriba', type: 'normal' }] },
@@ -139,7 +139,7 @@ window.PLANTA = {
     { id: 'e58e631e-6bc9-4e5b-a9a5-0732c3279291', code: 'S92', name: 'SALA DE VACUNACION', type: 'chick_processing', x: 85, y: 8.5, w: 6, h: 10.5, rot: 0, color: null, puntos: [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 6, y: 10.5 }, { x: 1.5, y: 10.5 }, { x: 1.5, y: 9.5 }, { x: 0, y: 9.5 }, { x: 0, y: 0 }], doors: [{ x: 2, y: 0, lado: 'arriba', type: 'normal' }] },
     { id: '78852afb-0469-48d4-b31c-622738a17fe4', code: 'S93', name: 'OFICINA PRODUCCION', type: 'office', x: 33, y: 23.4, w: 4, h: 9.5, rot: 0, color: null, puntos: [{ x: 0, y: 0 }, { x: 0, y: 9.5 }, { x: 4, y: 9.5 }, { x: 4, y: 1.5 }, { x: 2, y: 1.5 }, { x: 2, y: 0 }, { x: 0, y: 0 }], doors: [{ x: 1.4, y: 8, rot: 180, w: 1, lado: 'abajo', type: 'window' }] },
     { id: '15db632a-b7b0-455c-89a8-3d34f4106733', code: 'SI1', name: 'Sala de incubadoras 1', type: 'incubation', x: 41, y: 6, w: 24.2, h: 11.5, rot: 0, color: null, doors: [] },
-    { id: '77fdd234-6016-4521-ac28-551277e059f4', code: 'SI2', name: 'Sala de incubadoras 2', type: 'incubation', x: 12, y: 6, w: 29, h: 11.5, rot: 0, color: null, doors: [{ x: 27.4, y: 4.8, rot: 90, lado: 'derecha', type: 'open' }] },
+    { id: '77fdd234-6016-4521-ac28-551277e059f4', code: 'SI2', name: 'Sala de incubadoras 2', type: 'incubation', x: 12, y: 6, w: 29, h: 11.5, rot: 0, color: null, puntos: [{ x: 4, y: 0 }, { x: 29, y: 0 }, { x: 29, y: 11.5 }, { x: 0, y: 11.5 }, { x: 0, y: 3.5 }, { x: 4, y: 3.5 }], doors: [{ x: 27.4, y: 4.8, rot: 90, lado: 'derecha', type: 'open' }] },
     { id: '058d4c41-3bd0-4840-be20-16d2b3ec758d', code: 'SN1', name: 'Sala de nacedoras 1', type: 'hatching', x: 70, y: 12, w: 12, h: 6, rot: 0, color: null, doors: [] },
     { id: '4525b77b-4257-4a69-bb42-355e85935a13', code: 'SN2', name: 'Sala de nacedoras 2', type: 'hatching', x: 70, y: 6, w: 12, h: 6, rot: 0, color: null, doors: [] },
     { id: '7a8eb99a-6f31-41a0-867d-789114bdbd2b', code: 'SN3', name: 'Sala de nacedoras 3', type: 'hatching', x: 56, y: 19, w: 12, h: 4.4, rot: 0, color: null, doors: [] },
