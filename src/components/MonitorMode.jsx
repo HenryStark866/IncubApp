@@ -19,7 +19,7 @@ import { exportOperationReport } from '../lib/operationReport'
 import { conditionOf } from '../lib/machineCondition'
 
 /**
- * Modo monitoreo — tablero en vivo para supervisar la planta.
+ * Monitoreo — tablero en vivo para supervisar la planta.
  * Acceso: owner, admin, supervisor, coordinador.
  * Muestra la ÚLTIMA foto de cada máquina (sin importar la hora), agrupada por
  * sala, junto con el operario en turno y el progreso de la ronda en curso.
@@ -216,7 +216,7 @@ export default function MonitorMode({ orgId, userId, role }) {
     return (
       <div className="card wide">
         <div className="card-head">
-          <h2>Modo monitoreo</h2>
+          <h2>Monitoreo</h2>
         </div>
         <p className="hint">
           Este módulo es solo para administradores, supervisores y coordinadores.
@@ -240,7 +240,7 @@ export default function MonitorMode({ orgId, userId, role }) {
   return (
     <div className="card mon">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <h2>Modo monitoreo</h2>
+        <h2>Monitoreo</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="pill live">
             <span className="dot" /> En vivo

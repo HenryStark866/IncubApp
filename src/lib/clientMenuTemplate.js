@@ -92,7 +92,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     },
     { id: 'mantenimiento', label: 'Órdenes de trabajo', group: 'Operación', tab: 'mantenimiento' },
     { id: 'horarios', label: 'Horarios de turno', group: 'Operación', tab: 'horarios' },
-    { id: 'monitoreo', label: 'Modo monitoreo', group: 'Operación', tab: 'monitoreo' },
+    { id: 'monitoreo', label: 'Monitoreo', group: 'Operación', tab: 'monitoreo' },
     { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
     { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Operación', tab: 'recepcion' },

@@ -4091,7 +4091,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   box-shadow: 0 1px 4px rgba(20, 25, 40, 0.12);
 }
 
-/* â”€â”€ Modo monitoreo (tablero en vivo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€ Monitoreo (tablero en vivo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .card.mon { width: min(1200px, 100%); }
 
 .mon-topbar {
@@ -6137,6 +6137,27 @@ button.primary:hover:not(:disabled) {
   pointer-events: none;
 }
 .lom-hud-top > * { pointer-events: auto; }
+/* Plegada: la barra se encoge al botón del menú y su tirador, arrimada a la
+   derecha. Es el estado de arranque — con la barra entera, el mundo 3D quedaba
+   tapado por la franja de arriba. */
+.lom-hud-top.plegada {
+  left: auto;
+  gap: 6px;
+  padding: 5px 6px;
+}
+.lom-hud-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 0.8rem; line-height: 1;
+  cursor: pointer;
+}
+.lom-hud-toggle:hover, .lom-hud-toggle:focus-visible {
+  background: var(--bg-0); color: var(--text);
+}
 .lom-hud-title {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.92rem; color: var(--text); white-space: nowrap;

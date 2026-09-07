@@ -380,7 +380,7 @@ export default function CoordEngineeringBoard({
 
             <div className="exec-links">
               <button type="button" className="chip ghost" onClick={() => onNavigate?.('monitoreo')}>
-                Modo monitoreo
+                Monitoreo
               </button>
               <button type="button" className="chip ghost" onClick={() => onNavigate?.('mantenimiento')}>
                 Órdenes OT

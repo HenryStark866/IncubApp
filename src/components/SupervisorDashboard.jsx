@@ -398,7 +398,7 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
       <div className="actions row" style={{ flexWrap: 'wrap' }}>
         <button className="chip ghost" onClick={() => onNavigate?.('supervision')}>👁️ Supervisión</button>
         <button className="chip ghost" onClick={() => onNavigate?.('horarios')}>📅 Horarios</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('monitoreo')}>📺 Modo monitoreo</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('monitoreo')}>📺 Monitoreo</button>
         <button className="chip ghost" onClick={() => onNavigate?.('mantenimiento')}>🛠️ Mantenimiento</button>
         <button className="chip ghost" onClick={() => onNavigate?.('plantas')}>🗺️ Ver plano de planta</button>
       </div>

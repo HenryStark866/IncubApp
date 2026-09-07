@@ -2264,6 +2264,12 @@
     datos.rooms.forEach((r) => {
       if (!r._cat.muro) return
       if (!seVeNivel(esNivel2(r) ? 2 : 1)) return
+      // Los cuartos de maquinas van DESPEJADOS por arriba: los de nacedoras son
+      // fosos abiertos al segundo nivel y los de incubadoras se abren a la nave.
+      // Este techo se los tapaba con una tapa a 3,42, y ademas se veia rosada
+      // porque el tipo `technical` es lila: era lo unico que quedaba cerrandolos
+      // cuando se encendia la capa de techos.
+      if (esCuartoMaquinas(r)) return
       // El techo se apoya en la cota de la sala, no en 0: sin esto, el techo
       // de una sala del nivel 2 quedaba flotando dentro de su propio cuerpo
       // (a la altura del tipo desde el suelo, muy por debajo de su piso real).

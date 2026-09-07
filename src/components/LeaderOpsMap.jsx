@@ -221,6 +221,10 @@ export default function LeaderOpsMap({
   // una vez cargado se queda montado y solo se esconde: volver a él es
   // instantáneo y, oculto, el navegador le frena el bucle de dibujo.
   const [tourMontado, setTourMontado] = useState(puede3D)
+  // La barra de arriba tapaba parte del mundo 3D. Arranca plegada: solo queda
+  // el botón del menú y el tirador para desplegarla; el nombre, el estado de
+  // las máquinas y el selector de planta salen al abrirla.
+  const [barraAbierta, setBarraAbierta] = useState(false)
   useEffect(() => {
     if (vista === '3d') setTourMontado(true)
   }, [vista])
@@ -522,35 +526,48 @@ export default function LeaderOpsMap({
           ))}
 
         {/* HUD superior: identidad + estado, compacto y semitransparente */}
-        <div className="lom-hud-top">
-          <div
-            className="lom-hud-title"
-            title={`Líder de área${area && area !== 'general' ? ` · ${area}` : ''}${orgName ? ` · ${orgName}` : ''}`}
-          >
-            <strong>{userName ? `${userName.split(' ')[0]} · ` : ''}Planta en vivo</strong>
-            <span className="pill live">
-              <span className="dot" /> En vivo
-            </span>
-          </div>
-          <div className="lom-hud-status">
-            <span className="pill status ok">✓ {summary.normal}</span>
-            <span className="pill status warn">▲ {summary.warning}</span>
-            <span className="pill status off">✕ {summary.fault}</span>
-            <span className="pill status idle">◧ {summary.off}</span>
-          </div>
-          {plants.length > 1 && (
-            <div className="lmp-plant-chips">
-              {plants.map((p) => (
-                <button
-                  key={p.id}
-                  className={p.id === plantId ? 'chip active' : 'chip'}
-                  onClick={() => setPlantId(p.id)}
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
+        <div className={`lom-hud-top${barraAbierta ? '' : ' plegada'}`}>
+          {barraAbierta && (
+            <>
+              <div
+                className="lom-hud-title"
+                title={`Líder de área${area && area !== 'general' ? ` · ${area}` : ''}${orgName ? ` · ${orgName}` : ''}`}
+              >
+                <strong>{userName ? `${userName.split(' ')[0]} · ` : ''}Planta en vivo</strong>
+                <span className="pill live">
+                  <span className="dot" /> En vivo
+                </span>
+              </div>
+              <div className="lom-hud-status">
+                <span className="pill status ok">✓ {summary.normal}</span>
+                <span className="pill status warn">▲ {summary.warning}</span>
+                <span className="pill status off">✕ {summary.fault}</span>
+                <span className="pill status idle">◧ {summary.off}</span>
+              </div>
+              {plants.length > 1 && (
+                <div className="lmp-plant-chips">
+                  {plants.map((p) => (
+                    <button
+                      key={p.id}
+                      className={p.id === plantId ? 'chip active' : 'chip'}
+                      onClick={() => setPlantId(p.id)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
+          <button
+            type="button"
+            className="lom-hud-toggle"
+            aria-expanded={barraAbierta}
+            title={barraAbierta ? 'Plegar la barra y despejar la vista' : 'Ver nombre, estado de máquinas y planta'}
+            onClick={() => setBarraAbierta((v) => !v)}
+          >
+            {barraAbierta ? '⌃' : '⌄'}
+          </button>
           <MenuLider abierto={menuAbierto} onAbrir={setMenuAbierto} secciones={secciones} />
         </div>
 
