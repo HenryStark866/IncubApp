@@ -1,21 +1,22 @@
 /**
  * =============================================================================
  * ARCHIVO: src/components/LeaderOpsMap.jsx
- * PROPÓSITO: Home del líder de área — UN solo panel: el plano de la planta a
- *   pantalla completa como simulación en tiempo real (salas + máquinas con su
- *   condición real + personal en vivo por GPS). Todo lo demás vive ENCIMA del
- *   mapa como iconos flotantes semi-transparentes para no robarle espacio:
- *   un dock de herramientas (navegación a cada módulo de datos) a la derecha
- *   y un dock de filtros (persona/actividad/sector/fecha/turno) a la
- *   izquierda, cada uno desplegable con un clic. No hay lista de resultados
- *   ni menú aparte: filtrar cambia directamente lo que se ve en el mapa
- *   (qué sala se resalta, qué condición de máquina se muestra).
- * CÓMO FUNCIONA: reutiliza el FloorMap de solo lectura (canManage=false) con
- *   la misma proyección GPS→plano que ya usa PlantManager (geoMap.js), y el
- *   mismo menú de módulos del cliente (clientMenuTemplate) filtrado para
- *   excluir herramientas de turnos/supervisión/operarios: el líder solo
- *   NECESITA ver datos (producción, rendimiento, estado real), no ejecutar
- *   esas tareas.
+ * PROPÓSITO: Home del líder de planta. Su pantalla principal ES la planta 3D a
+ *   pantalla completa —el recorrido virtual, no una miniatura— y todo lo demás
+ *   cuelga de UN menú desplegable en la barra de arriba. Ahí es donde se irán
+ *   agregando las funcionalidades del perfil: la lista del menú es el único
+ *   sitio que hay que tocar para sumar una.
+ * CÓMO FUNCIONA: el recorrido vive en /planta3d/, una página aparte servida
+ *   desde public/, y entra aquí en un iframe del mismo origen. El menú lleva
+ *   además la otra vista del líder —el plano 2D en vivo, con salas, máquinas
+ *   por su condición real y personal proyectado del GPS— que antes era la
+ *   pantalla principal y sigue entera: sus filtros
+ *   (persona/actividad/sector/fecha/turno) aparecen al cambiar a ella.
+ *
+ *   Para que el iframe funcione, la CSP de vercel.json tuvo que pasar de
+ *   `frame-ancestors 'none'` a `'self'` (y X-Frame-Options de DENY a
+ *   SAMEORIGIN): la app puede enmarcar SUS propias páginas, y ningún sitio
+ *   ajeno puede enmarcar IncubApp, que es de lo que protege esa cabecera.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -134,6 +135,87 @@ function FilterIcon({ def, active, value, onChange, options, open, onToggle }) {
   )
 }
 
+/**
+ * Menú del líder: un solo desplegable con TODO lo que no es el mapa. Aquí es
+ * donde se agregan las funcionalidades nuevas del perfil — basta con sumar una
+ * entrada a la sección que le corresponda.
+ */
+function MenuLider({ abierto, onAbrir, secciones }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!abierto) return
+    const fuera = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onAbrir(false)
+    }
+    const escape = (e) => {
+      if (e.key === 'Escape') onAbrir(false)
+    }
+    document.addEventListener('pointerdown', fuera)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', fuera)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [abierto, onAbrir])
+
+  return (
+    <div className="lom-menu-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`lom-menu-btn${abierto ? ' open' : ''}`}
+        aria-expanded={abierto}
+        aria-haspopup="menu"
+        onClick={() => onAbrir(!abierto)}
+      >
+        <span aria-hidden="true">☰</span> Menú
+      </button>
+      {abierto && (
+        <div className="lom-menu" role="menu">
+          {secciones.map((s) => (
+            <div key={s.titulo} className="lom-menu-grupo">
+              <p className="lom-menu-titulo">{s.titulo}</p>
+              {s.items.map((it) =>
+                it.href ? (
+                  <a
+                    key={it.id}
+                    role="menuitem"
+                    className="lom-menu-item"
+                    href={it.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={it.hint}
+                    onClick={() => onAbrir(false)}
+                  >
+                    <span className="lom-menu-icono" aria-hidden="true">{it.icono}</span>
+                    <span>{it.label}</span>
+                  </a>
+                ) : (
+                  <button
+                    key={it.id}
+                    type="button"
+                    role="menuitem"
+                    className={`lom-menu-item${it.activo ? ' activo' : ''}`}
+                    title={it.hint}
+                    disabled={it.disabled}
+                    onClick={() => {
+                      it.onClick?.()
+                      if (!it.mantenerAbierto) onAbrir(false)
+                    }}
+                  >
+                    <span className="lom-menu-icono" aria-hidden="true">{it.icono}</span>
+                    <span>{it.label}</span>
+                    {it.activo && <span className="lom-menu-check" aria-hidden="true">✓</span>}
+                  </button>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LeaderOpsMap({
   orgId,
   userId,
@@ -161,6 +243,18 @@ export default function LeaderOpsMap({
   const { assignments } = useShiftSchedule(orgId, userId)
   const [exporting, setExporting] = useState(false)
   const [openFilter, setOpenFilter] = useState(null)
+
+  /* ── Vista principal: la planta 3D; el plano 2D en vivo queda en el menú ── */
+  const puede3D = canSeePlant3DTour(role)
+  const [vista, setVista] = useState(puede3D ? '3d' : '2d')
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  // El recorrido tarda un par de segundos en levantar la planta entera, así que
+  // una vez cargado se queda montado y solo se esconde: volver a él es
+  // instantáneo y, oculto, el navegador le frena el bucle de dibujo.
+  const [tourMontado, setTourMontado] = useState(puede3D)
+  useEffect(() => {
+    if (vista === '3d') setTourMontado(true)
+  }, [vista])
 
   const [people, setPeople] = useState({})
   useEffect(() => {
@@ -372,27 +466,96 @@ export default function LeaderOpsMap({
     : key === 'shift' ? shiftOptions
     : []
 
+  /* ── El menú: TODO lo que no es el mapa. Aquí se suman las funcionalidades
+        nuevas del perfil, cada una en su sección. ── */
+  const secciones = [
+    {
+      titulo: 'Vista',
+      items: [
+        puede3D && {
+          id: 'v3d',
+          icono: '🕶️',
+          label: 'Planta 3D',
+          hint: 'Recorrido virtual de la planta, en primera persona',
+          activo: vista === '3d',
+          onClick: () => setVista('3d'),
+        },
+        {
+          id: 'v2d',
+          icono: '🗺️',
+          label: 'Plano en vivo',
+          hint: 'Plano 2D con las máquinas por su condición real y el personal por GPS',
+          activo: vista === '2d',
+          onClick: () => setVista('2d'),
+        },
+      ].filter(Boolean),
+    },
+    {
+      titulo: 'Módulos',
+      items: tools.map((t) => ({
+        id: t.id,
+        icono: iconFor(t.id),
+        label: t.label,
+        hint: t.hint || t.label,
+        onClick: () => onNavigate?.(t.id),
+      })),
+    },
+    {
+      titulo: 'Acciones',
+      items: [
+        {
+          id: 'reporte',
+          icono: exporting ? '⏳' : '📥',
+          label: 'Reporte de operación',
+          hint: 'Descargar Excel con turnos, operarios, rondas, cargues y transferencias',
+          disabled: exporting,
+          onClick: handleExport,
+        },
+        puede3D && {
+          id: 'tour-aparte',
+          icono: '↗',
+          label: 'Abrir la planta 3D aparte',
+          hint: 'El recorrido a pantalla completa, en otra pestaña',
+          href: PLANT_3D_TOUR_URL,
+        },
+      ].filter(Boolean),
+    },
+  ].filter((s) => s.items.length > 0)
+
   return (
     <div className="card wide leader-ops-map">
       <div className="lom-map-stage">
-        {roomsApi.rooms.length === 0 && !roomsApi.loading ? (
-          <p className="hint" style={{ padding: 16 }}>
-            Esta planta todavía no tiene salas dibujadas en el plano.
-          </p>
-        ) : (
-          <FloorMap
-            canManage={false}
-            canExpand
-            roomsApi={roomsApi}
-            machines={machines}
-            updateMachine={() => {}}
-            selectedMachineId={null}
-            onSelectMachine={() => {}}
-            livePeople={livePeople}
-            conditionByMachine={effectiveConditionByMachine}
-            highlightRoomIds={highlightRoomIds}
+        {/* La pantalla principal: el recorrido 3D, del mismo origen. Se queda
+            montado al cambiar de vista para no volver a levantar la planta. */}
+        {tourMontado && (
+          <iframe
+            className="lom-tour-3d"
+            src={PLANT_3D_TOUR_URL}
+            title="Planta 3D — recorrido virtual"
+            hidden={vista !== '3d'}
+            allow="fullscreen"
           />
         )}
+
+        {vista === '2d' &&
+          (roomsApi.rooms.length === 0 && !roomsApi.loading ? (
+            <p className="hint" style={{ padding: 16 }}>
+              Esta planta todavía no tiene salas dibujadas en el plano.
+            </p>
+          ) : (
+            <FloorMap
+              canManage={false}
+              canExpand
+              roomsApi={roomsApi}
+              machines={machines}
+              updateMachine={() => {}}
+              selectedMachineId={null}
+              onSelectMachine={() => {}}
+              livePeople={livePeople}
+              conditionByMachine={effectiveConditionByMachine}
+              highlightRoomIds={highlightRoomIds}
+            />
+          ))}
 
         {/* HUD superior: identidad + estado, compacto y semitransparente */}
         <div className="lom-hud-top">
@@ -424,70 +587,31 @@ export default function LeaderOpsMap({
               ))}
             </div>
           )}
+          <MenuLider abierto={menuAbierto} onAbrir={setMenuAbierto} secciones={secciones} />
         </div>
 
-        {/* Dock de filtros — discreto, a la izquierda */}
-        <div className="lom-filter-dock" role="group" aria-label="Filtros">
-          {FILTER_DEFS.map((def) => (
-            <FilterIcon
-              key={def.key}
-              def={def}
-              active={!!filters[def.key]}
-              value={filters[def.key]}
-              onChange={(v) => setFilterValue(def.key, v)}
-              options={optionsFor(def.key)}
-              open={openFilter === def.key}
-              onToggle={setOpenFilter}
-            />
-          ))}
-          {hasFilters && (
-            <button type="button" className="lom-filter-icon lom-filter-clear" title="Limpiar filtros" onClick={clearFilters}>
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Dock de herramientas — módulos de datos, a la derecha */}
-        <div className="lom-tools-dock" role="navigation" aria-label="Módulos de datos">
-          {tools.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className="lom-tool-btn"
-              title={t.hint || t.label}
-              onClick={() => onNavigate?.(t.id)}
-            >
-              <span className="lom-tool-icon" aria-hidden="true">
-                {iconFor(t.id)}
-              </span>
-              <span className="lom-tool-label">{t.label}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            className="lom-tool-btn"
-            title="Descargar Excel con turnos, operarios, rondas, cargues y transferencias"
-            onClick={handleExport}
-            disabled={exporting}
-          >
-            <span className="lom-tool-icon" aria-hidden="true">{exporting ? '⏳' : '📥'}</span>
-            <span className="lom-tool-label">Reporte de operación</span>
-          </button>
-          {canSeePlant3DTour(role) && (
-            /* Metaverso IncubApp: página aparte, en pestaña nueva. No puede ir
-               en un iframe porque la propia CSP pone frame-ancestors 'none'. */
-            <a
-              className="lom-tool-btn lom-tool-3d"
-              href={PLANT_3D_TOUR_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Planta 3D — recorrido virtual de la planta (abre en otra pestaña)"
-            >
-              <span className="lom-tool-icon" aria-hidden="true">🕶️</span>
-              <span className="lom-tool-label">Planta 3D</span>
-            </a>
-          )}
-        </div>
+        {/* Filtros: solo tienen sentido sobre el plano 2D, que es donde pintan */}
+        {vista === '2d' && (
+          <div className="lom-filter-dock" role="group" aria-label="Filtros">
+            {FILTER_DEFS.map((def) => (
+              <FilterIcon
+                key={def.key}
+                def={def}
+                active={!!filters[def.key]}
+                value={filters[def.key]}
+                onChange={(v) => setFilterValue(def.key, v)}
+                options={optionsFor(def.key)}
+                open={openFilter === def.key}
+                onToggle={setOpenFilter}
+              />
+            ))}
+            {hasFilters && (
+              <button type="button" className="lom-filter-icon lom-filter-clear" title="Limpiar filtros" onClick={clearFilters}>
+                ✕
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

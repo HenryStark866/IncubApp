@@ -6200,52 +6200,83 @@ button.primary:hover:not(:disabled) {
   border-radius: 8px; padding: 6px 8px; font-size: 0.84rem;
 }
 
-/* Dock de herramientas — módulos de datos, borde derecho del mapa */
-.lom-tools-dock {
+/* La pantalla principal del líder: el recorrido 3D ocupa el escenario entero.
+   Es la misma página de /planta3d/, enmarcada del mismo origen. */
+.lom-tour-3d {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 950;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 82vh;
-  overflow-y: auto;
-  padding: 4px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #070b14;
 }
-.lom-tool-btn {
-  display: flex; align-items: center; gap: 8px;
-  background: rgba(16, 29, 58, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+
+/* Menú del líder — un solo desplegable arriba a la derecha. Sustituye al dock
+   de iconos que rodeaba el mapa: aquí es donde se van sumando las
+   funcionalidades del perfil, cada una en su sección. */
+.lom-menu-wrap { position: relative; margin-left: auto; }
+.lom-menu-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(16, 29, 58, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #e8eefc;
   border-radius: 999px;
-  padding: 9px;
+  padding: 7px 14px;
+  font-size: 0.82rem; font-weight: 600;
   cursor: pointer;
-  max-width: 40px;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: background 0.15s, max-width 0.2s, transform 0.15s;
+  transition: background 0.15s;
 }
-.lom-tool-btn:hover, .lom-tool-btn:focus-visible {
-  background: rgba(30, 136, 229, 0.7);
-  max-width: 220px;
-  transform: translateX(-3px);
+.lom-menu-btn:hover, .lom-menu-btn:focus-visible, .lom-menu-btn.open {
+  background: rgba(30, 136, 229, 0.75);
 }
-.lom-tool-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
-.lom-tool-label {
-  font-size: 0.78rem; font-weight: 600; opacity: 0; transition: opacity 0.15s;
+.lom-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  width: 262px;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: rgba(11, 20, 40, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  padding: 8px;
 }
-.lom-tool-btn:hover .lom-tool-label,
-.lom-tool-btn:focus-visible .lom-tool-label { opacity: 1; }
-
-/* ── Acceso al metaverso (recorrido 3D) — solo liderazgo y gerencia ──────────
-   Son enlaces, no botones, porque abren una página aparte en otra pestaña. El
-   estilo .ghost está escrito como button.ghost, así que un <a> no lo hereda:
-   estas dos reglas le dan la misma apariencia. */
-.lom-tool-btn.lom-tool-3d { text-decoration: none; }
+.lom-menu-grupo + .lom-menu-grupo {
+  margin-top: 6px; padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.lom-menu-titulo {
+  margin: 2px 8px 4px;
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #8fa3c8;
+}
+.lom-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: #e8eefc;
+  text-align: left;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 8px 9px;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.lom-menu-item:hover:not(:disabled),
+.lom-menu-item:focus-visible { background: rgba(30, 136, 229, 0.28); }
+.lom-menu-item:disabled { opacity: 0.55; cursor: default; }
+.lom-menu-item.activo { background: rgba(30, 136, 229, 0.2); font-weight: 600; }
+.lom-menu-icono {
+  font-size: 1.02rem; line-height: 1; flex-shrink: 0;
+  width: 1.3em; text-align: center;
+}
+.lom-menu-check { margin-left: auto; color: var(--acento, #35d6e8); }
 a.plant3d-link {
   display: inline-flex;
   align-items: center;
@@ -6298,46 +6329,28 @@ a.plant3d-link:hover { color: var(--text); border-color: var(--accent-dim); }
     padding-bottom: 104px;
   }
 
-  .lom-filter-dock,
-  .lom-tools-dock {
+  /* La barra de filtros NO puede llevar overflow: al recortar un eje el otro
+     deja de ser visible y el popover que abre hacia arriba quedaría cortado.
+     Son 5 o 6 iconos, caben en el ancho de un celular. */
+  .lom-filter-dock {
     left: 8px;
     right: 8px;
     top: auto;
+    bottom: 10px;
     transform: none;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     max-height: none;
     padding: 2px;
   }
+  .lom-filter-icon { width: 34px; height: 34px; flex: 0 0 auto; }
 
-  /* Solo la barra de herramientas se desplaza: son muchos módulos. La de
-     filtros NO puede llevar overflow, porque al recortar un eje el otro deja
-     de ser visible y el popover que abre hacia arriba quedaría cortado.
-     Son 5 o 6 iconos, caben en el ancho de un celular. */
-  .lom-tools-dock {
-    bottom: 58px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .lom-tools-dock::-webkit-scrollbar { display: none; }
-  .lom-filter-dock { bottom: 10px; flex-wrap: wrap; }
-
-  /* El botón (no el span de adentro) es el que se encoge: dimensionar
-     .lom-tool-icon desbordaba el icono fuera de su botón de 40px. */
-  .lom-filter-icon,
-  .lom-tool-btn { width: 34px; height: 34px; flex: 0 0 auto; }
-  .lom-tool-btn { max-width: 34px; padding: 0; gap: 0; justify-content: center; }
-  /* La etiqueta se retira del flujo: si solo se le baja la opacidad, sigue
-     ocupando ancho y empuja el icono fuera del centro del botón. */
-  .lom-tool-label { display: none; }
-
-  /* Sin expansión al pasar el dedo: en táctil el :hover se queda pegado
-     después del toque y la etiqueta tapaba el mapa. El title ya la dice. */
-  .lom-tool-btn:hover,
-  .lom-tool-btn:focus-visible { max-width: 34px; transform: none; }
-  .lom-tool-btn:hover .lom-tool-label,
-  .lom-tool-btn:focus-visible .lom-tool-label { opacity: 0; }
+  /* El menú cuelga del HUD, que en celular va en flujo y no flotando: se ancla
+     igual a su botón, pero sin pasarse del ancho de la pantalla. */
+  .lom-menu { width: min(280px, calc(100vw - 24px)); max-height: 60vh; }
+  .lom-menu-btn { padding: 6px 11px; font-size: 0.78rem; }
 
   /* Los filtros abren hacia arriba, porque el dock quedó abajo. */
   .lom-filter-popover {
