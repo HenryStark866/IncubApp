@@ -976,12 +976,24 @@
   // arrastre con el dedo y el sensor conviven sin pelearse, y no hace falta
   // recalibrar cuando el norte magnético deriva.
   let refSensor = null
+  let llegoLectura = false
   const poseAparato = (e) => {
-    if (e.alpha == null || e.beta == null || e.gamma == null) return null
+    if (e.beta == null || e.gamma == null) return null
     // Cómo esté girada la pantalla cambia qué eje es cuál.
     const giro = (screen.orientation && screen.orientation.angle) || 0
     const inc = giro === 0 ? e.beta : giro === 180 ? -e.beta : giro === 90 ? e.gamma : -e.gamma
-    return { yaw: -(e.alpha + giro) * GRADO, pitch: (inc - 90) * GRADO }
+
+    // El giro horizontal NO se lee igual en los dos mundos, y de esto depende
+    // que la cámara acompañe al teléfono o se vaya al lado contrario:
+    //   · iOS entrega `webkitCompassHeading`, el rumbo real, que crece EN EL
+    //     SENTIDO DEL RELOJ — girar a la derecha lo sube.
+    //   · Android entrega `alpha`, que crece al revés, contra el reloj.
+    // Con solo `alpha` para los dos, en iPhone el recorrido giraba al revés.
+    const rumbo = typeof e.webkitCompassHeading === 'number' && !Number.isNaN(e.webkitCompassHeading)
+      ? e.webkitCompassHeading + giro          // reloj
+      : e.alpha == null ? null : -(e.alpha + giro)   // contra reloj
+    if (rumbo == null) return null
+    return { yaw: rumbo * GRADO, pitch: (inc - 90) * GRADO }
   }
   function alOrientar(e) {
     if (!opciones.sensor || vista !== 'fps') { refSensor = null; return }
@@ -997,8 +1009,13 @@
     // cámara tiene que girar a la derecha con él.
     fps.mirar(dYaw, -(p.pitch - refSensor.pitch))
     refSensor = p
+    llegoLectura = true
   }
+  // Los dos nombres del mismo evento: Chrome en Android manda el rumbo bueno por
+  // `deviceorientationabsolute` y deja `alpha` relativo en el otro. Se escuchan
+  // ambos y manda el que de verdad llegue.
   addEventListener('deviceorientation', alOrientar)
+  addEventListener('deviceorientationabsolute', alOrientar)
 
   // iOS exige pedir permiso, y solo desde un gesto del usuario — por eso va
   // colgado del propio interruptor y no del arranque.
@@ -1011,8 +1028,16 @@
   async function encenderSensor() {
     refSensor = null
     if (!opciones.sensor) return
-    if (await permisoSensor()) aviso('Mueve el teléfono para mirar alrededor')
-    else {
+    if (await permisoSensor()) {
+      aviso('Mueve el teléfono para mirar alrededor')
+      // Que el permiso exista no quiere decir que el aparato tenga sensores ni
+      // que los esté entregando. Si en dos segundos no llega ni una lectura, se
+      // dice — callarse deja al usuario moviendo el teléfono sin que pase nada.
+      llegoLectura = false
+      setTimeout(() => {
+        if (opciones.sensor && !llegoLectura) aviso('Este aparato no está entregando lecturas de sus sensores', 4000)
+      }, 2000)
+    } else {
       opciones.sensor = false
       aplicarOpciones()
       aviso('El teléfono no dio permiso para usar sus sensores')
