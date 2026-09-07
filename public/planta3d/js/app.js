@@ -47,6 +47,7 @@
   const opciones = {
     etiquetas: true, equipos: true, techos: false, cotas: true,
     sombras: true, atravesar: false, volar: false, giro: false, sonido: true,
+    sensor: false,
     // 'ambos' arma la planta completa con sus dos niveles, tal como está
     // construida; 1 o 2 aísla ese nivel (ver el toggle #grupoNivel).
     nivel: 'ambos',
@@ -192,7 +193,11 @@
     // corre cuando el usuario toca algo, así que se pone aquí.
     if (mundo.grupos.cielos) mundo.grupos.cielos.visible = v === 'fps' || v === 'tour'
     $$('#grupoVistas button').forEach((b) => b.classList.toggle('activo', b.dataset.vista === v))
-    $('#grupoOrientacion').style.display = v === 'fps' || v === 'tour' ? 'none' : ''
+    // Caminando no hay a dónde orientar la cámara: se va el grupo y también su
+    // título, que si no se queda solo en el menú encabezando un hueco.
+    const orientar = v === 'fps' || v === 'tour' ? 'none' : ''
+    $('#grupoOrientacion').style.display = orientar
+    $('#tituloOrientacion').style.display = orientar
     tour.activo = v === 'tour'
     $('#tour').classList.toggle('visible', v === 'tour')
 
@@ -608,7 +613,13 @@
   }
 
   $$('#panelOpciones .opcion').forEach((el) => {
-    el.onclick = () => { opciones[el.dataset.op] = !opciones[el.dataset.op]; aplicarOpciones() }
+    el.onclick = () => {
+      opciones[el.dataset.op] = !opciones[el.dataset.op]
+      aplicarOpciones()
+      // El de los sensores tiene que pedir permiso, y iOS solo lo concede
+      // desde un gesto del usuario: este clic es ese gesto.
+      if (el.dataset.op === 'sensor') encenderSensor()
+    }
   })
   $('#btnOpciones').onclick = () => {
     if ($('#panelOpciones').classList.contains('visible')) cerrarHojas()
@@ -897,10 +908,20 @@
     const fuerza = m < MUERTA ? 0 : Math.pow((m - MUERTA) / (1 - MUERTA), 1.6)
     fps.joystick((dx / l) * fuerza, (dy / l) * fuerza, m > CORRE)
   }
+  // Dónde descansa cuando nadie lo toca: abajo a la izquierda, al alcance del
+  // pulgar. Se dibuja apagado, y al apoyar el dedo se muda a donde cayó.
+  const reposoJoy = () => {
+    joy.style.left = '24px'
+    joy.style.top = `${Math.max(24, innerHeight - 24 - RADIO_JOY * 2)}px`
+  }
+  reposoJoy()
+  addEventListener('resize', () => { if (joyId === null) reposoJoy() })
+
   const soltarJoy = () => {
     joyId = null
     perilla.style.transform = ''
     joy.classList.remove('activo')
+    reposoJoy()
     fps.joystick(0, 0, false)
   }
 
@@ -944,6 +965,59 @@
     if (vx || vy) fps.mirar(vx * 2.6 * dt, vy * 1.9 * dt)
   }
   addEventListener('gamepadconnected', (e) => aviso(`Mando conectado: ${e.gamepad.id.split('(')[0].trim()}`))
+
+  // ── Sensores del móvil: mirar moviendo el aparato ────────────────────────
+  // El pulgar izquierdo camina y el teléfono mira: se apunta con el aparato
+  // como con una cámara, que es lo que la gente espera de un recorrido en el
+  // celular y lo que deja las dos manos libres de arrastrar por la pantalla.
+  //
+  // Se trabaja por INCREMENTOS —cada lectura mueve la cámara lo que se movió el
+  // aparato desde la anterior— en vez de fijar la orientación absoluta. Así el
+  // arrastre con el dedo y el sensor conviven sin pelearse, y no hace falta
+  // recalibrar cuando el norte magnético deriva.
+  let refSensor = null
+  const poseAparato = (e) => {
+    if (e.alpha == null || e.beta == null || e.gamma == null) return null
+    // Cómo esté girada la pantalla cambia qué eje es cuál.
+    const giro = (screen.orientation && screen.orientation.angle) || 0
+    const inc = giro === 0 ? e.beta : giro === 180 ? -e.beta : giro === 90 ? e.gamma : -e.gamma
+    return { yaw: -(e.alpha + giro) * GRADO, pitch: (inc - 90) * GRADO }
+  }
+  function alOrientar(e) {
+    if (!opciones.sensor || vista !== 'fps') { refSensor = null; return }
+    const p = poseAparato(e)
+    if (!p) return
+    if (!refSensor) { refSensor = p; return }
+    let dYaw = p.yaw - refSensor.yaw
+    // alpha da la vuelta en 360°: sin esto, cruzar el norte pega un latigazo.
+    if (dYaw > Math.PI) dYaw -= 2 * Math.PI
+    if (dYaw < -Math.PI) dYaw += 2 * Math.PI
+    // `mirar` RESTA lo que se le pasa, así que el giro va sin cambiar de signo
+    // y la inclinación sí: girar el teléfono a la derecha baja alpha, y la
+    // cámara tiene que girar a la derecha con él.
+    fps.mirar(dYaw, -(p.pitch - refSensor.pitch))
+    refSensor = p
+  }
+  addEventListener('deviceorientation', alOrientar)
+
+  // iOS exige pedir permiso, y solo desde un gesto del usuario — por eso va
+  // colgado del propio interruptor y no del arranque.
+  async function permisoSensor() {
+    const DOE = window.DeviceOrientationEvent
+    if (!DOE) return false
+    if (typeof DOE.requestPermission !== 'function') return true
+    try { return (await DOE.requestPermission()) === 'granted' } catch { return false }
+  }
+  async function encenderSensor() {
+    refSensor = null
+    if (!opciones.sensor) return
+    if (await permisoSensor()) aviso('Mueve el teléfono para mirar alrededor')
+    else {
+      opciones.sensor = false
+      aplicarOpciones()
+      aviso('El teléfono no dio permiso para usar sus sensores')
+    }
+  }
 
   // ── Portada ──────────────────────────────────────────────────────────────
   $('#tituloPlanta').textContent = D.meta.nombre

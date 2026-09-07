@@ -126,7 +126,12 @@
     touch-action:none;pointer-events:none;backdrop-filter:blur(2px)}
   #joystick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
     background:rgba(53,214,232,.55);border:1px solid rgba(255,255,255,.4);transition:transform .04s linear}
-  body.fps #joystick.activo{display:block}
+  /* En táctil se ve SIEMPRE mientras se camina, apagado, para que se sepa
+     dónde apoyar el pulgar; al tocarlo se enciende y se muda a donde cayó el
+     dedo. Antes solo existía mientras se lo tocaba: en un celular no había
+     nada en pantalla que dijera que estaba ahí. */
+  body.tactil.fps #joystick{display:block;opacity:.38;transition:opacity .15s}
+  body.fps #joystick.activo{display:block;opacity:1}
 
   /* ── Cartel del tour ─────────────────────────────────────── */
   #tour{position:fixed;z-index:39;left:50%;bottom:96px;transform:translateX(-50%);display:none;
@@ -246,6 +251,10 @@
     #menuMapa{width:min(320px,92vw)}
     #menuMapa #listaSalas{max-height:26vh}
   }
+  /* La portada se adapta al aparato: en táctil no hay teclas que explicar. */
+  #teclasDedo{display:none}
+  body.tactil #teclasRaton{display:none}
+  body.tactil #teclasDedo{display:grid}
 </style>
 </head>
 <body>
@@ -266,13 +275,22 @@
       Esta es la planta construida en 3D con las <b>medidas reales</b> registradas en IncubApp.
       Puede caminar por ella en primera persona, verla como maqueta o mirarla desde arriba.
     </p>
-    <div class="teclas">
+    <div class="teclas" id="teclasRaton">
       <div><b>Caminar</b>W A S D o flechas</div>
       <div><b>Mirar</b>Mover el mouse</div>
       <div><b>Correr</b>Sostener Shift</div>
       <div><b>Volar</b>Tecla F, luego E / Q</div>
       <div><b>Salir del recorrido</b>Tecla Esc</div>
       <div><b>Tocar algo</b>Clic en sala o equipo</div>
+    </div>
+    <!-- En un celular nada de lo de arriba sirve: ni teclas, ni mouse, ni Esc. -->
+    <div class="teclas" id="teclasDedo">
+      <div><b>Caminar</b>Pulgar en el mando de abajo a la izquierda</div>
+      <div><b>Mirar</b>Arrastra con el dedo, o mueve el teléfono</div>
+      <div><b>Correr</b>Empuja el mando hasta el tope</div>
+      <div><b>Volar</b>Menú › Modo vuelo</div>
+      <div><b>Salir del recorrido</b>Botón Menú</div>
+      <div><b>Tocar algo</b>Toca una sala o un equipo</div>
     </div>
     <div class="cta">
       <button class="primario" id="btnEntrar">🚶 Entrar y caminar</button>
@@ -311,7 +329,7 @@
       <button data-vista="tour">🎬 Tour</button>
     </div>
 
-    <p class="mm-titulo">Orientación</p>
+    <p class="mm-titulo" id="tituloOrientacion">Orientación</p>
     <div class="grupo" id="grupoOrientacion">
       <button data-orientacion="norte">Norte</button>
       <button data-orientacion="sur">Sur</button>
@@ -334,6 +352,7 @@
       <div class="opcion" data-op="atravesar"><span>Atravesar muros</span><i class="interruptor"></i></div>
       <div class="opcion" data-op="volar"><span>Modo vuelo (F)</span><i class="interruptor"></i></div>
       <div class="opcion" data-op="giro"><span>Giro automático</span><i class="interruptor"></i></div>
+      <div class="opcion" data-op="sensor"><span>Mirar moviendo el móvil</span><i class="interruptor"></i></div>
       <div class="opcion" data-op="sonido"><span>Sonido de puertas</span><i class="interruptor"></i></div>
     </div>
 
