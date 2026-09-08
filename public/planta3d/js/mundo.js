@@ -110,11 +110,15 @@
 
     const colisiones = []            // AABB {x0,x1,z0,z1} para caminar
     const trozosLosa = []            // suelo del entrepiso, para caminar por el
-    // Suelos que quedan POR DEBAJO del entrepiso: el de los cuartos de
-    // maquinas de las incubadoras, que cuelgan un metro. Van aparte porque no
-    // son losa —la losa esta recortada justo encima de ellos— pero si son
-    // suelo que se pisa, y cada uno lleva su propia cota.
-    const suelosHundidos = []
+    // Suelo PISABLE del segundo nivel, cada trozo con su cota. Va aparte de
+    // `trozosLosa` porque son cosas distintas: la losa se dibuja por sala de la
+    // planta baja y solo donde esa sala la carga, mientras que arriba se camina
+    // por donde hay sala de nivel 2. Mientras el caminante se guio solo por la
+    // losa, el entrepiso se veia entero pero se cruzaba por un 2,7 % de su
+    // superficie: en el resto se pisaba suelo dibujado y se caia a la planta
+    // baja. Aqui entran el piso del area tecnica y el de los cuartos de
+    // maquinas de incubadoras, que cuelgan un metro.
+    const suelosNivel2 = []
     const rampas = []                // tramos de escalera: por ahi se cambia de nivel
     const seleccionables = []        // meshes con userData para el raycaster
     const salasPorId = new Map()
@@ -565,11 +569,38 @@
     // Contorno como THREE.Shape, ya en coordenadas del mundo. La forma se dibuja
     // en XY y se acuesta con rotateX(-PI/2), que manda la Y a -Z: por eso se
     // construye con la z del mundo cambiada de signo.
+    /** ¿Cae este punto dentro del contorno de la sala? */
+    const enContorno = (r, x, z) => {
+      const p = contornoDe(r)
+      let dentro = false
+      for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+        if ((p[i].z > z) !== (p[j].z > z) &&
+            x < ((p[j].x - p[i].x) * (z - p[i].z)) / (p[j].z - p[i].z) + p[i].x) dentro = !dentro
+      }
+      return dentro
+    }
     const formaDe = (r) => {
       const p = contornoDe(r)
       const f = new THREE.Shape()
       p.forEach((q, i) => (i === 0 ? f.moveTo(q.x, -q.z) : f.lineTo(q.x, -q.z)))
       f.closePath()
+      // Los cuartos de maquinas CUELGAN por debajo del piso del segundo nivel:
+      // donde cae uno, ese piso se agujerea. Sin esto el piso del area tecnica
+      // pasaba por encima de los cuatro fosos de las nacedoras y los tapaba
+      // justo desde donde se miran — desde arriba, que es como se ven en la
+      // planta: canaletas abiertas con su motor y su variador dentro.
+      if (esNivel2(r) && !esCuartoMaquinas(r) && !esTunel(r)) {
+        datos.rooms.filter(esCuartoMaquinas).forEach((o) => {
+          if (!enContorno(r, o.x + o.w / 2, o.y + o.h / 2)) return
+          const h = new THREE.Path()
+          h.moveTo(o.x, -o.y)
+          h.lineTo(o.x + o.w, -o.y)
+          h.lineTo(o.x + o.w, -(o.y + o.h))
+          h.lineTo(o.x, -(o.y + o.h))
+          h.closePath()
+          f.holes.push(h)
+        })
+      }
       return f
     }
 
@@ -2271,7 +2302,7 @@
 
     globalThis.__PLANTA3D.puertas = puertas
     globalThis.__PLANTA3D.colisiones = colisiones
-    globalThis.__PLANTA3D.losa = { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosHundidos }
+    globalThis.__PLANTA3D.losa = { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosNivel2 }
     globalThis.__PLANTA3D.rampas = rampas
     globalThis.__PLANTA3D.segmentos = [...segmentos.entries()].map(([clave, r]) => ({
       clave,
@@ -2553,6 +2584,15 @@
     // sigue. Las puertas se buscan solo en las salas del nivel 2 que no son
     // cuartos de maquinas ni tuneles —la del propio cuarto de maquinas de
     // incubadoras no pide panel, porque ahi si se entra bajando.
+    const fososDeMaquinas = datos.rooms.filter(esCuartoMaquinas)
+      .map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h }))
+    // Lo que ocupa el suelo del nivel 2 y no se pisa: los fosos, que son huecos,
+    // y los tuneles, que son volumenes cerrados apoyados encima. Sin restar los
+    // tuneles, su huella quedaba marcada como suelo y aparecia como una isla
+    // inalcanzable dentro de sus propios muros.
+    const ocupanElSuelo = fososDeMaquinas.concat(
+      datos.rooms.filter(esTunel).map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h }))
+    )
     const PANEL_PUERTA = 1.6
     const puertasDelNivel2 = datos.rooms
       .filter((o) => esNivel2(o) && !esCuartoMaquinas(o) && !esTunel(o))
@@ -2580,7 +2620,32 @@
     // se camina, a su cota real. Los de nacedoras no: son fosos de 1,80 de
     // ancho con la maquinaria dentro, no sitio por donde andar.
     datos.rooms.filter(esCuartoMaquinasIncubadoras).forEach((o) => {
-      suelosHundidos.push({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, y: cotaDe(o) })
+      suelosNivel2.push({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, y: cotaDe(o) })
+    })
+
+    // Y se camina por TODA la sala de nivel 2, no solo por donde la losa la
+    // acompana: es su piso, y es el que se ve. Se le restan los cuartos de
+    // maquinas, que son huecos —los de nacedoras no se pisan y los de
+    // incubadoras ya entraron arriba con su propia cota.
+    datos.rooms.forEach((r) => {
+      if (!esNivel2(r) || esCuartoMaquinas(r) || esTunel(r)) return
+      rectangulosDe(r).forEach((q) => {
+        let trozos = [q]
+        ocupanElSuelo.forEach((o) => {
+          trozos = trozos.flatMap((t) => {
+            const ax = Math.max(t.x0, o.x0), bx = Math.min(t.x1, o.x1)
+            const az = Math.max(t.z0, o.z0), bz = Math.min(t.z1, o.z1)
+            if (bx - ax < 0.02 || bz - az < 0.02) return [t]
+            const out = []
+            if (az - t.z0 > 0.02) out.push({ ...t, z1: az })
+            if (t.z1 - bz > 0.02) out.push({ ...t, z0: bz })
+            if (ax - t.x0 > 0.02) out.push({ x0: t.x0, x1: ax, z0: az, z1: bz })
+            if (t.x1 - bx > 0.02) out.push({ x0: bx, x1: t.x1, z0: az, z1: bz })
+            return out
+          })
+        })
+        trozos.forEach((t) => suelosNivel2.push({ ...t, y: cotaDe(r) }))
+      })
     })
 
     let salasConEntrepiso = 0
@@ -3616,7 +3681,7 @@
       colisiones,
       // Suelo del entrepiso y tramos de escalera: con esto el recorrido a pie
       // tambien se puede hacer arriba, sin caminar sobre el vacio.
-      losa: { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosHundidos },
+      losa: { alto: ENTREPISO, trozos: trozosLosa, hundidos: suelosNivel2 },
       rampas,
       seleccionables,
       salasPorId,
