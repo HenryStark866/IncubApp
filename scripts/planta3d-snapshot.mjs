@@ -58,6 +58,7 @@ for (const m of viejo.matchAll(/\{ id: '([0-9a-f-]{36})',[^\n]*?\},?\s*$/gm)) {
   cap(/parteDe: '([^']*)'/, 'parteDe')
   if (/exterior: true/.test(linea)) extra.exterior = true
   if (/proyectada: true/.test(linea)) extra.proyectada = true
+  if (/terraza: true/.test(linea)) extra.terraza = true
   cap(/ops: '([a-z]+)'/, 'ops')
   const f = /foto: (null|'[^']*')/.exec(linea)
   if (f) extra.foto = f[1] === 'null' ? null : f[1].slice(1, -1)
@@ -108,6 +109,8 @@ const lineasSalas = rooms.map((r) => {
     // Hoja de cristal: el frente de la oficina de produccion es una vidriera,
     // no un porton opaco como el resto de corredizas.
     if (d.cristal) partes.push('cristal: true')
+    // Rejilla de lamas en vez de vidrio (ventanilla de los cuartos de succion)
+    if (d.rejilla) partes.push('rejilla: true')
     partes.push(`type: ${txt(d.type || 'normal')}`)
     return `{ ${partes.join(', ')} }`
   })
@@ -124,6 +127,7 @@ const lineasSalas = rooms.map((r) => {
   const parteDe = r.parte_de || ex.parteDe
   if (altura !== undefined) campos.push(`altura: ${altura}`)
   if (ex.proyectada) campos.push('proyectada: true')
+  if (ex.terraza) campos.push('terraza: true')
   if (ex.medida) campos.push(`medida: ${txt(ex.medida)}`)
   if (parteDe) campos.push(`parteDe: ${txt(parteDe)}`)
   // Contorno de forma libre, en coordenadas LOCALES de la sala. Lo dibuja el

@@ -790,6 +790,7 @@
             base: baseVano(d),
             tipo: d.type,
             cristal: !!d.cristal,
+            rejilla: !!d.rejilla,
             lado,
             sala: r,
             abreManual: d.abre || null,
@@ -922,6 +923,7 @@
           base: Math.min(baseVano(d), Math.max(0, alto - 0.2)),
           tipo: d.type,
           cristal: !!d.cristal,
+          rejilla: !!d.rejilla,
           lado,
           sala: r,
           abreManual: d.abre || null,
@@ -1396,7 +1398,7 @@
         // el muro corrido y sin vano.
         if (Math.abs((reg.cota || 0) - (v.cota || 0)) > 0.06) continue
         if (v.c <= reg.a + 0.05 || v.c >= reg.b - 0.05) continue
-        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, cristal: v.cristal, abre: v.abre, abreManual: v.abreManual })
+        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, cristal: v.cristal, rejilla: v.rejilla, abre: v.abre, abreManual: v.abreManual })
         reg.alto = Math.max(reg.alto, v.alto + 0.1)
         break
       }
@@ -1527,6 +1529,9 @@
     // El tabique que cierra el plenum: chapa clara como el resto del salón, no
     // un vidrio azul. Lo que se ve desde adentro del salón es esto.
     const matTabiquePlenum = new THREE.MeshStandardMaterial({ color: 0xe9edf1, roughness: 0.8, metalness: 0.04 })
+    // Lama de rejilla: aluminio mate. La ventanilla de los cuartos de succion
+    // no lleva vidrio sino lamas escalonadas —pasa el aire, no la vista.
+    const matLama = new THREE.MeshStandardMaterial({ color: 0xd4dae1, roughness: 0.42, metalness: 0.62 })
     const geoBordePlenum = new THREE.EdgesGeometry(geoCaja)
     datos.rooms.forEach((r) => {
       if (r.type !== 'plenum') return
@@ -1994,7 +1999,30 @@
           poner(c, v.base + M / 2, L, M)
           poner(v.ini + M / 2, v.base + hVidrio / 2, M, hVidrio)
           poner(v.fin - M / 2, v.base + hVidrio / 2, M, hVidrio)
-          // Y el vidrio, embebido dentro del marco.
+          // Y el vidrio, embebido dentro del marco. Salvo si el vano es una
+          // REJILLA: la ventanilla de los cuartos de succion no lleva vidrio
+          // sino lamas de aluminio escalonadas —pasa el aire y detras va la
+          // malla de filtro, pero desde afuera no se ve hacia adentro.
+          if (v.rejilla) {
+            const libre = hVidrio - M * 2
+            const nLamas = Math.max(3, Math.round(libre / 0.16))
+            const paso = libre / nLamas
+            for (let i = 0; i < nLamas; i++) {
+              const lama = new THREE.Mesh(geoCaja, matLama)
+              const yy = Y0 + v.base + M + paso * (i + 0.5)
+              if (horiz) {
+                lama.scale.set(L - M * 2, paso * 1.15, 0.05)
+                lama.position.set(c, yy, s.pos)
+                lama.rotation.x = -0.62
+              } else {
+                lama.scale.set(0.05, paso * 1.15, L - M * 2)
+                lama.position.set(s.pos, yy, c)
+                lama.rotation.z = 0.62
+              }
+              lama.castShadow = true
+              gPuertas.add(lama)
+            }
+          } else {
           const vidrio = new THREE.Mesh(geoCaja, matVidrio)
           if (horiz) {
             vidrio.scale.set(L - M * 2, hVidrio - M * 2, 0.02)
@@ -2004,6 +2032,7 @@
             vidrio.position.set(s.pos, Y0 + v.base + hVidrio / 2, c)
           }
           gPuertas.add(vidrio)
+          }
           // Y frena. Una ventana corriente ya queda tapiada por el antepecho
           // que lleva debajo, pero con `base: 0` esto es una PARED de vidrio
           // entera y sin caja de choque se atravesaba caminando.
@@ -2382,6 +2411,15 @@
       // de una sala del nivel 2 quedaba flotando dentro de su propio cuerpo
       // (a la altura del tipo desde el suelo, muy por debajo de su piso real).
       const alto = cotaDe(r) + alturaDe(r)
+      // Y no se dibuja si no cabe bajo la cubierta. El AREA TECNICA del segundo
+      // nivel mide 2,90 desde su losa: su plato quedaba a 6,32, metro y medio
+      // por encima del faldon en los dos extremos de la nave, y desde afuera se
+      // veian dos manchas lila cruzando el techo de lado a lado. Donde el plato
+      // no cabe, el techo de esa sala ES la cubierta.
+      let cabe = true
+      for (let z = r.y; z <= r.y + r.h + 0.001 && cabe; z += 0.25)
+        if (alto + 0.02 > alturaBajoCubierta(z) + 0.10) cabe = false
+      if (!cabe) return
       const techo = new THREE.Mesh(
         new THREE.PlaneGeometry(r.w, r.h),
         new THREE.MeshStandardMaterial({
@@ -2447,6 +2485,48 @@
       const z0 = r.y - vN, z1 = r.y + r.h + vS, cz = Z_CUMBRERA
       if (z0 < cz && z1 > cz) { faldon(x0f, x1f, z0, cz); faldon(x0f, x1f, cz, z1) }
       else faldon(x0f, x1f, z0, z1)
+    })
+
+    // ── Terraza ────────────────────────────────────────────────────────────
+    // El ala de oficinas no va bajo la cubierta a dos aguas: remata en losa
+    // plana transitable, con antepecho de panel blanco en los 360 grados y su
+    // pasamanos de aluminio encima. Lo marca `terraza: true` en el plano.
+    const matLosaTerraza = new THREE.MeshStandardMaterial({ color: 0xeef1f4, roughness: 0.8, metalness: 0.04 })
+    const matPanelTerraza = new THREE.MeshStandardMaterial({ color: 0xf7f9fb, roughness: 0.5, metalness: 0.06 })
+    const matPasamanos = new THREE.MeshStandardMaterial({ color: 0xc6ced8, roughness: 0.35, metalness: 0.65 })
+    const ALTO_ANTEPECHO = 0.95
+    datos.rooms.filter((r) => r.terraza && seVeNivel(esNivel2(r) ? 2 : 1)).forEach((r) => {
+      // La losa se apoya en el muro MAS ALTO del bloque: la envolvente declara
+      // 2,50 pero sus tabiques interiores miden 2,90, y una losa a 2,50 los
+      // dejaba asomados por encima.
+      let alto = cotaDe(r) + alturaDe(r)
+      datos.rooms.forEach((o) => {
+        if (o.id === r.id || o.exterior) return
+        if (o.x < r.x - 0.05 || o.x + o.w > r.x + r.w + 0.05) return
+        if (o.y < r.y - 0.05 || o.y + o.h > r.y + r.h + 0.05) return
+        alto = Math.max(alto, cotaDe(o) + alturaDe(o))
+      })
+      const losa = new THREE.Mesh(geoCaja, matLosaTerraza)
+      losa.position.set(r.x + r.w / 2, alto + 0.09, r.y + r.h / 2)
+      losa.scale.set(r.w + GROSOR_MURO + 0.2, 0.18, r.h + GROSOR_MURO + 0.2)
+      losa.castShadow = true
+      losa.receiveShadow = true
+      gTechos.add(losa)
+
+      const yAnt = alto + 0.18
+      aristasDe(r).forEach((s) => {
+        const largo = s.b - s.a + GROSOR_MURO
+        const cu = (s.a + s.b) / 2
+        const poner = (h, y, e, mat) => {
+          const m = new THREE.Mesh(geoCaja, mat)
+          if (s.eje === 'h') { m.position.set(cu, y, s.pos); m.scale.set(largo, h, e) }
+          else { m.position.set(s.pos, y, cu); m.scale.set(e, h, largo) }
+          m.castShadow = true
+          gTechos.add(m)
+        }
+        poner(ALTO_ANTEPECHO, yAnt + ALTO_ANTEPECHO / 2, 0.12, matPanelTerraza)
+        poner(0.07, yAnt + ALTO_ANTEPECHO + 0.035, 0.2, matPasamanos)
+      })
     })
 
     // ── Contorno del segundo nivel ─────────────────────────────────────────
