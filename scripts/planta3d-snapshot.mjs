@@ -105,6 +105,9 @@ const lineasSalas = rooms.map((r) => {
     // decide la regla del 3D, que es lo normal; escrito, manda y ademas deja la
     // hoja fija frente al repaso que voltea las que estorban.
     if (d.abre) partes.push(`abre: ${txt(d.abre)}`)
+    // Hoja de cristal: el frente de la oficina de produccion es una vidriera,
+    // no un porton opaco como el resto de corredizas.
+    if (d.cristal) partes.push('cristal: true')
     partes.push(`type: ${txt(d.type || 'normal')}`)
     return `{ ${partes.join(', ')} }`
   })

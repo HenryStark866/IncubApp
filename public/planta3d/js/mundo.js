@@ -789,6 +789,7 @@
             alto: altoVano(d),
             base: baseVano(d),
             tipo: d.type,
+            cristal: !!d.cristal,
             lado,
             sala: r,
             abreManual: d.abre || null,
@@ -920,6 +921,7 @@
           alto: Math.min(altoVano(d), alto),
           base: Math.min(baseVano(d), Math.max(0, alto - 0.2)),
           tipo: d.type,
+          cristal: !!d.cristal,
           lado,
           sala: r,
           abreManual: d.abre || null,
@@ -1394,7 +1396,7 @@
         // el muro corrido y sin vano.
         if (Math.abs((reg.cota || 0) - (v.cota || 0)) > 0.06) continue
         if (v.c <= reg.a + 0.05 || v.c >= reg.b - 0.05) continue
-        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, abre: v.abre, abreManual: v.abreManual })
+        reg.vanos.push({ c: v.c, ancho: v.ancho, alto: v.alto, base: v.base || 0, tipo: v.tipo, cristal: v.cristal, abre: v.abre, abreManual: v.abreManual })
         reg.alto = Math.max(reg.alto, v.alto + 0.1)
         break
       }
@@ -2002,15 +2004,29 @@
             vidrio.position.set(s.pos, Y0 + v.base + hVidrio / 2, c)
           }
           gPuertas.add(vidrio)
+          // Y frena. Una ventana corriente ya queda tapiada por el antepecho
+          // que lleva debajo, pero con `base: 0` esto es una PARED de vidrio
+          // entera y sin caja de choque se atravesaba caminando.
+          const gx = horiz ? L : GROSOR_MURO, gz = horiz ? GROSOR_MURO : L
+          const gcx = horiz ? c : s.pos, gcz = horiz ? s.pos : c
+          colisiones.push({
+            x0: gcx - gx / 2, x1: gcx + gx / 2,
+            z0: gcz - gz / 2, z1: gcz + gz / 2,
+            y0: Y0 + v.base, y1: Y0 + v.alto,
+          })
           return
         }
 
         const sinHoja = v.tipo === 'open'
+        // Hoja de cristal: el frente de la oficina de produccion es una
+        // vidriera —corrediza de un metro y pano fijo al lado—, y con la hoja
+        // opaca del resto de corredizas se veia un porton de taller.
         const matHoja = v.tipo === 'loading' ? matPortonCarga
+                      : v.cristal ? matVidrio
                       : v.tipo === 'sliding' ? matPortonHoja : matHojaPeatonal
         const pivote = new THREE.Group()
         const hoja = new THREE.Mesh(geoCaja, matHoja)
-        hoja.castShadow = true
+        hoja.castShadow = !v.cristal
         // La corrediza y la cortina cuelgan del centro del vano; la batiente,
         // de la jamba que le toca, con la hoja tendida hacia el otro lado.
         const arranque = corre || enrolla ? c : (jamba === 1 ? v.ini : v.fin)
