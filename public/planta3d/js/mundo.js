@@ -603,8 +603,8 @@
           // Dos centimetros adentro por cada lado. Un agujero que COMPARTE
           // arista con el contorno es degenerado y el triangulador lo descarta
           // sin avisar: la escalera pega contra el muro oriental de su sala y
-          // el hueco no salia. El labio que queda no estorba a nadie.
-          const m = 0.02
+          // el hueco no salia. Con 5 mm ya no coinciden y el labio no se ve.
+          const m = 0.005
           const hx0 = o.x + m, hx1 = o.x + o.w - m
           const hz0 = o.y + m, hz1 = o.y + o.h - m
           const h = new THREE.Path()
@@ -1664,7 +1664,7 @@
       const ESC_Z_BASE = ESC_Z_MURO + ESC_HUELLA   // adentro de TEC-1
       const grosorRampa = 0.08
 
-      const tramoEscalera = (x0, x1, y0, h0, y1, h1, nFranjas) => {
+      const tramoEscalera = (x0, x1, y0, h0, y1, h1, nFranjas, conPasamanos = true) => {
         const ANCHO = x1 - x0, CX = (x0 + x1) / 2
         // El tramo se orienta con su eje largo hacia +z. El principal sube
         // ACERCANDOSE al muro, o sea hacia -z, y alinear el eje con esa
@@ -1697,7 +1697,9 @@
         }
 
         // Pasamanos a los dos lados: postes cada ~0,9 m más el riel corrido.
-        ;[-1, 1].forEach((lado) => {
+        // La escalera del plenum de incubadoras va sin él: el hueco mide un
+        // metro y las barandas se comían el paso.
+        ;(conPasamanos ? [-1, 1] : []).forEach((lado) => {
           const xPoste = (lado * ANCHO) / 2
           const nPostes = Math.max(1, Math.round(largo / 0.9))
           for (let i = 0; i <= nPostes; i++) {
@@ -1750,7 +1752,7 @@
         const m = 0.1
         const x0 = r.x + m, x1 = r.x + r.w - m
         const zPie = r.y + r.h - 0.1, zTope = r.y + 0.2
-        tramoEscalera(x0, x1, zPie, 0, zTope, sube, Math.max(4, Math.round(sube / 0.18)))
+        tramoEscalera(x0, x1, zPie, 0, zTope, sube, Math.max(4, Math.round(sube / 0.18)), false)
       })
 
       tramoEscalera(ESC_X0, ESC_X1, ESC_Z_BASE, 0, ESC_Z_MURO, ESC_ALTO_TRAMO, 7)
