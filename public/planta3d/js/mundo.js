@@ -2792,7 +2792,11 @@
     }), [q])
     let cielos = 0
     datos.rooms.forEach((r) => {
-      if (esNivel2(r) || r.exterior || r.type === 'plenum' || r.parteDe) return
+      // Los plenum que cuelgan de una sala anfitriona (`parteDe`) ya quedan
+      // fuera por esa misma condición. Los que NO la tienen —los dos cuartos
+      // de succión de aire— son cuartos de verdad, recortados de su sala
+      // técnica, y sin esto quedaban a cielo abierto.
+      if (esNivel2(r) || r.exterior || r.parteDe) return
       // Los pasillos también llevan techo: no tienen muro propio —se abren a
       // las salas— pero están bajo el mismo cielo raso, y sin esto el corredor
       // de zona sucia se veía a cielo abierto. Fuera quedan solo los espacios
