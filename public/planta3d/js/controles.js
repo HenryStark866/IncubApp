@@ -14,7 +14,10 @@
   function PrimeraPersona(camara, dom, opciones) {
     const o = Object.assign(
       {
-        alturaOjos: 1.68, velocidad: 3.2, velocidadCorrer: 7.0,
+        // Ojos a 1,60 —una persona de 1,72— y no a 1,68. Cuanto más alto va el
+        // punto de vista, más pequeño se ve todo alrededor: con la cámara a
+        // 1,68 la planta parecía menor de lo que es al recorrerla.
+        alturaOjos: 1.60, velocidad: 3.2, velocidadCorrer: 7.0,
         // Medio ancho del cuerpo. Con 0,34 el visitante media 68 cm y no pasaba
         // por las puertas de 70 de los W.C.: quedaba un centimetro por lado.
         // 0,30 es un hombro normal, deja pasar esas y sigue sin caber por la

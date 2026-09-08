@@ -171,6 +171,10 @@
     // entrepiso como un ducto corrido. Los de las nacedoras sí se apoyan en el
     // piso del nivel 2.
     const esTunel = (r) => /^T[UÚ]NEL\s/i.test((r.name || '').trim())
+    // Un hueco de escalera: sube desde la planta baja hasta el piso del segundo
+    // nivel que tenga encima. Se reconoce por el nombre para que Henry pueda
+    // moverla y redimensionarla desde el plano, sin tocar codigo.
+    const esEscalera = (r) => /^ESCALERA\b/i.test((r.name || '').trim())
     const esTunelIncubadoras = (r) => esTunel(r) && /INCUBADORAS/i.test(r.name)
     const cuelgaDelEntrepiso = (r) => esCuartoMaquinas(r) || esTunelIncubadoras(r)
     const cotaDe = (r) => {
@@ -589,14 +593,25 @@
       // pasaba por encima de los cuatro fosos de las nacedoras y los tapaba
       // justo desde donde se miran — desde arriba, que es como se ven en la
       // planta: canaletas abiertas con su motor y su variador dentro.
-      if (esNivel2(r) && !esCuartoMaquinas(r) && !esTunel(r)) {
-        datos.rooms.filter(esCuartoMaquinas).forEach((o) => {
+      // Un cuarto de maquinas si recibe el hueco de una escalera —hay que
+      // salir por algun lado al llegar arriba— aunque el no agujeree a nadie.
+      if (esNivel2(r) && !esTunel(r)) {
+        datos.rooms.filter((o) => esCuartoMaquinas(o) || esEscalera(o)).forEach((o) => {
+          if (o.id === r.id) return
+          if (esCuartoMaquinas(r) && !esEscalera(o)) return
           if (!enContorno(r, o.x + o.w / 2, o.y + o.h / 2)) return
+          // Dos centimetros adentro por cada lado. Un agujero que COMPARTE
+          // arista con el contorno es degenerado y el triangulador lo descarta
+          // sin avisar: la escalera pega contra el muro oriental de su sala y
+          // el hueco no salia. El labio que queda no estorba a nadie.
+          const m = 0.02
+          const hx0 = o.x + m, hx1 = o.x + o.w - m
+          const hz0 = o.y + m, hz1 = o.y + o.h - m
           const h = new THREE.Path()
-          h.moveTo(o.x, -o.y)
-          h.lineTo(o.x + o.w, -o.y)
-          h.lineTo(o.x + o.w, -(o.y + o.h))
-          h.lineTo(o.x, -(o.y + o.h))
+          h.moveTo(hx0, -hz0)
+          h.lineTo(hx1, -hz0)
+          h.lineTo(hx1, -hz1)
+          h.lineTo(hx0, -hz1)
           h.closePath()
           f.holes.push(h)
         })
@@ -1649,7 +1664,8 @@
       const ESC_Z_BASE = ESC_Z_MURO + ESC_HUELLA   // adentro de TEC-1
       const grosorRampa = 0.08
 
-      const tramoEscalera = (y0, h0, y1, h1, nFranjas) => {
+      const tramoEscalera = (x0, x1, y0, h0, y1, h1, nFranjas) => {
+        const ANCHO = x1 - x0, CX = (x0 + x1) / 2
         // El tramo se orienta con su eje largo hacia +z. El principal sube
         // ACERCANDOSE al muro, o sea hacia -z, y alinear el eje con esa
         // direccion volteaba la rampa boca abajo: las franjas antideslizantes y
@@ -1668,21 +1684,21 @@
         // Rampa: representa la estructura del tramo; los peldaños
         // individuales no se modelan, quedan sugeridos por las franjas.
         const rampa = new THREE.Mesh(geoCaja, matNegro)
-        rampa.scale.set(ESC_ANCHO, grosorRampa, largo)
+        rampa.scale.set(ANCHO, grosorRampa, largo)
         rampa.castShadow = true
         grupo.add(rampa)
 
         for (let i = 0; i < nFranjas; i++) {
           const t = (i + 0.5) / nFranjas - 0.5
           const franja = new THREE.Mesh(geoCaja, matFranja)
-          franja.scale.set(ESC_ANCHO * 0.88, 0.015, 0.07)
+          franja.scale.set(ANCHO * 0.88, 0.015, 0.07)
           franja.position.set(0, grosorRampa / 2 + 0.008, t * largo)
           grupo.add(franja)
         }
 
         // Pasamanos a los dos lados: postes cada ~0,9 m más el riel corrido.
         ;[-1, 1].forEach((lado) => {
-          const xPoste = (lado * ESC_ANCHO) / 2
+          const xPoste = (lado * ANCHO) / 2
           const nPostes = Math.max(1, Math.round(largo / 0.9))
           for (let i = 0; i <= nPostes; i++) {
             const t = i / nPostes - 0.5
@@ -1697,7 +1713,7 @@
           grupo.add(riel)
         })
 
-        grupo.position.set(ESC_CX, (h0 + h1) / 2, (y0 + y1) / 2)
+        grupo.position.set(CX, (h0 + h1) / 2, (y0 + y1) / 2)
         grupo.rotation.x = -angulo
         gMuros.add(grupo)
         // La escalera no estorba: se sube. Se registra como rampa para que el
@@ -1709,14 +1725,36 @@
         // antes de pisar la escalera. La interpolacion se recorta a [0,1], asi
         // que en ese margen la cota se queda en la del extremo.
         rampas.push({
-          x0: ESC_X0 - 0.15, x1: ESC_X1 + 0.15,
+          x0: x0 - 0.15, x1: x1 + 0.15,
           z0: Math.min(y0, y1) - 0.5, z1: Math.max(y0, y1) + 0.5,
           a0: y0, a1: y1, y0: h0, y1: h1,
         })
       }
 
-      tramoEscalera(ESC_Z_BASE, 0, ESC_Z_MURO, ESC_ALTO_TRAMO, 7)
-      tramoEscalera(ESC_Z_AREA, ESC_ALTO_TRAMO, ESC_Z_MURO, ESC_ALTO_TRAMO, 2)
+      // ── Escaleras dibujadas en el plano ──────────────────────────────────
+      // Cualquier sala que se llame ESCALERA… es un hueco de escalera: sube
+      // desde su piso hasta el piso del segundo nivel que tenga encima. La
+      // proyectada al plenum de incubadoras No 2 va en el metro que queda entre
+      // la incubadora No 24 y el muro oriental de la sala, y evita el rodeo del
+      // otro acceso, que obliga a montar dos escaleras para cruzar el túnel.
+      datos.rooms.filter(esEscalera).forEach((r) => {
+        if (!seVeNivel(1)) return
+        const arriba = datos.rooms.find((o) =>
+          esNivel2(o) && !esTunel(o) &&
+          o.x < r.x + r.w - 0.1 && o.x + o.w > r.x + 0.1 &&
+          o.y < r.y + r.h - 0.1 && o.y + o.h > r.y + 0.1)
+        const sube = arriba ? cotaDe(arriba) : ENTREPISO
+        // Se deja medio metro de holgura a cada lado del ancho de la sala para
+        // que la baranda no se incruste en los muros, y la huella arranca junto
+        // a la puerta —el extremo por donde se entra— subiendo hacia el fondo.
+        const m = 0.1
+        const x0 = r.x + m, x1 = r.x + r.w - m
+        const zPie = r.y + r.h - 0.1, zTope = r.y + 0.2
+        tramoEscalera(x0, x1, zPie, 0, zTope, sube, Math.max(4, Math.round(sube / 0.18)))
+      })
+
+      tramoEscalera(ESC_X0, ESC_X1, ESC_Z_BASE, 0, ESC_Z_MURO, ESC_ALTO_TRAMO, 7)
+      tramoEscalera(ESC_X0, ESC_X1, ESC_Z_AREA, ESC_ALTO_TRAMO, ESC_Z_MURO, ESC_ALTO_TRAMO, 2)
     }
 
     segmentos.forEach((s) => {
@@ -2591,7 +2629,8 @@
     // tuneles, su huella quedaba marcada como suelo y aparecia como una isla
     // inalcanzable dentro de sus propios muros.
     const ocupanElSuelo = fososDeMaquinas.concat(
-      datos.rooms.filter(esTunel).map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h }))
+      datos.rooms.filter((o) => esTunel(o) || esEscalera(o))
+        .map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h }))
     )
     const PANEL_PUERTA = 1.6
     const puertasDelNivel2 = datos.rooms
@@ -2736,7 +2775,7 @@
     // entrepiso—. Sin este recorte la losa blanca del cielo raso volvia a tapar
     // los cuatro fosos de las nacedoras, que van despejados por arriba, y en
     // los de incubadoras aparecia un techo justo donde acabo de quitar la losa.
-    const fososMaquinas = datos.rooms.filter(esCuartoMaquinas)
+    const fososMaquinas = datos.rooms.filter((o) => esCuartoMaquinas(o) || esEscalera(o))
       .map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, cota: cotaDe(o) }))
     const sinFosos = (q) => fososMaquinas.reduce((trozos, o) => trozos.flatMap((t) => {
       const ax = Math.max(t.x0, o.x0), bx = Math.min(t.x1, o.x1)
@@ -2804,6 +2843,10 @@
     // es un cuerpo cerrado de 2.20 m, más bajo que todo lo demás.
     datos.rooms.filter((r) => r.proyectada).forEach((r) => {
       if (!seVeNivel(esNivel2(r) ? 2 : 1)) return
+      // Un hueco de escalera proyectado no lleva tapa: es justo por donde se
+      // sale al piso de arriba. Con la losa puesta, la escalera subia contra
+      // un techo.
+      if (esEscalera(r)) return
       const alto = cotaDe(r) + alturaDe(r)
 
       const losa = new THREE.Mesh(geoCaja, matMuroProyectado)
