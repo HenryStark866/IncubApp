@@ -3602,9 +3602,23 @@
     }
 
     const enNivelVisible = (r) => seVeNivel(esNivel2(r) ? 2 : 1)
-    datos.rooms.filter((r) => r.type === 'office' && enNivelVisible(r)).forEach(amoblarOficina)
-    datos.rooms.filter((r) => /FILTRO SANITARIO/i.test(r.name) && enNivelVisible(r)).forEach(amoblarFiltro)
-    datos.rooms.filter((r) => /^W\.?C/i.test(r.name.trim()) && enNivelVisible(r)).forEach(amoblarBano)
+
+    // Una sala que CONTIENE otras no es un espacio: es la envolvente del bloque.
+    // La oficina administrativa encierra el archivo, gerencia, RR.HH. y el baño,
+    // y amueblarla sembraba escritorios y mamparas a través de los tabiques: la
+    // mampara de vidrio del fondo cruzaba entera el archivo y le dejaba la mitad
+    // sur sin forma de entrar. El bloque se amuebla por sus salas, no por su
+    // envolvente.
+    const envuelveOtraSala = (r) => datos.rooms.some((o) =>
+      o.id !== r.id && !o.exterior && o.type !== 'plenum' &&
+      esNivel2(o) === esNivel2(r) && o.w * o.h < r.w * r.h - 0.01 &&
+      o.x >= r.x - 0.05 && o.x + o.w <= r.x + r.w + 0.05 &&
+      o.y >= r.y - 0.05 && o.y + o.h <= r.y + r.h + 0.05)
+    const amoblable = (r) => enNivelVisible(r) && !envuelveOtraSala(r)
+
+    datos.rooms.filter((r) => r.type === 'office' && amoblable(r)).forEach(amoblarOficina)
+    datos.rooms.filter((r) => /FILTRO SANITARIO/i.test(r.name) && amoblable(r)).forEach(amoblarFiltro)
+    datos.rooms.filter((r) => /^W\.?C/i.test(r.name.trim()) && amoblable(r)).forEach(amoblarBano)
 
     /**
      * Abre y cierra las hojas según la distancia del visitante.
