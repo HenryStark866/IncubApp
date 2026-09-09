@@ -1495,7 +1495,51 @@
       return mat
     }
 
-    function bloqueMuro(cx, cy, cz, sx, sy, sz, material, esColision) {
+    // Los cuartos de maquinas de incubadoras son fosos que se pisan, y su losa
+    // se apoya sobre los muros de la planta baja: ninguno de esos muros puede
+    // asomar por encima de ese piso. Sin esto, el que separa incubadoras 2 del
+    // pasillo cruzaba los dos fosos de lado a lado como un bordillo de medio
+    // metro —y su sobremuro, noventa centimetros mas— y el visitante que bajaba
+    // el metro quedaba clavado ahi mismo, sin poder entrar al tunel.
+    const fososPisables = datos.rooms.filter(esCuartoMaquinasIncubadoras).map((o) => ({
+      x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h, y: cotaDe(o),
+    }))
+    // Los tuneles se quedan: son volumenes propios dentro del foso, con sus
+    // muros y su tapa, y arrancan de ese mismo piso.
+    const tunelesDelFoso = datos.rooms.filter(esTunel)
+      .map((o) => ({ x0: o.x - 0.2, x1: o.x + o.w + 0.2, z0: o.y - 0.2, z1: o.y + o.h + 0.2 }))
+
+    function bloqueMuro(cx, cy, cz, sx, sy, sz, material, esColision, sePisa) {
+      const y0 = cy - sy / 2, y1 = cy + sy / 2
+      const enTunel = tunelesDelFoso.some((t) =>
+        cx - sx / 2 > t.x0 - 0.02 && cx + sx / 2 < t.x1 + 0.02 &&
+        cz - sz / 2 > t.z0 - 0.02 && cz + sz / 2 < t.z1 + 0.02)
+      const f = enTunel ? null : fososPisables.find((q) =>
+        y1 > q.y + 0.02 && Math.abs(y0 - q.y) > 0.05 &&
+        cx + sx / 2 > q.x0 + 0.02 && cx - sx / 2 < q.x1 - 0.02 &&
+        cz + sz / 2 > q.z0 + 0.02 && cz - sz / 2 < q.z1 - 0.02)
+      if (f) {
+        // Lo que cae DENTRO del foso se corta a la altura de su piso; lo que
+        // sobra por fuera sigue de largo como el muro que es.
+        const bx0 = cx - sx / 2, bx1 = cx + sx / 2, bz0 = cz - sz / 2, bz1 = cz + sz / 2
+        const ix0 = Math.max(bx0, f.x0), ix1 = Math.min(bx1, f.x1)
+        const iz0 = Math.max(bz0, f.z0), iz1 = Math.min(bz1, f.z1)
+        const trozo = (x0, x1, z0, z1, a, b) => {
+          if (x1 - x0 < 0.02 || z1 - z0 < 0.02 || b - a < 0.02) return
+          bloqueMuro((x0 + x1) / 2, (a + b) / 2, (z0 + z1) / 2, x1 - x0, b - a, z1 - z0,
+            material, esColision, sePisa)
+        }
+        if (ix0 - bx0 > 0.02) trozo(bx0, ix0, bz0, bz1, y0, y1)
+        if (bx1 - ix1 > 0.02) trozo(ix1, bx1, bz0, bz1, y0, y1)
+        if (iz0 - bz0 > 0.02) trozo(ix0, ix1, bz0, iz0, y0, y1)
+        if (bz1 - iz1 > 0.02) trozo(ix0, ix1, iz1, bz1, y0, y1)
+        trozo(ix0, ix1, iz0, iz1, y0, f.y)
+        return null
+      }
+      return piezaMuro(cx, cy, cz, sx, sy, sz, material, esColision, sePisa)
+    }
+
+    function piezaMuro(cx, cy, cz, sx, sy, sz, material, esColision, sePisa) {
       const m = new THREE.Mesh(geoCaja, material || matMuro)
       m.position.set(cx, cy, cz)
       m.scale.set(sx, sy, sz)
@@ -1511,6 +1555,9 @@
         colisiones.push({
           x0: cx - sx / 2, x1: cx + sx / 2, z0: cz - sz / 2, z1: cz + sz / 2,
           y0: cy - sy / 2, y1: cy + sy / 2,
+          // `sePisa`: el caminante lo salva de un paso si no le llega mas
+          // arriba del escalon. Es el antepecho de un vano, no un muro.
+          sePisa: !!sePisa,
         })
       }
       return m
@@ -1922,8 +1969,16 @@
         // tramos macizos se calcularon salteando el vano entero, así que sin
         // esto la ventana llegaría hasta el piso.
         if (v.base > 0) {
-          if (s.eje === 'h') bloqueMuro(c, Y0 + v.base / 2, s.pos, L, v.base, GROSOR_MURO, mat, true)
-          else bloqueMuro(s.pos, Y0 + v.base / 2, c, GROSOR_MURO, v.base, L, mat, true)
+          // El antepecho SE PISA. La compuerta de los tuneles del segundo nivel
+          // arranca a 30 cm del piso —asi es en la planta— y ese bordillo
+          // frenaba en seco al visitante delante del vano, cuando de verdad se
+          // pasa de un paso. Un antepecho de ventana, mas alto que el escalon,
+          // sigue frenando como debe.
+          // Solo el de un PASO: el antepecho de una ventana mide un metro y por
+          // ahi no se entra, se mira.
+          const bordillo = v.tipo !== 'window'
+          if (s.eje === 'h') bloqueMuro(c, Y0 + v.base / 2, s.pos, L, v.base, GROSOR_MURO, mat, true, bordillo)
+          else bloqueMuro(s.pos, Y0 + v.base / 2, c, GROSOR_MURO, v.base, L, mat, true, bordillo)
         }
         const matPuerta =
           v.tipo === 'loading' ? matPortonCarga : v.tipo === 'sliding' ? matPorton : matMarco
@@ -2720,6 +2775,29 @@
     // sigue. Las puertas se buscan solo en las salas del nivel 2 que no son
     // cuartos de maquinas ni tuneles —la del propio cuarto de maquinas de
     // incubadoras no pide panel, porque ahi si se entra bajando.
+    // ── El borde de la losa sobre un foso de incubadoras no frena ──────────
+    // A esos cuartos «se entra bajando el metro, no cruzando por encima», y ese
+    // metro es justo lo que mide su muro: de la cota del foso (2,40) al piso del
+    // nivel 2 (3,40). Como muro, dejaba al visitante clavado — cruzaba la puerta
+    // del área técnica, caía al foso y ya no podía ni entrar al túnel ni volver
+    // a subir, porque el borde le tapaba los cuatro costados. Quien decide si el
+    // paso vale es el escalón del piso, no esta caja.
+    const bordesDeFoso = datos.rooms.filter(esCuartoMaquinasIncubadoras).map((o) => ({
+      x0: o.x - 0.25, x1: o.x + o.w + 0.25, z0: o.y - 0.25, z1: o.y + o.h + 0.25,
+      y0: cotaDe(o), y1: cotaDe(o) + CAIDA_CUARTO_MAQUINAS,
+    }))
+    let bordesSueltos = 0
+    colisiones.forEach((c) => {
+      if (c.y0 == null || c.y1 == null) return
+      const esBorde = bordesDeFoso.some((f) =>
+        Math.abs(c.y0 - f.y0) < 0.06 && Math.abs(c.y1 - f.y1) < 0.06 &&
+        c.x1 > f.x0 && c.x0 < f.x1 && c.z1 > f.z0 && c.z0 < f.z1)
+      if (!esBorde) return
+      c.bordeLosa = true
+      bordesSueltos++
+    })
+    if (bordesSueltos) console.info(`[planta3d] ${bordesSueltos} tramo(s) de borde de foso liberados`)
+
     const fososDeMaquinas = datos.rooms.filter(esCuartoMaquinas)
       .map((o) => ({ x0: o.x, x1: o.x + o.w, z0: o.y, z1: o.y + o.h }))
     // Lo que ocupa el suelo del nivel 2 y no se pisa: los fosos, que son huecos,

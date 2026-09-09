@@ -61,6 +61,9 @@
     // encima de eso no se pasa, asi que del borde del entrepiso —3,40 al vacio—
     // se sigue sin poder caer.
     const ESCALON = 1.05
+    // Lo que se salva de un paso sin subir escalon: el antepecho de la
+    // compuerta de un tunel. Mas alto que esto ya es un muro.
+    const BORDILLO = 0.5
 
     // Cota del suelo bajo un punto PARA QUIEN ESTA EN `desde`. Estando abajo, el
     // suelo es la planta baja aunque encima pase el entrepiso: si no, caminar
@@ -123,6 +126,13 @@
         if (!(x > c.x0 - r && x < c.x1 + r && z > c.z0 - r && z < c.z1 + r)) continue
         // Sin franja declarada se comporta como siempre: estorba.
         if (c.y1 == null || c.y0 == null) return true
+        // Bordillo que se pisa: el antepecho de un vano no frena si no le llega
+        // mas arriba del escalon. Sin esto, los 30 cm de la compuerta de los
+        // tuneles de incubadoras dejaban al visitante clavado en la entrada.
+        if (c.sePisa && c.y1 - st.piso <= BORDILLO) continue
+        // Borde de la losa sobre un foso de incubadoras: no frena, se baja
+        // el metro. Si el desnivel no se puede salvar lo dice `pisoOk`.
+        if (c.bordeLosa) continue
         if (c.y1 > pies && c.y0 < cabeza) return true
       }
       return false
