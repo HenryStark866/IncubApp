@@ -1043,7 +1043,14 @@
     // ese costado, como si le faltara la fachada. Se cierra ese tramo: la
     // fachada existe, y el acceso a zona limpia es por los filtros, no por ahí.
     // Los corredores exteriores no entran en la regla — esos sí van abiertos.
-    const esCorredorExterior = (r) => r.type === 'exterior' || /EXTERIOR/i.test(r.name)
+    // Lo que esta a la intemperie no se cierra con muro: ni el andén, ni la
+    // via de acceso, ni el parqueadero, ni la zona verde. Antes solo se miraba
+    // el tipo 'exterior' y el nombre, asi que una VIA —que no levanta muro
+    // propio, como un pasillo— se colaba en la regla de abajo y le aparecia
+    // fachada a lo largo de toda su orilla. Se mira tambien la marca `exterior`
+    // de la instantanea, que es mas de fiar que el nombre.
+    const AL_AIRE = /^(exterior|road|parking|green_area)$/
+    const esCorredorExterior = (r) => AL_AIRE.test(r.type) || !!r.exterior || /EXTERIOR/i.test(r.name)
     // El plenum tampoco es pasillo: no tiene muro (como un corredor) pero
     // tampoco es circulación que haya que cerrar contra la fachada — se
     // levanta aparte, colgado de su sala anfitriona.
