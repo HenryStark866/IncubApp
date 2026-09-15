@@ -64,6 +64,15 @@
     // Lo que se salva de un paso sin subir escalon: el antepecho de la
     // compuerta de un tunel. Mas alto que esto ya es un muro.
     const BORDILLO = 0.5
+    // Los tuneles de aire son espacio confinado: miden 1,90 de alto y se entra
+    // por compuertas de 1,00. Ahi no se anda erguido, se anda agachado — y el
+    // recorrido tiene que hacer lo mismo, o queda un sitio real al que no se
+    // puede entrar. `LIBRE_DE_PIE` es lo que hace falta sobre la cabeza para ir
+    // erguido; por debajo de eso el cuerpo se encoge hasta `OJOS_AGACHADO`, y
+    // por debajo de `MINIMO_PASO` ya no se pasa ni a gatas.
+    const LIBRE_DE_PIE = 1.85
+    const OJOS_AGACHADO = 0.75
+    const MINIMO_PASO = 0.8
 
     // Cota del suelo bajo un punto PARA QUIEN ESTA EN `desde`. Estando abajo, el
     // suelo es la planta baja aunque encima pase el entrepiso: si no, caminar
@@ -129,6 +138,36 @@
       return y != null && Math.abs(y - st.piso) <= 1.2
     }
 
+    // Altura libre sobre un punto, contada desde `piso`. Solo cuenta lo que
+    // queda POR ENCIMA de la rodilla: un bordillo o un escalon no son techo.
+    //
+    // Se mide con el MISMO radio con el que se choca. Midiendola en la vertical
+    // del punto, el dintel de la compuerta no contaba hasta tenerlo justo
+    // encima —y para entonces el choque, que si infla por el radio, ya habia
+    // frenado el paso—: uno no se agacha cuando ya se dio en la cabeza, se
+    // agacha al acercarse.
+    const libreSobre = (x, z, piso) => {
+      const r = o.radio
+      let libre = Infinity
+      for (let i = 0; i < st.colisiones.length; i++) {
+        const c = st.colisiones[i]
+        if (c.y0 == null || c.y1 == null) continue
+        if (c.bordeLosa) continue
+        if (x < c.x0 - r || x > c.x1 + r || z < c.z0 - r || z > c.z1 + r) continue
+        const h = c.y0 - piso
+        if (h < 0.45) continue            // eso es suelo o bordillo, no techo
+        if (h < libre) libre = h
+      }
+      return libre
+    }
+
+    // Altura de ojos que cabe aqui: erguido si hay sitio, agachado si no.
+    const ojosEn = (x, z, piso) => {
+      const libre = libreSobre(x, z, piso)
+      if (libre >= LIBRE_DE_PIE) return o.alturaOjos
+      return Math.max(OJOS_AGACHADO, Math.min(o.alturaOjos, libre - 0.25))
+    }
+
     const chocaEn = (x, z) => {
       if (st.atravesar || st.volar) return false
       // Sobre una escalera no se choca con nada: por ahi pasa, y tiene que
@@ -140,8 +179,18 @@
       // obstaculo que quede entero por encima de la cabeza —el sobremuro sobre
       // una puerta, la tapa de un tunel del piso de arriba— o entero por debajo
       // de los pies no estorba el paso.
-      const pies = st.piso + 0.05
-      const cabeza = st.piso + o.alturaOjos + 0.12
+      // Desde el piso MAS BAJO de los dos: bajando un escalon el cuerpo va
+      // llegando a la cota de abajo, que es lo que hace uno al entrar a un
+      // tunel desde la losa que le pasa un metro por encima.
+      const pisoAlla = pisoEn(x, z, st.piso)
+      const base = Math.min(st.piso, pisoAlla)
+      // Y encogido si lo que hay encima no da para ir erguido. Por debajo de
+      // `MINIMO_PASO` no se pasa: eso ya es un hueco, no una compuerta.
+      const libre = libreSobre(x, z, base)
+      if (libre < MINIMO_PASO) return true
+      const alto = Math.min(o.alturaOjos + 0.12, libre - 0.06)
+      const pies = base + 0.05
+      const cabeza = base + alto
       for (let i = 0; i < st.colisiones.length; i++) {
         const c = st.colisiones[i]
         if (!(x > c.x0 - r && x < c.x1 + r && z > c.z0 - r && z < c.z1 + r)) continue
@@ -337,7 +386,12 @@
         if (st.volar) {
           st.altura = Math.max(0.4, Math.min(60, st.altura + vert * vel * dt))
         } else {
-          st.altura = st.piso + o.alturaOjos
+          // La camara baja con el cuerpo: al meterse en el tunel se ve que uno
+          // se agacha, y al salir se endereza. Suavizado, que si no da un tiron.
+          const meta = st.piso + ojosEn(st.pos.x, st.pos.z, st.piso)
+          const v = Math.min(1, dt * 7)
+          st.altura += (meta - st.altura) * v
+          if (Math.abs(meta - st.altura) < 0.005) st.altura = meta
         }
         st.pos.y = st.altura
 
