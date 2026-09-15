@@ -894,8 +894,15 @@
     const z = zonaJoy()
     return x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1
   }
-  fps.zonaJoystick = zonaJoy()
-  addEventListener('resize', () => { fps.zonaJoystick = zonaJoy() })
+  // Solo hay zona muerta si el joystick existe de verdad. En un portatil con
+  // pantalla tactil y raton `pointer:coarse` es falso y el joystick esta
+  // apagado: declararla igual dejaba el cuadrante inferior izquierdo inerte,
+  // ni caminaba ni giraba la vista.
+  const ponerZonaJoy = () => {
+    fps.zonaJoystick = document.body.classList.contains('tactil') ? zonaJoy() : null
+  }
+  ponerZonaJoy()
+  addEventListener('resize', ponerZonaJoy)
 
   const moverJoy = (cx, cy) => {
     const dx = (cx - joyCentro.x) / RADIO_JOY
@@ -976,6 +983,11 @@
   // arrastre con el dedo y el sensor conviven sin pelearse, y no hace falta
   // recalibrar cuando el norte magnético deriva.
   let refSensor = null
+  // La inclinacion del sensor se lleva SIN acotar y se acota solo al aplicarla.
+  // Integrando el valor ya recortado, pasarse del tope mirando al suelo perdia
+  // esos grados para siempre: la vista quedaba desfasada del telefono, y un
+  // poco mas en cada pasada.
+  let pitchLibre = 0
   let llegoLectura = false
   const poseAparato = (e) => {
     if (e.beta == null || e.gamma == null) return null
@@ -999,7 +1011,7 @@
     if (!opciones.sensor || vista !== 'fps') { refSensor = null; return }
     const p = poseAparato(e)
     if (!p) return
-    if (!refSensor) { refSensor = p; return }
+    if (!refSensor) { refSensor = p; pitchLibre = fps.estado.pitch; return }
     let dYaw = p.yaw - refSensor.yaw
     // alpha da la vuelta en 360°: sin esto, cruzar el norte pega un latigazo.
     if (dYaw > Math.PI) dYaw -= 2 * Math.PI
@@ -1007,7 +1019,9 @@
     // `mirar` RESTA lo que se le pasa, así que el giro va sin cambiar de signo
     // y la inclinación sí: girar el teléfono a la derecha baja alpha, y la
     // cámara tiene que girar a la derecha con él.
-    fps.mirar(dYaw, -(p.pitch - refSensor.pitch))
+    pitchLibre += p.pitch - refSensor.pitch
+    fps.mirar(dYaw, 0)
+    fps.ponerPitch(pitchLibre)
     refSensor = p
     llegoLectura = true
   }

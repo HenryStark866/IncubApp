@@ -73,7 +73,12 @@
       for (let i = 0; i < st.rampas.length; i++) {
         const r = st.rampas[i]
         if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue
-        const t = Math.max(0, Math.min(1, (z - r.a0) / (r.a1 - r.a0)))
+        // Huella nula: una escalera dibujada en el plano con cero de fondo daba
+        // NaN aqui, y de ahi pasaba a `st.piso`, a la altura de la camara y a
+        // su posicion. La escena dejaba de dibujarse y no se recuperaba, porque
+        // cualquier comparacion con NaN es falsa y tampoco se podia uno mover.
+        const corrida = r.a1 - r.a0
+        const t = corrida ? Math.max(0, Math.min(1, (z - r.a0) / corrida)) : 0
         const y = r.y0 + (r.y1 - r.y0) * t
         // Una rampa solo es suelo si se está A SU ALTURA. El puente de la
         // escalera cruza el pasillo de zona sucia por encima, a 3,40, y su
@@ -104,9 +109,25 @@
       return 0
     }
 
-    const enRampa = (x, z) => st.rampas.some(
-      (r) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1
-    )
+    // Cota de la rampa que pisa este punto, o null. Mirar solo la huella en
+    // PLANTA no basta: el puente de la escalera cruza el pasillo de zona sucia
+    // por encima, a 3,40, y desde la planta baja su huella apagaba todas las
+    // colisiones — se atravesaban de largo los dos muros que hay debajo. Es la
+    // misma comprobacion de altura que ya hace `pisoEn`.
+    const rampaEn = (x, z) => {
+      for (let i = 0; i < st.rampas.length; i++) {
+        const r = st.rampas[i]
+        if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue
+        const corrida = r.a1 - r.a0
+        const t = corrida ? Math.max(0, Math.min(1, (z - r.a0) / corrida)) : 0
+        return r.y0 + (r.y1 - r.y0) * t
+      }
+      return null
+    }
+    const enRampa = (x, z) => {
+      const y = rampaEn(x, z)
+      return y != null && Math.abs(y - st.piso) <= 1.2
+    }
 
     const chocaEn = (x, z) => {
       if (st.atravesar || st.volar) return false
@@ -152,8 +173,16 @@
       if (!st.bloqueado) st.teclas = Object.create(null)
     }
 
+    // Escribir en un campo no es caminar. El buscador de salas esta siempre a
+    // la vista, y sin esto teclear en el movia al visitante y ademas se tragaba
+    // la barra espaciadora.
+    const escribiendo = (e) => {
+      const t = e.target
+      return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
+        t.tagName === 'SELECT' || t.isContentEditable)
+    }
     const onKeyDown = (e) => {
-      if (!st.activo) return
+      if (!st.activo || escribiendo(e)) return
       st.teclas[e.code] = true
       if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault()
     }
@@ -187,15 +216,26 @@
         tocando.y = t.clientY
       }
     }
-    const onTouchEnd = () => { tocando = null }
+    // Solo cuenta si se levanta EL dedo que estaba mirando: con el pulgar
+    // izquierdo en el joystick y el derecho girando la vista, soltar el
+    // joystick dejaba la camara muerta hasta volver a tocar.
+    const onTouchEnd = (e) => {
+      if (!tocando) return
+      for (const t of e.changedTouches) if (t.identifier === tocando.id) { tocando = null; return }
+    }
 
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('pointerlockchange', onLockChange)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    // Alt+Tab con una tecla pulsada: el keyup no llega nunca y el visitante se
+    // queda andando solo contra una pared al volver.
+    const onBlur = () => { st.teclas = Object.create(null); st.joystick = { x: 0, y: 0, correr: false } }
+    window.addEventListener('blur', onBlur)
     dom.addEventListener('touchstart', onTouchStart, { passive: true })
     dom.addEventListener('touchmove', onTouchMove, { passive: true })
     dom.addEventListener('touchend', onTouchEnd, { passive: true })
+    dom.addEventListener('touchcancel', onTouchEnd, { passive: true })
 
     return {
       estado: st,
@@ -213,7 +253,14 @@
       soltarBloqueo() { document.exitPointerLock?.() },
       activar(v) {
         st.activo = v
+        // Sin esto, salir del recorrido con una tecla pulsada la dejaba pegada:
+        // al volver, el visitante arrancaba andando solo.
+        if (!v) { st.teclas = Object.create(null); st.joystick = { x: 0, y: 0, correr: false } }
         if (!v && st.bloqueado) document.exitPointerLock()
+      },
+      /** Inclinacion absoluta, ya acotada. La usa el sensor del telefono. */
+      ponerPitch(v) {
+        st.pitch = Math.max(-89 * RAD, Math.min(89 * RAD, v))
       },
       /**
        * Coloca al visitante en un punto del plano (metros) mirando a un rumbo.
@@ -278,8 +325,13 @@
         }
         let nx = st.pos.x + dx
         let nz = st.pos.z + dz
-        if (!chocaEn(nx, st.pos.z) && pisoOk(nx, st.pos.z)) st.pos.x = nx
-        if (!chocaEn(st.pos.x, nz) && pisoOk(st.pos.x, nz)) st.pos.z = nz
+        // Si ya se esta DENTRO de una caja de choque, todo destino cercano
+        // tambien lo esta y los dos ejes quedan bloqueados para siempre. Se
+        // deja salir: mientras se este atrapado el choque no cuenta, y en
+        // cuanto se sale vuelve la regla. El suelo se sigue respetando.
+        const atrapado = chocaEn(st.pos.x, st.pos.z)
+        if ((atrapado || !chocaEn(nx, st.pos.z)) && pisoOk(nx, st.pos.z)) st.pos.x = nx
+        if ((atrapado || !chocaEn(st.pos.x, nz)) && pisoOk(st.pos.x, nz)) st.pos.z = nz
         if (!st.volar) st.piso = pisoEn(st.pos.x, st.pos.z, st.piso)
 
         if (st.volar) {
@@ -305,6 +357,11 @@
         document.removeEventListener('pointerlockchange', onLockChange)
         window.removeEventListener('keydown', onKeyDown)
         window.removeEventListener('keyup', onKeyUp)
+        window.removeEventListener('blur', onBlur)
+        dom.removeEventListener('touchstart', onTouchStart)
+        dom.removeEventListener('touchmove', onTouchMove)
+        dom.removeEventListener('touchend', onTouchEnd)
+        dom.removeEventListener('touchcancel', onTouchEnd)
       },
     }
   }
@@ -335,15 +392,19 @@
       camara.lookAt(st.objetivo)
     }
 
+    // El tactil va por `touchstart`/`touchmove`, mas abajo. Sin descartarlo
+    // aqui, un arrastre de un dedo se contaba dos veces y la maqueta giraba al
+    // doble de velocidad en pantalla tactil.
     const onDown = (e) => {
-      if (!st.activo) return
+      if (!st.activo || e.pointerType === 'touch') return
       dom.setPointerCapture?.(e.pointerId)
       if (e.button === 2 || e.button === 1 || e.shiftKey) st.moviendo = true
       else st.girando = true
       st.ultimo = { x: e.clientX, y: e.clientY }
     }
     const onMove = (e) => {
-      if (!st.activo || (!st.girando && !st.moviendo)) return
+      if (!st.activo || e.pointerType === 'touch') return
+      if (!st.girando && !st.moviendo) return
       const dx = e.clientX - st.ultimo.x
       const dy = e.clientY - st.ultimo.y
       st.ultimo = { x: e.clientX, y: e.clientY }
@@ -393,11 +454,12 @@
     }
     const onTE = (e) => { toques = Array.from(e.touches).map((t) => ({ id: t.identifier, x: t.clientX, y: t.clientY })) }
 
+    const onMenu = (e) => { if (st.activo) e.preventDefault() }
     dom.addEventListener('pointerdown', onDown)
     dom.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     dom.addEventListener('wheel', onWheel, { passive: false })
-    dom.addEventListener('contextmenu', (e) => st.activo && e.preventDefault())
+    dom.addEventListener('contextmenu', onMenu)
     dom.addEventListener('touchstart', onTS, { passive: true })
     dom.addEventListener('touchmove', onTM, { passive: true })
     dom.addEventListener('touchend', onTE, { passive: true })

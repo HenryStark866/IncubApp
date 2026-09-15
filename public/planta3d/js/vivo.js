@@ -92,6 +92,11 @@
         // antepecho propio) también son del vano, no solo x/y/rot/type — sin
         // esto una puerta viva podía perder el muro con el que se guardó, o
         // una ventana volver a su ancho por defecto.
+        // `cristal` y `rejilla` dicen de que es la hoja, y viven en el jsonb de
+        // la base igual que el resto. Sin copiarlos aqui, el primer refresco en
+        // vivo devolvia la vidriera de la oficina de produccion a una hoja
+        // opaca y las ventanillas de los cuartos de succion a un vidrio liso,
+        // sin que nadie hubiera tocado el plano.
         doors: (r.doors || []).map((d) => ({
           x: num(d.x), y: num(d.y), rot: num(d.rot), type: d.type || 'normal',
           ...(d.lado ? { lado: d.lado } : null),
@@ -99,6 +104,8 @@
           ...(d.w != null ? { w: num(d.w) } : null),
           ...(d.h != null ? { h: num(d.h) } : null),
           ...(d.base != null ? { base: num(d.base) } : null),
+          ...(d.cristal ? { cristal: true } : null),
+          ...(d.rejilla ? { rejilla: true } : null),
         })),
       }
       if (Number(r.nivel) === 2) sala.nivel = 2
@@ -113,8 +120,16 @@
       if (Array.isArray(r.points) && r.points.length > 2) {
         sala.puntos = r.points.map((q) => ({ x: num(q.x), y: num(q.y) }))
       }
+      // Marcas que NO son columnas de la base y solo viven en la instantanea.
+      // Se arrastran todas, no solo dos: sin `exterior`, el corredor de las
+      // oficinas volvia a contarse como pasillo interior y se cerraba con muro
+      // por los cuatro costados —dejando el ala administrativa incomunicada— en
+      // cuanto entraba el primer refresco en vivo. Y sin `terraza` el bloque se
+      // quedaba sin su losa plana y sin el antepecho de los 360 grados.
       if (p.proyectada) sala.proyectada = p.proyectada
       if (p.medida) sala.medida = p.medida
+      if (p.exterior) sala.exterior = p.exterior
+      if (p.terraza) sala.terraza = p.terraza
       return sala
     })
 

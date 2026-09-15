@@ -2432,10 +2432,23 @@
       // franjas, marcos, pilotos, placas— es decoracion que ni se pincha ni se
       // mueve. Esto solo funde algo porque antes se repartieron los materiales:
       // con un material nuevo por maquina no habria dos mallas que juntar.
+      // Tambien se funden PUERTAS, TECHOS y ZOCALOS. De las puertas, solo lo
+      // que no se mueve: cada hoja animada cuelga de su propio pivote —un
+      // grupo—, asi que basta con no entrar en los subgrupos. De los pisos, todo
+      // menos el piso de cada sala, que es el blanco del clic: lo que se junta
+      // son los zocalos.
+      // Medido el 2026-09-15 a 1024x768, con la escena ya fundida, llamadas de
+      // dibujo antes → despues: planta entera 877 → 597 · de cerca 298 → 239 ·
+      // dentro de incubadoras 225 → 156 · dentro de nacedoras 204 → 166. Y de
+      // 991 mallas en escena a 546.
+      const blancoDeClic = new Set(seleccionables)
       const ahorradas = fusionarEstaticos(gMuros, (o) => rieles.has(o))
         + fusionarEstaticos(gCielos)
         + fusionarEstaticos(gEntrepiso)
         + fusionarEstaticos(gEquipos, (o) => !!(o.userData && o.userData.tipo), true)
+        + fusionarEstaticos(gPuertas)
+        + fusionarEstaticos(gTechos)
+        + fusionarEstaticos(gPisos, (o) => blancoDeClic.has(o))
       globalThis.__PLANTA3D.llamadasAhorradas = ahorradas
       if (ahorradas) console.info(`[planta3d] ${ahorradas} llamada(s) de dibujo menos al fundir estaticos`)
     })
