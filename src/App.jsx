@@ -998,7 +998,10 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
   const [isRecoveryMode, setIsRecoveryMode] = useState(
-    () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+    () =>
+      typeof window !== 'undefined' &&
+      (window.location.hash.includes('type=recovery') ||
+        (window.location.hash.includes('access_token') && window.location.hash.includes('recovery')))
   )
 
   useEffect(() => {

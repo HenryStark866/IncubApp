@@ -44,8 +44,10 @@ export default function AuthForm() {
         setBusy(false)
         return
       }
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const redirectTo = `${origin}/#type=recovery`
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: window.location.origin,
+        redirectTo,
       })
       setBusy(false)
       if (error) {
