@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, supabaseConfigError } from './lib/supabase'
 // Shell ligero (eager): auth, nav, chrome. Paneles pesados → lazyPanels (code-split).
 import AuthForm from './components/AuthForm'
+import ResetPasswordForm from './components/ResetPasswordForm'
 import PlatformCompanyBar from './components/PlatformCompanyBar'
 import {
   usePlatformOrgs,
@@ -992,6 +993,9 @@ function Workspace({
 export default function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
+  const [isRecoveryMode, setIsRecoveryMode] = useState(
+    () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  )
 
   useEffect(() => {
     let alive = true
@@ -1026,8 +1030,11 @@ export default function App() {
 
     let sub
     try {
-      const res = supabase.auth.onAuthStateChange((_event, s) => {
+      const res = supabase.auth.onAuthStateChange((event, s) => {
         setSession(s)
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true)
+        }
         try {
           if (s?.access_token) supabase.realtime.setAuth(s.access_token)
           else supabase.realtime.setAuth()
@@ -1061,6 +1068,36 @@ export default function App() {
     switchOrg,
     loading: orgLoading,
   } = useOrganization(userId)
+
+  // Auto-vincular usuarios nuevos (Google OAuth o registro) a su organización y aprobarlos
+  useEffect(() => {
+    if (!userId || orgLoading || memberships.length > 0) return
+    const pendingOrg = localStorage.getItem('incubapp_pending_org_id') || 'd54fca1e-1878-4967-aee5-330aa2e631cc'
+    const pendingName = localStorage.getItem('incubapp_pending_full_name') || session?.user?.user_metadata?.full_name || ''
+
+    async function ensureUserMembership() {
+      try {
+        localStorage.removeItem('incubapp_pending_org_id')
+        localStorage.removeItem('incubapp_pending_full_name')
+
+        // Asegurar que su perfil esté aprobado y tenga nombre
+        const updates = { is_approved: true }
+        if (pendingName) updates.full_name = pendingName
+        await supabase.from('profiles').update(updates).eq('id', userId)
+
+        // Crear membresía en Antioqueña de Incubación SAS (o la empresa seleccionada)
+        await supabase.from('organization_members').upsert({
+          org_id: pendingOrg,
+          user_id: userId,
+          role: 'operator',
+          area: 'general',
+        })
+      } catch (err) {
+        console.warn('Auto-membership notice:', err)
+      }
+    }
+    ensureUserMembership()
+  }, [userId, orgLoading, memberships.length, session])
 
   const legal = useLegalAcceptance({ userId, orgId: org?.id })
   const [legalBusy, setLegalBusy] = useState(false)
@@ -1196,7 +1233,9 @@ export default function App() {
   // Solo login de app (sin sitio web de marketing). Tras login, el perfil decide:
   // admin de plataforma → consola; miembro de org → workspace; sin org → pendiente.
   let content
-  if (!session) {
+  if (isRecoveryMode) {
+    content = <ResetPasswordForm onCompleted={() => setIsRecoveryMode(false)} />
+  } else if (!session) {
     content = <AuthForm />
   } else if ((profileLoading || orgLoading) && bootWait) {
     content = (
