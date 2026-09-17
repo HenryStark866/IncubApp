@@ -1162,11 +1162,8 @@ export default function FloorMap({
   /** Set de ids de sala a resaltar (filtros dinámicos); las demás se atenúan. null/vacío = sin resaltar ninguna. */
   highlightRoomIds = null,
 }) {
-  const { rooms: allRooms, loading, error, createRoom, updateRoom, moveRoom, deleteRoom } = roomsApi
-  // En granjas, los galpones "lógicos" (unidades para distribuir lotes: GALPON 201, 202…)
-  // no se dibujan: los edificios reales ya están en el plano como glifos galpon_p1/p2
-  // (piso 1 y piso 2). Así el módulo se ve como en la vida real y los datos no estorban.
-  const visibles = isFarm ? allRooms.filter((r) => !/^GALPON/i.test(r.name || '')) : allRooms
+  // Tanto en planta como en granja, todas las salas y galpones se dibujan y editan en el plano.
+  const visibles = allRooms
 
   // Nivel que se está dibujando. La planta tiene entrepiso sobre el ala de
   // incubadoras, y sus salas viven aparte: se editan sin estorbar a las de

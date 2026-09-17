@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>GRANJA 3D INCUBANT · Recorrido Virtual y Mapa</title>
+<style>
+  :root {
+    --fondo: #09131f;
+    --panel: rgba(13, 23, 38, 0.88);
+    --borde: rgba(56, 189, 248, 0.22);
+    --texto: #f1f5f9;
+    --tenue: #94a3b8;
+    --acento: #38bdf8;
+    --acento2: #34d399;
+    --ok: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas#lienzo {
+    position: fixed;
+    inset: 0;
+    display: block;
+    touch-action: none;
+  }
+
+  /* Carga */
+  #cargando {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: radial-gradient(circle at 50% 40%, #0c203a, #040913 75%);
+  }
+  #cargando h1 {
+    margin: 0;
+    font-size: clamp(22px, 4vw, 36px);
+    letter-spacing: 0.05em;
+    color: #e0f2fe;
+  }
+  #cargando p { margin: 0; color: var(--tenue); }
+  .barra-carga {
+    width: min(340px, 70vw);
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+  }
+  .barra-carga i {
+    display: block;
+    height: 100%;
+    width: 35%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--acento), var(--acento2));
+    animation: desliza 1.1s ease-in-out infinite;
+  }
+  @keyframes desliza {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+  }
+  #cargando.oculto {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+
+  /* Portada / Bienvenida */
+  #portada {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4, 8, 15, 0.85);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+  }
+  #portada .tarjeta {
+    max-width: 580px;
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 20px;
+    padding: 28px 30px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  }
+  #portada h2 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #portada .sub {
+    color: var(--tenue);
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .teclas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 16px 0 22px;
+  }
+  .teclas div {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .teclas b {
+    display: block;
+    color: var(--acento);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+  button {
+    font: inherit;
+    color: var(--texto);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  button:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(56, 189, 248, 0.5);
+  }
+  button.primario {
+    background: linear-gradient(135deg, #0284c7, #0284c7);
+    border-color: transparent;
+    color: #ffffff;
+    font-weight: 700;
+  }
+  button.activo {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: var(--acento);
+    color: #bae6fd;
+  }
+
+  /* Barra Superior */
+  #barra {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, rgba(7, 14, 26, 0.95), rgba(7, 14, 26, 0));
+    pointer-events: none;
+  }
+  #barra > * { pointer-events: auto; }
+  .marca {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .marca strong {
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    color: #f0f9ff;
+  }
+  .marca span {
+    font-size: 11px;
+    color: var(--tenue);
+  }
+  .grupo {
+    display: flex;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 4px;
+  }
+  .espacio { flex: 1; }
+
+  /* Paneles laterales */
+  aside {
+    position: fixed;
+    z-index: 35;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+  #panelSalas {
+    top: 76px;
+    left: 16px;
+    width: 270px;
+    max-height: calc(100vh - 230px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #panelSalas header, #panelInfo header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--borde);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #panelSalas header b, #panelInfo header b {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tenue);
+  }
+  #listaSalas {
+    overflow-y: auto;
+    padding: 6px 10px 14px;
+    flex: 1;
+  }
+  .grupoTipo {
+    font-size: 11px;
+    color: var(--tenue);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 12px 6px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .grupoTipo i {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .filaSala {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: transparent;
+    border: 1px solid transparent;
+    font-size: 13px;
+  }
+  .filaSala:hover { background: rgba(255, 255, 255, 0.08); }
+  .filaSala.sel {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: var(--acento);
+  }
+  .filaSala small {
+    color: var(--tenue);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  #panelInfo {
+    top: 76px;
+    right: 16px;
+    width: 300px;
+    max-height: calc(100vh - 230px);
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+  }
+  #panelInfo.visible { display: flex; }
+  #cuerpoInfo {
+    padding: 14px 16px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  #cuerpoInfo h3 { margin: 0 0 2px; font-size: 18px; color: #38bdf8; }
+  #cuerpoInfo .codigo { color: var(--tenue); font-size: 12px; margin-bottom: 12px; }
+  .dato {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+  .dato span:first-child { color: var(--tenue); }
+  .pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Minimapa */
+  #minimapa {
+    position: fixed;
+    z-index: 35;
+    left: 16px;
+    bottom: 16px;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    padding: 8px;
+    backdrop-filter: blur(8px);
+  }
+  #minimapa canvas {
+    display: block;
+    border-radius: 8px;
+  }
+  #minimapa .pie {
+    font-size: 10.5px;
+    color: var(--tenue);
+    text-align: center;
+    padding-top: 4px;
+  }
+
+  /* Rótulos 3D */
+  #contenedorEtiquetas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .etiqueta-3d {
+    position: absolute;
+    pointer-events: auto;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(13, 23, 38, 0.88);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transform-origin: bottom center;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .etiqueta-3d:hover {
+    background: rgba(2, 132, 199, 0.9);
+    border-color: #38bdf8;
+    transform: scale(1.08) translate(-50%, -100%);
+  }
+  .etiqueta-3d .cod {
+    font-weight: 800;
+    color: #38bdf8;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  .etiqueta-3d.produccion .cod { color: #34d399; }
+  .etiqueta-3d .nom {
+    color: #f1f5f9;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="lienzo"></canvas>
+<div id="contenedorEtiquetas"></div>
+
+<!-- Pantalla de carga -->
+<div id="cargando">
+  <h1>GRANJA 3D INCUBANT</h1>
+  <p>Generando mapa y galpones en 3D…</p>
+  <div class="barra-carga"><i></i></div>
+</div>
+
+<!-- Portada de inicio -->
+<div id="portada">
+  <div class="tarjeta">
+    <h2>🏡 Recorrido 3D de Granja</h2>
+    <p class="sub">
+      Bienvenido al gemelo digital interactivo de <strong>G-GRANJA LA BONITA</strong>.
+      Supervise módulos de Levante y Producción, galpones climatizados de 2 pisos,
+      baterías de silos y arcos de bioseguridad en tiempo real.
+    </p>
+    <div class="teclas">
+      <div>
+        <b>Vista Dron / Órbita</b>
+        Clic izquierdo y arrastrar para orbitar.<br/>
+        Rueda para zoom.<br/>
+        Clic derecho para desplazar.
+      </div>
+      <div>
+        <b>Caminar a pie (FPS)</b>
+        W, A, S, D para caminar.<br/>
+        Shift para correr.<br/>
+        Mouse para girar la mirada.
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="primario" id="btnCerrarPortada">Entrar al recorrido 3D</button>
+    </div>
+  </div>
+</div>
+
+<!-- Barra Superior de Navegación -->
+<header id="barra">
+  <div class="marca">
+    <strong>G-GRANJA LA BONITA</strong>
+    <span>Antioqueña de Incubación SAS · Jericó</span>
+  </div>
+  <div class="espacio"></div>
+  <div class="grupo">
+    <button id="btnModoOrbita" class="activo">🚁 Vista Dron</button>
+    <button id="btnModoFPS">🚶 Caminar a pie</button>
+  </div>
+</header>
+
+<!-- Lista Lateral de Galpones -->
+<aside id="panelSalas">
+  <header>
+    <b>Galpones y Módulos</b>
+  </header>
+  <div id="listaSalas"></div>
+</aside>
+
+<!-- Panel de Detalle del Galpón Seleccionado -->
+<aside id="panelInfo">
+  <header>
+    <b>Detalle del Área</b>
+    <button id="btnCerrarInfo" style="padding:2px 8px;border-radius:6px;font-size:12px;">✕</button>
+  </header>
+  <div id="cuerpoInfo"></div>
+</aside>
+
+<!-- Radar Minimapa -->
+<div id="minimapa">
+  <canvas id="miniCanvas" width="130" height="110"></canvas>
+  <div class="pie">Radar de Granja</div>
+</div>
+
+<script src="./lib/three.min.js"></script>
+<script src="./data/granja.js"></script>
+<script src="./js/mundo.js"></script>
+<script src="./js/controles.js"></script>
+<script src="./js/etiquetas.js"></script>
+<script src="./js/app.js"></script>
+
+</body>
+</html>

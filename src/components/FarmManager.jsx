@@ -17,16 +17,17 @@ import FloorMap from './FloorMap'
 import MachineManager from './MachineManager'
 import PlantGeoCalibrator from './PlantGeoCalibrator'
 import { projectPeopleOnPlan, readPlantGeo } from '../lib/geoMap'
+import { canSeeFarm3DTour, FARM_3D_TOUR_URL } from '../lib/roles'
+import { PLANO_BASE_GRANJA } from '../lib/planoBaseGranja'
 
-/** Edición de planos de granja: solo CDH Maker. GPS: líderes de área + gobierno empresa. */
+/** Edición de planos de granja: administración, coordinadores, supervisores y desarrolladores */
 const canEditPlanos = (role, isPlatformStaff) =>
-  !!isPlatformStaff || role === 'developer' || role === 'platform_admin'
+  !!isPlatformStaff ||
+  ['developer', 'platform_admin', 'owner', 'admin', 'coordinator', 'supervisor'].includes(role)
 
 const canCalibrateGps = (role, isPlatformStaff) =>
   canEditPlanos(role, isPlatformStaff) ||
-  ['owner', 'admin', 'management', 'management_auxiliary', 'coordinator', 'supervisor'].includes(
-    role
-  )
+  ['management', 'management_auxiliary'].includes(role)
 
 const canExpand = (role, isPlatformStaff) =>
   canCalibrateGps(role, isPlatformStaff) || role === 'maintenance_auxiliary'
@@ -208,11 +209,40 @@ export default function FarmManager({
   const [geoTick, setGeoTick] = useState(0)
   const [geoPickMode, setGeoPickMode] = useState(false)
   const [geoLandmark, setGeoLandmark] = useState(null)
+  const [vista, setVista] = useState('2d') // '2d' | '3d'
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState(null)
 
   const selectedFarmId = farms.some((f) => f.id === selectedId) ? selectedId : null
   const roomsApi = useRooms(selectedFarmId, orgId)
   const machinesApi = useMachines(selectedFarmId)
   const [selectedMachineId, setSelectedMachineId] = useState(null)
+
+  const canSee3D = canSeeFarm3DTour(role) || editPlanos
+
+  const handleImportPlanoBase = async () => {
+    if (!selectedFarmId || importing) return
+    setImporting(true)
+    setImportMsg(null)
+    const existingCodes = new Set(roomsApi.rooms.map((r) => r.code))
+    const toCreate = PLANO_BASE_GRANJA.filter((r) => !existingCodes.has(r.code)).map((r) => ({
+      ...r,
+      plant_id: selectedFarmId,
+      org_id: orgId,
+    }))
+    if (toCreate.length === 0) {
+      setImportMsg({ type: 'ok', text: 'El plano base de la granja ya tiene todos sus módulos y galpones cargados.' })
+      setImporting(false)
+      return
+    }
+    const { error } = await roomsApi.createRooms(toCreate)
+    setImporting(false)
+    if (error) {
+      setImportMsg({ type: 'error', text: `Error al importar: ${error}` })
+    } else {
+      setImportMsg({ type: 'ok', text: `Se importaron ${toCreate.length} salas, módulos y galpones exitosamente.` })
+    }
+  }
 
   useEffect(() => {
     if (!selectedId && farms.length > 0) setSelectedId(farms[0].id)
@@ -246,8 +276,48 @@ export default function FarmManager({
 
   return (
     <div className="card wide">
-      <div className="card-head">
-        <h2>Granjas y mapa de módulos</h2>
+      <div className="card-head" style={{ flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Granjas y mapa de módulos</h2>
+          <p className="hint" style={{ margin: '4px 0 0' }}>
+            {editPlanos
+              ? 'Edición de granja y galpones activa. Puede trazar módulos y calibrar GPS.'
+              : calibrateGps
+                ? 'Líder de área: calibración GPS de la sede. Sin edición de planos.'
+                : 'Solo consulta.'}
+          </p>
+        </div>
+
+        {selectedFarm && (
+          <div className="grupo" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            <button
+              className={vista === '2d' ? 'chip active' : 'chip ghost'}
+              onClick={() => setVista('2d')}
+            >
+              📐 Plano 2D
+            </button>
+            {canSee3D && (
+              <button
+                className={vista === '3d' ? 'chip active' : 'chip ghost'}
+                onClick={() => setVista('3d')}
+              >
+                🏡 Granja 3D
+              </button>
+            )}
+            {canSee3D && (
+              <a
+                className="chip ghost"
+                href={FARM_3D_TOUR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir mapa 3D de granja en pantalla completa"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                ↗️ Abrir 3D aparte
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <p className="msg error">{error}</p>}
@@ -277,7 +347,30 @@ export default function FarmManager({
                 + Módulo de galpones
               </button>
             )}
+            {editPlanos && selectedFarm && !showForm && (
+              <button
+                className="chip ghost"
+                onClick={handleImportPlanoBase}
+                disabled={importing}
+                title={`Importa la estructura base de galpones de 2 pisos, silos y bioseguridad`}
+              >
+                {importing ? '⏳ Importando…' : '🏗️ Importar plano base'}
+              </button>
+            )}
           </div>
+
+          {importMsg && (
+            <p className={`msg ${importMsg.type}`} style={{ marginBottom: 10 }}>
+              {importMsg.text}
+              <button
+                className="ghost small"
+                style={{ marginLeft: 12 }}
+                onClick={() => setImportMsg(null)}
+              >
+                ✕
+              </button>
+            </p>
+          )}
 
           {showForm && editPlanos && (
             <NewFarmForm onCreate={createPlant} onCancel={() => setShowForm(false)} />
@@ -290,20 +383,33 @@ export default function FarmManager({
             <p className="hint">
               Aún no hay granjas registradas.{' '}
               {editPlanos
-                ? 'Crea la primera (CDH Maker) para mapear módulos y galpones.'
-                : 'La estructura de planos la construye CDH Maker; los líderes calibran el GPS de cada sede.'}
+                ? 'Crea la primera granja para mapear módulos y galpones.'
+                : 'La estructura de planos la construyen administradores y coordinadores.'}
             </p>
           )}
 
-          {selectedFarm && (
+          {selectedFarm && vista === '3d' && (
+            <div style={{ marginTop: 12 }}>
+              <iframe
+                className="lom-tour-3d"
+                src={FARM_3D_TOUR_URL}
+                title="Granja 3D — Recorrido virtual interactivo"
+                style={{
+                  width: '100%',
+                  height: '72vh',
+                  minHeight: 520,
+                  borderRadius: 14,
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  display: 'block',
+                  background: '#09131f',
+                }}
+                allow="fullscreen"
+              />
+            </div>
+          )}
+
+          {selectedFarm && vista === '2d' && (
             <>
-              <p className="hint" style={{ margin: '0 0 8px' }}>
-                {editPlanos
-                  ? 'Modo CDH Maker: edición de planos de granja.'
-                  : calibrateGps
-                    ? 'Líder de área: calibración GPS de la sede. Sin edición de planos.'
-                    : 'Solo consulta.'}
-              </p>
               <PlantGeoCalibrator
                 plant={selectedFarm}
                 geo={farmGeo}

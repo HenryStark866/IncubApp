@@ -597,8 +597,22 @@ export function canSeePlant3DTour(role) {
 }
 
 /**
- * Ruta del recorrido 3D, servido como página aparte desde public/planta3d/.
- * Se apunta al index.html explícito, no a la carpeta: en desarrollo Vite no
- * resuelve el índice de directorio y /planta3d/ cae al index de la SPA.
+ * Ruta del recorrido 3D de planta, servido desde public/planta3d/.
  */
 export const PLANT_3D_TOUR_URL = '/planta3d/index.html'
+
+/**
+ * Acceso y ruta al recorrido 3D de granja (/granja3d/).
+ */
+export function canSeeFarm3DTour(role) {
+  return [
+    'coordinator',
+    'supervisor',
+    'management',
+    'management_auxiliary',
+    'owner',
+    'admin',
+  ].includes(role)
+}
+
+export const FARM_3D_TOUR_URL = '/granja3d/index.html'
