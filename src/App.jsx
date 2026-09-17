@@ -21,7 +21,7 @@ import {
 } from './hooks/usePlatformOrgs'
 import { buildPlatformNavItems } from './lib/platformMenu'
 import { buildClientNavItems } from './lib/clientMenuTemplate'
-import { ContextualMark, CdhSignature, PLATFORM_NAME } from './components/Brand'
+import { ContextualMark, CdhSignature, PLATFORM_NAME, IncubantSigPill } from './components/Brand'
 import PendingApproval from './components/PendingApproval'
 import SplashScreen from './components/SplashScreen'
 import LegalDocsModal from './components/LegalDocsModal'
@@ -550,7 +550,11 @@ function Workspace({
                   : `${siloHint}${locationReady ? ` · ±${Math.round(liveLocation.accuracy || 0)} m` : ''}`}
             </span>
           </div>
+          {brand?.mode === 'client' && (
+            <IncubantSigPill text="SIG · Antioqueña de Incubación" />
+          )}
         </div>
+
         {multiOrg && typeof switchOrg === 'function' && (
           <label className="ws-org-switch" title="Empresas donde tienes membership de cliente">
             <span className="hint" style={{ margin: 0 }}>

@@ -116,8 +116,10 @@ function buildOperationReportSheets({
 /** Construye y descarga el Excel con membrete corporativo en un solo paso. */
 export async function exportOperationReport(data) {
   const sheets = buildOperationReportSheets(data)
-  return exportToExcel('reporte-operacion', sheets, {
-    title: 'Reporte de operación',
+  return exportToExcel('reporte-operacion-sig', sheets, {
+    title: 'REPORTE CONSOLIDADO DE OPERACIÓN Y RONDAS',
+    fomatCode: 'FOMAT04',
     module: 'Operación',
   })
 }
+

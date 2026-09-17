@@ -1,10 +1,11 @@
 /**
  * src/lib/exportFomat03.js
  * Generador de Hoja de Vida de Equipo bajo estándar SIG — FOMAT03.
- * Compatible con la estructura oficial del Sistema Integrado de Gestión (SIG).
+ * Estructura oficial del Sistema Integrado de Gestión (SIG) · Antioqueña de Incubación S.A.S.
  */
 
 import * as XLSX from 'xlsx'
+import { excelLetterheadRows, excelFooterRows, CORP_SLOGAN } from './corporateBrand'
 
 export function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {} }) {
   if (!machine) return
@@ -15,18 +16,19 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
   // HOJA 1: FOMAT03 — HOJA DE VIDA DEL EQUIPO
   // ─────────────────────────────────────────────────────────────────────────────
   const fomatData = [
-    ['SISTEMA INTEGRADO DE GESTIÓN (SIG) — MANTENIMIENTO'],
-    ['FORMATO OFICIAL: FOMAT03 — HOJA DE VIDA DEL EQUIPO'],
-    ['Código de Documento: FOMAT03', '', 'Versión: 01', '', `Fecha de Emisión: ${new Date().toLocaleDateString('es-CO')}`],
-    [],
-    ['1. IDENTIFICACIÓN DEL EQUIPO'],
-    ['Código del equipo:', machine.code || 'S/C', 'Nombre del equipo:', machine.name || 'S/N'],
+    ...excelLetterheadRows({
+      fomatCode: 'FOMAT03',
+      title: 'HOJA DE VIDA DEL EQUIPO',
+      plantName: plant?.name || 'Planta Incubant · Hispania',
+    }),
+    ['1. IDENTIFICACIÓN Y GENERALIDADES DEL EQUIPO'],
+    ['Código Interno:', machine.code || 'S/C', 'Nombre del Activo:', machine.name || 'S/N'],
     ['Código Mantum:', machine.mantum_code || mantum?.equipo?.mantum_code || 'S/C', 'Criticidad SIG:', machine.criticidad || mantum?.equipo?.criticidad || 'Media'],
-    ['Sede / Planta:', plant?.name || 'Incubadora Principal', 'Ubicación / Sala:', room ? `${room.name} (${room.code})` : 'Planta General'],
+    ['Sede / Planta:', plant?.name || 'Incubant Hispania', 'Ubicación / Sala:', room ? `${room.name} (${room.code})` : 'Planta General'],
     ['Marca:', machine.brand || 'Petersime', 'Modelo:', machine.model || 'BioStreamer / Convencional'],
-    ['Número de Serie:', machine.serial_number || mantum?.equipo?.serial_number || 'D0757-D1585', 'Proveedor / Fabricante:', machine.supplier || 'Petersime NV / Somar'],
+    ['Número de Serie:', machine.serial_number || mantum?.equipo?.serial_number || 'D0757-D1585', 'Fabricante / Proveedor:', machine.supplier || 'Petersime NV / Somar'],
     ['Fecha Instalación:', machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : '2019-05-10', 'Vida Útil Estimada:', `${machine.useful_life_years || 10} años`],
-    ['Capacidad:', machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar', 'Estado Operativo Actual:', machine.status || 'Activa'],
+    ['Capacidad Nominal:', machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar', 'Estado Operativo:', machine.status || 'Activa'],
     ['Manual OEM Disponible:', mantum?.inventory ? 'Sí (Digitalizado Mantum)' : 'Sí (Archivo Técnico)', 'Fotografía del Activo:', mantum?.isOwnPhoto ? 'Foto real propia del activo' : 'Foto referencial'],
     [],
     ['2. COMPONENTES Y REPUESTOS CRÍTICOS (VIDA ÚTIL)'],
@@ -120,19 +122,26 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
 
   fomatData.push([])
   fomatData.push(['5. EVALUACIÓN GENERAL DE AUDITORÍA SIG'])
-  fomatData.push(['Estado de Cumplimiento:', stats.auditSummary || 'En regla'])
+  fomatData.push(['Estado de Cumplimiento:', stats.auditSummary || 'En regla y conforme'])
   fomatData.push(['Inspecciones de Ronda (FOMAT04):', `${stats.checkCompliancePct ?? 100}% de conformidad operativa`])
-  fomatData.push(['Firmas de Aprobación:', 'Elaboró: Auxiliar de Mantenimiento', '', 'Aprobó: Líder de Planta / Mantenimiento'])
+
+  fomatData.push(...excelFooterRows({
+    fomatCode: 'FOMAT03',
+  }))
 
   const wsFomat = XLSX.utils.aoa_to_sheet(fomatData)
   XLSX.utils.book_append_sheet(wb, wsFomat, 'FOMAT03 - Hoja de Vida')
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // HOJA 2: PLAN DE MANTENIMIENTO AM (FOMAT07)
+  // HOJA 2: PLAN ANUAL DE MANTENIMIENTO (FOMAT07)
   // ─────────────────────────────────────────────────────────────────────────────
   const planData = [
-    ['SISTEMA INTEGRADO DE GESTIÓN (SIG) — PLAN DE MANTENIMIENTO AM'],
-    [`Equipo: ${machine.name} (${machine.code})`, '', `Planta: ${plant?.name || 'Incubadora Principal'}`],
+    ...excelLetterheadRows({
+      fomatCode: 'FOMAT07',
+      title: 'PLAN ANUAL DE MANTENIMIENTO',
+      plantName: plant?.name || 'Planta Incubant · Hispania',
+    }),
+    [`Equipo Asociado: ${machine.name} (${machine.code})`, '', `Planta: ${plant?.name || 'Incubadora Principal'}`],
     [],
     ['Código Tarea', 'Actividad Programada', 'Tipo', 'Especialidad', 'Frecuencia', 'Estado', 'Generación de OT'],
   ]
@@ -156,6 +165,10 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
     planData.push(['AM-GEN-03', 'Lubricación de chumaceras y rodamientos de volteo', 'Preventiva', 'Mecánica', 'Bimestral', 'Activa', 'Automática'])
   }
 
+  planData.push(...excelFooterRows({
+    fomatCode: 'FOMAT07',
+  }))
+
   const wsPlan = XLSX.utils.aoa_to_sheet(planData)
   XLSX.utils.book_append_sheet(wb, wsPlan, 'FOMAT07 - Plan Mantenimiento')
 
@@ -164,3 +177,4 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
   const fileName = `FOMAT03_${safeCode}_HOJA_DE_VIDA_SIG.xlsx`
   XLSX.writeFile(wb, fileName)
 }
+

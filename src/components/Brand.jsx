@@ -221,3 +221,52 @@ export function CdhSignature({ className = '', label = 'SaaS', clientMode = fals
     </span>
   )
 }
+
+/**
+ * Insignia oficial del Sistema Integrado de Gestión (SIG) · Antioqueña de Incubación S.A.S.
+ */
+export function IncubantSigBadge({ className = '', showSlogan = true }) {
+  return (
+    <div
+      className={`incubant-sig-badge ${className}`}
+      title="Sistema Integrado de Gestión (SIG) · Antioqueña de Incubación S.A.S."
+    >
+      <img
+        src="/client-brands/incubant/logo_sig.png"
+        alt="SIG Antioqueña de Incubación"
+        className="incubant-sig-logo-img"
+        onError={(e) => {
+          e.currentTarget.src = '/logo_sig.png'
+        }}
+      />
+      <div className="incubant-sig-text">
+        <span className="incubant-sig-title">SISTEMA INTEGRADO DE GESTIÓN</span>
+        <span className="incubant-sig-subtitle">Antioqueña de Incubación S.A.S. · NIT 900.762.687-1</span>
+        {showSlogan && <span className="incubant-sig-slogan">"Nuestra calidad nos define."</span>}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Píldora compacta para cabeceras y tarjetas operativas
+ */
+export function IncubantSigPill({ className = '', text = 'SIG · Antioqueña de Incubación SAS' }) {
+  return (
+    <span
+      className={`incubant-sig-pill ${className}`}
+      title="Proceso certificado bajo Sistema Integrado de Gestión"
+    >
+      <img
+        src="/client-brands/incubant/logo_sig.png"
+        alt="SIG"
+        style={{ width: 14, height: 14, objectFit: 'contain' }}
+        onError={(e) => {
+          e.currentTarget.src = '/logo_sig.png'
+        }}
+      />
+      {text}
+    </span>
+  )
+}
+

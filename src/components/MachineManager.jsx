@@ -15,6 +15,8 @@ import { useLatestReadings } from '../hooks/useLatestReadings'
 import SensorPanel from './SensorPanel'
 import MachineDossier from './MachineDossier'
 import ListControls, { useListControls } from './ListControls'
+import { exportToExcel } from '../lib/exportExcel'
+
 
 const MACHINE_TYPES = [
   { value: 'setter', label: 'Incubadora (setter)' },
@@ -410,16 +412,51 @@ export default function MachineManager({
   const entityLabel = isFarm ? 'galpón' : 'máquina'
   const entityLabelPlural = isFarm ? 'galpones' : 'máquinas'
 
+  const handleExportFomat02 = () => {
+    if (!machines || machines.length === 0) return
+    const rows = machines.map((m) => ({
+      'Código': m.code || 'S/C',
+      'Nombre del Activo': m.name || 'S/N',
+      'Tipo': typeLabel(m.type),
+      'Ubicación / Sala': roomName(m.room_id),
+      'Marca': m.brand || 'Petersime',
+      'Modelo': m.model || 'BioStreamer',
+      'Serie': m.serial_number || 'S/N',
+      'Capacidad': m.capacity_eggs ? `${Number(m.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar',
+      'Criticidad': m.criticidad || 'Media',
+      'Estado': statusOf(m.status).label,
+      'Fecha Instalación': m.installed_at ? new Date(m.installed_at).toLocaleDateString('es-CO') : '2019-05-10',
+    }))
+
+    exportToExcel('FOMAT02_INVENTARIO_EQUIPOS_SIG', [{ name: 'FOMAT02 - Inventario', rows }], {
+      fomatCode: 'FOMAT02',
+      title: 'INVENTARIO DE INFRAESTRUCTURA Y EQUIPOS',
+      version: '02',
+      date: '20-08-2026',
+    })
+  }
+
   return (
     <div className="machines-wrap">
       <div className="floor-map-toolbar">
         <h3 className="section-title">{isFarm ? 'Galpones' : 'Máquinas'}</h3>
-        {canManage && !showForm && (
-          <button className="chip ghost" onClick={() => setShowForm(true)}>
-            {isFarm ? '+ Registrar galpón' : '+ Nueva máquina'}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            className="chip ghost small"
+            onClick={handleExportFomat02}
+            title="Exportar inventario general bajo formato oficial SIG FOMAT02 v02"
+            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📥 Inventario SIG (FOMAT02)
           </button>
-        )}
+          {canManage && !showForm && (
+            <button className="chip ghost" onClick={() => setShowForm(true)}>
+              {isFarm ? '+ Registrar galpón' : '+ Nueva máquina'}
+            </button>
+          )}
+        </div>
       </div>
+
 
       {!selectedMachine && (
         <p className="hint" style={{ margin: '4px 0 10px' }}>

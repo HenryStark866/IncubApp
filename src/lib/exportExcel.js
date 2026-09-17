@@ -73,17 +73,19 @@ export async function exportToExcel(filename, sheets, meta = {}) {
       return { wch: Math.min(48, maxLen + 2) }
     })
 
-    // Nota de fusión visual del título (primera fila corporativa)
-    if (!meta.skipLetterhead && headers.length > 1) {
+    // Fusión visual del encabezado SIG de 3 columnas (Izquierda: Empresa | Centro: SIG y Formato | Derecha: Control documental)
+    if (!meta.skipLetterhead && headers.length >= 5) {
       ws['!merges'] = ws['!merges'] || []
-      // Fusionar primeras 3 filas de membrete a lo ancho
-      for (let r = 0; r < Math.min(3, headAoa.length); r++) {
-        ws['!merges'].push({
-          s: { r, c: 0 },
-          e: { r, c: headers.length - 1 },
-        })
+      const lastCol = headers.length - 1
+      for (let r = 0; r < Math.min(4, headAoa.length); r++) {
+        ws['!merges'].push({ s: { r, c: 0 }, e: { r, c: 1 } })
+        ws['!merges'].push({ s: { r, c: 2 }, e: { r, c: 3 } })
+        if (lastCol > 4) {
+          ws['!merges'].push({ s: { r, c: 4 }, e: { r, c: lastCol } })
+        }
       }
     }
+
 
     XLSX.utils.book_append_sheet(wb, ws, String(name).slice(0, 31))
   }

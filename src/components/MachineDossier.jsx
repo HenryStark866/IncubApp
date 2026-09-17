@@ -15,7 +15,52 @@
 import { useState } from 'react'
 import { useMachineDossier } from '../hooks/useMachineDossier'
 import { exportFomat03Excel } from '../lib/exportFomat03'
+import { IncubantSigPill } from './Brand'
 import SensorPanel from './SensorPanel'
+
+function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process = 'GESTIÓN DE MANTENIMIENTO', onAction = null, actionLabel = null }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '12px 18px',
+        background: 'linear-gradient(135deg, rgba(11, 20, 40, 0.95) 0%, rgba(19, 34, 61, 0.95) 100%)',
+        border: '1px solid rgba(245, 144, 15, 0.35)',
+        borderRadius: 8,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+        marginBottom: 16,
+      }}
+    >
+      <img
+        src="/client-brands/incubant/logo_sig.png"
+        alt="SIG"
+        style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }}
+        onError={(e) => {
+          e.currentTarget.src = '/logo_sig.png'
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#f5900f', letterSpacing: 0.6 }}>
+          ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SIG (ISO 9001)
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', marginTop: 1 }}>
+          {code} — {name}
+        </div>
+        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+          Versión: <strong>{version}</strong> · Fecha: <strong>{date}</strong> · Proceso: <strong>{process}</strong> · <em>"Nuestra calidad nos define."</em>
+        </div>
+      </div>
+      {onAction && actionLabel && (
+        <button className="chip primary small" onClick={onAction} style={{ fontWeight: 600, flexShrink: 0 }}>
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  )
+}
+
 
 const TABS = [
   { id: 'resumen', label: '📊 Resumen & Auditoría' },
@@ -178,6 +223,7 @@ export default function MachineDossier({
             <span className="pill status" style={{ fontSize: 12 }}>
               {machine.status === 'active' ? '🟢 Operativa' : machine.status === 'maintenance' ? '🟡 En Mtto' : '⚪ ' + machine.status}
             </span>
+            <IncubantSigPill text="SIG · Antioqueña de Incubación SAS" />
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: '#94a3b8' }}>
@@ -374,7 +420,15 @@ export default function MachineDossier({
 
         {/* ══ 2. HOJA DE VIDA (FOMAT03) ══ */}
         {activeTab === 'fomat03' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <SigDocBanner
+              code="FOMAT03"
+              name="HOJA DE VIDA DEL EQUIPO"
+              version="01"
+              date="18-08-2026"
+              actionLabel="📥 Descargar Hoja de Vida (.xlsx)"
+              onAction={handleExportExcel}
+            />
             <div className="glass-card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>📋</span> 1. Identificación Oficial del Equipo (Placa y Registro)
@@ -550,6 +604,14 @@ export default function MachineDossier({
         {/* ══ 4. PLAN DE MANTENIMIENTO AM (FOMAT07) ══ */}
         {activeTab === 'fomat07' && (
           <div>
+            <SigDocBanner
+              code="FOMAT07"
+              name="PLAN ANUAL DE MANTENIMIENTO"
+              version="01"
+              date="18-08-2026"
+              actionLabel="📥 Descargar Plan con Hoja de Vida"
+              onAction={handleExportExcel}
+            />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
@@ -607,7 +669,13 @@ export default function MachineDossier({
 
         {/* ══ 5. ÓRDENES DE TRABAJO (FOMAT01) ══ */}
         {activeTab === 'fomat01' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <SigDocBanner
+              code="FOMAT01"
+              name="ORDEN DE TRABAJO DE MANTENIMIENTO"
+              version="01"
+              date="18-08-2026"
+            />
             {/* OTs Vivas de IncubApp */}
             <div>
               <h3 style={{ margin: '0 0 12px 0', fontSize: 16, color: '#f8fafc' }}>
@@ -717,6 +785,12 @@ export default function MachineDossier({
         {/* ══ 6. CALIBRACIONES (FOMAT08) ══ */}
         {activeTab === 'fomat08' && (
           <div>
+            <SigDocBanner
+              code="FOMAT08"
+              name="CALIBRACIÓN DE EQUIPOS"
+              version="01"
+              date="18-08-2026"
+            />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
@@ -818,6 +892,12 @@ export default function MachineDossier({
         {/* ══ 7. RONDAS DE INSPECCIÓN (FOMAT04) ══ */}
         {activeTab === 'fomat04' && (
           <div>
+            <SigDocBanner
+              code="FOMAT04"
+              name="LISTA DE CHEQUEO DE INSPECCIÓN DE INFRAESTRUCTURA Y EQUIPOS"
+              version="01"
+              date="18-08-2026"
+            />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
