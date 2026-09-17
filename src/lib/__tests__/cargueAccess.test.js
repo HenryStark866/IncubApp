@@ -43,3 +43,24 @@ describe('módulo Cargue habilitado para todos', () => {
     expect(item?.always).toBe(true)
   })
 })
+
+describe('aprobación del mapa de cargue', () => {
+  // Pedido 2026-09-15: quien clasifica decide si el mapa quedó bien.
+  const canApprove = (role) =>
+    ['owner', 'admin', 'supervisor', 'auxiliary_production'].includes(role) ||
+    role === 'coordinator'
+
+  it.each(['auxiliary_production', 'supervisor', 'coordinator', 'owner', 'admin'])(
+    'el rol %s puede aprobar el mapa',
+    (role) => {
+      expect(canApprove(role)).toBe(true)
+    }
+  )
+
+  it.each(['operator', 'reception_operator', 'driver', 'customer'])(
+    'el rol %s NO puede aprobar el mapa',
+    (role) => {
+      expect(canApprove(role)).toBe(false)
+    }
+  )
+})

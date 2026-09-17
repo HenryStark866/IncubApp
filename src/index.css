@@ -3912,6 +3912,54 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .capture-btn.bad:active { background: rgba(240, 112, 112, 0.15); }
 .capture-btn:disabled { opacity: 0.5; }
 
+/* Control diario del SIG: listado de cargues y descarga del registro */
+.cd-overlay {
+  position: fixed; inset: 0; z-index: 1000; padding: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 10, 20, 0.85); backdrop-filter: blur(4px);
+}
+.cd-modal {
+  width: 100%; max-width: 780px; max-height: 88vh; overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.cd-todo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 10px 12px; margin: 10px 0 4px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2);
+}
+.cd-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.cd-scroll { overflow-x: auto; }
+.cd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cd-table th, .cd-table td {
+  padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.cd-table th { font-size: 11px; text-transform: uppercase; color: var(--text-dim); }
+.cd-table tbody tr:hover { background: var(--bg-2); }
+.cd-fields { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.cd-fields label { display: grid; gap: 3px; }
+.cd-fields span { font-size: 11px; color: var(--muted); }
+.cd-fields input {
+  padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg-0); color: var(--text);
+}
+
+/* Lecturas de pantalla de la ronda (llenan el FORMATO CONTROL DIARIO) */
+.capture-readings { width: 100%; }
+.readings-grid {
+  display: grid; gap: 8px; width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+}
+.reading-field { display: grid; gap: 3px; min-width: 0; }
+.reading-field > span { font-size: 11px; color: var(--muted); line-height: 1.2; }
+.reading-field > input {
+  width: 100%; min-width: 0; padding: 7px 8px; font-size: 15px; text-align: center;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--bg-0);
+  color: var(--text);
+}
+.reading-field > input:focus { outline: none; border-color: var(--accent); }
+.reading-field > input:disabled { opacity: 0.5; }
+
 .alarm-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .alarm-note {
   width: 100%; background: var(--bg-0); color: var(--text);

@@ -180,12 +180,18 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
     }
   }, [orgId, loadAll])
 
+  /**
+   * OT de calibración abierta para la máquina.
+   * `sinceIso` acota la búsqueda al ciclo vigente: una OT emitida en un ciclo
+   * anterior quedó obsoleta y no debe bloquear la ventana del ciclo actual.
+   */
   const openForMachine = useCallback(
-    (machineId) =>
+    (machineId, sinceIso = null) =>
       orders.find(
         (o) =>
           o.machine_id === machineId &&
-          (o.status === 'open' || o.status === 'in_progress')
+          (o.status === 'open' || o.status === 'in_progress') &&
+          (!sinceIso || !o.created_at || new Date(o.created_at) >= new Date(sinceIso))
       ),
     [orders]
   )
@@ -195,25 +201,27 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
    * Queda sin asignar para que la tome cualquier operario / aux. mantenimiento / líder.
    */
   const ensureCalibrationOrder = useCallback(
-    async (machine, reason, extra = '') => {
+    async (machine, reason, extra = '', { cycleStartAt = null } = {}) => {
       if (!orgId || !userId || !machine?.id) return { error: 'Datos incompletos', created: false }
       if (machine.status === 'decommissioned') return { error: null, created: false }
 
-      const existing = openForMachine(machine.id)
+      const existing = openForMachine(machine.id, cycleStartAt)
       if (existing) {
-        // Si ya hay abierta, no duplicar (aunque sea otra razón)
+        // Ya hay una abierta de este mismo ciclo: no duplicar
         return { error: null, created: false, id: existing.id, code: existing.code }
       }
 
       // Doble chequeo en BD (race / otra pestaña)
-      const { data: remote } = await supabase
+      let q = supabase
         .from('work_orders')
         .select('id, code')
         .eq('org_id', orgId)
         .eq('machine_id', machine.id)
         .in('status', ['open', 'in_progress'])
         .or(`source.eq.${CALIB_SOURCE},title.ilike.Calibración%`)
-        .limit(1)
+      // Una OT de un ciclo anterior no bloquea: esa ventana ya venció
+      if (cycleStartAt) q = q.gte('created_at', cycleStartAt)
+      const { data: remote } = await q.limit(1)
       if (remote?.length) {
         return { error: null, created: false, id: remote[0].id, code: remote[0].code }
       }
@@ -304,7 +312,8 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
         const res = await ensureCalibrationOrder(
           machine,
           CALIB_REASON.inc_window,
-          `Lote ${load.lote || '—'} · edad ${win.label}`
+          `Lote ${load.lote || '—'} · edad ${win.label}`,
+          { cycleStartAt: start }
         )
         if (res.created) created++
       }
@@ -366,6 +375,9 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
         (transfers || []).map((t) => String(t.lote || '').trim().toLowerCase()).filter(Boolean)
       )
       const plantsNeeding = new Set()
+      // Inicio del ciclo más reciente que motiva la transferencia: acota la
+      // ventana para que una OT de una transferencia anterior no la bloquee.
+      let cycleStartAt = null
       for (const l of loads || []) {
         const start = l.cycle_start_at || l.loaded_at
         if (!start) continue
@@ -374,6 +386,7 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
         const key = String(l.lote || '').trim().toLowerCase()
         if (key && transferredLotes.has(key)) continue
         if (l.plant_id) plantsNeeding.add(l.plant_id)
+        if (!cycleStartAt || new Date(start) > new Date(cycleStartAt)) cycleStartAt = start
       }
       if (!plantsNeeding.size) return { created: 0 }
 
@@ -388,7 +401,8 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
         const res = await ensureCalibrationOrder(
           machine,
           CALIB_REASON.pre_transfer,
-          'Ventana de transferencia: calibrar nacedora antes de recibir huevo'
+          'Ventana de transferencia: calibrar nacedora antes de recibir huevo',
+          { cycleStartAt }
         )
         if (res.created) created++
       }
@@ -398,6 +412,68 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
       return { created: 0 }
     }
   }, [orgId, userId, machines, ensureCalibrationOrder, loadAll])
+
+  /**
+   * Anula las OT de calibración que quedaron abiertas de ciclos ya superados.
+   * Sin esto una OT vieja bloquea para siempre la ventana de esa máquina: la
+   * comprobación «¿ya hay una abierta?» la encuentra ciclo tras ciclo y nunca
+   * se emite la siguiente.
+   */
+  const expireStaleCalibrationOrders = useCallback(async () => {
+    if (!orgId || !userId) return { expired: 0 }
+    const CICLO_COMPLETO_MS = 21 * 24 * 3_600_000
+    try {
+      const [{ data: abiertas }, { data: loads }] = await Promise.all([
+        supabase
+          .from('work_orders')
+          .select('id, code, machine_id, created_at')
+          .eq('org_id', orgId)
+          .eq('source', CALIB_SOURCE)
+          .in('status', ['open', 'in_progress']),
+        supabase
+          .from('setter_loads')
+          .select('machine_id, cycle_start_at, loaded_at')
+          .eq('org_id', orgId)
+          .order('loaded_at', { ascending: false })
+          .limit(300),
+      ])
+      if (!abiertas?.length) return { expired: 0 }
+
+      const ultimoCiclo = new Map()
+      for (const l of loads || []) {
+        if (!l.machine_id || ultimoCiclo.has(l.machine_id)) continue
+        ultimoCiclo.set(l.machine_id, l.cycle_start_at || l.loaded_at)
+      }
+
+      const vencidas = (abiertas || []).filter((o) => {
+        if (!o.created_at) return false
+        const emitida = new Date(o.created_at).getTime()
+        const ciclo = ultimoCiclo.get(o.machine_id)
+        // Emitida antes del ciclo vigente → pertenece a un ciclo anterior
+        if (ciclo && emitida < new Date(ciclo).getTime()) return true
+        // Sin ciclo posterior, pero más vieja que un ciclo completo
+        return Date.now() - emitida > CICLO_COMPLETO_MS
+      })
+      if (!vencidas.length) return { expired: 0 }
+
+      const { error: err } = await supabase
+        .from('work_orders')
+        .update({
+          status: 'cancelled',
+          resolution:
+            'Ventana de calibración vencida — el ciclo al que correspondía ya terminó. ' +
+            'Anulada automáticamente para liberar la emisión de la siguiente ventana.',
+          completed_at: new Date().toISOString(),
+        })
+        .in('id', vencidas.map((o) => o.id))
+      if (err) return { expired: 0, error: err.message }
+
+      await loadAll()
+      return { expired: vencidas.length, codes: vencidas.map((o) => o.code) }
+    } catch (e) {
+      return { expired: 0, error: e?.message }
+    }
+  }, [orgId, userId, loadAll])
 
   /**
    * Ejecuta calibración de 1 o 2 sensores (T°F / HR%) con 2 fotos.
@@ -697,6 +773,7 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
     ensureIncWindowOrders,
     ensurePreTransferOrders,
     ensureHatcherOrdersForRooms,
+    expireStaleCalibrationOrders,
     submitCalibration,
     getEvidenceUrl,
     parseCalibReason,
@@ -704,6 +781,106 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
     CALIB_REASON,
     CALIB_SCOPE,
   }
+}
+
+/**
+ * Barrido de ventanas de calibración sin montar el panel.
+ *
+ * El panel solo escanea mientras está abierto, y la ventana INC dura 24 h
+ * (36–60 h de ciclo): si nadie lo abre en ese lapso, la ventana se pierde.
+ * Esta función corre desde la app para que el barrido no dependa de que
+ * alguien esté mirando la pantalla.
+ */
+export async function scanCalibrationWindows({ orgId, userId }) {
+  if (!orgId || !userId) return { expired: 0, created: 0 }
+  const CICLO_COMPLETO_MS = 21 * 24 * 3_600_000
+  let expired = 0
+  let created = 0
+  try {
+    const [{ data: machines }, { data: loads }] = await Promise.all([
+      supabase.from('machines').select('id, plant_id, room_id, name, code, type, status'),
+      supabase
+        .from('setter_loads')
+        .select('machine_id, lote, cycle_start_at, loaded_at')
+        .eq('org_id', orgId)
+        .order('loaded_at', { ascending: false })
+        .limit(300),
+    ])
+
+    const ultimoCargue = new Map()
+    for (const l of loads || []) {
+      if (!l.machine_id || ultimoCargue.has(l.machine_id)) continue
+      ultimoCargue.set(l.machine_id, l)
+    }
+
+    // 1 · liberar las ventanas vencidas de ciclos anteriores
+    const { data: abiertas } = await supabase
+      .from('work_orders')
+      .select('id, machine_id, created_at')
+      .eq('org_id', orgId)
+      .eq('source', CALIB_SOURCE)
+      .in('status', ['open', 'in_progress'])
+
+    const vencidas = (abiertas || []).filter((o) => {
+      if (!o.created_at) return false
+      const emitida = new Date(o.created_at).getTime()
+      const cargue = ultimoCargue.get(o.machine_id)
+      const ciclo = cargue?.cycle_start_at || cargue?.loaded_at
+      if (ciclo && emitida < new Date(ciclo).getTime()) return true
+      return Date.now() - emitida > CICLO_COMPLETO_MS
+    })
+    if (vencidas.length) {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({
+          status: 'cancelled',
+          resolution:
+            'Ventana de calibración vencida — el ciclo al que correspondía ya terminó. ' +
+            'Anulada automáticamente para liberar la emisión de la siguiente ventana.',
+          completed_at: new Date().toISOString(),
+        })
+        .in('id', vencidas.map((o) => o.id))
+      if (!error) expired = vencidas.length
+    }
+
+    // 2 · emitir la ventana INC del ciclo vigente
+    const vigentes = new Set(
+      (abiertas || [])
+        .filter((o) => !vencidas.some((v) => v.id === o.id))
+        .map((o) => o.machine_id)
+    )
+    for (const [machineId, load] of ultimoCargue) {
+      const start = load.cycle_start_at || load.loaded_at
+      if (!incCalibrationWindow(start).inWindow) continue
+      if (vigentes.has(machineId)) continue
+      const machine = (machines || []).find((m) => m.id === machineId)
+      if (!machine || !isIncubatorType(machine.type)) continue
+      if (machine.status === 'decommissioned') continue
+
+      const { error } = await supabase.from('work_orders').insert({
+        org_id: orgId,
+        plant_id: machine.plant_id || null,
+        machine_id: machine.id,
+        room_id: machine.room_id || null,
+        location_type: 'plant',
+        title: buildCalibTitle(machine, CALIB_REASON.inc_window),
+        description: buildCalibDescription(
+          machine,
+          CALIB_REASON.inc_window,
+          `Lote ${load.lote || '—'} · edad ${incCalibrationWindow(start).label}`
+        ),
+        type: 'inspection',
+        priority: 'high',
+        source: CALIB_SOURCE,
+        assigned_to: null,
+        created_by: userId,
+      })
+      if (!error) created++
+    }
+  } catch {
+    /* el barrido es best-effort: no debe romper la app */
+  }
+  return { expired, created }
 }
 
 /** API estática para disparar OT desde otros hooks (sin montar el panel). */

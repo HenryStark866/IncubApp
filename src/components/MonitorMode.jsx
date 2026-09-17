@@ -16,6 +16,7 @@ import { useShiftOps } from '../hooks/useShiftOps'
 import { useLoads } from '../hooks/useLoads'
 import { useShiftSchedule } from '../hooks/useShiftSchedule'
 import { exportOperationReport } from '../lib/operationReport'
+import ControlDiarioPanel from './ControlDiarioPanel'
 import { conditionOf } from '../lib/machineCondition'
 
 /**
@@ -87,6 +88,7 @@ export default function MonitorMode({ orgId, userId, role }) {
   const [plantId, setPlantId] = useState(null)
   const [tick, setTick] = useState(0)
   const [exporting, setExporting] = useState(false)
+  const [verControlDiario, setVerControlDiario] = useState(false)
 
   useEffect(() => {
     if (!orgId) return
@@ -212,6 +214,7 @@ export default function MonitorMode({ orgId, userId, role }) {
     }
   }, [assignments, people, mc.checks, loads, transfers, so.activities, machineName])
 
+
   if (!canMonitor) {
     return (
       <div className="card wide">
@@ -253,6 +256,14 @@ export default function MonitorMode({ orgId, userId, role }) {
             title="Descargar Excel con turnos, operarios, rondas, cargues y transferencias"
           >
             {exporting ? '⏳ Generando…' : '📥 Reporte de operación'}
+          </button>
+          <button
+            type="button"
+            className="ghost small"
+            onClick={() => setVerControlDiario(true)}
+            title="Registros FOINC01 / FONAC01 del SIG, uno por cargue, con las rondas ya diligenciadas"
+          >
+            📋 Control diario
           </button>
         </div>
       </div>
@@ -420,6 +431,15 @@ export default function MonitorMode({ orgId, userId, role }) {
             </div>
           ))}
         </div>
+      )}
+
+      {verControlDiario && (
+        <ControlDiarioPanel
+          machines={plantMachines}
+          rooms={rooms}
+          people={people}
+          onClose={() => setVerControlDiario(false)}
+        />
       )}
     </div>
   )

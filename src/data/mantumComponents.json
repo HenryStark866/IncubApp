@@ -1,0 +1,362 @@
+{
+  "INC-001.10": [
+    {
+      "code": "INC-001.10-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.10-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.10 | INCUBADORA 10",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.10-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.10-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.10 | INCUBADORA 10",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.1": [
+    {
+      "code": "INC-001.1-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.1-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.1 | INCUBADORA 1",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.1-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.1-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.1 | INCUBADORA 1",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.11": [
+    {
+      "code": "INC-001.11-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.11-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.11 | INCUBADORA 11",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.11-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.11-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.11 | INCUBADORA 11",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.12": [
+    {
+      "code": "INC-001.12-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.12-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.12 | INCUBADORA 12",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.12-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.12-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.12 | INCUBADORA 12",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.2": [
+    {
+      "code": "INC-001.2-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.2-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.2 | INCUBADORA 2",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.2-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.2-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.2 | INCUBADORA 2",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.3": [
+    {
+      "code": "INC-001.3-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.3-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.3 | INCUBADORA 3",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.3-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.3-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.3 | INCUBADORA 3",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.4": [
+    {
+      "code": "INC-001.4-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.4-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.4 | INCUBADORA 4",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.4-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.4-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.4 | INCUBADORA 4",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.5": [
+    {
+      "code": "INC-001.5-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.5-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.5 | INCUBADORA 5",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.5-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.5-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.5 | INCUBADORA 5",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.6": [
+    {
+      "code": "INC-001.6-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.6-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.6 | INCUBADORA 6",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.6-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.6-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.6 | INCUBADORA 6",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.7": [
+    {
+      "code": "INC-001.7-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.7-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.7 | INCUBADORA 7",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.7-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.7-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.7 | INCUBADORA 7",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.8": [
+    {
+      "code": "INC-001.8-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.8-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.8 | INCUBADORA 8",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.8-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.8-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.8 | INCUBADORA 8",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "INC-001.9": [
+    {
+      "code": "INC-001.9-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "INC-001.9-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.9 | INCUBADORA 9",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "INC-001.9-01-02",
+      "name": "RODAMIENTOS MOTORES",
+      "component_spec": "INC-001.9-01 | Motor - propulsor 2.2kW 1500r/m",
+      "reference": null,
+      "machine_ref": "INC-001.9 | INCUBADORA 9",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-001.1": [
+    {
+      "code": "NAC-001.1-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.1-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.1 | NACEDORA 1",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-001.1-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.1-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.1 | NACEDORA 1",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-001.2": [
+    {
+      "code": "NAC-001.2-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.2-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.2 | NACEDORA 2",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-001.2-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.2-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.2 | NACEDORA 2",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-001.3": [
+    {
+      "code": "NAC-001.3-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.3-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.3 | NACEDORA 3",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-001.3-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-001.3-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-001.3 | NACEDORA 3",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-002.4": [
+    {
+      "code": "NAC-002.4-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.4-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.4 | NACEDORA 4",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-002.4-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.4-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.4 | NACEDORA 4",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-002.5": [
+    {
+      "code": "NAC-002.5-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.5-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.5 | NACEDORA 5",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-002.5-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.5-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.5 | NACEDORA 5",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ],
+  "NAC-002.6": [
+    {
+      "code": "NAC-002.6-01-01",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.6-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.6 | NACEDORA 6",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    },
+    {
+      "code": "NAC-002.6-01-02",
+      "name": "RODAMIENTO",
+      "component_spec": "NAC-002.6-01 | Motor - propulsor 1.1kW 1500r/m",
+      "reference": null,
+      "machine_ref": "NAC-002.6 | NACEDORA 6",
+      "status": "Operativo",
+      "useful_life_pct": 85
+    }
+  ]
+}

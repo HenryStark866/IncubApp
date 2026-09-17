@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMachineCalibration } from '../hooks/useMachineCalibration'
 import { useMachineStateSync } from '../hooks/useMachineStateSync'
+import MachineDossier from './MachineDossier'
 import {
   CALIB_REASON_LABEL,
   CALIB_SCOPE,
@@ -332,12 +333,16 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
+  const [dossierMachineId, setDossierMachineId] = useState(null)
 
   useEffect(() => {
     if (!orgId || !userId) return
-    const scan = () => {
-      api.ensureIncWindowOrders()
-      api.ensurePreTransferOrders()
+    // Orden importante: primero se liberan las ventanas vencidas, porque una OT
+    // vieja abierta impide que se emita la del ciclo en curso.
+    const scan = async () => {
+      await api.expireStaleCalibrationOrders()
+      await api.ensureIncWindowOrders()
+      await api.ensurePreTransferOrders()
     }
     scan()
     const t = setInterval(scan, 5 * 60 * 1000)
@@ -508,6 +513,17 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                   <span className="pill status warn">
                     {o.status === 'in_progress' ? 'En ejecución' : 'Abierta'}
                   </span>
+                  {o.machine_id && (
+                    <button
+                      type="button"
+                      className="chip ghost small"
+                      onClick={() => setDossierMachineId(o.machine_id)}
+                      style={{ fontSize: 10, padding: '2px 6px', color: '#60a5fa', borderColor: '#3b82f6' }}
+                      title="Ver expediente SIG completo del equipo"
+                    >
+                      📋 Expediente SIG
+                    </button>
+                  )}
                   <button type="button" className="primary small" onClick={() => startFromOrder(o)}>
                     Calibrar
                   </button>
@@ -535,6 +551,22 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
               })}
             </select>
           </label>
+
+          {machineId && (
+            <div style={{ marginTop: 6, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span className="hint" style={{ margin: 0 }}>
+                Equipo seleccionado: <strong>{machineOf(machineId)?.name} ({machineOf(machineId)?.code})</strong>
+              </span>
+              <button
+                type="button"
+                className="chip ghost small"
+                onClick={() => setDossierMachineId(machineId)}
+                style={{ fontSize: 11, padding: '2px 8px', color: '#60a5fa', borderColor: '#3b82f6' }}
+              >
+                📋 Ver Expediente SIG & Calibraciones Previas
+              </button>
+            </div>
+          )}
 
           <p className="component-title" style={{ margin: '8px 0 6px' }}>
             ¿Qué sensor(es) va a calibrar?
@@ -760,6 +792,43 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
 
       {tab === 'estado' && api.canManage && (
         <CoordStateTab sync={sync} machines={api.machines} />
+      )}
+
+      {/* Modal / Overlay Expediente SIG de Máquina */}
+      {dossierMachineId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9990,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '24px 16px',
+          }}
+          onClick={() => setDossierMachineId(null)}
+        >
+          <div
+            style={{
+              maxWidth: 1100,
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              borderRadius: 12,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MachineDossier
+              machineId={dossierMachineId}
+              orgId={orgId}
+              canManage={api.canManage}
+              onClose={() => setDossierMachineId(null)}
+              initialTab="fomat08"
+            />
+          </div>
+        </div>
       )}
     </div>
   )

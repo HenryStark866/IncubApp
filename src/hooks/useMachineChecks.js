@@ -16,6 +16,7 @@ import { enqueueCheck, pendingCheckMetas } from '../lib/offlineQueue'
 import { isNetworkError, isOnline, withTimeout } from '../lib/network'
 import { cacheRead, cacheWrite } from '../lib/offlineCache'
 import { compressImage } from '../lib/image'
+import { READING_COLUMNS, readingsPayload } from '../lib/machineReadings'
 
 /**
  * Rondas de supervisión: registro horario por máquina con foto de la interfaz.
@@ -69,6 +70,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
             condition: m.condition || 'normal',
             notes: m.notes || null,
             photo_path: m.storagePath || null,
+            ...readingsPayload(m.readings),
             offline: true,
             has_local_photo: !!m.hasPhoto,
             local_photo_bytes: m.fileSize || 0,
@@ -82,7 +84,10 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
     setLoading(true)
     let q = supabase
       .from('machine_checks')
-      .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
+      .select(
+        'id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, ' +
+          `condition, notes, photo_path, ${READING_COLUMNS.join(', ')}`
+      )
       .eq('org_id', orgId)
       .order('taken_at', { ascending: false })
       .limit(400)
@@ -174,7 +179,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
    * guarda Blob en IndexedDB y sincroniza al recuperar señal.
    */
   const createCheck = useCallback(
-    async ({ plantId, machineId, file, condition, notes }) => {
+    async ({ plantId, machineId, file, condition, notes, readings }) => {
       if (!orgId || !userId) return { error: 'Sesión inválida' }
       if (!file) return { error: 'La foto de la interfaz es obligatoria' }
       setError(null)
@@ -216,6 +221,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
         hourSlot: hour,
         condition: condition || 'normal',
         notes: notes?.trim() || null,
+        readings: readingsPayload(readings),
       }
 
       // 1) Offline real → guardar YA (no colgar esperando Storage)
@@ -263,6 +269,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
             condition: condition || 'normal',
             notes: notes?.trim() || null,
             photo_path: path,
+            ...readingsPayload(readings),
           }),
           15000,
           'registro check'
@@ -294,6 +301,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
                       notes: notes?.trim() || null,
                       photo_path: path,
                       taken_by: userId,
+                      ...readingsPayload(readings),
                     })
                     .eq('id', prev.id)
                   await loadChecks()

@@ -1,0 +1,810 @@
+{
+  "001.1": {
+    "code": "001.1",
+    "nombre": "CONDENSADOR",
+    "archivo": "001.1__condensador.jpg",
+    "url": "/assets/equipos/001.1__condensador.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "001.2": {
+    "code": "001.2",
+    "nombre": "ATOMIZADOR HUMIFICADOR",
+    "archivo": "001.2__atomizador-humificador.jpg",
+    "url": "/assets/equipos/001.2__atomizador-humificador.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "001.4": {
+    "code": "001.4",
+    "nombre": "EVAPORADOR",
+    "archivo": "001.4__evaporador.jpg",
+    "url": "/assets/equipos/001.4__evaporador.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "004.1": {
+    "code": "004.1",
+    "nombre": "BANDA TRANSPORTADORA 1",
+    "archivo": "004.1__banda-transportadora-1.jpg",
+    "url": "/assets/equipos/004.1__banda-transportadora-1.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "004.2": {
+    "code": "004.2",
+    "nombre": "BANDA TRANSPORTADORA 2",
+    "archivo": "004.2__banda-transportadora-2.jpg",
+    "url": "/assets/equipos/004.2__banda-transportadora-2.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "004.3": {
+    "code": "004.3",
+    "nombre": "BANDA TRANSPORTADORA 3",
+    "archivo": "004.3__banda-transportadora-3.jpg",
+    "url": "/assets/equipos/004.3__banda-transportadora-3.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "004.6": {
+    "code": "004.6",
+    "nombre": "CAROS TRASPORTE DE CAJA DE POLLO",
+    "archivo": "004.6__caros-trasporte-de-caja-de-pollo.jpg",
+    "url": "/assets/equipos/004.6__caros-trasporte-de-caja-de-pollo.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.1": {
+    "code": "005.1",
+    "nombre": "COMPRESOR DE TORNILLO 1",
+    "archivo": "005.1__compresor-de-tornillo-1.png",
+    "url": "/assets/equipos/005.1__compresor-de-tornillo-1.png",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.10": {
+    "code": "005.10",
+    "nombre": "TABLERO ELECTRICO 420V",
+    "archivo": "005.10__tablero-electrico-420v.jpg",
+    "url": "/assets/equipos/005.10__tablero-electrico-420v.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.11": {
+    "code": "005.11",
+    "nombre": "UPS 3000 KVA",
+    "archivo": "005.11__ups-3000-kva.jpg",
+    "url": "/assets/equipos/005.11__ups-3000-kva.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.12": {
+    "code": "005.12",
+    "nombre": "AHU MANEJADORA DE AIRE 3 NACEDORA",
+    "archivo": "005.12__ahu-manejadora-de-aire-3-nacedora.jpg",
+    "url": "/assets/equipos/005.12__ahu-manejadora-de-aire-3-nacedora.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.13": {
+    "code": "005.13",
+    "nombre": "AHU MANEJADORA DE AIRE 2 INCUBADORA",
+    "archivo": "005.13__ahu-manejadora-de-aire-2-incubadora.jpg",
+    "url": "/assets/equipos/005.13__ahu-manejadora-de-aire-2-incubadora.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.2": {
+    "code": "005.2",
+    "nombre": "COMPRESOR DE TORNILLO 2",
+    "archivo": "005.2__compresor-de-tornillo-2.png",
+    "url": "/assets/equipos/005.2__compresor-de-tornillo-2.png",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.3": {
+    "code": "005.3",
+    "nombre": "SECADOR DE AIRE ALUD",
+    "archivo": "005.3__secador-de-aire-alud.jpg",
+    "url": "/assets/equipos/005.3__secador-de-aire-alud.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.4": {
+    "code": "005.4",
+    "nombre": "CHILLER",
+    "archivo": "005.4__chiller.png",
+    "url": "/assets/equipos/005.4__chiller.png",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.6": {
+    "code": "005.6",
+    "nombre": "CALENTADOR DE AGUA",
+    "archivo": "005.6__calentador-de-agua.jpg",
+    "url": "/assets/equipos/005.6__calentador-de-agua.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.7": {
+    "code": "005.7",
+    "nombre": "PANEL DE ALARMA",
+    "archivo": "005.7__panel-de-alarma.jpg",
+    "url": "/assets/equipos/005.7__panel-de-alarma.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.8": {
+    "code": "005.8",
+    "nombre": "TABLERO CONTROL SB1",
+    "archivo": "005.8__tablero-control-sb1.jpg",
+    "url": "/assets/equipos/005.8__tablero-control-sb1.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "005.9": {
+    "code": "005.9",
+    "nombre": "TABLERO ELECTRICO 220V",
+    "archivo": "005.9__tablero-electrico-220v.jpg",
+    "url": "/assets/equipos/005.9__tablero-electrico-220v.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "006.2": {
+    "code": "006.2",
+    "nombre": "LOCATIVO EXTERIOR",
+    "archivo": "006.2__locativo-exterior.jpg",
+    "url": "/assets/equipos/006.2__locativo-exterior.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "006.3": {
+    "code": "006.3",
+    "nombre": "LOCATIVO INTERIOR",
+    "archivo": "006.3__locativo-interior.jpg",
+    "url": "/assets/equipos/006.3__locativo-interior.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "006.4": {
+    "code": "006.4",
+    "nombre": "ARCO DE DESINFECCIONES",
+    "archivo": "006.4__arco-de-desinfecciones.jpg",
+    "url": "/assets/equipos/006.4__arco-de-desinfecciones.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "007.1": {
+    "code": "007.1",
+    "nombre": "METROLOGIA",
+    "archivo": "007.1__metrologia.jpg",
+    "url": "/assets/equipos/007.1__metrologia.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "008.1": {
+    "code": "008.1",
+    "nombre": "PLANTA DE EMERGENCIA 380",
+    "archivo": "008.1__planta-de-emergencia-380.jpg",
+    "url": "/assets/equipos/008.1__planta-de-emergencia-380.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "009.1": {
+    "code": "009.1",
+    "nombre": "CHEVROLET WCQ 418",
+    "archivo": "009.1__chevrolet-wcq-418.jpg",
+    "url": "/assets/equipos/009.1__chevrolet-wcq-418.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "009.2": {
+    "code": "009.2",
+    "nombre": "CHEVROLET WCQ 419",
+    "archivo": "009.2__chevrolet-wcq-419.jpg",
+    "url": "/assets/equipos/009.2__chevrolet-wcq-419.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "011.1": {
+    "code": "011.1",
+    "nombre": "AHU MANEJADORA DE AIRE 1 RECEPCION",
+    "archivo": "011.1__ahu-manejadora-de-aire-1-recepcion.jpg",
+    "url": "/assets/equipos/011.1__ahu-manejadora-de-aire-1-recepcion.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "011.2": {
+    "code": "011.2",
+    "nombre": "AHU MANEJADORA DE AIRE 4 SEXADO",
+    "archivo": "011.2__ahu-manejadora-de-aire-4-sexado.jpg",
+    "url": "/assets/equipos/011.2__ahu-manejadora-de-aire-4-sexado.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "011.3": {
+    "code": "011.3",
+    "nombre": "AHU MANEJADORA DE AIRE 5 DESPACHOS",
+    "archivo": "011.3__ahu-manejadora-de-aire-5-despachos.jpg",
+    "url": "/assets/equipos/011.3__ahu-manejadora-de-aire-5-despachos.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "012168": {
+    "code": "012168",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012168__dovac-desvac.jpg",
+    "url": "/assets/equipos/012168__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "012169": {
+    "code": "012169",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012169__dovac-desvac.jpg",
+    "url": "/assets/equipos/012169__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "012173": {
+    "code": "012173",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012173__dovac-desvac.jpg",
+    "url": "/assets/equipos/012173__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "012177": {
+    "code": "012177",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012177__dovac-desvac.jpg",
+    "url": "/assets/equipos/012177__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "012178": {
+    "code": "012178",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012178__dovac-desvac.jpg",
+    "url": "/assets/equipos/012178__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "012179": {
+    "code": "012179",
+    "nombre": "DOVAC DESVAC",
+    "archivo": "012179__dovac-desvac.jpg",
+    "url": "/assets/equipos/012179__dovac-desvac.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "013.1": {
+    "code": "013.1",
+    "nombre": "CHILLER 2",
+    "archivo": "013.1__chiller-2.png",
+    "url": "/assets/equipos/013.1__chiller-2.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "013.2": {
+    "code": "013.2",
+    "nombre": "CHILLER 3",
+    "archivo": "013.2__chiller-3.png",
+    "url": "/assets/equipos/013.2__chiller-3.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "AS-001.1": {
+    "code": "AS-001.1",
+    "nombre": "ESPUMADORA 02",
+    "archivo": "AS-001.1__espumadora-02.jpg",
+    "url": "/assets/equipos/AS-001.1__espumadora-02.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "AS-001.2": {
+    "code": "AS-001.2",
+    "nombre": "ELECTRO BOMBA DE LAVADO",
+    "archivo": "AS-001.2__electro-bomba-de-lavado.jpg",
+    "url": "/assets/equipos/AS-001.2__electro-bomba-de-lavado.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "AS-001.3": {
+    "code": "AS-001.3",
+    "nombre": "ESPUMADORA 01",
+    "archivo": "AS-001.3__espumadora-01.jpg",
+    "url": "/assets/equipos/AS-001.3__espumadora-01.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "CH-001.1": {
+    "code": "CH-001.1",
+    "nombre": "GUADANA",
+    "archivo": "CH-001.1__guadana.jpg",
+    "url": "/assets/equipos/CH-001.1__guadana.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "CH-001.2": {
+    "code": "CH-001.2",
+    "nombre": "FUMIGADORA DE ESPALDA",
+    "archivo": "CH-001.2__fumigadora-de-espalda.jpg",
+    "url": "/assets/equipos/CH-001.2__fumigadora-de-espalda.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "CM001.1": {
+    "code": "CM001.1",
+    "nombre": "CAMARAS DE SEGURIDAD",
+    "archivo": "CM001.1__camaras-de-seguridad.jpg",
+    "url": "/assets/equipos/CM001.1__camaras-de-seguridad.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-001": {
+    "code": "EQ-001",
+    "nombre": "Tanques de agua potable modulo 4",
+    "archivo": "EQ-001__tanques-de-agua-potable-modulo-4.jpg",
+    "url": "/assets/equipos/EQ-001__tanques-de-agua-potable-modulo-4.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "EQ-002": {
+    "code": "EQ-002",
+    "nombre": "CONTADOR",
+    "archivo": "EQ-002__contador.png",
+    "url": "/assets/equipos/EQ-002__contador.png",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-003": {
+    "code": "EQ-003",
+    "nombre": "BOMBA AHU INCUBADORA",
+    "archivo": "EQ-003__bomba-ahu-incubadora.jpg",
+    "url": "/assets/equipos/EQ-003__bomba-ahu-incubadora.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-004": {
+    "code": "EQ-004",
+    "nombre": "BOMBA AHU TUNEL PEQUENO",
+    "archivo": "EQ-004__bomba-ahu-tunel-pequeno.jpg",
+    "url": "/assets/equipos/EQ-004__bomba-ahu-tunel-pequeno.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-005": {
+    "code": "EQ-005",
+    "nombre": "BOMBA AHU DESPACHO POLLITO",
+    "archivo": "EQ-005__bomba-ahu-despacho-pollito.jpg",
+    "url": "/assets/equipos/EQ-005__bomba-ahu-despacho-pollito.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-006": {
+    "code": "EQ-006",
+    "nombre": "BOMBA AHU NACIMIENTO",
+    "archivo": "EQ-006__bomba-ahu-nacimiento.jpg",
+    "url": "/assets/equipos/EQ-006__bomba-ahu-nacimiento.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-007": {
+    "code": "EQ-007",
+    "nombre": "BOMBA AHU RECEPCION",
+    "archivo": "EQ-007__bomba-ahu-recepcion.jpg",
+    "url": "/assets/equipos/EQ-007__bomba-ahu-recepcion.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-008": {
+    "code": "EQ-008",
+    "nombre": "BOMBA 01 INCUBADORA Y NACEDORA",
+    "archivo": "EQ-008__bomba-01-incubadora-y-nacedora.jpg",
+    "url": "/assets/equipos/EQ-008__bomba-01-incubadora-y-nacedora.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-009": {
+    "code": "EQ-009",
+    "nombre": "BOMBA 02 INCUBADORA Y NACEDORA",
+    "archivo": "EQ-009__bomba-02-incubadora-y-nacedora.jpg",
+    "url": "/assets/equipos/EQ-009__bomba-02-incubadora-y-nacedora.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-010": {
+    "code": "EQ-010",
+    "nombre": "BOMBA 01 CHILLER",
+    "archivo": "EQ-010__bomba-01-chiller.jpg",
+    "url": "/assets/equipos/EQ-010__bomba-01-chiller.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-011": {
+    "code": "EQ-011",
+    "nombre": "BOMBA 02 CHILLER",
+    "archivo": "EQ-011__bomba-02-chiller.jpg",
+    "url": "/assets/equipos/EQ-011__bomba-02-chiller.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "EQ-012": {
+    "code": "EQ-012",
+    "nombre": "CLASIFICADORA HUEVO",
+    "archivo": "EQ-012__clasificadora-huevo.jpg",
+    "url": "/assets/equipos/EQ-012__clasificadora-huevo.jpg",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-001.1": {
+    "code": "INC-001.1",
+    "nombre": "INCUBADORA 1",
+    "archivo": "INC-001.1__incubadora-1.jpg",
+    "url": "/assets/equipos/INC-001.1__incubadora-1.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.10": {
+    "code": "INC-001.10",
+    "nombre": "INCUBADORA 10",
+    "archivo": "INC-001.10__incubadora-10.jpg",
+    "url": "/assets/equipos/INC-001.10__incubadora-10.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.11": {
+    "code": "INC-001.11",
+    "nombre": "INCUBADORA 11",
+    "archivo": "INC-001.11__incubadora-11.jpg",
+    "url": "/assets/equipos/INC-001.11__incubadora-11.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.12": {
+    "code": "INC-001.12",
+    "nombre": "INCUBADORA 12",
+    "archivo": "INC-001.12__incubadora-12.jpg",
+    "url": "/assets/equipos/INC-001.12__incubadora-12.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.2": {
+    "code": "INC-001.2",
+    "nombre": "INCUBADORA 2",
+    "archivo": "INC-001.2__incubadora-2.jpg",
+    "url": "/assets/equipos/INC-001.2__incubadora-2.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.3": {
+    "code": "INC-001.3",
+    "nombre": "INCUBADORA 3",
+    "archivo": "INC-001.3__incubadora-3.jpg",
+    "url": "/assets/equipos/INC-001.3__incubadora-3.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.4": {
+    "code": "INC-001.4",
+    "nombre": "INCUBADORA 4",
+    "archivo": "INC-001.4__incubadora-4.jpg",
+    "url": "/assets/equipos/INC-001.4__incubadora-4.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.5": {
+    "code": "INC-001.5",
+    "nombre": "INCUBADORA 5",
+    "archivo": "INC-001.5__incubadora-5.jpg",
+    "url": "/assets/equipos/INC-001.5__incubadora-5.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.6": {
+    "code": "INC-001.6",
+    "nombre": "INCUBADORA 6",
+    "archivo": "INC-001.6__incubadora-6.jpg",
+    "url": "/assets/equipos/INC-001.6__incubadora-6.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.7": {
+    "code": "INC-001.7",
+    "nombre": "INCUBADORA 7",
+    "archivo": "INC-001.7__incubadora-7.jpg",
+    "url": "/assets/equipos/INC-001.7__incubadora-7.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.8": {
+    "code": "INC-001.8",
+    "nombre": "INCUBADORA 8",
+    "archivo": "INC-001.8__incubadora-8.jpg",
+    "url": "/assets/equipos/INC-001.8__incubadora-8.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-001.9": {
+    "code": "INC-001.9",
+    "nombre": "INCUBADORA 9",
+    "archivo": "INC-001.9__incubadora-9.jpg",
+    "url": "/assets/equipos/INC-001.9__incubadora-9.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "INC-002.13": {
+    "code": "INC-002.13",
+    "nombre": "INCUBADORA 13",
+    "archivo": "INC-002.13__incubadora-13.png",
+    "url": "/assets/equipos/INC-002.13__incubadora-13.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.14": {
+    "code": "INC-002.14",
+    "nombre": "INCUBADORA 14",
+    "archivo": "INC-002.14__incubadora-14.png",
+    "url": "/assets/equipos/INC-002.14__incubadora-14.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.15": {
+    "code": "INC-002.15",
+    "nombre": "INCUBADORA 15",
+    "archivo": "INC-002.15__incubadora-15.png",
+    "url": "/assets/equipos/INC-002.15__incubadora-15.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.16": {
+    "code": "INC-002.16",
+    "nombre": "INCUVADORA 16",
+    "archivo": "INC-002.16__incuvadora-16.png",
+    "url": "/assets/equipos/INC-002.16__incuvadora-16.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.17": {
+    "code": "INC-002.17",
+    "nombre": "INCUBADORA 17",
+    "archivo": "INC-002.17__incubadora-17.png",
+    "url": "/assets/equipos/INC-002.17__incubadora-17.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.18": {
+    "code": "INC-002.18",
+    "nombre": "INCUBADORA 18",
+    "archivo": "INC-002.18__incubadora-18.png",
+    "url": "/assets/equipos/INC-002.18__incubadora-18.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.19": {
+    "code": "INC-002.19",
+    "nombre": "INCUBADORA 19",
+    "archivo": "INC-002.19__incubadora-19.png",
+    "url": "/assets/equipos/INC-002.19__incubadora-19.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.20": {
+    "code": "INC-002.20",
+    "nombre": "INCUBADORA 20",
+    "archivo": "INC-002.20__incubadora-20.png",
+    "url": "/assets/equipos/INC-002.20__incubadora-20.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.21": {
+    "code": "INC-002.21",
+    "nombre": "INCUBADORA 21",
+    "archivo": "INC-002.21__incubadora-21.png",
+    "url": "/assets/equipos/INC-002.21__incubadora-21.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.22": {
+    "code": "INC-002.22",
+    "nombre": "INCUBADORA 22",
+    "archivo": "INC-002.22__incubadora-22.png",
+    "url": "/assets/equipos/INC-002.22__incubadora-22.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.23": {
+    "code": "INC-002.23",
+    "nombre": "INCUBADORA 23",
+    "archivo": "INC-002.23__incubadora-23.png",
+    "url": "/assets/equipos/INC-002.23__incubadora-23.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "INC-002.24": {
+    "code": "INC-002.24",
+    "nombre": "INCUBADORA 24",
+    "archivo": "INC-002.24__incubadora-24.png",
+    "url": "/assets/equipos/INC-002.24__incubadora-24.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-001.1": {
+    "code": "NAC-001.1",
+    "nombre": "NACEDORA 1",
+    "archivo": "NAC-001.1__nacedora-1.jpg",
+    "url": "/assets/equipos/NAC-001.1__nacedora-1.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-001.2": {
+    "code": "NAC-001.2",
+    "nombre": "NACEDORA 2",
+    "archivo": "NAC-001.2__nacedora-2.jpg",
+    "url": "/assets/equipos/NAC-001.2__nacedora-2.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-001.3": {
+    "code": "NAC-001.3",
+    "nombre": "NACEDORA 3",
+    "archivo": "NAC-001.3__nacedora-3.jpg",
+    "url": "/assets/equipos/NAC-001.3__nacedora-3.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-002.4": {
+    "code": "NAC-002.4",
+    "nombre": "NACEDORA 4",
+    "archivo": "NAC-002.4__nacedora-4.jpg",
+    "url": "/assets/equipos/NAC-002.4__nacedora-4.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-002.5": {
+    "code": "NAC-002.5",
+    "nombre": "NACEDORA 5",
+    "archivo": "NAC-002.5__nacedora-5.jpg",
+    "url": "/assets/equipos/NAC-002.5__nacedora-5.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-002.6": {
+    "code": "NAC-002.6",
+    "nombre": "NACEDORA 6",
+    "archivo": "NAC-002.6__nacedora-6.jpg",
+    "url": "/assets/equipos/NAC-002.6__nacedora-6.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "NAC-003.1": {
+    "code": "NAC-003.1",
+    "nombre": "NACEDORA 7",
+    "archivo": "NAC-003.1__nacedora-7.png",
+    "url": "/assets/equipos/NAC-003.1__nacedora-7.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-003.2": {
+    "code": "NAC-003.2",
+    "nombre": "NACEDORA 8",
+    "archivo": "NAC-003.2__nacedora-8.png",
+    "url": "/assets/equipos/NAC-003.2__nacedora-8.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-003.3": {
+    "code": "NAC-003.3",
+    "nombre": "NACEDORA 9",
+    "archivo": "NAC-003.3__nacedora-9.png",
+    "url": "/assets/equipos/NAC-003.3__nacedora-9.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-004.1": {
+    "code": "NAC-004.1",
+    "nombre": "NACEDORA 10",
+    "archivo": "NAC-004.1__nacedora-10.png",
+    "url": "/assets/equipos/NAC-004.1__nacedora-10.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-004.2": {
+    "code": "NAC-004.2",
+    "nombre": "NACEDORA 11",
+    "archivo": "NAC-004.2__nacedora-11.png",
+    "url": "/assets/equipos/NAC-004.2__nacedora-11.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "NAC-004.3": {
+    "code": "NAC-004.3",
+    "nombre": "NACEDORA 12",
+    "archivo": "NAC-004.3__nacedora-12.png",
+    "url": "/assets/equipos/NAC-004.3__nacedora-12.png",
+    "tipo_imagen": "HEREDADA (logo/sala) - no es foto del equipo",
+    "es_foto_propia": false
+  },
+  "PTAP-001": {
+    "code": "PTAP-001",
+    "nombre": "PLANTA DE TRATAMIENTO DE AGUA POTABLE",
+    "archivo": "PTAP-001__planta-de-tratamiento-de-agua-potable.jpg",
+    "url": "/assets/equipos/PTAP-001__planta-de-tratamiento-de-agua-potable.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "PTAR-001": {
+    "code": "PTAR-001",
+    "nombre": "PLANTA DE TRATAMIENTO AGUAS RESIDUALES",
+    "archivo": "PTAR-001__planta-de-tratamiento-aguas-residuales.jpg",
+    "url": "/assets/equipos/PTAR-001__planta-de-tratamiento-aguas-residuales.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "TRF-001.1": {
+    "code": "TRF-001.1",
+    "nombre": "TRANSFORMADOR CHILLER",
+    "archivo": "TRF-001.1__transformador-chiller.jpg",
+    "url": "/assets/equipos/TRF-001.1__transformador-chiller.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.1": {
+    "code": "VC-001.1",
+    "nombre": "MAQUINA VACUNADORA 5014",
+    "archivo": "VC-001.1__maquina-vacunadora-5014.jpg",
+    "url": "/assets/equipos/VC-001.1__maquina-vacunadora-5014.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.2": {
+    "code": "VC-001.2",
+    "nombre": "MAQUINA VACUNADORA 5015",
+    "archivo": "VC-001.2__maquina-vacunadora-5015.jpg",
+    "url": "/assets/equipos/VC-001.2__maquina-vacunadora-5015.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.3": {
+    "code": "VC-001.3",
+    "nombre": "MAQUINA VACUNADORA 5016",
+    "archivo": "VC-001.3__maquina-vacunadora-5016.jpg",
+    "url": "/assets/equipos/VC-001.3__maquina-vacunadora-5016.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.4": {
+    "code": "VC-001.4",
+    "nombre": "MAQUINA VACUNADORA 5018",
+    "archivo": "VC-001.4__maquina-vacunadora-5018.jpg",
+    "url": "/assets/equipos/VC-001.4__maquina-vacunadora-5018.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.5": {
+    "code": "VC-001.5",
+    "nombre": "MAQUINA VACUNADORA 5011",
+    "archivo": "VC-001.5__maquina-vacunadora-5011.jpg",
+    "url": "/assets/equipos/VC-001.5__maquina-vacunadora-5011.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.6": {
+    "code": "VC-001.6",
+    "nombre": "MAQUINA VACUNADORA 5013",
+    "archivo": "VC-001.6__maquina-vacunadora-5013.jpg",
+    "url": "/assets/equipos/VC-001.6__maquina-vacunadora-5013.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  },
+  "VC-001.7": {
+    "code": "VC-001.7",
+    "nombre": "SPRA-VAC",
+    "archivo": "VC-001.7__spra-vac.jpg",
+    "url": "/assets/equipos/VC-001.7__spra-vac.jpg",
+    "tipo_imagen": "foto propia del equipo",
+    "es_foto_propia": true
+  }
+}

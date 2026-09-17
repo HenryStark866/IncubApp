@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { flushQueue, pendingCount, enqueueCheck } from '../lib/offlineQueue'
+import { hasAnyReading, readingsPayload } from '../lib/machineReadings'
 
 function notifySyncDone(detail = {}) {
   try {
@@ -128,6 +129,7 @@ export function useOfflineSync() {
             condition,
             notes: meta.notes || null,
             photo_path: path,
+            ...readingsPayload(meta.readings),
           }
           // Evitar duplicado exacto del mismo slot (misma máquina/hora/día)
           if (meta.machineId && meta.shiftDate != null && meta.hourSlot != null) {
@@ -152,6 +154,9 @@ export function useOfflineSync() {
                   patch.condition = condition
                   if (meta.notes != null) patch.notes = meta.notes
                   if (meta.userId) patch.taken_by = meta.userId
+                  if (hasAnyReading(meta.readings)) {
+                    Object.assign(patch, readingsPayload(meta.readings))
+                  }
                   // Si venía como off y ahora es real, anotar
                   if (prevIsOff && !meta.notes) {
                     patch.notes = meta.notes || 'Sincronizado desde ronda offline'
@@ -195,6 +200,7 @@ export function useOfflineSync() {
                   notes: meta.notes || null,
                   photo_path: path || raced[0].photo_path,
                   taken_by: meta.userId || undefined,
+                  ...(hasAnyReading(meta.readings) ? readingsPayload(meta.readings) : {}),
                 })
                 .eq('id', raced[0].id)
             }

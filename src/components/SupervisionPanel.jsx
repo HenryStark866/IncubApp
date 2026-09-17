@@ -21,6 +21,11 @@ import { IncidentReportView, WorkOrdersView, ShiftActivitiesView, MerchandiseVie
 import { conditionOf } from '../lib/machineCondition'
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
+import {
+  READING_COLUMNS,
+  readingFieldsFor,
+  readingsFromCheck,
+} from '../lib/machineReadings'
 
 // Incubadoras (cargue)
 const SETTER_TYPES = ['setter', 'combo']
@@ -140,6 +145,21 @@ function MachineCapture({ machine, mc, onDone }) {
   const [statusMsg, setStatusMsg] = useState(null)
   const openedRef = useRef(false)
 
+  /* ── Lecturas de pantalla del FORMATO CONTROL DIARIO ──────────
+   * Opcionales: la ronda vale con la foto sola. Vienen prellenadas con la última
+   * toma de esa misma máquina para que el turnero solo corrija lo que se movió.
+   */
+  const campos = readingFieldsFor(machine.type)
+  const ultima = useMemo(
+    () =>
+      mc.checks.find(
+        (c) => c.machine_id === machine.id && READING_COLUMNS.some((k) => c[k] != null)
+      ),
+    [mc.checks, machine.id]
+  )
+  const [readings, setReadings] = useState(() => readingsFromCheck(ultima))
+  const setReading = (key, value) => setReadings((prev) => ({ ...prev, [key]: value }))
+
   // Abrir la cámara al montar (reintento corto si el input aún no está listo)
   useEffect(() => {
     const t = setTimeout(() => {
@@ -225,6 +245,7 @@ function MachineCapture({ machine, mc, onDone }) {
         file,
         condition,
         notes,
+        readings,
       })
       if (error) {
         setErr(error)
@@ -282,6 +303,31 @@ function MachineCapture({ machine, mc, onDone }) {
       {preview && !askAlarm && (
         <>
           <img className="capture-preview" src={preview} alt="Vista previa" />
+          {campos.length > 0 && (
+            <div className="capture-readings">
+              <p className="hint" style={{ margin: '6px 0 4px' }}>
+                Lecturas de la pantalla <span style={{ opacity: 0.7 }}>(opcional — llenan el formato de control diario)</span>
+              </p>
+              <div className="readings-grid">
+                {campos.map((c) => (
+                  <label key={c.key} className="reading-field">
+                    <span>
+                      {c.label}
+                      {c.unidad ? ` (${c.unidad})` : ''}
+                    </span>
+                    <input
+                      type={c.tipo === 'texto' ? 'text' : 'number'}
+                      inputMode={c.tipo === 'entero' ? 'numeric' : c.tipo === 'numero' ? 'decimal' : 'text'}
+                      step={c.paso}
+                      value={readings[c.key] ?? ''}
+                      onChange={(e) => setReading(c.key, e.target.value)}
+                      disabled={busy}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="hint" style={{ margin: '4px 0 0', textAlign: 'center' }}>
             ¿La máquina está bien?
           </p>
@@ -534,6 +580,18 @@ function HistoryView({ mc, machines, team, canDelete }) {
 
   const machineOf = (id) => machines.find((m) => m.id === id)
   const nameOf = (id) => team.find((t) => t.id === id)?.name ?? '—'
+
+  /* Los filtros van al servidor: en memoria solo están las últimas 400 rondas,
+   * así que buscar por una fecha vieja no devolvía nada aunque el registro
+   * existiera. Al limpiar los filtros se vuelve a la vista por defecto. */
+  const { loadChecks } = mc
+  useEffect(() => {
+    loadChecks({
+      machineId: fMachine || undefined,
+      shiftDate: fDate || undefined,
+      shiftNumber: fShift || undefined,
+    })
+  }, [fMachine, fDate, fShift, loadChecks])
 
   const filtered = mc.checks.filter(
     (c) =>

@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLatestReadings } from '../hooks/useLatestReadings'
 import SensorPanel from './SensorPanel'
+import MachineDossier from './MachineDossier'
 import ListControls, { useListControls } from './ListControls'
 
 const MACHINE_TYPES = [
@@ -435,17 +436,32 @@ export default function MachineManager({
       {error && <p className="msg error">{error}</p>}
 
       {selectedMachine && (
-        <MachineDetail
-          key={selectedMachine.id}
-          machine={selectedMachine}
-          rooms={rooms}
-          orgId={orgId}
-          canManage={canManage}
-          latest={latest}
-          machinesApi={{ updateMachine, deleteMachine }}
-          onClose={() => onSelectMachine(null)}
-          isFarm={isFarm}
-        />
+        isFarm ? (
+          <MachineDetail
+            key={selectedMachine.id}
+            machine={selectedMachine}
+            rooms={rooms}
+            orgId={orgId}
+            canManage={canManage}
+            latest={latest}
+            machinesApi={{ updateMachine, deleteMachine }}
+            onClose={() => onSelectMachine(null)}
+            isFarm={isFarm}
+          />
+        ) : (
+          <div style={{ marginBottom: 24 }}>
+            <MachineDossier
+              key={selectedMachine.id}
+              machineId={selectedMachine.id}
+              orgId={orgId}
+              rooms={rooms}
+              canManage={canManage}
+              machinesApi={{ updateMachine, deleteMachine }}
+              latest={latest}
+              onClose={() => onSelectMachine(null)}
+            />
+          </div>
+        )
       )}
 
       {loading ? (
@@ -473,6 +489,11 @@ export default function MachineManager({
                   <div className="admin-row-main" style={{ flex: 1, textAlign: 'left' }}>
                     <strong>
                       {m.name} <span className="machine-code">{m.code}</span>
+                      {!isFarm && (
+                        <span style={{ marginLeft: 8, fontSize: 10, background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                          📋 Expediente SIG
+                        </span>
+                      )}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
                       {isGalpon ? `🏚️ Galpón · ${galponFloor}` : typeLabel(m.type)} · 📍 {roomName(m.room_id)}

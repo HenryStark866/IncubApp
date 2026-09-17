@@ -122,8 +122,11 @@ export default function LoadClassificationWorkspace({
     'auxiliary',
     'auxiliary_production',
   ].includes(role)
+  // Aprueba quien clasifica: el auxiliar de producción arma el mapa y decide si
+  // quedó bien (pedido 2026-09-15). Antes solo aprobaba coordinación, y eso
+  // dejaba el mapa esperando a alguien que no estaba en la sala.
   const canApprove =
-    ['owner', 'admin', 'supervisor'].includes(role) ||
+    ['owner', 'admin', 'supervisor', 'auxiliary_production'].includes(role) ||
     (role === 'coordinator' && true) // coordinador de planta / general
   const canOrder = canApprove
   const isOperator = ['operator', 'auxiliary', 'auxiliary_production', 'reception_operator'].includes(
@@ -277,7 +280,12 @@ export default function LoadClassificationWorkspace({
             setMsg(
               r.error
                 ? { kind: 'error', text: r.error }
-                : { kind: 'ok', text: 'Mapa aprobado. Ya puede enviarse la orden de cargue al operario.' }
+                : {
+                    kind: 'ok',
+                    text: r.asignada
+                      ? `Mapa aprobado y asignado a ${r.asignada}. Ya puede enviarse la orden de cargue al operario.`
+                      : 'Mapa aprobado. Ya puede enviarse la orden de cargue al operario.',
+                  }
             )
           }}
           onReject={async (id) => {

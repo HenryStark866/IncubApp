@@ -782,7 +782,8 @@ export function useLoadClassification(orgId, userId) {
             : 'ORDEN DE CARGUE — ejecutar en turno'
         const body =
           status === 'approved'
-            ? 'El coordinador de planta aprobó el mapa. Generar orden de cargue.'
+            ? `${map?.machineName || 'Petersime'}: mapa aprobado por producción. ` +
+              'Operario de turno: ejecutar el cargue y registrarlo con las dos fotos.'
             : `${map?.machineName || 'Petersime'}: ubicar carros según mapa aprobado.`
         showBrowserNotification({ title, body, tag: `loadmap-${mapId}-${status}` })
         try {
@@ -803,9 +804,80 @@ export function useLoadClassification(orgId, userId) {
     [orgId, userId, maps, localMode, setEntriesStatus]
   )
 
+  /**
+   * Primera máquina libre para recibir un cargue.
+   *
+   * «Libre» lo decide la vista ocupacion_maquinas: sin cargue vigente o con más
+   * de 21 días desde el último, que es cuando el ciclo ya terminó. Se descartan
+   * además las que ya están comprometidas en otro mapa aprobado y sin cargar,
+   * para no mandar dos cargues a la misma incubadora.
+   */
+  const buscarMaquinaLibre = useCallback(
+    async (tipo = 'setter') => {
+      if (!orgId) return null
+      const { data: libres, error: errLibres } = await supabase
+        .from('ocupacion_maquinas')
+        .select('machine_id, code, tipo, ocupacion')
+        .eq('org_id', orgId)
+        .eq('tipo', tipo)
+        .eq('ocupacion', 'libre')
+        .order('code', { ascending: true })
+      if (errLibres || !libres?.length) return null
+
+      const { data: comprometidas } = await supabase
+        .from('load_maps')
+        .select('machine_id')
+        .eq('org_id', orgId)
+        .in('status', ['approved', 'ordered'])
+        .not('machine_id', 'is', null)
+      const ocupadasYa = new Set((comprometidas || []).map((m) => m.machine_id))
+
+      const elegida = libres.find((m) => !ocupadasYa.has(m.machine_id))
+      if (!elegida) return null
+
+      const { data: maq } = await supabase
+        .from('machines')
+        .select('id, code, name, plant_id, room_id')
+        .eq('id', elegida.machine_id)
+        .single()
+      return maq
+        ? { id: maq.id, code: maq.code, name: `${maq.name} (${maq.code})`, plantId: maq.plant_id }
+        : null
+    },
+    [orgId]
+  )
+
+  /**
+   * Aprueba el mapa. Si viene sin máquina —desde septiembre los mapas se
+   * generaban así y el cargue quedaba sin destino registrado— se le asigna la
+   * primera libre antes de aprobarlo.
+   */
   const approveMap = useCallback(
-    (mapId) => updateMapStatus(mapId, 'approved', { approvedAt: new Date().toISOString(), approvedBy: userId }),
-    [updateMapStatus, userId]
+    async (mapId) => {
+      const mapa = maps.find((m) => m.id === mapId)
+      let asignada = null
+      if (mapa && !mapa.machineId) {
+        asignada = await buscarMaquinaLibre('setter')
+        if (asignada) {
+          const { error: errAsig } = await supabase
+            .from('load_maps')
+            .update({ machine_id: asignada.id, machine_name: asignada.name })
+            .eq('id', mapId)
+          if (errAsig) return { error: `No se pudo asignar la incubadora: ${errAsig.message}` }
+          setMaps((list) =>
+            list.map((m) =>
+              m.id === mapId ? { ...m, machineId: asignada.id, machineName: asignada.name } : m
+            )
+          )
+        }
+      }
+      const res = await updateMapStatus(mapId, 'approved', {
+        approvedAt: new Date().toISOString(),
+        approvedBy: userId,
+      })
+      return asignada ? { ...res, asignada: asignada.name } : res
+    },
+    [updateMapStatus, userId, maps, buscarMaquinaLibre]
   )
 
   const rejectMap = useCallback(

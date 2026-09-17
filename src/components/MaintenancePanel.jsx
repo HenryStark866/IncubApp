@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase'
 import { useWorkOrders } from '../hooks/useWorkOrders'
 import { useEvidence, useActivityCatalog } from '../hooks/useEvidence'
 import ListControls, { useListControls } from './ListControls'
+import MachineDossier from './MachineDossier'
 import { compressImage } from '../lib/image'
 import { exportToExcel } from '../lib/exportExcel'
 import {
@@ -481,6 +482,7 @@ export default function MaintenancePanel({ orgId, userId, role }) {
   const [editingId, setEditingId] = useState(null)
   const [evidenceId, setEvidenceId] = useState(null)
   const [report, setReport] = useState(null)
+  const [dossierMachineId, setDossierMachineId] = useState(null)
 
   useEffect(() => {
     if (!orgId) return
@@ -617,22 +619,34 @@ export default function MaintenancePanel({ orgId, userId, role }) {
         </label>
         <div className="two-col">
           <label>
-            Tiempo de parada (minutos)
-            <input type="number" min="0" value={downtime} onChange={(e) => setDowntime(e.target.value)} />
+            Tiempo de parada (minutos) *
+            <input
+              type="number"
+              min="0"
+              required
+              value={downtime}
+              onChange={(e) => setDowntime(e.target.value)}
+              placeholder="0 si el equipo no paró"
+            />
           </label>
           <label>
             Costo (COP, opcional)
             <input type="number" min="0" step="any" value={cost} onChange={(e) => setCost(e.target.value)} />
           </label>
         </div>
+        <p className="hint">
+          * El tiempo de parada es obligatorio: de él salen la disponibilidad, el MTTR y el MTBF.
+          Si el equipo no paró, registre 0.
+        </p>
         <div className="actions row">
           <button
             className="primary small"
-            disabled={busy}
+            disabled={busy || downtime === ''}
             onClick={async () => {
               setBusy(true)
-              await wo.completeOrder(order.id, { resolution, downtimeMinutes: downtime, cost })
-              setCompletingId(null)
+              const res = await wo.completeOrder(order.id, { resolution, downtimeMinutes: downtime, cost })
+              setBusy(false)
+              if (!res?.error) setCompletingId(null)
             }}
           >
             {busy ? 'Cerrando…' : 'Cerrar orden'}
@@ -800,7 +814,20 @@ export default function MaintenancePanel({ orgId, userId, role }) {
                     </div>
                     <div className="wo-meta-item">
                       <span className="wo-meta-k">Lugar</span>
-                      <span className="wo-meta-v">{lugar}</span>
+                      <span className="wo-meta-v" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span>{lugar}</span>
+                        {o.machine_id && (
+                          <button
+                            type="button"
+                            className="chip ghost small"
+                            onClick={() => setDossierMachineId(o.machine_id)}
+                            style={{ fontSize: 10, padding: '1px 6px', color: '#60a5fa', borderColor: '#3b82f6' }}
+                            title="Ver ficha y trazabilidad SIG completa del activo"
+                          >
+                            📋 Expediente SIG
+                          </button>
+                        )}
+                      </span>
                     </div>
                     <div className="wo-meta-item">
                       <span className="wo-meta-k">Asignado</span>
@@ -963,6 +990,43 @@ export default function MaintenancePanel({ orgId, userId, role }) {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Modal / Overlay Expediente SIG de Máquina */}
+      {dossierMachineId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9990,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '24px 16px',
+          }}
+          onClick={() => setDossierMachineId(null)}
+        >
+          <div
+            style={{
+              maxWidth: 1100,
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              borderRadius: 12,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MachineDossier
+              machineId={dossierMachineId}
+              orgId={orgId}
+              canManage={canManage}
+              onClose={() => setDossierMachineId(null)}
+              initialTab="fomat01"
+            />
+          </div>
         </div>
       )}
     </div>

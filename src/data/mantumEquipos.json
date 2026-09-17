@@ -1,0 +1,911 @@
+{
+  "001.1": {
+    "mantum_code": "001.1",
+    "nombre": "CONDENSADOR",
+    "ubicacion_proceso": "CRTF-001 | CUARTO FRIO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "D0757-D158500084700L"
+  },
+  "001.2": {
+    "mantum_code": "001.2",
+    "nombre": "ATOMIZADOR HUMIFICADOR",
+    "ubicacion_proceso": "CRTF-001 | CUARTO FRIO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "1500050"
+  },
+  "001.4": {
+    "mantum_code": "001.4",
+    "nombre": "EVAPORADOR",
+    "ubicacion_proceso": "CRTF-001 | CUARTO FRIO",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "DO757-D15850008471001"
+  },
+  "004.1": {
+    "mantum_code": "004.1",
+    "nombre": "BANDA TRANSPORTADORA 1",
+    "ubicacion_proceso": "004 | CLASIFICACIÓN Y DESPACHO DE POLLO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "004.2": {
+    "mantum_code": "004.2",
+    "nombre": "BANDA TRANSPORTADORA 2",
+    "ubicacion_proceso": "004 | CLASIFICACIÓN Y DESPACHO DE POLLO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "004.3": {
+    "mantum_code": "004.3",
+    "nombre": "BANDA TRANSPORTADORA 3",
+    "ubicacion_proceso": "004 | CLASIFICACIÓN Y DESPACHO DE POLLO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "004.6": {
+    "mantum_code": "004.6",
+    "nombre": "CAROS TRASPORTE DE CAJA DE POLLO",
+    "ubicacion_proceso": "004 | CLASIFICACIÓN Y DESPACHO DE POLLO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "005.1": {
+    "mantum_code": "005.1",
+    "nombre": "COMPRESOR DE TORNILLO 1",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "Y-14080115"
+  },
+  "005.10": {
+    "mantum_code": "005.10",
+    "nombre": "TABLERO ELÉCTRICO 420V",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "5223"
+  },
+  "005.11": {
+    "mantum_code": "005.11",
+    "nombre": "UPS 3000 KVA",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "E1411005790"
+  },
+  "005.12": {
+    "mantum_code": "005.12",
+    "nombre": "AHU MANEJADORA DE AIRE 3 NACEDORA",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "005.13": {
+    "mantum_code": "005.13",
+    "nombre": "AHU MANEJADORA DE AIRE 2 INCUBADORA",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "005.2": {
+    "mantum_code": "005.2",
+    "nombre": "COMPRESOR DE TORNILLO 2",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "Y-14080115"
+  },
+  "005.3": {
+    "mantum_code": "005.3",
+    "nombre": "SECADOR DE AIRE ALUD",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "CAI750810"
+  },
+  "005.4": {
+    "mantum_code": "005.4",
+    "nombre": "CHILLER",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "U15B47592"
+  },
+  "005.6": {
+    "mantum_code": "005.6",
+    "nombre": "CALENTADOR DE AGUA",
+    "ubicacion_proceso": "ST-001 | CALDERA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "FD-209"
+  },
+  "005.7": {
+    "mantum_code": "005.7",
+    "nombre": "PANEL DE ALARMA",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "AL P05-0368"
+  },
+  "005.8": {
+    "mantum_code": "005.8",
+    "nombre": "TABLERO CONTROL SB1",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "005.9": {
+    "mantum_code": "005.9",
+    "nombre": "TABLERO ELÉCTRICO 220V",
+    "ubicacion_proceso": "005 | SALA TECNICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "5222"
+  },
+  "006.2": {
+    "mantum_code": "006.2",
+    "nombre": "LOCATIVO EXTERIOR",
+    "ubicacion_proceso": "006 | LOCATIVO",
+    "criticidad": "Baja",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "006.3": {
+    "mantum_code": "006.3",
+    "nombre": "LOCATIVO INTERIOR",
+    "ubicacion_proceso": "006 | LOCATIVO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "006.4": {
+    "mantum_code": "006.4",
+    "nombre": "ARCO DE DESINFECCIONES",
+    "ubicacion_proceso": "006 | LOCATIVO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "1027884209 | JAIME ALBERTO SERNA RODRIGUEZ",
+    "serial_number": null
+  },
+  "007.1": {
+    "mantum_code": "007.1",
+    "nombre": "METROLOGIA",
+    "ubicacion_proceso": "007 | METROLOGIA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "008.1": {
+    "mantum_code": "008.1",
+    "nombre": "PLANTA DE EMERGENCIA 380",
+    "ubicacion_proceso": "008 | SUB ESTACIÓN ELÉCTRICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "4321AS-140065"
+  },
+  "009.1": {
+    "mantum_code": "009.1",
+    "nombre": "CHEVROLET WCQ 418",
+    "ubicacion_proceso": "009 | TRANSPORTE",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "NQR"
+  },
+  "009.2": {
+    "mantum_code": "009.2",
+    "nombre": "CHEVROLET WCQ 419",
+    "ubicacion_proceso": "009 | TRANSPORTE",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "NPR"
+  },
+  "011.1": {
+    "mantum_code": "011.1",
+    "nombre": "AHU MANEJADORA DE AIRE 1 RECEPCIÓN",
+    "ubicacion_proceso": "011 | SEGUNDO PISO",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "011.2": {
+    "mantum_code": "011.2",
+    "nombre": "AHU MANEJADORA DE AIRE 4 SEXADO",
+    "ubicacion_proceso": "011 | SEGUNDO PISO",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "011.3": {
+    "mantum_code": "011.3",
+    "nombre": "AHU MANEJADORA DE AIRE 5 DESPACHOS",
+    "ubicacion_proceso": "011 | SEGUNDO PISO",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "012168": {
+    "mantum_code": "012168",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "012168"
+  },
+  "012169": {
+    "mantum_code": "012169",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "012169"
+  },
+  "012173": {
+    "mantum_code": "012173",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "012173"
+  },
+  "012177": {
+    "mantum_code": "012177",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "1037648747 | Miguel Castrillón Fernández.",
+    "serial_number": "012177"
+  },
+  "012178": {
+    "mantum_code": "012178",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "012178"
+  },
+  "012179": {
+    "mantum_code": "012179",
+    "nombre": "DOVAC DESVAC",
+    "ubicacion_proceso": "CDP-002 | CLASIFICACIÓN Y VACUNA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "012179"
+  },
+  "013.1": {
+    "mantum_code": "013.1",
+    "nombre": "CHILLER 2",
+    "ubicacion_proceso": "013 | SALA TECNICA 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "013.2": {
+    "mantum_code": "013.2",
+    "nombre": "CHILLER 3",
+    "ubicacion_proceso": "013 | SALA TECNICA 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "AS-001.1": {
+    "mantum_code": "AS-001.1",
+    "nombre": "ESPUMADORA 02",
+    "ubicacion_proceso": "AS-001 | ASEO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "AS-001.2": {
+    "mantum_code": "AS-001.2",
+    "nombre": "ELECTRO BOMBA DE LAVADO",
+    "ubicacion_proceso": "AS-001 | ASEO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "34013J2"
+  },
+  "AS-001.3": {
+    "mantum_code": "AS-001.3",
+    "nombre": "ESPUMADORA 01",
+    "ubicacion_proceso": "AS-001 | ASEO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "CH-001.1": {
+    "mantum_code": "CH-001.1",
+    "nombre": "GUADAÑA",
+    "ubicacion_proceso": "CH-001 | CUARTO HERRAMIENTA",
+    "criticidad": "Baja",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "CH-001.2": {
+    "mantum_code": "CH-001.2",
+    "nombre": "FUMIGADORA DE ESPALDA",
+    "ubicacion_proceso": "CH-001 | CUARTO HERRAMIENTA",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "CM001.1": {
+    "mantum_code": "CM001.1",
+    "nombre": "CÁMARAS DE SEGURIDAD",
+    "ubicacion_proceso": "CM001 | PUESTO DE CONTROL DE CAMARAS",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "EQ-001": {
+    "mantum_code": "EQ-001",
+    "nombre": "Tanques de agua potable modulo 4",
+    "ubicacion_proceso": "INC-GR-001 | GRANJA LA ESPERANZA",
+    "criticidad": "Baja",
+    "estado_mantum": "En Operación",
+    "responsable": "1039596794 | CARLOS MARIO RUIZ ZAPATA",
+    "serial_number": "000000"
+  },
+  "EQ-002": {
+    "mantum_code": "EQ-002",
+    "nombre": "CONTADOR",
+    "ubicacion_proceso": "008 | SUB ESTACIÓN ELÉCTRICA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "EQ-003": {
+    "mantum_code": "EQ-003",
+    "nombre": "BOMBA AHU INCUBADORA",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "DE 6204-2Z.C3"
+  },
+  "EQ-004": {
+    "mantum_code": "EQ-004",
+    "nombre": "BOMBA AHU TÚNEL PEQUEÑO",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-005": {
+    "mantum_code": "EQ-005",
+    "nombre": "BOMBA AHU DESPACHO POLLITO",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-006": {
+    "mantum_code": "EQ-006",
+    "nombre": "BOMBA AHU NACIMIENTO",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-007": {
+    "mantum_code": "EQ-007",
+    "nombre": "BOMBA AHU RECEPCIÓN",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-008": {
+    "mantum_code": "EQ-008",
+    "nombre": "BOMBA 01  INCUBADORA Y NACEDORA",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-009": {
+    "mantum_code": "EQ-009",
+    "nombre": "BOMBA 02  INCUBADORA Y NACEDORA",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0001"
+  },
+  "EQ-010": {
+    "mantum_code": "EQ-010",
+    "nombre": "BOMBA 01 CHILLER",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "EQ-011": {
+    "mantum_code": "EQ-011",
+    "nombre": "BOMBA 02 CHILLER",
+    "ubicacion_proceso": "UB-001 | UNIDAD DE BOMBAS",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": null
+  },
+  "EQ-012": {
+    "mantum_code": "EQ-012",
+    "nombre": "CLASIFICADORA HUEVO",
+    "ubicacion_proceso": "CFH-001 | CLASIFICACIÓN DE HUEVO",
+    "criticidad": "Media",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "INC-001.1": {
+    "mantum_code": "INC-001.1",
+    "nombre": "INCUBADORA 1",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.10": {
+    "mantum_code": "INC-001.10",
+    "nombre": "INCUBADORA 10",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.11": {
+    "mantum_code": "INC-001.11",
+    "nombre": "INCUBADORA 11",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.12": {
+    "mantum_code": "INC-001.12",
+    "nombre": "INCUBADORA 12",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.2": {
+    "mantum_code": "INC-001.2",
+    "nombre": "INCUBADORA 2",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.3": {
+    "mantum_code": "INC-001.3",
+    "nombre": "INCUBADORA 3",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "BIOS12SHD-0015-1"
+  },
+  "INC-001.4": {
+    "mantum_code": "INC-001.4",
+    "nombre": "INCUBADORA 4",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.5": {
+    "mantum_code": "INC-001.5",
+    "nombre": "INCUBADORA 5",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.6": {
+    "mantum_code": "INC-001.6",
+    "nombre": "INCUBADORA 6",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1039597268 | Juan Carlos  Taborda Rodriguez",
+    "serial_number": "0015I"
+  },
+  "INC-001.7": {
+    "mantum_code": "INC-001.7",
+    "nombre": "INCUBADORA 7",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.8": {
+    "mantum_code": "INC-001.8",
+    "nombre": "INCUBADORA 8",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-001.9": {
+    "mantum_code": "INC-001.9",
+    "nombre": "INCUBADORA 9",
+    "ubicacion_proceso": "INC-001 | Sala De Incubación 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-002.13": {
+    "mantum_code": "INC-002.13",
+    "nombre": "INCUBADORA 13",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.14": {
+    "mantum_code": "INC-002.14",
+    "nombre": "INCUBADORA 14",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0015I"
+  },
+  "INC-002.15": {
+    "mantum_code": "INC-002.15",
+    "nombre": "INCUBADORA 15",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.16": {
+    "mantum_code": "INC-002.16",
+    "nombre": "INCUVADORA 16",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.17": {
+    "mantum_code": "INC-002.17",
+    "nombre": "INCUBADORA 17",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.18": {
+    "mantum_code": "INC-002.18",
+    "nombre": "INCUBADORA 18",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.19": {
+    "mantum_code": "INC-002.19",
+    "nombre": "INCUBADORA 19",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.20": {
+    "mantum_code": "INC-002.20",
+    "nombre": "INCUBADORA 20",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.21": {
+    "mantum_code": "INC-002.21",
+    "nombre": "INCUBADORA 21",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.22": {
+    "mantum_code": "INC-002.22",
+    "nombre": "INCUBADORA 22",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.23": {
+    "mantum_code": "INC-002.23",
+    "nombre": "INCUBADORA 23",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "INC-002.24": {
+    "mantum_code": "INC-002.24",
+    "nombre": "INCUBADORA 24",
+    "ubicacion_proceso": "INC-002 | Sala de Incubación 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": null
+  },
+  "NAC-001.1": {
+    "mantum_code": "NAC-001.1",
+    "nombre": "NACEDORA 1",
+    "ubicacion_proceso": "NAC-001 | SALON NACEDORAS 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0007-H"
+  },
+  "NAC-001.2": {
+    "mantum_code": "NAC-001.2",
+    "nombre": "NACEDORA 2",
+    "ubicacion_proceso": "NAC-001 | SALON NACEDORAS 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0007-H"
+  },
+  "NAC-001.3": {
+    "mantum_code": "NAC-001.3",
+    "nombre": "NACEDORA 3",
+    "ubicacion_proceso": "NAC-001 | SALON NACEDORAS 1",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "0007-H"
+  },
+  "NAC-002.4": {
+    "mantum_code": "NAC-002.4",
+    "nombre": "NACEDORA 4",
+    "ubicacion_proceso": "NAC-002 | SALON NACEDORAS 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0007-H"
+  },
+  "NAC-002.5": {
+    "mantum_code": "NAC-002.5",
+    "nombre": "NACEDORA 5",
+    "ubicacion_proceso": "NAC-002 | SALON NACEDORAS 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": "0007-H"
+  },
+  "NAC-002.6": {
+    "mantum_code": "NAC-002.6",
+    "nombre": "NACEDORA 6",
+    "ubicacion_proceso": "NAC-002 | SALON NACEDORAS 2",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "1017189866 | Henry Camilo Taborda Galeano",
+    "serial_number": "0007-H"
+  },
+  "NAC-003.1": {
+    "mantum_code": "NAC-003.1",
+    "nombre": "NACEDORA 7",
+    "ubicacion_proceso": "NAC-003 | Sala de Nacedoras 3",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "NAC-003.2": {
+    "mantum_code": "NAC-003.2",
+    "nombre": "NACEDORA 8",
+    "ubicacion_proceso": "NAC-003 | Sala de Nacedoras 3",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "NAC-003.3": {
+    "mantum_code": "NAC-003.3",
+    "nombre": "NACEDORA 9",
+    "ubicacion_proceso": "NAC-003 | Sala de Nacedoras 3",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "NAC-004.1": {
+    "mantum_code": "NAC-004.1",
+    "nombre": "NACEDORA 10",
+    "ubicacion_proceso": "NAC-004 | Sala De Nacedoras 4",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "NAC-004.2": {
+    "mantum_code": "NAC-004.2",
+    "nombre": "NACEDORA 11",
+    "ubicacion_proceso": "NAC-004 | Sala De Nacedoras 4",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "NAC-004.3": {
+    "mantum_code": "NAC-004.3",
+    "nombre": "NACEDORA 12",
+    "ubicacion_proceso": "NAC-004 | Sala De Nacedoras 4",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "PTAP-001": {
+    "mantum_code": "PTAP-001",
+    "nombre": "PLANTA DE TRATAMIENTO DE AGUA POTABLE",
+    "ubicacion_proceso": "PTA-001 | PLANTA DE TRATAMIENTO AGUA POTABLE",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "PTAR-001": {
+    "mantum_code": "PTAR-001",
+    "nombre": "PLANTA DE TRATAMIENTO AGUAS RESIDUALES",
+    "ubicacion_proceso": "PTA-002 | PLANTA DE TRATAMIENTO AGUAS RESIDUALES",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "TRF-001.1": {
+    "mantum_code": "TRF-001.1",
+    "nombre": "TRANSFORMADOR CHILLER",
+    "ubicacion_proceso": "TRF-001 | TRANSFORMADOR",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": "70327487 | Elkin David Cavadia Pinto.",
+    "serial_number": "751903-19"
+  },
+  "VC-001.1": {
+    "mantum_code": "VC-001.1",
+    "nombre": "MAQUINA VACUNADORA 5014",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.2": {
+    "mantum_code": "VC-001.2",
+    "nombre": "MAQUINA VACUNADORA 5015",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.3": {
+    "mantum_code": "VC-001.3",
+    "nombre": "MAQUINA VACUNADORA 5016",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.4": {
+    "mantum_code": "VC-001.4",
+    "nombre": "MAQUINA VACUNADORA 5018",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.5": {
+    "mantum_code": "VC-001.5",
+    "nombre": "MAQUINA VACUNADORA 5011",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.6": {
+    "mantum_code": "VC-001.6",
+    "nombre": "MAQUINA VACUNADORA 5013",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  },
+  "VC-001.7": {
+    "mantum_code": "VC-001.7",
+    "nombre": "SPRA-VAC",
+    "ubicacion_proceso": "VC-001 | VACUNA",
+    "criticidad": "Alta",
+    "estado_mantum": "En Operación",
+    "responsable": null,
+    "serial_number": null
+  }
+}

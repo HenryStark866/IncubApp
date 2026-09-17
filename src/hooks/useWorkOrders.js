@@ -168,16 +168,33 @@ export function useWorkOrders(orgId, userId) {
     [updateOrder]
   )
 
+  /**
+   * El tiempo de parada alimenta MTO-01 (disponibilidad), MTO-06 (MTTR) y
+   * MTO-07 (MTBF): sin él esos tres indicadores no se pueden calcular. Por eso
+   * es obligatorio al cerrar una orden de mantenimiento — si el equipo no paró,
+   * se registra 0, que también es un dato.
+   */
   const completeOrder = useCallback(
-    (orderId, { resolution, downtimeMinutes, cost }) =>
-      updateOrder(orderId, {
+    (orderId, { resolution, downtimeMinutes, cost }) => {
+      const orden = orders.find((o) => o.id === orderId)
+      const exigeParo = !orden || orden.type === 'corrective' || orden.type === 'preventive'
+      const sinParo = downtimeMinutes === '' || downtimeMinutes == null
+      if (exigeParo && sinParo) {
+        const msg =
+          'Registre el tiempo de parada del equipo en minutos (0 si no hubo parada). ' +
+          'Sin este dato no se pueden calcular la disponibilidad, el MTTR ni el MTBF.'
+        setError(msg)
+        return Promise.resolve({ error: msg })
+      }
+      return updateOrder(orderId, {
         status: 'completed',
         completed_at: new Date().toISOString(),
         resolution: resolution?.trim() || null,
-        downtime_minutes: downtimeMinutes === '' || downtimeMinutes == null ? null : Number(downtimeMinutes),
+        downtime_minutes: sinParo ? null : Number(downtimeMinutes),
         cost: cost === '' || cost == null ? null : Number(cost),
-      }),
-    [updateOrder]
+      })
+    },
+    [updateOrder, orders]
   )
 
   const cancelOrder = useCallback(

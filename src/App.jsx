@@ -1133,6 +1133,26 @@ export default function App() {
     })
   }, [session, profileLoading, orgLoading, org?.id, role, area, profile?.platform_role])
 
+  // Barrido de ventanas de calibración. La ventana INC dura 24 h y el panel de
+  // calibración solo escanea mientras está abierto: sin esto, una ventana se
+  // pierde si nadie entra al panel ese día.
+  useEffect(() => {
+    const uid = session?.user?.id
+    if (!uid || !org?.id || profileLoading || orgLoading) return
+    let vivo = true
+    const barrer = async () => {
+      if (!vivo) return
+      const { scanCalibrationWindows } = await import('./hooks/useMachineCalibration')
+      await scanCalibrationWindows({ orgId: org.id, userId: uid })
+    }
+    barrer()
+    const t = setInterval(barrer, 30 * 60 * 1000)
+    return () => {
+      vivo = false
+      clearInterval(t)
+    }
+  }, [session?.user?.id, org?.id, profileLoading, orgLoading])
+
   if (supabaseConfigError) {
     return (
       <main className="shell">
