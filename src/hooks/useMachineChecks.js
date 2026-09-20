@@ -28,6 +28,9 @@ import { READING_COLUMNS, readingsPayload } from '../lib/machineReadings'
  *   org_id/machine_id/shift_date/T{turno}-H{hora}-{timestamp}.jpg
  */
 
+/** Map de etiquetas de turno. Henry Stark Desarrollador */
+export const SHIFT_LABEL = { 1: 'Turno 1 (06:00-14:00)', 2: 'Turno 2 (14:00-22:00)', 3: 'Turno 3 (22:00-06:00)' }
+
 /** Export «shiftOfHour»: API pública de este módulo. Henry Stark Desarrollador */
 export const shiftOfHour = (h) => (h >= 6 && h < 14 ? 1 : h >= 14 && h < 22 ? 2 : 3)
 

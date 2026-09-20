@@ -47,6 +47,7 @@ import {
   PlatformDevTools,
   AccessRegistryPanel,
   TodayBoard,
+  LeaderDashboard,
   LeaderOpsMap,
   AccessVaultPanel,
   SiloReportsPanel,
@@ -640,12 +641,9 @@ function Workspace({
       ) : tab === 'platform-access' && isPlatformAdmin && !previewing ? (
         <AccessRegistryPanel />
       ) : tab === 'hoy' && org && role === 'coordinator' ? (
-        // Líder de área (2026-07-26, pedido de Henry): un solo panel con el
-        // plano de planta como simulación en vivo (salas + máquinas con su
-        // condición real + personal por GPS) y sus módulos de datos como
-        // iconos flotantes — sin las herramientas de turnos/supervisión/
-        // operarios, que él no necesita ejecutar, solo ver el resultado.
-        <LeaderOpsMap
+        // Líder de área: panel de control completo (dashboard KPIs + acceso rápido + mini-mapa + feed)
+        // El LeaderOpsMap queda accesible con los botones de acción del dashboard.
+        <LeaderDashboard
           orgId={org.id}
           userId={session.user.id}
           role={role}
@@ -653,7 +651,26 @@ function Workspace({
           userName={profileApi.profile?.full_name ?? session.user.email}
           orgName={org.name}
           onNavigate={(t) => {
+            if (t === 'mapa-planta' || t === 'mapa-3d') { setTab(t); return }
             if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
+            else setTab('accesos')
+          }}
+          presence={presence}
+          can={can}
+        />
+      ) : (tab === 'mapa-planta' || tab === 'mapa-3d') && org && role === 'coordinator' ? (
+        // Vista de mapa de planta completo (accesible desde el dashboard del líder)
+        <LeaderOpsMap
+          orgId={org.id}
+          userId={session.user.id}
+          role={role}
+          area={area}
+          userName={profileApi.profile?.full_name ?? session.user.email}
+          orgName={org.name}
+          initialVista={tab === 'mapa-3d' ? '3d' : '2d'}
+          onNavigate={(t) => {
+            if (t === 'hoy') { setTab('hoy'); return }
+            if (can(t) || t === 'accesos' || t === 'perfil') setTab(t)
             else setTab('accesos')
           }}
           presence={presence}
@@ -994,7 +1011,7 @@ function Workspace({
 // SECCION: App raíz — ciclo de vida de sesión, perfil, org y splash/login.
 // Decide qué pantalla mostrar antes del Workspace. Henry Stark Desarrollador
 // ---------------------------------------------------------------------------
-export default function App() {
+export default function App({ onBackToLanding }) {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
   const [isRecoveryMode, setIsRecoveryMode] = useState(
@@ -1237,13 +1254,31 @@ export default function App() {
 
   const isPlatformAdmin = profile?.platform_role === 'admin' && profile?.is_approved
 
-  // Solo login de app (sin sitio web de marketing). Tras login, el perfil decide:
-  // admin de plataforma → consola; miembro de org → workspace; sin org → pendiente.
   let content
   if (isRecoveryMode) {
     content = <ResetPasswordForm onCompleted={() => setIsRecoveryMode(false)} />
   } else if (!session) {
-    content = <AuthForm />
+    content = (
+      <>
+        {typeof onBackToLanding === 'function' && (
+          <button
+            type="button"
+            onClick={onBackToLanding}
+            style={{
+              position: 'fixed', top: 18, left: 18, zIndex: 200,
+              background: 'rgba(13,31,60,0.85)', border: '1px solid rgba(53,214,232,0.25)',
+              borderRadius: 10, color: '#e8f0ff', padding: '8px 16px',
+              cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6,
+            }}
+            aria-label="Volver a la página de inicio"
+          >
+            ← Volver
+          </button>
+        )}
+        <AuthForm />
+      </>
+    )
   } else if ((profileLoading || orgLoading) && bootWait) {
     content = (
       <div className="card auth-card pending-card" style={{ maxWidth: 360 }}>

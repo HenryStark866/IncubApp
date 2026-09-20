@@ -158,6 +158,7 @@ function MenuLider({ abierto, onAbrir, secciones }) {
                     title={it.hint}
                     onClick={() => onAbrir(false)}
                   >
+                    {it.icon && <span className="lom-menu-icon" aria-hidden="true">{it.icon}</span>}
                     {it.label}
                   </a>
                 ) : (
@@ -173,6 +174,7 @@ function MenuLider({ abierto, onAbrir, secciones }) {
                       if (!it.mantenerAbierto) onAbrir(false)
                     }}
                   >
+                    {it.icon && <span className="lom-menu-icon" aria-hidden="true">{it.icon}</span>}
                     {it.label}
                   </button>
                 )
@@ -195,6 +197,7 @@ export default function LeaderOpsMap({
   onNavigate,
   presence,
   can,
+  initialVista,
 }) {
   const { plants } = usePlants(orgId)
   const [plantId, setPlantId] = useState(null)
@@ -215,7 +218,7 @@ export default function LeaderOpsMap({
 
   /* ── Vista principal: la planta 3D; el plano 2D en vivo queda en el menú ── */
   const puede3D = canSeePlant3DTour(role)
-  const [vista, setVista] = useState(puede3D ? '3d' : '2d')
+  const [vista, setVista] = useState(initialVista ?? (puede3D ? '3d' : '2d'))
   const [menuAbierto, setMenuAbierto] = useState(false)
   // El recorrido tarda un par de segundos en levantar la planta entera, así que
   // una vez cargado se queda montado y solo se esconde: volver a él es
@@ -448,6 +451,7 @@ export default function LeaderOpsMap({
         puede3D && {
           id: 'v3d',
           label: 'Planta 3D',
+          icon: '🌐',
           hint: 'Recorrido virtual de la planta, en primera persona',
           activo: vista === '3d',
           onClick: () => setVista('3d'),
@@ -455,6 +459,7 @@ export default function LeaderOpsMap({
         {
           id: 'v2d',
           label: 'Plano en vivo',
+          icon: '🗺️',
           hint: 'Plano 2D con las máquinas por su condición real y el personal por GPS',
           activo: vista === '2d',
           onClick: () => setVista('2d'),
@@ -466,6 +471,7 @@ export default function LeaderOpsMap({
       items: tools.map((t) => ({
         id: t.id,
         label: t.label,
+        icon: t.icon || '🔹',
         hint: t.hint || t.label,
         onClick: () => onNavigate?.(t.id),
       })),
@@ -476,6 +482,7 @@ export default function LeaderOpsMap({
         {
           id: 'reporte',
           label: 'Reporte de operación',
+          icon: '📊',
           hint: 'Descargar Excel con turnos, operarios, rondas, cargues y transferencias',
           disabled: exporting,
           onClick: handleExport,
@@ -483,6 +490,7 @@ export default function LeaderOpsMap({
         puede3D && {
           id: 'tour-aparte',
           label: 'Abrir la planta 3D aparte',
+          icon: '↗️',
           hint: 'El recorrido a pantalla completa, en otra pestaña',
           href: PLANT_3D_TOUR_URL,
         },

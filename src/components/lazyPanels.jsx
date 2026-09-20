@@ -47,6 +47,7 @@ export const PlatformDevTools = panelLoader(() => import('./PlatformDevTools'))
 
 // —— Operación diaria ——
 export const TodayBoard = panelLoader(() => import('./TodayBoard'))
+export const LeaderDashboard = panelLoader(() => import('./LeaderDashboard'))
 export const LeaderOpsMap = panelLoader(() => import('./LeaderOpsMap'))
 export const AccessVaultPanel = panelLoader(() => import('./AccessVaultPanel'))
 export const SiloReportsPanel = panelLoader(() => import('./SiloReportsPanel'))
