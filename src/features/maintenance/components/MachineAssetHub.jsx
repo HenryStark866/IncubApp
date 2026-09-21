@@ -54,6 +54,8 @@ const MachineAssetHub = ({ orgId }) => {
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
+  const [allEvidence, setAllEvidence] = useState([]);
+  const [allEvidenceLoading, setAllEvidenceLoading] = useState(false);
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
@@ -121,6 +123,43 @@ const MachineAssetHub = ({ orgId }) => {
   }, [orgId, selectedMachine]);
 
   useEffect(() => { loadDocuments(); }, [loadDocuments]);
+
+  const loadAllEvidence = useCallback(async () => {
+    if (!orgId) return;
+    setAllEvidenceLoading(true);
+    try {
+      const { data: orders, error: ordersError } = await supabase
+        .from('work_orders')
+        .select('id, code, title, machine_id, created_at')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false });
+      if (ordersError) throw ordersError;
+      const orderIds = (orders || []).map((order) => order.id);
+      if (!orderIds.length) { setAllEvidence([]); return; }
+      const { data: evidence, error: evidenceError } = await supabase
+        .from('wo_evidence')
+        .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+        .eq('org_id', orgId)
+        .in('work_order_id', orderIds)
+        .order('created_at', { ascending: false });
+      if (evidenceError) throw evidenceError;
+      const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
+      const resolved = await Promise.all((evidence || []).map(async (file) => {
+        const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
+        const order = orderMap[file.work_order_id] || {};
+        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
+      }));
+      setAllEvidence(resolved);
+      setSelectedDocumentId((current) => current && resolved.some((file) => file.id === current) ? current : resolved[0]?.id || null);
+    } catch (error) {
+      console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
+      setAllEvidence([]);
+    } finally {
+      setAllEvidenceLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => { loadAllEvidence(); }, [loadAllEvidence]);
 
   const loadMachines = useCallback(async () => {
     setLoading(true);
@@ -213,6 +252,7 @@ const MachineAssetHub = ({ orgId }) => {
           <div className="sig-asset-nav" role="tablist" aria-label="Secciones del Centro SIG">
             <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{allEvidence.length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
           {showNewAsset && (
@@ -243,6 +283,11 @@ const MachineAssetHub = ({ orgId }) => {
                 ))}
               </div>
             </>
+          )}
+          {section === 'evidence' && (
+            <div className="sig-evidence-global-list">
+              {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !allEvidence.length ? <p className="sig-empty-tab">No hay evidencias registradas todavía.</p> : allEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
+            </div>
           )}
           {section === 'assets' && <>
             <div className="relative">
@@ -298,7 +343,14 @@ const MachineAssetHub = ({ orgId }) => {
       </div >
 
       <div className="sig-asset-detail">
-        {section === 'documents' ? (
+        {section === 'evidence' ? (
+          <div className="sig-format-detail sig-global-evidence-detail">
+            <span className="sig-detail-kicker">Repositorio general SIG</span>
+            <h1>Evidencias de la organización</h1>
+            <p className="sig-format-description">Todas las fotos y documentos cargados desde órdenes de trabajo, calibraciones y procesos de mantenimiento.</p>
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleDateString('es-CO') : 'Sin fecha'}</small></div><a href={selectedDocument.url || '#'} target="_blank" rel="noopener noreferrer">Abrir archivo</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+          </div>
+        ) : section === 'documents' ? (
           <div className="sig-format-detail">
             <span className="sig-detail-kicker">Documento controlado SIG</span>
             <h1>{selectedFormat.code} · {selectedFormat.name}</h1>
