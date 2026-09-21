@@ -601,13 +601,16 @@
         if (!obj.userData.hologramaMaterial) {
           const transformar = (material) => {
             const holo = material.clone()
-            if (holo.color) holo.color.set(0x35d6e8)
-            if (holo.emissive) holo.emissive.set(0x0b8fa3)
-            if (holo.emissiveIntensity != null) holo.emissiveIntensity = 0.8
-            holo.transparent = true
-            holo.opacity = Math.min(material.opacity == null ? 1 : material.opacity, 0.72)
-            holo.blending = THREE.AdditiveBlending
-            holo.depthWrite = false
+            const opacityBase = material.opacity == null ? 1 : material.opacity
+            // Conserva colores, texturas y transparencias de la maqueta. Solo
+            // refuerza el brillo cian y duplica la visibilidad de lo translúcido.
+            if (holo.emissive) holo.emissive.set(0x168da0)
+            if (holo.emissiveIntensity != null) holo.emissiveIntensity = 0.28
+            holo.transparent = material.transparent || opacityBase < 1
+            holo.opacity = Math.min(1, opacityBase * 2)
+            holo.blending = THREE.NormalBlending
+            holo.depthWrite = !holo.transparent
+            holo.side = THREE.DoubleSide
             return holo
           }
           obj.userData.hologramaMaterial = Array.isArray(obj.material)
