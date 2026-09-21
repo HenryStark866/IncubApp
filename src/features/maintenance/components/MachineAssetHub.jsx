@@ -1,6 +1,9 @@
 ﻿import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
+import { useBatches } from '../../../hooks/useBatches';
+import { useLoads } from '../../../hooks/useLoads';
+import { useWorkOrders } from '../../../hooks/useWorkOrders';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
@@ -92,6 +95,23 @@ export function resolveSelectedEvidence({ section, selectedDocumentId, allEviden
   return source.find((file) => file.id === selectedDocumentId) || source[0] || null;
 }
 
+export function buildLeaderControlSummary({ machines = [], batches = [], orders = [], loads = [], transfers = [], allEvidence = [] }) {
+  const activeOrders = orders.filter((order) => !['completed', 'cancelled'].includes(order.status)).length;
+  const productionLotCount = batches.filter((batch) => batch.status === 'production').length;
+  const levanteLotCount = batches.filter((batch) => batch.status === 'levante').length;
+  const criticalMachines = machines.filter((machine) => String(machine.criticidad || '').toLowerCase() === 'alta').length;
+
+  return [
+    { label: 'Producción', value: String(productionLotCount), meta: `${batches.length || 0} lotes activos`, accent: '#0b1428' },
+    { label: 'Levante', value: String(levanteLotCount), meta: 'etapa en crecimiento', accent: '#0ea5e9' },
+    { label: 'OT activas', value: String(activeOrders), meta: 'mantenimiento', accent: '#f97316' },
+    { label: 'Cargues', value: String(loads.length), meta: 'transferencias y cargas', accent: '#10b981' },
+    { label: 'Mantum / activos', value: String(machines.length), meta: `${criticalMachines} críticos`, accent: '#a855f7' },
+    { label: 'Evidencias', value: String(allEvidence.length), meta: 'fotos y documentos', accent: '#e0740a' },
+    { label: 'Transferencias', value: String(transfers.length), meta: 'movimientos', accent: '#14b8a6' },
+  ];
+}
+
 const MachineAssetHub = ({ orgId }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
@@ -115,6 +135,18 @@ const MachineAssetHub = ({ orgId }) => {
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
   const { dossier: remoteDossier, loading: dossierLoading } = useMachineDossier(remoteMachineId, orgId);
+  const { batches = [] } = useBatches(orgId, orgId || 'leader-area');
+  const { loads = [], transfers = [] } = useLoads(orgId, orgId || 'leader-area');
+  const { orders = [] } = useWorkOrders(orgId, orgId || 'leader-area');
+
+  const operationSummary = useMemo(() => buildLeaderControlSummary({
+    machines,
+    batches,
+    orders,
+    loads,
+    transfers,
+    allEvidence,
+  }), [machines, batches, orders, loads, transfers, allEvidence]);
 
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
@@ -491,6 +523,24 @@ const MachineAssetHub = ({ orgId }) => {
   return (
     <div className="sig-asset-hub">
       <div className="sig-asset-sidebar">
+        <div className="sig-asset-summary-panel" aria-label="Resumen operativo del líder de área">
+          <div className="sig-asset-summary-header">
+            <span aria-hidden="true">📊</span>
+            <div>
+              <strong>Panel de control</strong>
+              <small>Producción · mantenimiento · Mantum</small>
+            </div>
+          </div>
+          <div className="sig-asset-summary-grid">
+            {operationSummary.map((item) => (
+              <div key={item.label} className="sig-asset-summary-card" style={{ '--sig-summary-accent': item.accent }}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+                <small>{item.meta}</small>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="p-4 border-b space-y-3">
           <h2 className="sig-asset-title">
             <span aria-hidden="true">SIG</span> Centro de Activos
@@ -531,7 +581,7 @@ const MachineAssetHub = ({ orgId }) => {
             </>
           )}
           {section === 'evidence' && (
-            <>
+            <div className="sig-asset-section-panel">
               <input
                 className="sig-asset-doc-search"
                 type="search"
@@ -541,9 +591,23 @@ const MachineAssetHub = ({ orgId }) => {
                 aria-label="Buscar evidencias"
               />
               <div className="sig-evidence-global-list">
-                {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !filteredEvidence.length ? <p className="sig-empty-tab">No hay evidencias que coincidan con la búsqueda.</p> : filteredEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small></button>)}
+                {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !filteredEvidence.length ? <p className="sig-empty-tab">No hay evidencias que coincidan con la búsqueda.</p> : filteredEvidence.map((file) => (
+                  <button
+                    type="button"
+                    key={file.id}
+                    className={selectedDocumentId === file.id ? 'is-active' : ''}
+                    onClick={() => {
+                      setSelectedDocumentId(file.id);
+                      setSection('evidence');
+                    }}
+                  >
+                    <strong>{file.formatCode}</strong>
+                    <span>{file.file_name}</span>
+                    <small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small>
+                  </button>
+                ))}
               </div>
-            </>
+            </div>
           )}
           {section === 'assets' && <>
             <div className="relative">

@@ -114,6 +114,77 @@
     font-size: 10px;
 }
 
+.sig-asset-summary-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 14px 0;
+    border-bottom: 1px solid #dce4ee;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.sig-asset-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #0b1428;
+}
+
+.sig-asset-summary-header span {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #0b1428;
+    color: #f8fafc;
+    font-size: 12px;
+}
+
+.sig-asset-summary-header strong {
+    display: block;
+    font-size: 12px;
+}
+
+.sig-asset-summary-header small {
+    color: #66758b;
+    font-size: 10px;
+}
+
+.sig-asset-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.sig-asset-summary-card {
+    display: grid;
+    gap: 3px;
+    padding: 9px 10px;
+    border: 1px solid #dce4ee;
+    border-left: 3px solid var(--sig-summary-accent, #0b1428);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.sig-asset-summary-card span {
+    color: #66758b;
+    font-size: 9px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.sig-asset-summary-card strong {
+    color: #0b1428;
+    font-size: 18px;
+    line-height: 1.1;
+}
+
+.sig-asset-summary-card small {
+    color: #66758b;
+    font-size: 9px;
+}
+
 .sig-asset-title {
     display: flex;
     align-items: center;
@@ -252,11 +323,20 @@
     font-size: clamp(1.35rem, 2vw, 2rem);
 }
 
+.sig-asset-section-panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .sig-asset-doc-search {
     width: 100%;
     margin: 2px 0 8px;
     padding: 8px 10px;
     font-size: 12px;
+    flex: 0 0 auto;
 }
 
 .sig-asset-document-list {
@@ -659,10 +739,25 @@
 .sig-evidence-global-list {
     flex: 1 1 auto;
     min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
     display: grid;
     gap: 6px;
     padding: 6px 10px 14px;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.sig-asset-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    width: auto !important;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    border-color: #dce4ee;
+    background: #ffffff;
+    overflow: hidden;
 }
 
 .sig-evidence-global-list button {
