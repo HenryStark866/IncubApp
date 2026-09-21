@@ -21,6 +21,7 @@ import { useWorkOrders } from '../hooks/useWorkOrders'
 import { conditionOf } from '../lib/machineCondition'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
+import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
 import MachineAssetHub from '../features/maintenance/components/MachineAssetHub'
 
@@ -32,7 +33,7 @@ const EXCLUDED_QUICK = new Set([
 
 /** Ãconos por tipo de evento del feed */
 const FEED_ICONS = {
-  Ronda: '[Ronda]',
+  Ronda: '◉',
   Actividad: '⚡',
   Cargue: '📦',
   Transferencia: '[Transferencia]',
@@ -77,19 +78,40 @@ function QuickCard({ item, onNavigate }) {
   )
 }
 
-function FeedItem({ event, peopleName }) {
-  const who = peopleName?.[event.personId] || 'Alguien'
+function FeedItem({ event, peopleName, getPhotoUrl }) {
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const who = peopleName?.[event.personId] || 'Operario registrado'
   const when = event.when
     ? new Date(event.when).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     : ''
+
+  useEffect(() => {
+    let active = true
+    if (!event.photoPath) {
+      setPhotoUrl(null)
+      return undefined
+    }
+    getPhotoUrl(event.photoPath).then((url) => {
+      if (active) setPhotoUrl(url)
+    })
+    return () => { active = false }
+  }, [event.photoPath, getPhotoUrl])
+
   return (
     <div className={`ldr-feed-item kind-${(event.kind || '').toLowerCase()}`}>
       <span className="ldr-feed-dot" aria-hidden="true">{FEED_ICONS[event.kind] || '•'}</span>
       <div className="ldr-feed-body">
         <span className="ldr-feed-who">{who}</span>
-        <span className="ldr-feed-kind">{event.kind}</span>
+        {event.kind !== 'Ronda' && <span className="ldr-feed-kind">{event.kind}</span>}
+        {event.detail && <span className="ldr-feed-detail" title={event.detail}>{event.detail}</span>}
+        {event.report && <span className="ldr-feed-report" title={event.report}>{event.report}</span>}
         {when && <span className="ldr-feed-when">{when}</span>}
       </div>
+      {event.kind === 'Ronda' && (
+        photoUrl
+          ? <a className="ldr-feed-view" href={photoUrl} target="_blank" rel="noopener noreferrer">VER</a>
+          : <span className="ldr-feed-view is-empty">Sin foto</span>
+      )}
     </div>
   )
 }
@@ -150,6 +172,7 @@ export default function LeaderDashboard({
   people = {},
 }) {
   const [currentTime, setCurrentTime] = useState(nowTime)
+  const [directory, setDirectory] = useState({})
   const currentShift = shiftOfHour(new Date().getHours())
 
   useEffect(() => {
@@ -173,6 +196,24 @@ export default function LeaderDashboard({
   const [sigEvidence, setSigEvidence] = useState([])
   const handleSigEvidenceLoaded = useCallback((items) => setSigEvidence(items), [])
   const dashboardEvidence = sigEvidence.length > 0 ? sigEvidence : evidence
+
+  useEffect(() => {
+    let active = true
+    if (!orgId) return undefined
+    supabase
+      .from('organization_members')
+      .select('user_id, profiles ( full_name, email )')
+      .eq('org_id', orgId)
+      .then(({ data }) => {
+        if (!active) return
+        const names = Object.fromEntries((data || []).map((row) => [
+          row.user_id,
+          row.profiles?.full_name || row.profiles?.email || 'Operario registrado',
+        ]))
+        setDirectory(names)
+      })
+    return () => { active = false }
+  }, [orgId])
 
   const latestByMachine = useMemo(() => {
     const map = new Map()
@@ -217,11 +258,24 @@ export default function LeaderDashboard({
   const recentEvents = useMemo(() => {
     const out = []
     for (const c of mc.checks) {
-      out.push({ kind: 'Ronda', personId: c.taken_by, when: c.taken_at })
+      out.push({
+        kind: 'Ronda',
+        personId: c.taken_by,
+        when: c.taken_at,
+        photoPath: c.photo_path,
+        detail: `Ronda ${c.hour_slot || '—'} · Turno ${c.shift_number || '—'} · ${c.shift_date || 'sin fecha'}`,
+        report: c.notes || 'Sin novedad reportada',
+      })
     }
     for (const a of so.activities) {
       const when = a.completed_at || a.started_at || a.created_at
-      out.push({ kind: 'Actividad', personId: a.assigned_to, when })
+      out.push({
+        kind: 'Actividad',
+        personId: a.assigned_to,
+        when,
+        detail: a.title || a.description || 'Actividad de turno',
+        report: a.result_note || a.completion || a.status || 'Reportada',
+      })
     }
     for (const l of loads) {
       out.push({ kind: 'Cargue', personId: l.created_by, when: l.loaded_at })
@@ -236,10 +290,10 @@ export default function LeaderDashboard({
   }, [mc.checks, so.activities, loads, transfers])
 
   const peopleName = useMemo(() => {
-    const map = {}
+    const map = { ...directory }
     for (const [id, p] of Object.entries(people)) map[id] = p.name || 'Operario'
     return map
-  }, [people])
+  }, [directory, people])
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
@@ -351,7 +405,7 @@ export default function LeaderDashboard({
               <p className="ldr-feed-empty">Sin actividad registrada en este turno aún.</p>
             ) : (
               recentEvents.map((ev, i) => (
-                <FeedItem key={i} event={ev} peopleName={peopleName} />
+                <FeedItem key={i} event={ev} peopleName={peopleName} getPhotoUrl={mc.getPhotoUrl} />
               ))
             )}
           </div>
@@ -368,14 +422,6 @@ export default function LeaderDashboard({
         </div>
       </section>
       <footer className="ldr-actions">
-        <button type="button" className="ldr-action-btn ldr-primary" onClick={() => onNavigate?.('mapa-planta')}>
-          Plano completo
-        </button>
-        {puede3D && (
-          <button type="button" className="ldr-action-btn ldr-secondary" onClick={() => onNavigate?.('mapa-3d')}>
-            Planta 3D
-          </button>
-        )}
         {puede3D && (
           <a className="ldr-action-btn ldr-ghost" href={PLANT_3D_TOUR_URL} target="_blank" rel="noopener noreferrer">
             3D aparte
