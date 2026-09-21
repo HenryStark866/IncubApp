@@ -1162,6 +1162,14 @@ export default function FloorMap({
   /** Set de ids de sala a resaltar (filtros dinÃ¡micos); las demÃ¡s se atenÃºan. null/vacÃ­o = sin resaltar ninguna. */
   highlightRoomIds = null,
 }) {
+  const {
+    loading = false,
+    error = null,
+    createRoom,
+    updateRoom,
+    deleteRoom,
+    moveRoom: moveRoomApi,
+  } = roomsApi || {}
   const allRooms = roomsApi?.rooms ?? []
   // Tanto en planta como en granja, todas las salas y galpones se dibujan y editan en el plano.
   const visibles = allRooms
@@ -1282,7 +1290,7 @@ export default function FloorMap({
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
       e.preventDefault()
       const d = e.shiftKey ? 0.1 : 0.5
-      _moveRoom(
+      moveRoomApi?.(
         selectedRoom.id,
         Math.max(0, round2(Number(selectedRoom.pos_x) + paso[0] * d)),
         Math.max(0, round2(Number(selectedRoom.pos_y) + paso[1] * d))
@@ -1416,7 +1424,7 @@ export default function FloorMap({
   const endDrag = (room) => {
     if (!drag) return
     if (drag.moved) {
-      _moveRoom(room.id, drag.x, drag.y)
+      moveRoomApi?.(room.id, drag.x, drag.y)
     } else {
       setSelectedId(room.id)
     }

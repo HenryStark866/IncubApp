@@ -4,12 +4,12 @@
  * Nunca cachea Supabase (datos en vivo / auth).
  * Henry Stark Desarrollador
  */
-/* v11: la versión sube a propósito para que el activate borre las cachés
+/* v12: la versión sube a propósito para que el activate borre las cachés
    viejas. Hasta v5 cualquier página .html navegada se guardaba TAMBIÉN como
    caparazón de la app, así que quien hubiera entrado a /reparar.html (o al
    recorrido 3D) abría IncubApp sin red y le salía esa página en vez del login.
    Al cambiar de nombre la caché, esos caparazones envenenados se descartan. */
-const CACHE = 'incubapp-shell-v11'
+const CACHE = 'incubapp-shell-v12'
 const PRECACHE = [
   '/',
   '/index.html',
