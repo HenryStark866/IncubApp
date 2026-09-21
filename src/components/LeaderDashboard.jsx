@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import { useMemo, useState, useEffect } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { usePlants } from '../hooks/usePlants'
 import { useRooms } from '../hooks/useRooms'
 import { useMachines } from '../hooks/useMachines'
@@ -97,10 +97,14 @@ function FeedItem({ event, peopleName }) {
 function EvidenceCard({ item, getFileUrl, peopleName }) {
   const [url, setUrl] = useState(null)
   useEffect(() => {
-    if (item.file_path) {
+    if (item.url) {
+      setUrl(item.url)
+    } else if (item.file_path) {
       getFileUrl(item.file_path).then((u) => setUrl(u))
+    } else {
+      setUrl(null)
     }
-  }, [item.file_path, getFileUrl])
+  }, [item.file_path, item.url, getFileUrl])
 
   const uploader = peopleName?.[item.uploaded_by] || 'Operario'
   const dateStr = item.created_at
@@ -166,6 +170,9 @@ export default function LeaderDashboard({
   const { loads, transfers } = useLoads(orgId, userId)
   const { evidence, getFileUrl } = useEvidence(orgId, userId)
   const { orders } = useWorkOrders(orgId, userId)
+  const [sigEvidence, setSigEvidence] = useState([])
+  const handleSigEvidenceLoaded = useCallback((items) => setSigEvidence(items), [])
+  const dashboardEvidence = sigEvidence.length > 0 ? sigEvidence : evidence
 
   const latestByMachine = useMemo(() => {
     const map = new Map()
@@ -264,7 +271,7 @@ export default function LeaderDashboard({
         <KpiCard label="En alerta" value={summary.warning} icon="!" color={CONDITION_COLOR.warning} />
         <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
         <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
-        <KpiCard label="Evidencias SIG" value={evidence.length} icon="SIG" color="#a78bfa" sub="Adjuntos registrados" />
+        <KpiCard label="Evidencias SIG" value={dashboardEvidence.length} icon="SIG" color="#a78bfa" sub="Registros vinculados" />
         <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
       </section>
 
@@ -283,13 +290,13 @@ export default function LeaderDashboard({
       <section className="ldr-evidence-section" aria-label="Evidencias SIG Mantenimiento y Producción">
         <h2 className="ldr-section-title">
           <span aria-hidden="true">📸</span> Evidencias Registradas (SIG Mantenimiento & Producción)
-          <span className="ldr-section-sub">{evidence.length} archivos vinculados</span>
+          <span className="ldr-section-sub">{dashboardEvidence.length} registros vinculados</span>
         </h2>
-        {evidence.length === 0 ? (
+        {dashboardEvidence.length === 0 ? (
           <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.</p>
         ) : (
           <div className="ldr-ev-grid">
-            {evidence.slice(0, 6).map((item) => (
+            {dashboardEvidence.slice(0, 6).map((item) => (
               <EvidenceCard key={item.id} item={item} getFileUrl={getFileUrl} peopleName={peopleName} />
             ))}
           </div>
@@ -357,7 +364,7 @@ export default function LeaderDashboard({
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
         <div className="ldr-assets-frame">
-          <MachineAssetHub orgId={orgId} />
+          <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
         </div>
       </section>
       <footer className="ldr-actions">

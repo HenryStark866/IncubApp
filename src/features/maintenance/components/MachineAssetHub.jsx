@@ -92,7 +92,7 @@ export function resolveSelectedEvidence({ section, selectedDocumentId, allEviden
   return source.find((file) => file.id === selectedDocumentId) || source[0] || null;
 }
 
-const MachineAssetHub = ({ orgId }) => {
+const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
   const [selectedMachineId, setSelectedMachineId] = useState(null);
@@ -380,14 +380,17 @@ const MachineAssetHub = ({ orgId }) => {
         ...mantumHistoricalEvidence(),
       ]);
       setAllEvidence(combined);
+      onEvidenceLoaded?.(combined);
       setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
-      setAllEvidence(sortEvidence([...mantumInventoryEvidence(), ...mantumHistoricalEvidence()]));
+      const fallbackEvidence = sortEvidence([...mantumInventoryEvidence(), ...mantumHistoricalEvidence()]);
+      setAllEvidence(fallbackEvidence);
+      onEvidenceLoaded?.(fallbackEvidence);
     } finally {
       setAllEvidenceLoading(false);
     }
-  }, [orgId]);
+  }, [onEvidenceLoaded, orgId]);
 
   useEffect(() => { loadAllEvidence(); }, [loadAllEvidence]);
 
