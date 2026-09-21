@@ -22,6 +22,7 @@ import { conditionOf } from '../lib/machineCondition'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import FloorMap from './FloorMap'
+import MachineAssetHub from '../features/maintenance/components/MachineAssetHub'
 
 /** Tabs excluidos del acceso rÃ¡pido: el lÃ­der los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
@@ -104,8 +105,8 @@ function EvidenceCard({ item, getFileUrl, peopleName }) {
   const uploader = peopleName?.[item.uploaded_by] || 'Operario'
   const dateStr = item.created_at
     ? new Date(item.created_at).toLocaleDateString('es-CO', {
-        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-      })
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    })
     : ''
 
   return (
@@ -306,9 +307,10 @@ export default function LeaderDashboard({
                 canExpand={false}
                 roomsApi={roomsApi}
                 machines={machines}
-                updateMachine={() => {}}\n                moveRoom={roomsApi.moveRoom}\n                moveRoom={roomsApi.moveRoom}
+                updateMachine={() => { }}
+                moveRoom={roomsApi.moveRoom}
                 selectedMachineId={null}
-                onSelectMachine={() => {}}
+                onSelectMachine={() => { }}
                 livePeople={[]}
                 conditionByMachine={conditionByMachine}
                 highlightRoomIds={null}
@@ -331,7 +333,7 @@ export default function LeaderDashboard({
         </section>
       </div>
 
-     
+
       <section className="ldr-assets-section" style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }} aria-label="Gestión de Activos SIG">
         <h2 className="ldr-section-title" style={{ marginBottom: '1rem' }}>
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
@@ -340,7 +342,7 @@ export default function LeaderDashboard({
           <MachineAssetHub />
         </div>
       </section>
- <footer className="ldr-actions">
+      <footer className="ldr-actions">
         <button type="button" className="ldr-action-btn ldr-primary" onClick={() => onNavigate?.('mapa-planta')}>
           ðŸ—ºï¸ Plano completo
         </button>

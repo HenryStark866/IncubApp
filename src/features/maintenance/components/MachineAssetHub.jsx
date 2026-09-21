@@ -1,9 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { supabase } from '../../core/supabase';
+import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
-import { exportToExcel } from '../../lib/exportExcel';
-import { exportToPDF } from '../../lib/exportDocument';
-import { Loader, FileText, Download, Search, Filter, User, Tool } from 'lucide-react';
+import { exportCorporate } from '../../../lib/exportDocument';
 
 const MachineAssetHub = () => {
   const [machines, setMachines] = useState([]);
@@ -27,8 +25,8 @@ const MachineAssetHub = () => {
 
   const filteredMachines = useMemo(() => {
     return machines.filter(m => {
-      const matchesText = m.name.toLowerCase().includes(filterText.toLowerCase()) || 
-                          m.code.toLowerCase().includes(filterText.toLowerCase());
+      const matchesText = m.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        m.code.toLowerCase().includes(filterText.toLowerCase());
       const matchesGroup = filterGroup === 'all' || m.criticidad === filterGroup;
       return matchesText && matchesGroup;
     });
@@ -36,42 +34,41 @@ const MachineAssetHub = () => {
 
   const handleExport = async (type) => {
     if (!dossier) return;
-    const dataToExport = {
-      summary: dossier.summary,
-      history: dossier.history,
-      calibrations: dossier.calibrations
-    };
-    if (type === 'excel') {
-      await exportToExcel(dataToExport, \Dossier_\.xlsx\);
-    } else {
-      await exportToPDF(dataToExport, \Dossier_\.pdf\);
-    }
+    const sheets = [
+      { name: 'Resumen', rows: [dossier.summary] },
+      { name: 'Historial', rows: dossier.history },
+      { name: 'Calibraciones', rows: dossier.calibrations },
+    ];
+    await exportCorporate(type, 'Dossier_SIG', sheets, {
+      title: 'Dossier SIG de maquina',
+      module: 'Centro de Activos',
+    });
   };
 
-  if (loading) return <div className="flex justify-center p-10"><Loader className="animate-spin" /> Cargando Activos...</div>;
+  if (loading) return <div className="flex justify-center p-10"><span aria-hidden="true">...</span> Cargando Activos...</div>;
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
       <div className="w-1/3 border-r bg-white flex flex-col">
         <div className="p-4 border-b space-y-3">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Tool className="text-blue-600" /> Inventario de Máquinas
+            <span className="text-blue-600" aria-hidden="true">[+]</span> Inventario de Máquinas
           </h2>
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400 size-4" />
-            <input 
-              className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 ring-blue-500" 
-              placeholder="Buscar por código o nombre..." 
+            <span className="absolute left-3 top-2.5 text-slate-400" aria-hidden="true">?</span>
+            <input
+              className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 ring-blue-500"
+              placeholder="Buscar por código o nombre..."
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2">
             {['all', 'Alta', 'Media', 'Baja'].map(group => (
-              <button 
+              <button
                 key={group}
                 onClick={() => setFilterGroup(group)}
-                className={\px-3 py-1 text-xs rounded-full border \\}
+                className="px-3 py-1 text-xs rounded-full border"
               >
                 {group === 'all' ? 'Todos' : group}
               </button>
@@ -81,37 +78,38 @@ const MachineAssetHub = () => {
 
         <div className="flex-1 overflow-y-auto">
           {filteredMachines.map(m => (
-            <div 
+            <div
               key={m.machine_id}
               onClick={() => setSelectedMachineId(m.machine_id)}
-              className={\p-4 border-b cursor-pointer transition-colors \\}
+              className="p-4 border-b cursor-pointer transition-colors"
             >
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-xs font-mono text-slate-500">{m.code}</span>
                   <h3 className="font-semibold">{m.name}</h3>
                 </div>
-                <span className={\	ext-[10px] px-2 py-0.5 rounded-full \\}>
+                <span className="text-[10px] px-2 py-0.5 rounded-full">
                   {m.status}
                 </span>
               </div>
               <div className="mt-2 text-xs text-slate-500 flex gap-3">
-                <span className="flex items-center gap-1"><Tool size={12}/> {m.type}</span>
-                <span className="flex items-center gap-1"><User size={12}/> {m.criticidad}</span>
+                <span className="flex items-center gap-1"><span aria-hidden="true">#</span> {m.type}</span>
+                <span className="flex items-center gap-1"><span aria-hidden="true">*</span> {m.criticidad}</span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          ))
+          }
+        </div >
+      </div >
 
       <div className="flex-1 overflow-y-auto p-8">
         {!selectedMachineId ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
-            <FileText size={48} className="mb-4 opacity-20" />
+            <span className="mb-4 opacity-20" aria-hidden="true">[doc]</span>
             <p>Selecciona una máquina para ver su expediente completo</p>
           </div>
         ) : dossierLoading ? (
-          <div className="h-full flex items-center justify-center"><Loader className="animate-spin" /> Cargando Dossier...</div>
+          <div className="h-full flex items-center justify-center"><span aria-hidden="true">...</span> Cargando Dossier...</div>
         ) : dossier ? (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex justify-between items-start">
@@ -121,10 +119,10 @@ const MachineAssetHub = () => {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleExport('excel')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
-                  <Download size={16} /> Excel
+                  <span aria-hidden="true">↓</span> Excel
                 </button>
                 <button onClick={() => handleExport('pdf')} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">
-                  <Download size={16} /> PDF
+                  <span aria-hidden="true">↓</span> PDF
                 </button>
               </div>
             </div>
@@ -166,7 +164,7 @@ const MachineAssetHub = () => {
                         <td className="py-3 font-medium">{ot.description || 'OT Operativa'}</td>
                         <td className="py-3">{ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
                         <td className="py-3">
-                          <span className={\px-2 py-0.5 rounded-full text-[10px] \\}>
+                          <span className="px-2 py-0.5 rounded-full text-[10px]">
                             {ot.status}
                           </span>
                         </td>
@@ -180,8 +178,8 @@ const MachineAssetHub = () => {
         ) : (
           <div className="h-full flex items-center justify-center text-slate-400">Error al cargar el dossier.</div>
         )}
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
