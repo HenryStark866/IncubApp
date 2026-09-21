@@ -1138,7 +1138,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
   )
 }
 
-export default function FloorMap({
+export default function FloorMap({ moveRoom = () => {},
 
   canManage,
   canExpand = false,
@@ -1151,7 +1151,7 @@ export default function FloorMap({
   selectedMachineId,
   onSelectMachine,
   isFarm = false,
-  /** Personas proyectadas en el plano (metros): { userId, name, roleLabel, isMe, x, y, accuracy , moveRoom = () => {}}) */
+  /** Personas proyectadas en el plano (metros): { userId, name, roleLabel, isMe, x, y, accuracy , moveRoom = () => {, moveRoom = () => {}})}) */
   livePeople = [],
   /** CalibraciÃ³n 2 puntos: clic en el plano para marcar el hito */
   calibrationPickMode = false,
@@ -2136,4 +2136,6 @@ export default function FloorMap({
     </div>
   )
 }
+
+
 
