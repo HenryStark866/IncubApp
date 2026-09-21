@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { enqueueInsert, enqueueUpdate } from '../lib/offlineQueue'
 import { isNetworkError } from '../lib/network'
+import { uniqueChannel } from '../lib/realtimeChannel'
 
 /**
  * Órdenes de trabajo (mantenimiento) de una organización.
@@ -62,14 +63,13 @@ export function useWorkOrders(orgId, userId) {
     if (!orgId) return
     loadAll()
 
-    const channel = supabase
-      .channel(`work_orders:${orgId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'work_orders', filter: `org_id=eq.${orgId}` },
-        () => loadAll()
-      )
-      .subscribe()
+    const channel = supabase.channel(uniqueChannel(`work_orders:${orgId}`))
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'work_orders', filter: `org_id=eq.${orgId}` },
+      () => loadAll()
+    )
+    channel.subscribe()
 
     return () => {
       supabase.removeChannel(channel)
