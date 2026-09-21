@@ -141,8 +141,10 @@
 
 .sig-asset-nav {
     display: grid;
+    flex: 0 0 auto;
     grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
     gap: 6px;
+    min-height: 34px;
     min-width: 0;
     overflow-x: auto;
     scrollbar-width: thin;
