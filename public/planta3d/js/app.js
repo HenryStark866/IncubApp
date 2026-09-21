@@ -45,12 +45,12 @@
 
   // ── Opciones (se declara ya, porque el primer armado del mundo la necesita) ─
   const opciones = {
-    etiquetas: true, equipos: true, techos: true, cotas: true,
+    etiquetas: true, equipos: true, techos: false, cotas: true,
     sombras: true, atravesar: false, volar: false, giro: true, holograma: true, sonido: true,
     sensor: false,
     // 'ambos' arma la planta completa con sus dos niveles, tal como está
     // construida; 1 o 2 aísla ese nivel (ver el toggle #grupoNivel).
-    nivel: 'ambos',
+    nivel: '1',
   }
 
   // ── Mundo ────────────────────────────────────────────────────────────────
@@ -1216,6 +1216,7 @@
   }
 
   ponerVista('orbita', true)
+  cerrarPortada()
   bucle()
   setTimeout(() => $('#cargando').classList.add('oculto'), 350)
 })()
