@@ -306,7 +306,7 @@ export default function LeaderDashboard({
                 canExpand={false}
                 roomsApi={roomsApi}
                 machines={machines}
-                updateMachine={() => {}}
+                updateMachine={() => {}}\n                moveRoom={roomsApi.moveRoom}\n                moveRoom={roomsApi.moveRoom}
                 selectedMachineId={null}
                 onSelectMachine={() => {}}
                 livePeople={[]}
@@ -358,4 +358,6 @@ export default function LeaderDashboard({
     </div>
   )
 }
+
+
 
