@@ -7,6 +7,31 @@
     font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
+.sig-asset-loading {
+    min-height: 260px;
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    color: #66758b;
+    background: #f3f6fa;
+    font-size: 13px;
+}
+
+.sig-asset-spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #dce4ee;
+    border-top-color: #e0740a;
+    border-radius: 50%;
+    animation: sig-spin .8s linear infinite;
+}
+
+@keyframes sig-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .sig-asset-sidebar {
     width: 34%;
     min-width: 290px;
@@ -17,6 +42,96 @@
 .sig-asset-sidebar>div:first-child {
     padding: 18px;
     border-color: #dce4ee;
+}
+
+.sig-asset-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    color: #0b1428;
+    font-size: 1.05rem;
+}
+
+.sig-asset-title span {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #0b1428;
+    color: #f5a24d;
+    font-size: 10px;
+    letter-spacing: .04em;
+}
+
+.sig-asset-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 6px;
+}
+
+.sig-asset-nav button {
+    min-height: 34px;
+    padding: 7px 9px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.sig-asset-nav button.is-active,
+.sig-asset-document-list button.is-active,
+.sig-asset-sidebar .flex.gap-2 button.is-active {
+    border-color: #e0740a;
+    background: #fff4e8;
+    color: #9a4d05;
+}
+
+.sig-asset-nav b {
+    margin-left: 3px;
+    font-size: 10px;
+}
+
+.sig-asset-nav .sig-asset-new {
+    background: #0b1428;
+    border-color: #0b1428;
+    color: #fff;
+}
+
+.sig-asset-notice {
+    padding: 9px 10px;
+    border: 1px solid #f0c58f;
+    border-radius: 8px;
+    background: #fff8ef;
+    color: #85501b;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.sig-asset-notice button {
+    display: block;
+    margin-top: 6px;
+    padding: 3px 7px;
+    font-size: 11px;
+}
+
+.sig-asset-form-actions,
+.sig-format-actions,
+.sig-dossier-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sig-asset-form-actions button,
+.sig-format-actions button {
+    padding: 8px 11px;
+    font-size: 12px;
+}
+
+.sig-asset-primary {
+    background: #0b1428 !important;
+    border-color: #0b1428 !important;
+    color: #fff !important;
 }
 
 .sig-asset-sidebar h2 {
@@ -64,6 +179,201 @@
     font-size: clamp(1.35rem, 2vw, 2rem);
 }
 
+.sig-asset-doc-search {
+    width: 100%;
+    margin: 2px 0 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+.sig-asset-document-list {
+    display: grid;
+    gap: 6px;
+    max-height: 260px;
+    overflow: auto;
+}
+
+.sig-asset-document-list button {
+    display: block;
+    width: 100%;
+    padding: 9px 10px;
+    text-align: left;
+    border-radius: 8px;
+}
+
+.sig-asset-document-list strong {
+    display: block;
+    font-size: 11px;
+}
+
+.sig-asset-document-list span {
+    display: block;
+    margin-top: 2px;
+    color: #66758b;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.sig-asset-document-list button.is-active span {
+    color: #9a4d05;
+}
+
+.sig-format-detail {
+    max-width: 680px;
+    padding: clamp(20px, 4vw, 42px);
+    border: 1px solid #dce4ee;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgb(11 20 40 / 7%);
+}
+
+.sig-detail-kicker {
+    color: #e0740a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.sig-format-detail h1 {
+    margin-top: 9px;
+    line-height: 1.2;
+}
+
+.sig-format-description {
+    margin: 10px 0 20px;
+    color: #66758b;
+    font-size: 13px;
+}
+
+.sig-format-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    margin-bottom: 24px;
+    color: #66758b;
+    font-size: 12px;
+}
+
+.sig-format-meta b {
+    color: #182235;
+}
+
+.sig-dossier {
+    display: grid;
+    gap: 22px;
+    animation: sig-enter .2s ease-out;
+}
+
+@keyframes sig-enter {
+    from {
+        opacity: .2;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.sig-dossier-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.sig-dossier-actions button {
+    padding: 8px 11px;
+    font-size: 12px;
+}
+
+.sig-dossier-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.sig-dossier-kpis>div {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid #dce4ee;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.sig-dossier-kpis p {
+    margin: 5px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.sig-dossier-panel {
+    overflow: hidden;
+    border: 1px solid #dce4ee;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.sig-dossier-tabs {
+    display: flex;
+    overflow-x: auto;
+    border-bottom: 1px solid #dce4ee;
+    background: #f8fafc;
+}
+
+.sig-dossier-tabs button {
+    flex: 0 0 auto;
+    padding: 12px 15px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    font-size: 12px;
+}
+
+.sig-dossier-tabs button.is-active {
+    border-bottom-color: #e0740a;
+    background: #fff;
+    color: #9a4d05;
+}
+
+.sig-dossier-content {
+    padding: 16px;
+}
+
+.sig-table-wrap {
+    overflow-x: auto;
+}
+
+.sig-table-wrap table {
+    width: 100%;
+    min-width: 520px;
+}
+
+.sig-table-wrap th {
+    padding: 8px 6px;
+    color: #66758b;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.sig-table-wrap td {
+    padding: 10px 6px;
+    border-top: 1px solid #edf1f5;
+    color: #35445a;
+    font-size: 12px;
+    vertical-align: top;
+}
+
+.sig-empty-tab {
+    margin: 0;
+    padding: 24px 10px;
+    color: #66758b;
+    font-size: 13px;
+}
+
 .sig-asset-detail table {
     border-collapse: collapse;
 }
@@ -85,5 +395,57 @@
     .sig-asset-detail {
         min-height: 420px;
         padding: 18px;
+    }
+
+    .sig-asset-loading {
+        min-height: 260px;
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        color: #66758b;
+        background: #f3f6fa;
+        font-size: 13px;
+    }
+
+    .sig-asset-document-list {
+        max-height: 220px;
+    }
+
+    .sig-dossier-header {
+        flex-direction: column;
+    }
+
+    .sig-dossier-kpis {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .sig-asset-nav {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .sig-asset-nav .sig-asset-new {
+        grid-column: 1 / -1;
+    }
+
+    .sig-asset-detail {
+        padding: 12px;
+    }
+
+    .sig-dossier-content {
+        padding: 10px;
+    }
+
+    .sig-format-detail {
+        padding: 20px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .sig-asset-spinner,
+    .sig-dossier {
+        animation: none;
     }
 }

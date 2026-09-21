@@ -1,8 +1,8 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS } from '../../../data/mantumCatalog';
+import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, MANTUM_PLANS } from '../../../data/mantumCatalog';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
@@ -22,6 +22,15 @@ function catalogMachines() {
   }));
 }
 
+function mergeMachines(remote, catalog) {
+  const merged = new Map();
+  for (const machine of [...catalog, ...remote]) {
+    const key = String(machine.code || machine.mantum_code || machine.machine_id).trim().toUpperCase();
+    if (!merged.has(key) || machine.source === 'remote') merged.set(key, machine);
+  }
+  return Array.from(merged.values());
+}
+
 function readCustomAssets() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -36,10 +45,14 @@ const MachineAssetHub = () => {
   const [selectedMachineId, setSelectedMachineId] = useState(null);
   const [filterText, setFilterText] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
+  const [detailTab, setDetailTab] = useState('history');
+  const [documentFilter, setDocumentFilter] = useState('');
+  const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
   const [showNewAsset, setShowNewAsset] = useState(false);
   const [newAsset, setNewAsset] = useState({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
@@ -51,24 +64,34 @@ const MachineAssetHub = () => {
       summary: selectedMachine,
       history: MANTUM_HISTORICAL_OTS[selectedMachine.catalogKey] || [],
       calibrations: [],
+      maintenancePlan: MANTUM_PLANS[selectedMachine.catalogKey] || [],
       imageUrl: MANTUM_INVENTORY[selectedMachine.catalogKey]?.url || null,
     };
   }, [selectedMachine]);
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
-  React.useEffect(() => {
-    async function loadMachines() {
+  const loadMachines = useCallback(async () => {
+    setLoadError('');
+    setLoading(true);
+    try {
       const catalog = [...catalogMachines(), ...readCustomAssets()];
       const { data, error } = await supabase
         .from('machine_sig_summary')
         .select('*');
-      const remote = (error ? [] : data || []).map((machine) => ({ ...machine, source: 'remote' }));
-      setMachines([...remote, ...catalog]);
+      if (error) throw error;
+      const remote = (data || []).map((machine) => ({ ...machine, source: 'remote' }));
+      setMachines(mergeMachines(remote, catalog));
+    } catch (error) {
+      setLoadError('No se pudo consultar la vista de activos. Se muestra el catálogo local.');
+      setMachines(mergeMachines([], [...catalogMachines(), ...readCustomAssets()]));
+      console.error('Error cargando el Centro SIG:', error);
+    } finally {
       setLoading(false);
     }
-    loadMachines();
   }, []);
+
+  React.useEffect(() => { loadMachines(); }, [loadMachines]);
 
   const filteredMachines = useMemo(() => {
     return machines.filter(m => {
@@ -78,6 +101,13 @@ const MachineAssetHub = () => {
       return matchesText && matchesGroup;
     });
   }, [machines, filterText, filterGroup]);
+
+  const filteredFormats = useMemo(() => Object.values(SIG_FORMATS).filter((format) => {
+    const query = documentFilter.toLowerCase();
+    return !query || `${format.code} ${format.name} ${format.process}`.toLowerCase().includes(query);
+  }), [documentFilter]);
+
+  const selectedFormat = SIG_FORMATS[selectedFormatCode] || SIG_FORMATS.FOMAT03;
 
   const saveAsset = (event) => {
     event.preventDefault();
@@ -95,6 +125,8 @@ const MachineAssetHub = () => {
     setCustomAssets(next);
     setMachines((current) => [...current, asset]);
     setSelectedMachineId(asset.machine_id);
+    setSection('assets');
+    setDetailTab('history');
     setNewAsset({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
     setShowNewAsset(false);
   };
@@ -112,40 +144,56 @@ const MachineAssetHub = () => {
     });
   };
 
-  if (loading) return <div className="flex justify-center p-10"><span aria-hidden="true">...</span> Cargando Activos...</div>;
+  const handleFormatExport = async (type = 'excel') => {
+    await exportCorporate(type, selectedFormat.code, [{ name: 'Control', rows: [selectedFormat] }], {
+      title: selectedFormat.name,
+      code: selectedFormat.code,
+    });
+  };
+
+  if (loading) return <div className="sig-asset-loading"><span className="sig-asset-spinner" aria-hidden="true" /> Cargando Centro SIG...</div>;
 
   return (
     <div className="sig-asset-hub flex h-screen bg-slate-50 font-sans text-slate-900">
       <div className="sig-asset-sidebar w-1/3 border-r bg-white flex flex-col">
         <div className="p-4 border-b space-y-3">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <span className="text-blue-600" aria-hidden="true">[+]</span> Centro SIG
+          <h2 className="sig-asset-title">
+            <span aria-hidden="true">SIG</span> Centro de Activos
           </h2>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { setSection('assets'); setSelectedMachineId(null); }} className="px-3 py-1 text-xs rounded border">Activos ({machines.length})</button>
-            <button type="button" onClick={() => { setSection('documents'); setSelectedMachineId(null); }} className="px-3 py-1 text-xs rounded border">Formatos ({Object.keys(SIG_FORMATS).length})</button>
-            <button type="button" onClick={() => setShowNewAsset(true)} className="px-3 py-1 text-xs rounded border">Nuevo activo</button>
+          <div className="sig-asset-nav" role="tablist" aria-label="Secciones del Centro SIG">
+            <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
+            <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
+          {loadError && <div className="sig-asset-notice" role="status">{loadError}<button type="button" onClick={loadMachines}>Reintentar</button></div>}
           {showNewAsset && (
             <form onSubmit={saveAsset} className="space-y-2 rounded border p-3 bg-slate-50">
               <input required className="w-full border rounded p-2 text-sm" placeholder="Código SIG / Mantum" value={newAsset.code} onChange={(e) => setNewAsset({ ...newAsset, code: e.target.value })} />
               <input required className="w-full border rounded p-2 text-sm" placeholder="Nombre del activo" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} />
               <div className="flex gap-2">
-                <button type="submit" className="px-3 py-1 text-xs rounded bg-blue-600 text-white">Guardar</button>
-                <button type="button" onClick={() => setShowNewAsset(false)} className="px-3 py-1 text-xs rounded border">Cancelar</button>
+                <select className="w-full border rounded p-2 text-sm" value={newAsset.type} onChange={(e) => setNewAsset({ ...newAsset, type: e.target.value })}>
+                  <option>Equipo de planta</option><option>Incubadora</option><option>Nacedora</option><option>Infraestructura</option>
+                </select>
+                <select className="w-full border rounded p-2 text-sm" value={newAsset.criticidad} onChange={(e) => setNewAsset({ ...newAsset, criticidad: e.target.value })}>
+                  <option>Alta</option><option>Media</option><option>Baja</option>
+                </select>
+                <div className="sig-asset-form-actions"><button type="submit" className="sig-asset-primary">Guardar activo</button><button type="button" onClick={() => setShowNewAsset(false)}>Cancelar</button></div>
               </div>
             </form>
           )}
           {section === 'documents' && (
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {Object.values(SIG_FORMATS).map((format) => (
-                <button key={format.code} type="button" onClick={() => exportCorporate('excel', format.code, [{ name: 'Control', rows: [format] }], { title: format.name, code: format.code })} className="w-full text-left p-3 border rounded hover:bg-slate-50">
-                  <strong className="text-sm">{format.code}</strong>
-                  <span className="block text-xs text-slate-600">{format.name}</span>
-                  <span className="block text-[10px] text-slate-400">Versión {format.version} · {format.process}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <input className="sig-asset-doc-search" placeholder="Buscar formato o proceso..." value={documentFilter} onChange={(e) => setDocumentFilter(e.target.value)} />
+              <div className="sig-asset-document-list">
+                {filteredFormats.map((format) => (
+                  <button key={format.code} type="button" className={selectedFormatCode === format.code ? 'is-active' : ''} onClick={() => setSelectedFormatCode(format.code)}>
+                    <strong className="text-sm">{format.code}</strong>
+                    <span className="block text-xs text-slate-600">{format.name}</span>
+                    <span className="block text-[10px] text-slate-400">Versión {format.version} · {format.process}</span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {section === 'assets' && <>
             <div className="relative">
@@ -161,8 +209,9 @@ const MachineAssetHub = () => {
               {['all', 'Alta', 'Media', 'Baja'].map(group => (
                 <button
                   key={group}
+                  type="button"
                   onClick={() => setFilterGroup(group)}
-                  className="px-3 py-1 text-xs rounded-full border"
+                  className={`px-3 py-1 text-xs rounded-full border${filterGroup === group ? ' is-active' : ''}`}
                 >
                   {group === 'all' ? 'Todos' : group}
                 </button>
@@ -199,7 +248,15 @@ const MachineAssetHub = () => {
       </div >
 
       <div className="sig-asset-detail flex-1 overflow-y-auto p-8">
-        {!selectedMachineId ? (
+        {section === 'documents' ? (
+          <div className="sig-format-detail">
+            <span className="sig-detail-kicker">Documento controlado SIG</span>
+            <h1>{selectedFormat.code} · {selectedFormat.name}</h1>
+            <p className="sig-format-description">{selectedFormat.process}</p>
+            <div className="sig-format-meta"><span>Versión <b>{selectedFormat.version}</b></span><span>Fecha <b>{selectedFormat.date}</b></span></div>
+            <div className="sig-format-actions"><button type="button" className="sig-asset-primary" onClick={() => handleFormatExport('excel')}>Exportar Excel</button><button type="button" onClick={() => handleFormatExport('pdf')}>Exportar PDF</button></div>
+          </div>
+        ) : !selectedMachineId ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
             <span className="mb-4 opacity-20" aria-hidden="true">[doc]</span>
             <p>{section === 'documents' ? 'Selecciona un formato para exportarlo' : 'Selecciona un activo para ver su expediente completo'}</p>
@@ -207,13 +264,13 @@ const MachineAssetHub = () => {
         ) : dossierLoading ? (
           <div className="h-full flex items-center justify-center"><span aria-hidden="true">...</span> Cargando Dossier...</div>
         ) : dossier ? (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex justify-between items-start">
+          <div className="sig-dossier">
+            <div className="sig-dossier-header">
               <div>
                 <h1 className="text-3xl font-bold text-slate-800">{dossier.summary.name}</h1>
-                <p className="text-slate-500">Código SIG: {dossier.summary.code} | Serie: {dossier.summary.serial_number || 'Pendiente de registrar'}</p>
+                <p className="text-slate-500">Código SIG: {dossier.summary.code} · Serie: {dossier.summary.serial_number || 'Pendiente de registrar'}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="sig-dossier-actions">
                 <button onClick={() => handleExport('excel')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
                   <span aria-hidden="true">↓</span> Excel
                 </button>
@@ -222,11 +279,11 @@ const MachineAssetHub = () => {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="sig-dossier-kpis">
               <div className="p-4 bg-white rounded-xl border shadow-sm">
                 <span className="text-xs text-slate-400 uppercase font-bold">Adquisición</span>
                 <p className="text-lg font-medium">{dossier.summary.acquisition_date || 'N/A'}</p>
-                <p className="text-sm text-slate-500">\</p>
+                <p className="text-sm text-slate-500">{dossier.summary.installed_at || 'Fecha no registrada'}</p>
               </div>
               <div className="p-4 bg-white rounded-xl border shadow-sm">
                 <span className="text-xs text-slate-400 uppercase font-bold">Proveedor</span>
@@ -237,37 +294,32 @@ const MachineAssetHub = () => {
                 <p className="text-lg font-medium">{dossier.summary.criticidad}</p>
               </div>
             </div>
-            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-              <div className="border-b bg-slate-50 flex">
-                <button className="px-6 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Historial Operativo</button>
-                <button className="px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700">Calibraciones</button>
-                <button className="px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700">Plan Mantenimiento</button>
+            <div className="sig-dossier-panel">
+              <div className="sig-dossier-tabs" role="tablist">
+                {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}
               </div>
-              <div className="p-6">
-                <table className="w-full text-left text-sm">
-                  <thead className="text-slate-400 border-b">
-                    <tr>
-                      <th className="pb-3 font-medium">Fecha</th>
-                      <th className="pb-3 font-medium">Actividad/OT</th>
-                      <th className="pb-3 font-medium">Técnico</th>
-                      <th className="pb-3 font-medium">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {dossier.history.map((ot, index) => (
-                      <tr key={ot.id || `${ot.code || 'ot'}-${index}`} className="hover:bg-slate-50">
-                        <td className="py-3">{ot.created_at ? new Date(ot.created_at).toLocaleDateString() : 'Histórico Mantum'}</td>
-                        <td className="py-3 font-medium">{ot.description || 'OT Operativa'}</td>
-                        <td className="py-3">{ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
-                        <td className="py-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px]">
-                            {ot.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="sig-dossier-content">
+                {detailTab === 'history' && (
+                  <div className="sig-table-wrap">
+                    <table><thead><tr><th>Fecha</th><th>Actividad/OT</th><th>Técnico</th><th>Estado</th></tr></thead>
+                      <tbody>{dossier.history.map((ot, index) => (
+                        <tr key={ot.id || `${ot.code || 'ot'}-${index}`}>
+                          <td>{ot.created_at ? new Date(ot.created_at).toLocaleDateString('es-CO') : 'Histórico Mantum'}</td>
+                          <td>{ot.description || 'OT Operativa'}</td>
+                          <td>{ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
+                          <td>{ot.status || 'Registrada'}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                    {!dossier.history.length && <p className="sig-empty-tab">No hay órdenes históricas registradas para este activo.</p>}
+                  </div>
+                )}
+                {detailTab === 'calibrations' && (
+                  dossier.calibrations.length ? <div className="sig-table-wrap"><table><thead><tr><th>Fecha</th><th>Alcance</th><th>Resultado</th></tr></thead><tbody>{dossier.calibrations.map((cal, index) => <tr key={cal.id || index}><td>{cal.calibrated_at ? new Date(cal.calibrated_at).toLocaleDateString('es-CO') : 'Sin fecha'}</td><td>{cal.scope || 'Equipo'}</td><td>{cal.result || cal.status || 'Registrada'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay calibraciones registradas para este activo.</p>
+                )}
+                {detailTab === 'plan' && (
+                  dossier.maintenancePlan?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Actividad</th><th>Frecuencia</th><th>Especialidad</th></tr></thead><tbody>{dossier.maintenancePlan.map((task, index) => <tr key={task.plan_code || index}><td>{task.activity || task.title || 'Actividad preventiva'}</td><td>{task.frequency || 'Programada'}</td><td>{task.specialty || 'Mantenimiento'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay tareas de mantenimiento programadas para este activo.</p>
+                )}
               </div>
             </div>
           </div>
