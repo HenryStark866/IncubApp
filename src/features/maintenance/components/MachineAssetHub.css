@@ -1,7 +1,9 @@
 .sig-asset-hub {
-    min-height: 560px;
-    height: 100%;
-    min-height: 0;
+    display: grid !important;
+    grid-template-columns: minmax(280px, 34%) minmax(0, 1fr) !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
     overflow: hidden;
     color: #182235;
     background: #f3f6fa;
@@ -34,8 +36,10 @@
 }
 
 .sig-asset-sidebar {
-    width: 34%;
-    min-width: 290px;
+    display: flex !important;
+    flex-direction: column !important;
+    width: auto !important;
+    min-width: 0;
     border-color: #dce4ee;
     background: #ffffff;
     min-height: 0;
@@ -44,6 +48,66 @@
 .sig-asset-sidebar>div:first-child {
     padding: 18px;
     border-color: #dce4ee;
+}
+
+.sig-asset-list {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 10px 14px;
+}
+
+.sig-asset-row {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 6px;
+    padding: 11px 12px !important;
+    border: 1px solid #dce4ee !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    color: #182235 !important;
+    text-align: left;
+}
+
+.sig-asset-row:hover,
+.sig-asset-row.is-selected {
+    border-color: #e0740a !important;
+    background: #fff8ef !important;
+}
+
+.sig-asset-row-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sig-asset-row h3 {
+    margin: 4px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.sig-asset-code {
+    color: #66758b;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+}
+
+.sig-asset-status {
+    max-width: 115px;
+    overflow: hidden;
+    color: #66758b;
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sig-asset-row-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    color: #66758b;
+    font-size: 10px;
 }
 
 .sig-asset-title {
@@ -170,10 +234,12 @@
 }
 
 .sig-asset-detail {
+    display: block !important;
     min-width: 0;
     min-height: 0;
     padding: 28px;
     background: #f3f6fa;
+    overflow-y: auto !important;
 }
 
 .sig-asset-detail h1 {
@@ -457,7 +523,8 @@
 
 @media (max-width: 860px) {
     .sig-asset-hub {
-        height: 100%;
+        display: flex !important;
+        height: 100% !important;
         min-height: 0;
         flex-direction: column;
         overflow: auto;
@@ -476,6 +543,10 @@
         flex: 1 1 auto;
         padding: 18px;
         overflow-y: auto;
+    }
+
+    .sig-asset-list {
+        max-height: none;
     }
 
     .sig-asset-loading {

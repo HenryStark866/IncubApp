@@ -204,8 +204,8 @@ const MachineAssetHub = ({ orgId }) => {
   if (loading) return <div className="sig-asset-loading"><span className="sig-asset-spinner" aria-hidden="true" /> Cargando Centro SIG...</div>;
 
   return (
-    <div className="sig-asset-hub flex h-screen bg-slate-50 font-sans text-slate-900">
-      <div className="sig-asset-sidebar w-1/3 border-r bg-white flex flex-col">
+    <div className="sig-asset-hub">
+      <div className="sig-asset-sidebar">
         <div className="p-4 border-b space-y-3">
           <h2 className="sig-asset-title">
             <span aria-hidden="true">SIG</span> Centro de Activos
@@ -269,34 +269,35 @@ const MachineAssetHub = ({ orgId }) => {
           </>}
         </div>
 
-        {section === 'assets' && <div className="flex-1 overflow-y-auto">
+        {section === 'assets' && <div className="sig-asset-list">
           {filteredMachines.map(m => (
-            <div
+            <button
+              type="button"
               key={m.machine_id}
-              onClick={() => setSelectedMachineId(m.machine_id)}
-              className="p-4 border-b cursor-pointer transition-colors"
+              onClick={() => { setSelectedMachineId(m.machine_id); setDetailTab('history'); }}
+              className={`sig-asset-row${selectedMachineId === m.machine_id ? ' is-selected' : ''}`}
             >
-              <div className="flex justify-between items-start">
+              <div className="sig-asset-row-top">
                 <div>
-                  <span className="text-xs font-mono text-slate-500">{m.code}</span>
-                  <h3 className="font-semibold">{m.name}</h3>
+                  <span className="sig-asset-code">{m.code}</span>
+                  <h3>{m.name}</h3>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full">
+                <span className="sig-asset-status">
                   {m.status}
                 </span>
               </div>
-              <div className="mt-2 text-xs text-slate-500 flex gap-3">
-                <span className="flex items-center gap-1"><span aria-hidden="true">#</span> {m.type}</span>
-                <span className="flex items-center gap-1"><span aria-hidden="true">*</span> {m.criticidad}</span>
+              <div className="sig-asset-row-meta">
+                <span><span aria-hidden="true">#</span> {m.type}</span>
+                <span><span aria-hidden="true">*</span> {m.criticidad}</span>
               </div>
-            </div>
+            </button>
           ))
           }
           {filteredMachines.length === 0 && <p className="p-4 text-sm text-slate-500">No hay activos que coincidan con el filtro.</p>}
         </div >}
       </div >
 
-      <div className="sig-asset-detail flex-1 overflow-y-auto p-8">
+      <div className="sig-asset-detail">
         {section === 'documents' ? (
           <div className="sig-format-detail">
             <span className="sig-detail-kicker">Documento controlado SIG</span>
