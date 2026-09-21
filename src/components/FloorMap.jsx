@@ -1138,7 +1138,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
   )
 }
 
-export default function FloorMap({ moveRoom = () => {},
+export default function FloorMap({ 
 
   canManage,
   canExpand = false,
@@ -1151,7 +1151,7 @@ export default function FloorMap({ moveRoom = () => {},
   selectedMachineId,
   onSelectMachine,
   isFarm = false,
-  /** Personas proyectadas en el plano (metros): { userId, name, roleLabel, isMe, x, y, accuracy , moveRoom = () => {, moveRoom = () => {}})}) */
+  /** Personas proyectadas en el plano (metros): { userId, name, roleLabel, isMe, x, y, accuracy  = () => {, })}) */
   livePeople = [],
   /** CalibraciÃ³n 2 puntos: clic en el plano para marcar el hito */
   calibrationPickMode = false,
@@ -1282,7 +1282,7 @@ export default function FloorMap({ moveRoom = () => {},
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
       e.preventDefault()
       const d = e.shiftKey ? 0.1 : 0.5
-      moveRoom(
+      _moveRoom(
         selectedRoom.id,
         Math.max(0, round2(Number(selectedRoom.pos_x) + paso[0] * d)),
         Math.max(0, round2(Number(selectedRoom.pos_y) + paso[1] * d))
@@ -1290,7 +1290,7 @@ export default function FloorMap({ moveRoom = () => {},
     }
     window.addEventListener('keydown', onFlecha)
     return () => window.removeEventListener('keydown', onFlecha)
-  }, [canManage, selectedRoom, moveRoom])
+  }, [canManage, selectedRoom])
 
   const startDrag = (e, room) => {
     if (!canManage) return
@@ -1416,7 +1416,7 @@ export default function FloorMap({ moveRoom = () => {},
   const endDrag = (room) => {
     if (!drag) return
     if (drag.moved) {
-      moveRoom(room.id, drag.x, drag.y)
+      _moveRoom(room.id, drag.x, drag.y)
     } else {
       setSelectedId(room.id)
     }
@@ -2136,6 +2136,7 @@ export default function FloorMap({ moveRoom = () => {},
     </div>
   )
 }
+
 
 
 
