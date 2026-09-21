@@ -38,6 +38,30 @@ def normalize_code(c):
         return ''
     return str(c).strip().upper()
 
+def documented_specs(code, name, manuals):
+    """Infer only supplier/model facts explicitly supported by the manual names."""
+    code_norm = normalize_code(code)
+    text = ' '.join([str(name or ''), *[str(manual or '') for manual in manuals]]).lower()
+    specs = {'supplier': None, 'model': None, 'manuals': manuals}
+
+    if code_norm.startswith('INC-') or 'bios-12' in text or 'biostreamer' in text:
+        specs.update(supplier='Petersime', model='BioS-12SHD-0006-I')
+    elif code_norm.startswith('NAC-') or 'bios-4' in text:
+        specs.update(supplier='Petersime', model='BioS-4HHD-0007-H')
+    elif 'grundfos' in text:
+        specs['supplier'] = 'Grundfos'
+    elif 'alup' in text:
+        specs.update(supplier='ALUP', model='ADQ 21-5040')
+    elif 'hygromatik' in text:
+        specs.update(supplier='HygroMatik', model='DG')
+    elif 'nqr-reward' in text or 'npr-reward' in text:
+        specs['supplier'] = 'Chevrolet'
+        specs['model'] = 'NQR Reward' if 'nqr-reward' in text else 'NPR Reward'
+    elif 'ups' in text and 'ea900ii' in text:
+        specs.update(supplier='NewLine', model='EA900II')
+
+    return specs
+
 # 2. Leer inventario de imagenes CSV
 inv_csv = os.path.join(ROOT, 'MANTENIMIENTO', 'activos-mantum', 'inventario_imagenes.csv')
 inventory_map = {}
@@ -59,6 +83,18 @@ if os.path.exists(inv_csv):
             'es_foto_propia': 'propia' in (img_type or '').lower(),
         }
 print(f"Cargadas {len(inventory_map)} imagenes de catalogo")
+
+# 2b. Manuales asociados por equipo: son la fuente documental de proveedor y modelo.
+manuals_by_code = {}
+manuales_csv = os.path.join(ROOT, 'MANTENIMIENTO', 'activos-mantum', 'manuales_por_equipo.csv')
+if os.path.exists(manuales_csv):
+    df_manuals = pd.read_csv(manuales_csv, sep=';', encoding='utf-8-sig')
+    for _, row in df_manuals.iterrows():
+        code = clean_str(row.get('Codigo equipo'))
+        manual = clean_str(row.get('Manual'))
+        if code and manual:
+            manuals_by_code.setdefault(code, []).append(manual)
+print(f"Cargados manuales asociados a {len(manuals_by_code)} equipos")
 
 # 3. Leer equipos_mantum.xlsx
 equipos_xlsx = os.path.join(ROOT, 'MANTENIMIENTO', 'generador', 'datos_mantum', 'equipos_mantum.xlsx')
@@ -106,6 +142,7 @@ if os.path.exists(equipos_xlsx):
             elif 'serie' in c_str:
                 serie = clean_str(r[col])
 
+        specs = documented_specs(code, nombre, manuals_by_code.get(code, []))
         equipos_map[code] = {
             'mantum_code': code,
             'nombre': nombre,
@@ -114,6 +151,9 @@ if os.path.exists(equipos_xlsx):
             'estado_mantum': estado,
             'responsable': responsable,
             'serial_number': serie,
+            'supplier': specs['supplier'],
+            'model': specs['model'],
+            'manuals': specs['manuals'],
         }
 print(f"Cargados {len(equipos_map)} equipos de Mantum")
 

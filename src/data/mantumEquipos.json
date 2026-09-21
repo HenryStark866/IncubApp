@@ -6,7 +6,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "D0757-D158500084700L"
+    "serial_number": "D0757-D158500084700L",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "001.2": {
     "mantum_code": "001.2",
@@ -15,7 +18,12 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "1500050"
+    "serial_number": "1500050",
+    "supplier": "HygroMatik",
+    "model": "DG",
+    "manuals": [
+      "hygromatik-katalog-air-atomizer-dg"
+    ]
   },
   "001.4": {
     "mantum_code": "001.4",
@@ -24,7 +32,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "DO757-D15850008471001"
+    "serial_number": "DO757-D15850008471001",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "004.1": {
     "mantum_code": "004.1",
@@ -33,7 +44,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "004.2": {
     "mantum_code": "004.2",
@@ -42,7 +56,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "004.3": {
     "mantum_code": "004.3",
@@ -51,7 +68,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "004.6": {
     "mantum_code": "004.6",
@@ -60,7 +80,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.1": {
     "mantum_code": "005.1",
@@ -69,7 +92,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "Y-14080115"
+    "serial_number": "Y-14080115",
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "7348530040"
+    ]
   },
   "005.10": {
     "mantum_code": "005.10",
@@ -78,7 +106,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "5223"
+    "serial_number": "5223",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.11": {
     "mantum_code": "005.11",
@@ -87,7 +118,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "E1411005790"
+    "serial_number": "E1411005790",
+    "supplier": "NewLine",
+    "model": "EA900II",
+    "manuals": [
+      "manual_usuario_ups_on_line_doble_conversion_ea900ii_1-10kva_monofasico_15"
+    ]
   },
   "005.12": {
     "mantum_code": "005.12",
@@ -96,7 +132,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.13": {
     "mantum_code": "005.13",
@@ -105,7 +144,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.2": {
     "mantum_code": "005.2",
@@ -114,7 +156,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "Y-14080115"
+    "serial_number": "Y-14080115",
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "7348530040"
+    ]
   },
   "005.3": {
     "mantum_code": "005.3",
@@ -123,7 +170,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "CAI750810"
+    "serial_number": "CAI750810",
+    "supplier": "ALUP",
+    "model": "ADQ 21-5040",
+    "manuals": [
+      "ALUP_ADQ_21-5040_leaflet_ES_6999660033"
+    ]
   },
   "005.4": {
     "mantum_code": "005.4",
@@ -132,7 +184,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "U15B47592"
+    "serial_number": "U15B47592",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.6": {
     "mantum_code": "005.6",
@@ -141,7 +196,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "FD-209"
+    "serial_number": "FD-209",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.7": {
     "mantum_code": "005.7",
@@ -150,7 +208,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "AL P05-0368"
+    "serial_number": "AL P05-0368",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.8": {
     "mantum_code": "005.8",
@@ -159,7 +220,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "005.9": {
     "mantum_code": "005.9",
@@ -168,7 +232,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "5222"
+    "serial_number": "5222",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "006.2": {
     "mantum_code": "006.2",
@@ -177,7 +244,10 @@
     "criticidad": "Baja",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "006.3": {
     "mantum_code": "006.3",
@@ -186,7 +256,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "006.4": {
     "mantum_code": "006.4",
@@ -195,7 +268,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "1027884209 | JAIME ALBERTO SERNA RODRIGUEZ",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "007.1": {
     "mantum_code": "007.1",
@@ -204,7 +280,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "008.1": {
     "mantum_code": "008.1",
@@ -213,7 +292,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "4321AS-140065"
+    "serial_number": "4321AS-140065",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "009.1": {
     "mantum_code": "009.1",
@@ -222,7 +304,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "NQR"
+    "serial_number": "NQR",
+    "supplier": "Chevrolet",
+    "model": "NQR Reward",
+    "manuals": [
+      "nqr-reward"
+    ]
   },
   "009.2": {
     "mantum_code": "009.2",
@@ -231,7 +318,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "NPR"
+    "serial_number": "NPR",
+    "supplier": "Chevrolet",
+    "model": "NPR Reward",
+    "manuals": [
+      "npr-reward"
+    ]
   },
   "011.1": {
     "mantum_code": "011.1",
@@ -240,7 +332,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "011.2": {
     "mantum_code": "011.2",
@@ -249,7 +344,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "011.3": {
     "mantum_code": "011.3",
@@ -258,7 +356,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012168": {
     "mantum_code": "012168",
@@ -267,7 +368,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "012168"
+    "serial_number": "012168",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012169": {
     "mantum_code": "012169",
@@ -276,7 +380,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "012169"
+    "serial_number": "012169",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012173": {
     "mantum_code": "012173",
@@ -285,7 +392,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "012173"
+    "serial_number": "012173",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012177": {
     "mantum_code": "012177",
@@ -294,7 +404,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "1037648747 | Miguel Castrillón Fernández.",
-    "serial_number": "012177"
+    "serial_number": "012177",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012178": {
     "mantum_code": "012178",
@@ -303,7 +416,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "012178"
+    "serial_number": "012178",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "012179": {
     "mantum_code": "012179",
@@ -312,7 +428,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "012179"
+    "serial_number": "012179",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "013.1": {
     "mantum_code": "013.1",
@@ -321,7 +440,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "013.2": {
     "mantum_code": "013.2",
@@ -330,7 +452,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "AS-001.1": {
     "mantum_code": "AS-001.1",
@@ -339,7 +464,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "AS-001.2": {
     "mantum_code": "AS-001.2",
@@ -348,7 +476,12 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "34013J2"
+    "serial_number": "34013J2",
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "Ficha-HE-1.5-20-HE-1.5-30"
+    ]
   },
   "AS-001.3": {
     "mantum_code": "AS-001.3",
@@ -357,7 +490,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "CH-001.1": {
     "mantum_code": "CH-001.1",
@@ -366,7 +502,14 @@
     "criticidad": "Baja",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "357725862-Manual-Guadana-Fs280",
+      "Trabajar de forma segura con la motoguadana y la desbrozadora",
+      "Trabajar de forma segura con la tronzadora"
+    ]
   },
   "CH-001.2": {
     "mantum_code": "CH-001.2",
@@ -375,7 +518,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "CM001.1": {
     "mantum_code": "CM001.1",
@@ -384,7 +530,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "EQ-001": {
     "mantum_code": "EQ-001",
@@ -393,7 +542,10 @@
     "criticidad": "Baja",
     "estado_mantum": "En Operación",
     "responsable": "1039596794 | CARLOS MARIO RUIZ ZAPATA",
-    "serial_number": "000000"
+    "serial_number": "000000",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "EQ-002": {
     "mantum_code": "EQ-002",
@@ -402,7 +554,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "EQ-003": {
     "mantum_code": "EQ-003",
@@ -411,7 +566,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "DE 6204-2Z.C3"
+    "serial_number": "DE 6204-2Z.C3",
+    "supplier": "Grundfos",
+    "model": null,
+    "manuals": [
+      "Grundfosliterature-2230"
+    ]
   },
   "EQ-004": {
     "mantum_code": "EQ-004",
@@ -420,7 +580,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": "Grundfos",
+    "model": null,
+    "manuals": [
+      "96517772_CR_32_AAAEHQQE (1)",
+      "Grundfosliterature-2230"
+    ]
   },
   "EQ-005": {
     "mantum_code": "EQ-005",
@@ -429,7 +595,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": "Grundfos",
+    "model": null,
+    "manuals": [
+      "96517772_CR_32_AAAEHQQE (1)",
+      "Grundfosliterature-2230"
+    ]
   },
   "EQ-006": {
     "mantum_code": "EQ-006",
@@ -438,7 +610,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": "Grundfos",
+    "model": null,
+    "manuals": [
+      "96517772_CR_32_AAAEHQQE (1)",
+      "Grundfosliterature-2230"
+    ]
   },
   "EQ-007": {
     "mantum_code": "EQ-007",
@@ -447,7 +625,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": "Grundfos",
+    "model": null,
+    "manuals": [
+      "96517772_CR_32_AAAEHQQE (1)",
+      "Grundfosliterature-2230"
+    ]
   },
   "EQ-008": {
     "mantum_code": "EQ-008",
@@ -456,7 +640,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "96536876_CR_38_AAAEHQQE (1)",
+      "99134044_MGE80B"
+    ]
   },
   "EQ-009": {
     "mantum_code": "EQ-009",
@@ -465,7 +655,13 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0001"
+    "serial_number": "0001",
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "96536876_CR_38_AAAEHQQE (1)",
+      "99134044_MGE80B"
+    ]
   },
   "EQ-010": {
     "mantum_code": "EQ-010",
@@ -474,7 +670,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "96088845_TP_502502_AFABAQE"
+    ]
   },
   "EQ-011": {
     "mantum_code": "EQ-011",
@@ -483,7 +684,12 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": [
+      "96088845_TP_502502_AFABAQE"
+    ]
   },
   "EQ-012": {
     "mantum_code": "EQ-012",
@@ -492,7 +698,10 @@
     "criticidad": "Media",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "INC-001.1": {
     "mantum_code": "INC-001.1",
@@ -501,7 +710,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-001.10": {
     "mantum_code": "INC-001.10",
@@ -510,7 +722,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.11": {
     "mantum_code": "INC-001.11",
@@ -519,7 +738,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.12": {
     "mantum_code": "INC-001.12",
@@ -528,7 +754,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.2": {
     "mantum_code": "INC-001.2",
@@ -537,7 +770,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-001.3": {
     "mantum_code": "INC-001.3",
@@ -546,7 +782,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "BIOS12SHD-0015-1"
+    "serial_number": "BIOS12SHD-0015-1",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.4": {
     "mantum_code": "INC-001.4",
@@ -555,7 +798,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.5": {
     "mantum_code": "INC-001.5",
@@ -564,7 +814,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.6": {
     "mantum_code": "INC-001.6",
@@ -573,7 +830,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1039597268 | Juan Carlos  Taborda Rodriguez",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.7": {
     "mantum_code": "INC-001.7",
@@ -582,7 +846,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.8": {
     "mantum_code": "INC-001.8",
@@ -591,7 +862,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-001.9": {
     "mantum_code": "INC-001.9",
@@ -600,7 +878,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-12SHD-0006-I",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2"
+    ]
   },
   "INC-002.13": {
     "mantum_code": "INC-002.13",
@@ -609,7 +894,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.14": {
     "mantum_code": "INC-002.14",
@@ -618,7 +906,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0015I"
+    "serial_number": "0015I",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.15": {
     "mantum_code": "INC-002.15",
@@ -627,7 +918,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.16": {
     "mantum_code": "INC-002.16",
@@ -636,7 +930,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.17": {
     "mantum_code": "INC-002.17",
@@ -645,7 +942,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.18": {
     "mantum_code": "INC-002.18",
@@ -654,7 +954,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.19": {
     "mantum_code": "INC-002.19",
@@ -663,7 +966,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.20": {
     "mantum_code": "INC-002.20",
@@ -672,7 +978,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.21": {
     "mantum_code": "INC-002.21",
@@ -681,7 +990,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.22": {
     "mantum_code": "INC-002.22",
@@ -690,7 +1002,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.23": {
     "mantum_code": "INC-002.23",
@@ -699,7 +1014,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "INC-002.24": {
     "mantum_code": "INC-002.24",
@@ -708,7 +1026,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": []
   },
   "NAC-001.1": {
     "mantum_code": "NAC-001.1",
@@ -717,7 +1038,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-4HHD-0007-H",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2 (1)"
+    ]
   },
   "NAC-001.2": {
     "mantum_code": "NAC-001.2",
@@ -726,7 +1054,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-4HHD-0007-H",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2 (1)"
+    ]
   },
   "NAC-001.3": {
     "mantum_code": "NAC-001.3",
@@ -735,7 +1070,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-002.4": {
     "mantum_code": "NAC-002.4",
@@ -744,7 +1082,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-4HHD-0007-H",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2 (1)"
+    ]
   },
   "NAC-002.5": {
     "mantum_code": "NAC-002.5",
@@ -753,7 +1098,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-4HHD-0007-H",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2 (1)"
+    ]
   },
   "NAC-002.6": {
     "mantum_code": "NAC-002.6",
@@ -762,7 +1114,14 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "1017189866 | Henry Camilo Taborda Galeano",
-    "serial_number": "0007-H"
+    "serial_number": "0007-H",
+    "supplier": "Petersime",
+    "model": "BioS-12SHD-0006-I",
+    "manuals": [
+      "BioS-4HHD-0007-H",
+      "Incubation guide BioStreamer-ES-v1",
+      "saf-007-ES-v2 (1)"
+    ]
   },
   "NAC-003.1": {
     "mantum_code": "NAC-003.1",
@@ -771,7 +1130,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-003.2": {
     "mantum_code": "NAC-003.2",
@@ -780,7 +1142,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-003.3": {
     "mantum_code": "NAC-003.3",
@@ -789,7 +1154,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-004.1": {
     "mantum_code": "NAC-004.1",
@@ -798,7 +1166,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-004.2": {
     "mantum_code": "NAC-004.2",
@@ -807,7 +1178,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "NAC-004.3": {
     "mantum_code": "NAC-004.3",
@@ -816,7 +1190,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": "Petersime",
+    "model": "BioS-4HHD-0007-H",
+    "manuals": []
   },
   "PTAP-001": {
     "mantum_code": "PTAP-001",
@@ -825,7 +1202,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "PTAR-001": {
     "mantum_code": "PTAR-001",
@@ -834,7 +1214,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "TRF-001.1": {
     "mantum_code": "TRF-001.1",
@@ -843,7 +1226,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": "70327487 | Elkin David Cavadia Pinto.",
-    "serial_number": "751903-19"
+    "serial_number": "751903-19",
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.1": {
     "mantum_code": "VC-001.1",
@@ -852,7 +1238,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.2": {
     "mantum_code": "VC-001.2",
@@ -861,7 +1250,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.3": {
     "mantum_code": "VC-001.3",
@@ -870,7 +1262,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.4": {
     "mantum_code": "VC-001.4",
@@ -879,7 +1274,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.5": {
     "mantum_code": "VC-001.5",
@@ -888,7 +1286,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.6": {
     "mantum_code": "VC-001.6",
@@ -897,7 +1298,10 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   },
   "VC-001.7": {
     "mantum_code": "VC-001.7",
@@ -906,6 +1310,9 @@
     "criticidad": "Alta",
     "estado_mantum": "En Operación",
     "responsable": null,
-    "serial_number": null
+    "serial_number": null,
+    "supplier": null,
+    "model": null,
+    "manuals": []
   }
 }
