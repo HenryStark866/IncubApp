@@ -1162,6 +1162,7 @@ export default function FloorMap({
   /** Set de ids de sala a resaltar (filtros dinámicos); las demás se atenúan. null/vacío = sin resaltar ninguna. */
   highlightRoomIds = null,
 }) {
+  const allRooms = roomsApi?.rooms ?? []
   // Tanto en planta como en granja, todas las salas y galpones se dibujan y editan en el plano.
   const visibles = allRooms
 

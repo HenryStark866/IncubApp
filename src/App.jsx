@@ -9,34 +9,34 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, supabaseConfigError } from './lib/supabase'
+import { supabase, supabaseConfigError } from './lib/supabase.js'
 // Shell ligero (eager): auth, nav, chrome. Paneles pesados → lazyPanels (code-split).
-import AuthForm from './components/AuthForm'
-import ResetPasswordForm from './components/ResetPasswordForm'
-import PlatformCompanyBar from './components/PlatformCompanyBar'
+import AuthForm from './components/AuthForm.jsx'
+import ResetPasswordForm from './components/ResetPasswordForm.jsx'
+import PlatformCompanyBar from './components/PlatformCompanyBar.jsx'
 import {
   usePlatformOrgs,
   readDevTenantId,
   writeDevTenantId,
-} from './hooks/usePlatformOrgs'
-import { buildPlatformNavItems } from './lib/platformMenu'
-import { buildClientNavItems } from './lib/clientMenuTemplate'
-import { ContextualMark, CdhSignature, PLATFORM_NAME, IncubantSigPill } from './components/Brand'
-import PendingApproval from './components/PendingApproval'
-import SplashScreen from './components/SplashScreen'
-import LegalDocsModal from './components/LegalDocsModal'
-import { useLegalAcceptance } from './hooks/useLegalAcceptance'
-import { useOrganization } from './hooks/useOrganization'
-import { useProfile } from './hooks/useProfile'
-import { useOfflineSync } from './hooks/useOfflineSync'
-import { useModuleGrants } from './hooks/useModuleGrants'
-import { useUiSettings } from './hooks/useUiSettings'
-import { useCustomModules } from './hooks/useCustomModules'
-import { useOrgModuleConfig } from './hooks/useOrgModuleConfig'
-import WorkspaceNav from './components/WorkspaceNav'
-import OfflineBanner from './components/OfflineBanner'
-import ModuleBoundary from './components/ModuleBoundary'
-import RolePreviewBar from './components/RolePreviewBar'
+} from './hooks/usePlatformOrgs.js'
+import { buildPlatformNavItems } from './lib/platformMenu.js'
+import { buildClientNavItems } from './lib/clientMenuTemplate.js'
+import { ContextualMark, CdhSignature, PLATFORM_NAME, IncubantSigPill } from './components/Brand.jsx'
+import PendingApproval from './components/PendingApproval.jsx'
+import SplashScreen from './components/SplashScreen.jsx'
+import LegalDocsModal from './components/LegalDocsModal.jsx'
+import { useLegalAcceptance } from './hooks/useLegalAcceptance.js'
+import { useOrganization } from './hooks/useOrganization.js'
+import { useProfile } from './hooks/useProfile.js'
+import { useOfflineSync } from './hooks/useOfflineSync.js'
+import { useModuleGrants } from './hooks/useModuleGrants.js'
+import { useUiSettings } from './hooks/useUiSettings.js'
+import { useCustomModules } from './hooks/useCustomModules.js'
+import { useOrgModuleConfig } from './hooks/useOrgModuleConfig.js'
+import WorkspaceNav from './components/WorkspaceNav.jsx'
+import OfflineBanner from './components/OfflineBanner.jsx'
+import ModuleBoundary from './components/ModuleBoundary.jsx'
+import RolePreviewBar from './components/RolePreviewBar.jsx'
 import {
   LazyPanel,
   BusinessModule,
