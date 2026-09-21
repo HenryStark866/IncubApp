@@ -99,6 +99,7 @@ const MachineAssetHub = ({ orgId }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [allEvidence, setAllEvidence] = useState([]);
   const [allEvidenceLoading, setAllEvidenceLoading] = useState(false);
+  const [evidenceFilter, setEvidenceFilter] = useState('');
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
@@ -125,6 +126,20 @@ const MachineAssetHub = ({ orgId }) => {
   }, [selectedMachine]);
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
+
+  const filteredEvidence = useMemo(() => {
+    const query = evidenceFilter.trim().toLowerCase();
+    if (!query) return allEvidence;
+    return allEvidence.filter((file) => [
+      file.file_name,
+      file.formatCode,
+      file.workOrderCode,
+      file.workOrderTitle,
+      file.machineCode,
+      file.note,
+      file.source,
+    ].some((value) => String(value || '').toLowerCase().includes(query)));
+  }, [allEvidence, evidenceFilter]);
 
   const loadDocuments = useCallback(async () => {
     if (!orgId || !selectedMachine?.machine_id) {
@@ -495,9 +510,19 @@ const MachineAssetHub = ({ orgId }) => {
             </>
           )}
           {section === 'evidence' && (
-            <div className="sig-evidence-global-list">
-              {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !allEvidence.length ? <p className="sig-empty-tab">No hay evidencias registradas todavía.</p> : allEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small></button>)}
-            </div>
+            <>
+              <input
+                className="sig-asset-doc-search"
+                type="search"
+                placeholder="Buscar evidencia, código o máquina..."
+                value={evidenceFilter}
+                onChange={(e) => setEvidenceFilter(e.target.value)}
+                aria-label="Buscar evidencias"
+              />
+              <div className="sig-evidence-global-list">
+                {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !filteredEvidence.length ? <p className="sig-empty-tab">No hay evidencias que coincidan con la búsqueda.</p> : filteredEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small></button>)}
+              </div>
+            </>
           )}
           {section === 'assets' && <>
             <div className="relative">

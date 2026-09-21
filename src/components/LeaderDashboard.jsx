@@ -145,8 +145,13 @@ export default function LeaderDashboard({
   can,
   people = {},
 }) {
-  const [currentTime] = useState(nowTime)
+  const [currentTime, setCurrentTime] = useState(nowTime)
   const currentShift = shiftOfHour(new Date().getHours())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(nowTime()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const { plants } = usePlants(orgId)
   const activePlantId = plants[0]?.id || null

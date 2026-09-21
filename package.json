@@ -10,6 +10,8 @@
     "test": "vitest run",
     "backfill:mantum": "node scripts/backfill_mantum_work_orders.mjs",
     "import:sig-evidence": "node scripts/import_sig_evidence.mjs",
+    "sync:enterprise": "node scripts/sync_enterprise_data.mjs",
+    "sync:enterprise:ots": "node scripts/sync_enterprise_data.mjs --generate-ots",
     "test:watch": "vitest",
     "preview": "vite preview",
     "planta3d:fotos": "node scripts/planta3d-fotos.mjs"
