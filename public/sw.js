@@ -4,12 +4,12 @@
  * Nunca cachea Supabase (datos en vivo / auth).
  * Henry Stark Desarrollador
  */
-/* v6: la versión sube a propósito para que el activate borre las cachés
+/* v11: la versión sube a propósito para que el activate borre las cachés
    viejas. Hasta v5 cualquier página .html navegada se guardaba TAMBIÉN como
    caparazón de la app, así que quien hubiera entrado a /reparar.html (o al
    recorrido 3D) abría IncubApp sin red y le salía esa página en vez del login.
    Al cambiar de nombre la caché, esos caparazones envenenados se descartan. */
-const CACHE = 'incubapp-shell-v10'
+const CACHE = 'incubapp-shell-v11'
 const PRECACHE = [
   '/',
   '/index.html',
@@ -114,8 +114,8 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE).then((c) => {
               c.put(req, copy)
               if (esCaparazon) {
-                c.put('/index.html', res.clone()).catch(() => {})
-                c.put('/', res.clone()).catch(() => {})
+                c.put('/index.html', res.clone()).catch(() => { })
+                c.put('/', res.clone()).catch(() => { })
               }
             })
           }
@@ -127,8 +127,8 @@ self.addEventListener('fetch', (event) => {
           const hit = isStandalonePage(url)
             ? await caches.match(req)
             : (await caches.match(req)) ||
-              (await caches.match('/index.html')) ||
-              (await caches.match('/'))
+            (await caches.match('/index.html')) ||
+            (await caches.match('/'))
           return (
             hit ||
             new Response(
@@ -202,7 +202,7 @@ self.addEventListener('message', (event) => {
   if (type === 'CACHE_URLS' && Array.isArray(event.data?.urls)) {
     event.waitUntil(
       caches.open(CACHE).then((c) =>
-        Promise.all(event.data.urls.map((u) => c.add(u).catch(() => {})))
+        Promise.all(event.data.urls.map((u) => c.add(u).catch(() => { })))
       )
     )
   }
