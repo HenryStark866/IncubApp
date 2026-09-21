@@ -661,6 +661,8 @@ body {
 .ldr-map-section-3d,
 .ldr-main-split-3d>.ldr-feed-section {
   min-height: clamp(360px, 58vw, 680px);
+  display: flex;
+  flex-direction: column;
 }
 
 .ldr-map-section-3d {
@@ -11160,7 +11162,8 @@ a.plant3d-link:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 380px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;

@@ -195,7 +195,8 @@ export default function LeaderDashboard({
   const { orders } = useWorkOrders(orgId, userId)
   const [sigEvidence, setSigEvidence] = useState([])
   const handleSigEvidenceLoaded = useCallback((items) => setSigEvidence(items), [])
-  const dashboardEvidence = sigEvidence.length > 0 ? sigEvidence : evidence
+  const dashboardEvidence = (sigEvidence.length > 0 ? sigEvidence : evidence)
+    .filter((item) => item.kind !== 'round')
 
   useEffect(() => {
     let active = true
@@ -350,7 +351,7 @@ export default function LeaderDashboard({
           <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.</p>
         ) : (
           <div className="ldr-ev-grid">
-            {dashboardEvidence.slice(0, 6).map((item) => (
+            {dashboardEvidence.slice(0, 8).map((item) => (
               <EvidenceCard key={item.id} item={item} getFileUrl={getFileUrl} peopleName={peopleName} />
             ))}
           </div>
