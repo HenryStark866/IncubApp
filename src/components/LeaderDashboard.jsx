@@ -1,10 +1,10 @@
 ﻿/**
  * =============================================================================
  * ARCHIVO: src/components/LeaderDashboard.jsx
- * PROPÃ“SITO: Panel de control (home) predeterminado del lÃ­der de Ã¡rea (coordinator).
- *   Muestra KPIs en tiempo real, acceso rÃ¡pido a mÃ³dulos, mini-mapa de planta
+ * PROPÓSITO: Panel de control (home) predeterminado del líder de área (coordinator).
+ *   Muestra KPIs en tiempo real, acceso rápido a módulos, mini-mapa de planta
  *   y un feed de actividad reciente del turno. Reemplaza al LeaderOpsMap como
- *   pantalla inicial; el mapa de planta queda accesible desde los botones de acciÃ³n.
+ *   pantalla inicial; el mapa de planta queda accesible desde los botones de acción.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -24,7 +24,7 @@ import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import FloorMap from './FloorMap'
 import MachineAssetHub from '../features/maintenance/components/MachineAssetHub'
 
-/** Tabs excluidos del acceso rÃ¡pido: el lÃ­der los ve como resultado, no ejecuta. */
+/** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
   'horarios', 'supervision', 'mantenimiento', 'calibracion',
   'asistencia', 'misionales', 'preoperacional', 'hoy',
@@ -32,13 +32,13 @@ const EXCLUDED_QUICK = new Set([
 
 /** Ãconos por tipo de evento del feed */
 const FEED_ICONS = {
-  Ronda: 'ðŸ”',
-  Actividad: 'âš¡',
-  Cargue: 'ðŸ“¦',
-  Transferencia: 'â†”ï¸',
+  Ronda: '[Ronda]',
+  Actividad: '⚡',
+  Cargue: '📦',
+  Transferencia: '[Transferencia]',
 }
 
-/** Colores semÃ¡nticos de condiciÃ³n de mÃ¡quina */
+/** Colores semánticos de condición de máquina */
 const CONDITION_COLOR = {
   normal: '#00ff88',
   warning: '#ffaa00',
@@ -55,7 +55,7 @@ function KpiCard({ label, value, icon, color, sub }) {
     <div className="ldr-kpi-card" style={{ '--kpi-accent': color }}>
       <span className="ldr-kpi-icon" aria-hidden="true">{icon}</span>
       <div className="ldr-kpi-body">
-        <span className="ldr-kpi-value">{value ?? 'â€“'}</span>
+        <span className="ldr-kpi-value">{value ?? '–'}</span>
         <span className="ldr-kpi-label">{label}</span>
         {sub && <span className="ldr-kpi-sub">{sub}</span>}
       </div>
@@ -71,7 +71,7 @@ function QuickCard({ item, onNavigate }) {
       onClick={() => onNavigate?.(item.id)}
       title={item.hint || item.label}
     >
-      <span className="ldr-quick-icon" aria-hidden="true">{item.icon || 'ðŸ”¹'}</span>
+      <span className="ldr-quick-icon" aria-hidden="true">{item.icon || '🔹'}</span>
       <span className="ldr-quick-label">{item.label}</span>
     </button>
   )
@@ -84,7 +84,7 @@ function FeedItem({ event, peopleName }) {
     : ''
   return (
     <div className={`ldr-feed-item kind-${(event.kind || '').toLowerCase()}`}>
-      <span className="ldr-feed-dot" aria-hidden="true">{FEED_ICONS[event.kind] || 'â€¢'}</span>
+      <span className="ldr-feed-dot" aria-hidden="true">{FEED_ICONS[event.kind] || '•'}</span>
       <div className="ldr-feed-body">
         <span className="ldr-feed-who">{who}</span>
         <span className="ldr-feed-kind">{event.kind}</span>
@@ -115,17 +115,17 @@ function EvidenceCard({ item, getFileUrl, peopleName }) {
         {item.file_type === 'image' && url ? (
           <img src={url} alt={item.file_name} className="ldr-ev-img" />
         ) : (
-          <span className="ldr-ev-doc-icon">ðŸ“„</span>
+          <span className="ldr-ev-doc-icon">📄</span>
         )}
       </div>
       <div className="ldr-ev-info">
         <span className="ldr-ev-name" title={item.file_name}>{item.file_name}</span>
-        <span className="ldr-ev-meta">{uploader} Â· {dateStr}</span>
+        <span className="ldr-ev-meta">{uploader} · {dateStr}</span>
         {item.note && <span className="ldr-ev-note">"{item.note}"</span>}
       </div>
       {url && (
         <a href={url} target="_blank" rel="noopener noreferrer" className="ldr-ev-link" title="Ver archivo original">
-          â†—
+          ↗
         </a>
       )}
     </div>
@@ -229,8 +229,8 @@ export default function LeaderDashboard({
   }, [people])
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Buenos dÃ­as' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
-  const firstName = userName ? userName.split(' ')[0] : 'LÃ­der'
+  const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
+  const firstName = userName ? userName.split(' ')[0] : 'Líder'
 
   return (
     <div className="leader-dash">
@@ -240,7 +240,7 @@ export default function LeaderDashboard({
             {greeting}, <span className="ldr-name">{firstName}</span>
           </h1>
           <p className="ldr-subtitle">
-            {orgName || 'Planta'} Â· Turno {currentShift} Â·{' '}
+            {orgName || 'Planta'} · Turno {currentShift} ·{' '}
             <span className="ldr-shift-label">{SHIFT_LABEL?.[currentShift] || `T${currentShift}`}</span>
           </p>
         </div>
@@ -254,17 +254,17 @@ export default function LeaderDashboard({
       </header>
 
       <section className="ldr-kpi-grid" aria-label="Indicadores de planta">
-        <KpiCard label="Operativas" value={summary.normal} icon="âœ…" color={CONDITION_COLOR.normal} sub={`de ${totalMachines} mÃ¡quinas`} />
-        <KpiCard label="En alerta" value={summary.warning} icon="âš ï¸" color={CONDITION_COLOR.warning} />
-        <KpiCard label="Con falla" value={summary.fault} icon="ðŸ”´" color={CONDITION_COLOR.fault} />
-        <KpiCard label="OTs Activas" value={activeOrdersCount} icon="ðŸ”§" color="#38bdf8" sub="Mantenimiento SIG" />
-        <KpiCard label="Evidencias SIG" value={evidence.length} icon="ðŸ“" color="#a78bfa" sub="Adjuntos registrados" />
-        <KpiCard label="Personal online" value={onlineCount} icon="ðŸ‘¥" color="var(--accent)" sub="en plataforma" />
+        <KpiCard label="Operativas" value={summary.normal} icon="✅" color={CONDITION_COLOR.normal} sub={`de ${totalMachines} máquinas`} />
+        <KpiCard label="En alerta" value={summary.warning} icon="!" color={CONDITION_COLOR.warning} />
+        <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
+        <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
+        <KpiCard label="Evidencias SIG" value={evidence.length} icon="SIG" color="#a78bfa" sub="Adjuntos registrados" />
+        <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
       </section>
 
       {quickItems.length > 0 && (
-        <section className="ldr-quick-section" aria-label="Acceso rÃ¡pido">
-          <h2 className="ldr-section-title"><span aria-hidden="true">âš¡</span> Acceso RÃ¡pido</h2>
+        <section className="ldr-quick-section" aria-label="Acceso rápido">
+          <h2 className="ldr-section-title"><span aria-hidden="true">⚡</span> Acceso Rápido</h2>
           <div className="ldr-quick-grid">
             {quickItems.map((item) => (
               <QuickCard key={item.id} item={item} onNavigate={onNavigate} />
@@ -273,14 +273,14 @@ export default function LeaderDashboard({
         </section>
       )}
 
-      {/* Evidencias SIG Mantenimiento y ProducciÃ³n */}
-      <section className="ldr-evidence-section" aria-label="Evidencias SIG Mantenimiento y ProducciÃ³n">
+      {/* Evidencias SIG Mantenimiento y Producción */}
+      <section className="ldr-evidence-section" aria-label="Evidencias SIG Mantenimiento y Producción">
         <h2 className="ldr-section-title">
-          <span aria-hidden="true">ðŸ“¸</span> Evidencias Registradas (SIG Mantenimiento & ProducciÃ³n)
+          <span aria-hidden="true">📸</span> Evidencias Registradas (SIG Mantenimiento & Producción)
           <span className="ldr-section-sub">{evidence.length} archivos vinculados</span>
         </h2>
         {evidence.length === 0 ? (
-          <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producciÃ³n en esta organizaciÃ³n aÃºn.</p>
+          <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.</p>
         ) : (
           <div className="ldr-ev-grid">
             {evidence.slice(0, 6).map((item) => (
@@ -293,14 +293,14 @@ export default function LeaderDashboard({
       <div className="ldr-main-split">
         <section className="ldr-map-section" aria-label="Plano de planta en vivo">
           <h2 className="ldr-section-title">
-            <span aria-hidden="true">ðŸ—ºï¸</span> Plano en vivo
+            <span aria-hidden="true">Plano</span> Plano en vivo
             {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
           </h2>
           <div className="ldr-map-frame">
             {roomsApi.loading ? (
-              <div className="ldr-map-placeholder">Cargando planoâ€¦</div>
+              <div className="ldr-map-placeholder">Cargando plano…</div>
             ) : roomsApi.rooms.length === 0 ? (
-              <div className="ldr-map-placeholder">Planta sin plano dibujado aÃºn.</div>
+              <div className="ldr-map-placeholder">Planta sin plano dibujado aún.</div>
             ) : (
               <FloorMap
                 canManage={false}
@@ -320,10 +320,10 @@ export default function LeaderDashboard({
         </section>
 
         <section className="ldr-feed-section" aria-label="Actividad reciente">
-          <h2 className="ldr-section-title"><span aria-hidden="true">ðŸ“‹</span> Actividad del turno</h2>
+          <h2 className="ldr-section-title"><span aria-hidden="true">📋</span> Actividad del turno</h2>
           <div className="ldr-feed">
             {recentEvents.length === 0 ? (
-              <p className="ldr-feed-empty">Sin actividad registrada en este turno aÃºn.</p>
+              <p className="ldr-feed-empty">Sin actividad registrada en este turno aún.</p>
             ) : (
               recentEvents.map((ev, i) => (
                 <FeedItem key={i} event={ev} peopleName={peopleName} />
@@ -344,16 +344,16 @@ export default function LeaderDashboard({
       </section>
       <footer className="ldr-actions">
         <button type="button" className="ldr-action-btn ldr-primary" onClick={() => onNavigate?.('mapa-planta')}>
-          ðŸ—ºï¸ Plano completo
+          Plano completo
         </button>
         {puede3D && (
           <button type="button" className="ldr-action-btn ldr-secondary" onClick={() => onNavigate?.('mapa-3d')}>
-            ðŸŒ Planta 3D
+            Planta 3D
           </button>
         )}
         {puede3D && (
           <a className="ldr-action-btn ldr-ghost" href={PLANT_3D_TOUR_URL} target="_blank" rel="noopener noreferrer">
-            â†—ï¸ 3D aparte
+            3D aparte
           </a>
         )}
       </footer>

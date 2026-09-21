@@ -1,10 +1,10 @@
 ﻿/**
  * =============================================================================
  * ARCHIVO: src/components/FloorMap.jsx
- * PROPÃ“SITO: Componente UI Â«FloorMapÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «FloorMap»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -19,29 +19,29 @@ const MIN_H = 360
 const clampScale = (s) => Math.min(SCALE_MAX, Math.max(SCALE_MIN, s))
 
 const ROOM_TYPES = [
-  { value: 'incubation', label: 'IncubaciÃ³n' },
+  { value: 'incubation', label: 'Incubación' },
   { value: 'hatching', label: 'Nacedora' },
   { value: 'egg_storage', label: 'Bodega de huevo' },
   { value: 'chick_processing', label: 'Proceso de pollito' },
   { value: 'washing', label: 'Lavado' },
-  { value: 'technical', label: 'Cuarto tÃ©cnico' },
+  { value: 'technical', label: 'Cuarto técnico' },
   { value: 'office', label: 'Oficina' },
   { value: 'hallway', label: 'Pasillo' },
   { value: 'parking', label: 'Parqueadero' },
   { value: 'exterior', label: 'Exterior / Patio' },
   { value: 'green_area', label: 'Zona verde' },
   { value: 'tank', label: 'Tanque / Silo' },
-  { value: 'road', label: 'VÃ­a rural / Camino' },
-  { value: 'plenum', label: 'Plenum (tÃ©cnico)' },
+  { value: 'road', label: 'Vía rural / Camino' },
+  { value: 'plenum', label: 'Plenum (técnico)' },
   // Tipos exclusivos de granja
-  { value: 'produccion', label: 'ProducciÃ³n' },
+  { value: 'produccion', label: 'Producción' },
   { value: 'levante', label: 'Levante' },
   { value: 'other', label: 'Otro' },
 ]
 
 const typeLabel = (t) => ROOM_TYPES.find((r) => r.value === t)?.label ?? t
 
-// Etiquetas para el detalle de la sala y sus componentes (mÃ¡quinas/equipos)
+// Etiquetas para el detalle de la sala y sus componentes (máquinas/equipos)
 const MACHINE_TYPE_LABELS = {
   setter: 'Incubadora',
   hatcher: 'Nacedora',
@@ -78,23 +78,23 @@ const DEFAULT_ROOM_COLOR = {
   other: '#55627e',
 }
 
-// Convierte #rrggbb a rgba(r,g,b,a) para teÃ±ir el fondo de la sala
+// Convierte #rrggbb a rgba(r,g,b,a) para teñir el fondo de la sala
 function hexToRgba(hex, a) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '')
   if (!m) return null
   return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${a})`
 }
 
-// Puertas del plano: tamaÃ±o en metros y tipos disponibles
+// Puertas del plano: tamaño en metros y tipos disponibles
 const DOOR_SIZE = 1.6
-// Dos decimales: las coordenadas son metros de planta, no hace falta mÃ¡s, y
-// asÃ­ no se cuelan colas de coma flotante al mover una sala.
+// Dos decimales: las coordenadas son metros de planta, no hace falta más, y
+// así no se cuelan colas de coma flotante al mover una sala.
 const round2 = (v) => Math.round(v * 100) / 100
 const doorSpan = (d) => Number(d?.w) || (d?.type === 'window' ? 1 : DOOR_SIZE)
 
-// En quÃ© muro de la sala queda el vano. Se guarda con la puerta en vez de
-// deducirlo cada vez: el muro es una decisiÃ³n del plano, no una consecuencia de
-// cuÃ¡nto mida la sala. Mientras se dedujo por distancia, reescalar una sala
+// En qué muro de la sala queda el vano. Se guarda con la puerta en vez de
+// deducirlo cada vez: el muro es una decisión del plano, no una consecuencia de
+// cuánto mida la sala. Mientras se dedujo por distancia, reescalar una sala
 // bastaba para que una puerta se pasara sola al muro de al lado.
 const LADOS = ['arriba', 'abajo', 'izquierda', 'derecha']
 const EJE_LADO = { arriba: 'H', abajo: 'H', izquierda: 'V', derecha: 'V' }
@@ -121,7 +121,7 @@ const DOOR_TYPES = [
   // del vano entre las dos salas de incubadoras, que solo tiene marco.
   { value: 'open', label: 'Vano sin puerta (solo marco)' },
   // Ventana de vidrio: el hueco no llega al piso, queda antepecho debajo. Las
-  // de los comedores son de 2 m de ancho y el resto de 1, asÃ­ que la ventana
+  // de los comedores son de 2 m de ancho y el resto de 1, así que la ventana
   // guarda su propio ancho en `w`.
   { value: 'window', label: 'Ventana de vidrio' },
 ]
@@ -129,11 +129,11 @@ const DOOR_LABEL = Object.fromEntries(DOOR_TYPES.map((t) => [t.value, t.label]))
 const newId = () =>
   (globalThis.crypto?.randomUUID?.() ?? `d${Date.now()}${Math.random().toString(36).slice(2, 7)}`)
 
-// â”€â”€ Medidas de un vano cuando no trae las suyas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Medidas de un vano cuando no trae las suyas ────────────────────────────
 // Son las que aplica el recorrido 3D (public/planta3d/js/mundo.js) si la
-// puerta o la ventana no llevan escrito su tamaÃ±o. La herramienta avanzada las
-// enseÃ±a como marca de agua: asÃ­ se ve quÃ© se estÃ¡ cambiando antes de fijar un
-// nÃºmero propio, y borrar el campo devuelve el vano a esta regla.
+// puerta o la ventana no llevan escrito su tamaño. La herramienta avanzada las
+// enseña como marca de agua: así se ve qué se está cambiando antes de fijar un
+// número propio, y borrar el campo devuelve el vano a esta regla.
 const VANO_ANCHO_AUTO = { window: 1, loading: 2.6 }
 const anchoAuto = (d) => VANO_ANCHO_AUTO[d?.type] ?? 1.7
 const baseAuto = (d) => (d?.type === 'window' ? 1 : 0)
@@ -147,9 +147,9 @@ const VANO_CORTO = {
   normal: 'Puerta', sliding: 'Corredera', loading: 'Muelle', open: 'Vano', window: 'Ventana',
 }
 
-// SitÃºa un vano sobre uno de los cuatro muros: del lado y de la distancia a lo
+// Sitúa un vano sobre uno de los cuatro muros: del lado y de la distancia a lo
 // largo de ese muro salen las coordenadas x/y con las que se guarda. La
-// rotaciÃ³n se acomoda al eje del muro, sin voltear la hoja si ya estaba bien.
+// rotación se acomoda al eje del muro, sin voltear la hoja si ya estaba bien.
 function ubicarVano(room, d, lado, pos) {
   const span = doorSpan(d)
   const W = Number(room.width) || 0
@@ -171,22 +171,22 @@ const posEnMuro = (d, lado) => (EJE_LADO[lado] === 'H' ? Number(d.x) || 0 : Numb
 const largoMuro = (room, lado) =>
   round2(Number(EJE_LADO[lado] === 'H' ? room.width : room.height) || 0)
 // Metros con dos decimales y coma, como se leen en obra (sin la unidad).
-const m2 = (v) => (v == null ? 'â€”' : Number(v).toFixed(2).replace('.', ','))
+const m2 = (v) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 
 /**
- * El patch de tamaÃ±o de una sala. En una rectangular son dos nÃºmeros y ya.
+ * El patch de tamaño de una sala. En una rectangular son dos números y ya.
  *
- * En una de forma libre el tamaÃ±o ES el dibujo, asÃ­ que cambiarlo es escalar el
- * contorno: moviendo solo el rectÃ¡ngulo envolvente, el polÃ­gono se quedarÃ­a con
- * su tamaÃ±o de origen y la sala dejarÃ­a de coincidir consigo misma. Los vanos
- * se escalan con Ã©l por la misma razÃ³n â€” en forma libre cada uno se engancha a
- * la arista mÃ¡s cercana del contorno, con 60 cm de tolerancia, y el que se
- * quede atrÃ¡s cuelga de un muro que ya no estÃ¡ ahÃ­: desaparece del recorrido
+ * En una de forma libre el tamaño ES el dibujo, así que cambiarlo es escalar el
+ * contorno: moviendo solo el rectángulo envolvente, el polígono se quedaría con
+ * su tamaño de origen y la sala dejaría de coincidir consigo misma. Los vanos
+ * se escalan con él por la misma razón — en forma libre cada uno se engancha a
+ * la arista más cercana del contorno, con 60 cm de tolerancia, y el que se
+ * quede atrás cuelga de un muro que ya no está ahí: desaparece del recorrido
  * sin avisar. El ancho del vano no se toca: una puerta de 0,90 sigue midiendo
- * 0,90 aunque la sala crezca; solo se mueve a donde quedÃ³ su muro.
+ * 0,90 aunque la sala crezca; solo se mueve a donde quedó su muro.
  */
 function patchTamano(room, ancho, alto) {
-  // Medio metro es el mÃ­nimo, no dos: media planta mide menos de dos â€”el
+  // Medio metro es el mínimo, no dos: media planta mide menos de dos —el
   // corredor del comedor, 0,70; los W.C., 1,00.
   const W = Math.max(0.5, round2(Number(ancho) || Number(room.width) || 0.5))
   const H = Math.max(0.5, round2(Number(alto) || Number(room.height) || 0.5))
@@ -231,12 +231,12 @@ function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, 
       {heading && <p className="component-title" style={{ margin: '0 0 8px' }}>{heading}</p>}
       <div className="two-col">
         <label>
-          {isFarm ? 'Nombre del mÃ³dulo' : 'Nombre de la sala'}
+          {isFarm ? 'Nombre del módulo' : 'Nombre de la sala'}
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isFarm ? 'Ej. MÃ³dulo 1' : 'Ej. Sala de incubaciÃ³n 1'}
+            placeholder={isFarm ? 'Ej. Módulo 1' : 'Ej. Sala de incubación 1'}
             autoFocus
           />
         </label>
@@ -254,7 +254,7 @@ function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, 
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || name.trim().length < 2}>
-          {busy ? 'Agregandoâ€¦' : isFarm ? 'Agregar mÃ³dulo' : 'Agregar sala'}
+          {busy ? 'Agregando…' : isFarm ? 'Agregar módulo' : 'Agregar sala'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -266,8 +266,8 @@ function NewRoomForm({ onCreate, onCancel, defaultType = 'incubation', heading, 
 
 /**
  * Campo de medida en metros. Se escribe libre y se guarda al salir del campo o
- * con Enter â€”no en cada teclaâ€”, para no mandar una escritura a la base por
- * cada dÃ­gito. VacÃ­o significa automÃ¡tico: entonces la marca de agua enseÃ±a la
+ * con Enter —no en cada tecla—, para no mandar una escritura a la base por
+ * cada dígito. Vacío significa automático: entonces la marca de agua enseña la
  * cifra que pone el recorrido 3D por su cuenta.
  */
 function MedidaInput({ value, placeholder, min = 0, step = 0.1, onCommit, disabled = false, title }) {
@@ -300,16 +300,16 @@ function MedidaInput({ value, placeholder, min = 0, step = 0.1, onCommit, disabl
 
 /**
  * Herramienta avanzada de la sala: se elige un muro, una puerta o una ventana
- * â€”en esta lista o tocÃ¡ndolo en el planoâ€” y se le escriben las medidas.
+ * —en esta lista o tocándolo en el plano— y se le escriben las medidas.
  *
- *   Â· Muro: altura automÃ¡tica, hasta la cubierta o una cifra fija en metros, y
+ *   · Muro: altura automática, hasta la cubierta o una cifra fija en metros, y
  *     el largo, que es el ancho o el fondo de la sala.
- *   Â· Puerta o ventana: tipo, muro donde va, distancia desde la esquina,
- *     ancho, alto libre y a quÃ© altura arranca (el antepecho de una ventana).
+ *   · Puerta o ventana: tipo, muro donde va, distancia desde la esquina,
+ *     ancho, alto libre y a qué altura arranca (el antepecho de una ventana).
  *
- * Todo se guarda al momento, igual que arrastrar en el plano. La excepciÃ³n es
- * el largo del muro: eso es el tamaÃ±o de la sala, y por eso tambiÃ©n se refleja
- * en los campos de arriba. Dejar un campo vacÃ­o devuelve ese dato a automÃ¡tico.
+ * Todo se guarda al momento, igual que arrastrar en el plano. La excepción es
+ * el largo del muro: eso es el tamaño de la sala, y por eso también se refleja
+ * en los campos de arriba. Dejar un campo vacío devuelve ese dato a automático.
  */
 function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLength, poly, isFarm }) {
   const [abierta, setAbierta] = useState(true)
@@ -317,7 +317,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
   const alturas = room.wall_heights || {}
   const muro = sel?.tipo === 'muro' ? sel.lado : null
   const vano = sel?.tipo === 'vano' ? doors.find((d) => d.id === sel.doorId) : null
-  // En granja no hay recorrido 3D que levante muros: allÃ­ solo se editan vanos.
+  // En granja no hay recorrido 3D que levante muros: allí solo se editan vanos.
   const conMuros = !isFarm
 
   const ladoDe = (d) => (LADOS.includes(d.lado) ? d.lado : ladoDeVano(room, d))
@@ -331,8 +331,8 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
 
   // Un cambio sobre el vano seleccionado. `pos` no es un campo suyo: es la
   // distancia a lo largo del muro, de donde salen x/y. En una sala de forma
-  // libre no se recoloca nada â€” allÃ­ el muro lo decide la geometrÃ­a del
-  // contorno, y llevar el vano al borde del rectÃ¡ngulo envolvente lo dejarÃ­a
+  // libre no se recoloca nada — allí el muro lo decide la geometría del
+  // contorno, y llevar el vano al borde del rectángulo envolvente lo dejaría
   // colgado de un muro que no existe.
   const patchVano = (cambios) => {
     if (!vano) return
@@ -366,8 +366,8 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
       {abierta && (
         <>
           <p className="hint" style={{ margin: '0 0 10px' }}>
-            Elige un elemento aquÃ­ â€”o tÃ³calo en el planoâ€” y escrÃ­bele las medidas en metros. Se
-            guardan al momento; deja un campo vacÃ­o para devolverlo a automÃ¡tico.
+            Elige un elemento aquí —o tócalo en el plano— y escríbele las medidas en metros. Se
+            guardan al momento; deja un campo vacío para devolverlo a automático.
           </p>
 
           {conMuros && (
@@ -376,7 +376,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                 Altura de la sala (m)
                 <MedidaInput
                   value={room.altura != null ? Number(room.altura) : null}
-                  placeholder="automÃ¡tica por tipo"
+                  placeholder="automática por tipo"
                   min={0.5}
                   title="La altura que toman todos sus muros, salvo los que fijes uno a uno"
                   onCommit={(v) => onPatch({ altura: v })}
@@ -394,7 +394,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                 onClick={() => onSelect({ tipo: 'muro', lado })}
               >
                 Muro {lado}
-                <small>{m2(largoMuro(room, lado))} m Â· {wallHeightLabel(alturas[lado])}</small>
+                <small>{m2(largoMuro(room, lado))} m · {wallHeightLabel(alturas[lado])}</small>
               </button>
             ))}
             {doors.map((d, i) => (
@@ -406,7 +406,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
               >
                 {VANO_CORTO[d.type] ?? 'Vano'} {i + 1}
                 <small>
-                  muro {ladoDe(d)} Â· {m2(Number(d.w) || anchoAuto(d))} Ã— {m2(Number(d.h) || altoAuto(d))} m
+                  muro {ladoDe(d)} · {m2(Number(d.w) || anchoAuto(d))} × {m2(Number(d.h) || altoAuto(d))} m
                 </small>
               </button>
             ))}
@@ -423,14 +423,14 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
 
           {muro && (
             <div className="elem-editor">
-              <p className="elem-title">Muro {muro} Â· {m2(largoMuro(room, muro))} m de largo</p>
+              <p className="elem-title">Muro {muro} · {m2(largoMuro(room, muro))} m de largo</p>
               <div className="elem-seg">
                 <button
                   type="button"
                   className={`chip${alturas[muro] == null ? ' active' : ' ghost'}`}
                   onClick={() => setAltura(muro, null)}
                 >
-                  AutomÃ¡tica
+                  Automática
                 </button>
                 <button
                   type="button"
@@ -445,7 +445,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                   Altura fija (m)
                   <MedidaInput
                     value={typeof alturas[muro] === 'number' ? alturas[muro] : null}
-                    placeholder={room.altura != null ? `sala: ${m2(room.altura)} m` : 'automÃ¡tica'}
+                    placeholder={room.altura != null ? `sala: ${m2(room.altura)} m` : 'automática'}
                     min={0.3}
                     title="Fija este muro en esa cifra, sin sobremuro"
                     onCommit={(v) => setAltura(muro, v)}
@@ -475,8 +475,8 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
           {vano && (
             <div className="elem-editor">
               <p className="elem-title">
-                {VANO_CORTO[vano.type] ?? 'Vano'} Â· muro {ladoDe(vano)} Â·{' '}
-                {m2(Number(vano.w) || anchoAuto(vano))} Ã— {m2(Number(vano.h) || altoAuto(vano))} m Â·
+                {VANO_CORTO[vano.type] ?? 'Vano'} · muro {ladoDe(vano)} ·{' '}
+                {m2(Number(vano.w) || anchoAuto(vano))} × {m2(Number(vano.h) || altoAuto(vano))} m ·
                 arranca a {m2(vano.base != null ? Number(vano.base) : baseAuto(vano))} m del piso
               </p>
               <div className="elem-fields">
@@ -493,7 +493,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                   <select
                     value={ladoDe(vano)}
                     disabled={poly}
-                    title={poly ? 'En forma libre el muro lo decide la geometrÃ­a: arrastra el vano en el plano' : undefined}
+                    title={poly ? 'En forma libre el muro lo decide la geometría: arrastra el vano en el plano' : undefined}
                     onChange={(e) => patchVano({ lado: e.target.value })}
                   >
                     {LADOS.map((l) => (<option key={l} value={l}>{l}</option>))}
@@ -541,7 +541,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
                 <label>
                   Abre hacia
                   <select value={vano.abre || ''} onChange={(e) => patchVano({ abre: e.target.value || null })}>
-                    <option value="">AutomÃ¡tico</option>
+                    <option value="">Automático</option>
                     <option value="adentro">Adentro de la sala</option>
                     <option value="afuera">Afuera</option>
                   </select>
@@ -549,7 +549,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
               </div>
               <div className="actions row" style={{ flexWrap: 'wrap' }}>
                 <button type="button" className="ghost small" onClick={() => patchVano({ w: null, h: null, base: null })}>
-                  Medidas automÃ¡ticas
+                  Medidas automáticas
                 </button>
                 <button
                   type="button"
@@ -568,7 +568,7 @@ function RoomElementsTool({ room, sel, onSelect, onPatch, onAddDoor, onWallLengt
 
           {!muro && !vano && (
             <p className="hint" style={{ margin: 0 }}>
-              Nada seleccionado todavÃ­a: elige arriba un muro o un vano, o tÃ³calo en el plano.
+              Nada seleccionado todavía: elige arriba un muro o un vano, o tócalo en el plano.
             </p>
           )}
         </>
@@ -593,10 +593,10 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
   const [err, setErr] = useState(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  // El largo de un muro ES el tamaÃ±o de la sala por ese eje. Se guarda al
-  // momento, como todo lo de la herramienta avanzada, y ademÃ¡s se refleja en
-  // los campos de arriba para que Â«Guardar cambiosÂ» no lo devuelva al valor
-  // con el que se abriÃ³ el recuadro.
+  // El largo de un muro ES el tamaño de la sala por ese eje. Se guarda al
+  // momento, como todo lo de la herramienta avanzada, y además se refleja en
+  // los campos de arriba para que «Guardar cambios» no lo devuelva al valor
+  // con el que se abrió el recuadro.
   const setLargoMuro = (lado, metros) => {
     const clave = EJE_LADO[lado] === 'H' ? 'width' : 'height'
     const v = Math.max(0.5, round2(Number(metros) || 0))
@@ -619,7 +619,7 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
       rotation: ((Math.round(Number(form.rotation) || 0) % 360) + 360) % 360,
       color: form.useColor ? form.color : null,
     }
-    // El tamaÃ±o viaja siempre, tambiÃ©n en forma libre: allÃ­ escala el dibujo.
+    // El tamaño viaja siempre, también en forma libre: allí escala el dibujo.
     Object.assign(patch, patchTamano(room, form.width, form.height))
     const { error } = await onSave(room.id, patch)
     setBusy(false)
@@ -631,11 +631,11 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
     <div className="inline-form compact">
       <div className="two-col">
         <label>
-          {isFarm ? 'Nombre del mÃ³dulo' : 'Nombre de la sala'}
+          {isFarm ? 'Nombre del módulo' : 'Nombre de la sala'}
           <input type="text" value={form.name} onChange={set('name')} autoFocus />
         </label>
         <label>
-          CÃ³digo
+          Código
           <input type="text" value={form.code} onChange={set('code')} />
         </label>
       </div>
@@ -651,7 +651,7 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
           </select>
         </label>
         <label>
-          TamaÃ±o (ancho Ã— alto, metros)
+          Tamaño (ancho × alto, metros)
           <span style={{ display: 'flex', gap: 6 }}>
             <input type="number" min="0.5" step="0.1" value={form.width} onChange={set('width')} style={{ width: '50%' }} />
             <input type="number" min="0.5" step="0.1" value={form.height} onChange={set('height')} style={{ width: '50%' }} />
@@ -664,17 +664,17 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
         </label>
       </div>
 
-      {/* RotaciÃ³n / orientaciÃ³n */}
+      {/* Rotación / orientación */}
       <div className="room-rot-row">
-        <span className="hint" style={{ margin: 0 }}>OrientaciÃ³n</span>
-        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: (((Math.round(Number(f.rotation) || 0) - 15) % 360) + 360) % 360 }))}>â†º âˆ’15Â°</button>
+        <span className="hint" style={{ margin: 0 }}>Orientación</span>
+        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: (((Math.round(Number(f.rotation) || 0) - 15) % 360) + 360) % 360 }))}>↺ −15°</button>
         <input
           type="number" min="0" max="359" value={form.rotation} onChange={set('rotation')}
-          style={{ width: 74 }} aria-label="Grados de rotaciÃ³n"
+          style={{ width: 74 }} aria-label="Grados de rotación"
         />
-        <span className="hint" style={{ margin: 0 }}>Â°</span>
-        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: (((Math.round(Number(f.rotation) || 0) + 15) % 360) + 360) % 360 }))}>+15Â° â†»</button>
-        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: 0 }))}>0Â°</button>
+        <span className="hint" style={{ margin: 0 }}>°</span>
+        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: (((Math.round(Number(f.rotation) || 0) + 15) % 360) + 360) % 360 }))}>+15° ↻</button>
+        <button type="button" className="ghost small" onClick={() => setForm((f) => ({ ...f, rotation: 0 }))}>0°</button>
       </div>
 
       {/* Color de fondo de la sala */}
@@ -708,7 +708,7 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
       </div>
 
       {/* Herramienta avanzada: muro por muro y vano por vano. Las puertas se
-          siguen arrastrando en el plano; aquÃ­ se les escribe la medida. */}
+          siguen arrastrando en el plano; aquí se les escribe la medida. */}
       <RoomElementsTool
         room={room}
         sel={sel}
@@ -720,16 +720,16 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
         isFarm={isFarm}
       />
 
-      {/* Plenum sobre esta sala: dibuja a mano alzada un vacÃ­o tÃ©cnico que
+      {/* Plenum sobre esta sala: dibuja a mano alzada un vacío técnico que
           cuelga del cielo raso de ESTA sala (queda como su anfitriona). */}
       {!isFarm && room.type !== 'plenum' && onStartPlenum && (
         <div className="room-door-row">
           <span className="hint" style={{ margin: 0 }}>
-            Â¿Necesitas un vacÃ­o tÃ©cnico sobre el cielo raso de esta sala (ductos, retorno de aire)?
+            ¿Necesitas un vacío técnico sobre el cielo raso de esta sala (ductos, retorno de aire)?
           </span>
           <div className="actions row" style={{ marginTop: 0 }}>
             <button type="button" className="chip ghost" onClick={() => onStartPlenum(room)}>
-              ðŸ§© Crear plenum sobre esta sala
+              🧩 Crear plenum sobre esta sala
             </button>
           </div>
         </div>
@@ -738,7 +738,7 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary small" onClick={submit} disabled={busy || form.name.trim().length < 2}>
-          {busy ? 'Guardandoâ€¦' : 'Guardar cambios'}
+          {busy ? 'Guardando…' : 'Guardar cambios'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -748,7 +748,7 @@ function EditRoomForm({ room, onSave, onCancel, onAddDoor, onStartPlenum, isFarm
   )
 }
 
-// â”€â”€ Plenum: sub-sala de forma libre colgada de una sala anfitriona â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Plenum: sub-sala de forma libre colgada de una sala anfitriona ─────────
 // A diferencia de una sala normal, un plenum no arranca del piso: vive sobre
 // el cielo raso de la sala que lo aloja (parte_de) y trae su propia
 // profundidad (altura). Se dibuja con la misma herramienta de forma libre.
@@ -790,16 +790,16 @@ function PlenumRoomForm({ hostRooms, initialHostId, onCreate, onCancel }) {
     <div className="inline-form">
       <p className="component-title" style={{ margin: '0 0 8px' }}>Nuevo plenum de forma libre</p>
       <p className="hint" style={{ margin: '0 0 12px' }}>
-        VacÃ­o tÃ©cnico sobre el cielo raso de una sala (ductos, retorno de aire). Se apoya en la
+        Vacío técnico sobre el cielo raso de una sala (ductos, retorno de aire). Se apoya en la
         altura de su sala anfitriona, no en el piso.
       </p>
       <div className="two-col">
         <label>
           Sala anfitriona
           <select value={hostId} onChange={(e) => pickHost(e.target.value)}>
-            <option value="">Elige una salaâ€¦</option>
+            <option value="">Elige una sala…</option>
             {hostRooms.filter((r) => r.type !== 'plenum').map((r) => (
-              <option key={r.id} value={r.id}>{r.code} Â· {r.name}</option>
+              <option key={r.id} value={r.id}>{r.code} · {r.name}</option>
             ))}
           </select>
         </label>
@@ -822,7 +822,7 @@ function PlenumRoomForm({ hostRooms, initialHostId, onCreate, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !hostId}>
-          {busy ? 'Agregandoâ€¦' : 'Agregar plenum'}
+          {busy ? 'Agregando…' : 'Agregar plenum'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -834,9 +834,9 @@ function PlenumRoomForm({ hostRooms, initialHostId, onCreate, onCancel }) {
 
 // Etiqueta legible del valor guardado en wall_heights para un muro.
 const wallHeightLabel = (v) =>
-  v == null ? 'automÃ¡tico (regla de siempre)' : v === 'techo' ? 'hasta la cubierta' : `${m2(v)} m fijo`
+  v == null ? 'automático (regla de siempre)' : v === 'techo' ? 'hasta la cubierta' : `${m2(v)} m fijo`
 
-// TamaÃ±o fijo por tipo de mÃ¡quina (en metros). Todas se ubican manualmente con drag.
+// Tamaño fijo por tipo de máquina (en metros). Todas se ubican manualmente con drag.
 // Medidas tomadas en planta: la incubadora es 4 de ancho por 3.5 de fondo y la
 // nacedora 3.5 por 1.8. `h` es el fondo, que en el plano se ve como alto.
 const MACHINE_SIZES = {
@@ -847,25 +847,25 @@ const MACHINE_SIZES = {
   compressor: { w: 2.6, h: 1.8 },
 }
 const DEFAULT_SIZE = { w: 2.6, h: 1.8 }
-// Alto de cada tipo (m). AquÃ­ no se dibuja â€”el plano es en plantaâ€” pero es lo
+// Alto de cada tipo (m). Aquí no se dibuja —el plano es en planta— pero es lo
 // que usa el recorrido 3D cuando el equipo no trae alto propio, y hay que
-// enseÃ±arlo al editarlo para saber quÃ© se estÃ¡ cambiando.
+// enseñarlo al editarlo para saber qué se está cambiando.
 const MACHINE_ALTO = { setter: 2.4, combo: 2.4, hatcher: 2.4, chiller: 2.1, compressor: 1.7 }
 const DEFAULT_ALTO = 1.8
 const machineAlto = (m) => (Number(m?.height) > 0 ? Number(m.height) : (MACHINE_ALTO[m?.type] ?? DEFAULT_ALTO))
 
-// Medida por tipo, antes de mirar la del equipo. Un galpÃ³n la saca de `model`.
+// Medida por tipo, antes de mirar la del equipo. Un galpón la saca de `model`.
 const machineSizeTipo = (m) => {
   if (m.brand === 'galpon_p1' || m.brand === 'galpon_p2') {
-    // El largo real varÃ­a por edificio y se guarda en `model` como ANCHOxLARGO (ej. "14x80")
+    // El largo real varía por edificio y se guarda en `model` como ANCHOxLARGO (ej. "14x80")
     const mm = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(m.model || '')
     if (mm) return { w: Number(mm[1]), h: Number(mm[2]) }
-    return { w: 14, h: 100 } // por defecto: galpÃ³n estÃ¡ndar
+    return { w: 14, h: 100 } // por defecto: galpón estándar
   }
   return MACHINE_SIZES[m.type] ?? DEFAULT_SIZE
 }
 // Y la de verdad: la que tenga escrita el equipo gana. Hasta 2026-09-04 el
-// tamaÃ±o estaba clavado por tipo y dos chillers distintos se dibujaban iguales.
+// tamaño estaba clavado por tipo y dos chillers distintos se dibujaban iguales.
 const machineSize = (m) => {
   const tipo = machineSizeTipo(m)
   return {
@@ -874,22 +874,22 @@ const machineSize = (m) => {
   }
 }
 
-// â”€â”€ GeometrÃ­a de forma libre y rotaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// clip-path en % a partir de los vÃ©rtices del polÃ­gono y su bounding box (anchoÃ—alto)
+// ── Geometría de forma libre y rotación ──────────────────────
+// clip-path en % a partir de los vértices del polígono y su bounding box (ancho×alto)
 function polyClip(points, W, H) {
   if (!Array.isArray(points) || points.length < 3 || !W || !H) return null
   return `polygon(${points.map((p) => `${((p.x / W) * 100).toFixed(2)}% ${((p.y / H) * 100).toFixed(2)}%`).join(', ')})`
 }
 const polyStr = (points) => points.map((p) => `${p.x},${p.y}`).join(' ')
 const isPoly = (room) => Array.isArray(room.points) && room.points.length >= 3
-// Redondea a 5Â° con imÃ¡n a los mÃºltiplos de 90Â°
+// Redondea a 5° con imán a los múltiplos de 90°
 const snapDeg = (deg) => {
   let d = (((Math.round(deg / 5) * 5) % 360) + 360) % 360
   for (const k of [0, 90, 180, 270]) if (Math.abs(d - k) <= 4 || Math.abs(d - 360) <= 4) d = k
   return d
 }
 
-// Parte visual de cada mÃ¡quina (chiller / compresor / incubadora genÃ©rica / galpones)
+// Parte visual de cada máquina (chiller / compresor / incubadora genérica / galpones)
 function MachineGlyph({ m }) {
   if (m.brand === 'galpon_p1' || m.brand === 'galpon_p2') {
     const isP2 = m.brand === 'galpon_p2'
@@ -978,8 +978,8 @@ function MachineGlyph({ m }) {
 
 
 /**
- * Campo de texto que se guarda al salir del campo o con Enter â€” el mismo trato
- * que MedidaInput, pero para el nombre y el cÃ³digo.
+ * Campo de texto que se guarda al salir del campo o con Enter — el mismo trato
+ * que MedidaInput, pero para el nombre y el código.
  */
 function TextoInput({ value, onCommit, placeholder, minLargo = 1 }) {
   const [txt, setTxt] = useState(value ?? '')
@@ -1001,10 +1001,10 @@ function TextoInput({ value, onCommit, placeholder, minLargo = 1 }) {
 
 /**
  * Editor del equipo seleccionado, dentro del plano: identidad, medidas propias
- * y ubicaciÃ³n en su sala. Todo se guarda al momento, como el arrastre.
+ * y ubicación en su sala. Todo se guarda al momento, como el arrastre.
  *
- * Una medida vacÃ­a significa Â«la de su tipoÂ» â€”una incubadora mide 4 Ã— 3,5 Ã— 2,4
- * si nadie dice otra cosaâ€” y la marca de agua enseÃ±a esa cifra. La ubicaciÃ³n es
+ * Una medida vacía significa «la de su tipo» —una incubadora mide 4 × 3,5 × 2,4
+ * si nadie dice otra cosa— y la marca de agua enseña esa cifra. La ubicación es
  * la misma que se cambia arrastrando, pero escrita: arrastrando no se acierta a
  * dejar dos equipos a ras, y en un banco corrido de incubadoras eso se nota.
  */
@@ -1017,13 +1017,13 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
     <div className="inline-form compact">
       <div className="room-elems-head">
         <span className="component-title">
-          Equipo {machine.code}{room ? ` Â· ${room.name}` : ' Â· sin ubicar'}
+          Equipo {machine.code}{room ? ` · ${room.name}` : ' · sin ubicar'}
         </span>
         <button type="button" className="ghost small" onClick={onClose}>Cerrar</button>
       </div>
       <p className="hint" style={{ margin: '0 0 10px' }}>
-        {MACHINE_TYPE_LABELS[machine.type] ?? machine.type} Â· {m2(w)} Ã— {m2(h)} m en planta Â·{' '}
-        {m2(machineAlto(machine))} m de alto. Se guarda al momento; deja una medida vacÃ­a para
+        {MACHINE_TYPE_LABELS[machine.type] ?? machine.type} · {m2(w)} × {m2(h)} m en planta ·{' '}
+        {m2(machineAlto(machine))} m de alto. Se guarda al momento; deja una medida vacía para
         devolverla a la de su tipo.
       </p>
 
@@ -1033,7 +1033,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
           <TextoInput value={machine.name} onCommit={(v) => onPatch({ name: v })} minLargo={2} />
         </label>
         <label>
-          CÃ³digo
+          Código
           <TextoInput value={machine.code} onCommit={(v) => onPatch({ code: v })} />
         </label>
         <label>
@@ -1083,17 +1083,17 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
         </label>
       </div>
 
-      <p className="elem-title" style={{ margin: '12px 0 6px' }}>UbicaciÃ³n</p>
+      <p className="elem-title" style={{ margin: '12px 0 6px' }}>Ubicación</p>
       <div className="elem-fields">
         <label>
-          {isFarm ? 'MÃ³dulo' : 'Sala'}
+          {isFarm ? 'Módulo' : 'Sala'}
           <select
             value={machine.room_id || ''}
             onChange={(e) => onPatch({ room_id: e.target.value || null })}
           >
             <option value="">Sin ubicar</option>
             {rooms.map((r) => (
-              <option key={r.id} value={r.id}>{r.code} Â· {r.name}</option>
+              <option key={r.id} value={r.id}>{r.code} · {r.name}</option>
             ))}
           </select>
         </label>
@@ -1101,7 +1101,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
           Desde el borde izquierdo (m)
           <MedidaInput
             value={round2(Number(machine.pos_x) || 0)} min={0} disabled={!room}
-            title={room ? 'Distancia al muro izquierdo de la sala' : 'El equipo no estÃ¡ en ninguna sala'}
+            title={room ? 'Distancia al muro izquierdo de la sala' : 'El equipo no está en ninguna sala'}
             onCommit={(v) => onPatch({ pos_x: dentro(v, Number(room?.width || 0) - w) })}
           />
         </label>
@@ -1113,7 +1113,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
           />
         </label>
         <label>
-          Giro (Â°)
+          Giro (°)
           <MedidaInput
             value={round2(Number(machine.rotation) || 0)} min={0} step={15}
             onCommit={(v) => onPatch({ rotation: ((Math.round(v) % 360) + 360) % 360 })}
@@ -1138,7 +1138,7 @@ function MachineEditor({ machine, room, rooms, onPatch, onDelete, onClose, isFar
   )
 }
 
-export default function FloorMap({ 
+export default function FloorMap({
 
   canManage,
   canExpand = false,
@@ -1153,13 +1153,13 @@ export default function FloorMap({
   isFarm = false,
   /** Personas proyectadas en el plano (metros): { userId, name, roleLabel, isMe, x, y, accuracy  = () => {, })}) */
   livePeople = [],
-  /** CalibraciÃ³n 2 puntos: clic en el plano para marcar el hito */
+  /** Calibración 2 puntos: clic en el plano para marcar el hito */
   calibrationPickMode = false,
   onCalibrationPick,
   calibrationLandmark = null,
-  /** Estado real por mÃ¡quina (rondas): { [machineId]: { cls, label } } â€” badge opcional */
+  /** Estado real por máquina (rondas): { [machineId]: { cls, label } } — badge opcional */
   conditionByMachine = null,
-  /** Set de ids de sala a resaltar (filtros dinÃ¡micos); las demÃ¡s se atenÃºan. null/vacÃ­o = sin resaltar ninguna. */
+  /** Set de ids de sala a resaltar (filtros dinámicos); las demás se atenúan. null/vacío = sin resaltar ninguna. */
   highlightRoomIds = null,
 }) {
   const {
@@ -1174,9 +1174,9 @@ export default function FloorMap({
   // Tanto en planta como en granja, todas las salas y galpones se dibujan y editan en el plano.
   const visibles = allRooms
 
-  // Nivel que se estÃ¡ dibujando. La planta tiene entrepiso sobre el ala de
+  // Nivel que se está dibujando. La planta tiene entrepiso sobre el ala de
   // incubadoras, y sus salas viven aparte: se editan sin estorbar a las de
-  // abajo, que quedan de guÃ­a para calcarlas.
+  // abajo, que quedan de guía para calcarlas.
   const [nivel, setNivel] = useState(1)
   const nivelDe = (r) => Number(r.nivel) || 1
   const rooms = useMemo(() => visibles.filter((r) => nivelDe(r) === nivel), [visibles, nivel])
@@ -1186,7 +1186,7 @@ export default function FloorMap({
   )
 
   const [drag, setDrag] = useState(null)
-  const [mdrag, setMdrag] = useState(null) // drag de miniatura de mÃ¡quina
+  const [mdrag, setMdrag] = useState(null) // drag de miniatura de máquina
   const [ddrag, setDdrag] = useState(null) // drag de puerta
   const [rotDrag, setRotDrag] = useState(null) // giro de sala con el tirador
   const [selectedId, setSelectedId] = useState(null)
@@ -1194,20 +1194,20 @@ export default function FloorMap({
   const [editing, setEditing] = useState(false)
   const [scale, setScale] = useState(SCALE_DEFAULT) // px por metro (zoom)
   const [expanded, setExpanded] = useState(false) // vista de plano completo (pantalla completa)
-  // Dibujo de Ã¡rea de forma libre (polÃ­gono punto a punto)
+  // Dibujo de área de forma libre (polígono punto a punto)
   const [drawing, setDrawing] = useState(false)
-  const [drawingPlenum, setDrawingPlenum] = useState(false) // el trazo en curso es un plenum, no un Ã¡rea
+  const [drawingPlenum, setDrawingPlenum] = useState(false) // el trazo en curso es un plenum, no un área
   const [plenumHost, setPlenumHost] = useState(null) // sala preseleccionada al abrir "Crear plenum" desde Editar sala
   const [draftPoints, setDraftPoints] = useState([])
   const [cursor, setCursor] = useState(null)
   const [pendingShape, setPendingShape] = useState(null)
-  // Elemento de la envolvente en ediciÃ³n: un muro, una puerta o una ventana de
-  // la sala seleccionada. Se elige tocÃ¡ndolo en el plano o en la herramienta
-  // avanzada del recuadro de ediciÃ³n, y las dos vistas lo resaltan a la vez.
+  // Elemento de la envolvente en edición: un muro, una puerta o una ventana de
+  // la sala seleccionada. Se elige tocándolo en el plano o en la herramienta
+  // avanzada del recuadro de edición, y las dos vistas lo resaltan a la vez.
   const [elemSel, setElemSel] = useState(null) // { roomId, tipo: 'muro'|'vano', lado?, doorId? }
   const containerRef = useRef(null)
   const wrapRef = useRef(null)     // contenedor con scroll: permite desplazar el plano arrastrando
-  const didPanRef = useRef(false)  // marca si el Ãºltimo gesto fue un desplazamiento (para no seleccionar sala al soltar)
+  const didPanRef = useRef(false)  // marca si el último gesto fue un desplazamiento (para no seleccionar sala al soltar)
 
   const selectedRoom = rooms.find((r) => r.id === selectedId) ?? null
   const selectedMachine = machines.find((m) => m.id === selectedMachineId) ?? null
@@ -1224,9 +1224,9 @@ export default function FloorMap({
     return { canvasW: Math.max(MIN_W, maxX + 80), canvasH: Math.max(MIN_H, maxY + 80) }
   }, [rooms, debajo, scale])
 
-  // El canvas de granja tambiÃ©n es PLANO (el "3D" son solo sombras/estilo), asÃ­ que
-  // las coordenadas se calculan igual que en planta. La antigua matemÃ¡tica isomÃ©trica
-  // inversa desplazaba los puntos y daÃ±aba el dibujo libre y el arrastre en granjas.
+  // El canvas de granja también es PLANO (el "3D" son solo sombras/estilo), así que
+  // las coordenadas se calculan igual que en planta. La antigua matemática isométrica
+  // inversa desplazaba los puntos y dañaba el dibujo libre y el arrastre en granjas.
   const getMapCoords = (e) => {
     const rect = containerRef.current.getBoundingClientRect()
     return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale }
@@ -1266,17 +1266,17 @@ export default function FloorMap({
     }
   }, [expanded, fitToScreen])
 
-  // La selecciÃ³n de muro o de vano pertenece a una sala: al cambiar de sala, o
+  // La selección de muro o de vano pertenece a una sala: al cambiar de sala, o
   // al cerrar el detalle, deja de tener sentido y se suelta.
   useEffect(() => {
     setElemSel((sel) => (sel && sel.roomId === selectedId ? sel : null))
   }, [selectedId])
 
-  // Empuje con las flechas del teclado. Arrastrar con el ratÃ³n sirve para
+  // Empuje con las flechas del teclado. Arrastrar con el ratón sirve para
   // llevar una sala de un sitio a otro, pero para dejarla a ras de su vecina
-  // hace falta ir de a un paso: media pulsaciÃ³n de mÃ¡s y ya se pasÃ³. Cada
+  // hace falta ir de a un paso: media pulsación de más y ya se pasó. Cada
   // flecha mueve medio metro, el mismo paso del arrastre; con Shift, diez
-  // centÃ­metros.
+  // centímetros.
   useEffect(() => {
     if (!canManage || !selectedRoom) return
     const PASOS = {
@@ -1285,7 +1285,7 @@ export default function FloorMap({
     const onFlecha = (e) => {
       const paso = PASOS[e.key]
       if (!paso) return
-      // Las flechas son de quien estÃ© escribiendo, si hay alguien escribiendo.
+      // Las flechas son de quien esté escribiendo, si hay alguien escribiendo.
       const t = e.target
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
       e.preventDefault()
@@ -1310,7 +1310,7 @@ export default function FloorMap({
       offsetY: coords.y - room.pos_y,
       x: room.pos_x,
       y: room.pos_y,
-      // De dÃ³nde saliÃ³, para poder redondear el DESPLAZAMIENTO y no la posiciÃ³n.
+      // De dónde salió, para poder redondear el DESPLAZAMIENTO y no la posición.
       x0: room.pos_x,
       y0: room.pos_y,
       moved: false,
@@ -1323,7 +1323,7 @@ export default function FloorMap({
     const coords = getMapCoords(e)
 
     if (drawing) {
-      // Previsualiza la lÃ­nea hacia el cursor mientras se dibuja el Ã¡rea
+      // Previsualiza la línea hacia el cursor mientras se dibuja el área
       setCursor({
         x: Math.round(coords.x * 2) / 2,
         y: Math.round(coords.y * 2) / 2,
@@ -1345,7 +1345,7 @@ export default function FloorMap({
       const rawY = coords.y - room.pos_y - ddrag.offsetY
       const snappedX = Math.round(rawX * 5) / 5
       const snappedY = Math.round(rawY * 5) / 5
-      // La puerta se mueve por el interior/perÃ­metro de la sala
+      // La puerta se mueve por el interior/perímetro de la sala
       const span = doorSpan(ddrag ?? {})
       const nx = Math.min(Math.max(0, snappedX), Math.max(0, room.width - span))
       const ny = Math.min(Math.max(0, snappedY), Math.max(0, room.height - span))
@@ -1356,7 +1356,7 @@ export default function FloorMap({
     }
     if (mdrag) {
       if (!canManage) return // los no administradores solo seleccionan
-      // Arrastre de mÃ¡quina: limitado al interior de su sala
+      // Arrastre de máquina: limitado al interior de su sala
       const room = rooms.find((r) => r.id === mdrag.roomId)
       if (!room) return
       const rawX = coords.x - room.pos_x - mdrag.offsetX
@@ -1364,7 +1364,7 @@ export default function FloorMap({
       // Snap to 0.2m grid during dragging
       const snappedX = Math.round(rawX * 5) / 5
       const snappedY = Math.round(rawY * 5) / 5
-      // Limitar el arrastre para que la mÃ¡quina no salga de la sala
+      // Limitar el arrastre para que la máquina no salga de la sala
       const nx = Math.min(Math.max(0, snappedX), Math.max(0, room.width - mdrag.w))
       const ny = Math.min(Math.max(0, snappedY), Math.max(0, room.height - mdrag.h))
       setMdrag((d) =>
@@ -1374,14 +1374,14 @@ export default function FloorMap({
     }
     if (!drag) return
     // La sala se mueve de medio metro en medio metro. Antes iba de metro en
-    // metro â€”era el Ãºnico elemento del plano asÃ­; las mÃ¡quinas y las puertas
-    // van a 0,2 y el trazado de Ã¡reas a 0,5â€” y habÃ­a ubicaciones que
-    // sencillamente no se podÃ­an alcanzar.
+    // metro —era el único elemento del plano así; las máquinas y las puertas
+    // van a 0,2 y el trazado de áreas a 0,5— y había ubicaciones que
+    // sencillamente no se podían alcanzar.
     //
-    // Se redondea el DESPLAZAMIENTO, no la posiciÃ³n: las salas estÃ¡n en
-    // coordenadas medidas en sitio (9,73 Â· 41,09 Â· 70,82) y redondear la
-    // posiciÃ³n las arrancarÃ­a de esa retÃ­cula y descuadrarÃ­a el plano entero.
-    // AsÃ­ una sala en 9,73 pasa a 10,23, que es moverla medio metro de verdad.
+    // Se redondea el DESPLAZAMIENTO, no la posición: las salas están en
+    // coordenadas medidas en sitio (9,73 · 41,09 · 70,82) y redondear la
+    // posición las arrancaría de esa retícula y descuadraría el plano entero.
+    // Así una sala en 9,73 pasa a 10,23, que es moverla medio metro de verdad.
     const dx = Math.round((coords.x - drag.offsetX - drag.x0) * 2) / 2
     const dy = Math.round((coords.y - drag.offsetY - drag.y0) * 2) / 2
     const nx = Math.max(0, round2(drag.x0 + dx))
@@ -1431,12 +1431,12 @@ export default function FloorMap({
     setDrag(null)
   }
 
-  // â”€â”€ Puertas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Puertas ────────────────────────────────────────────────
   const addDoor = (type) => {
     if (!selectedRoom) return
     // Nace centrada en la pared superior, y con su muro ya escrito: si se
-    // quedara sin `lado`, el 3D volverÃ­a a deducirlo por distancia y una
-    // re-medida de la sala podrÃ­a cambiÃ¡rsela de sitio.
+    // quedara sin `lado`, el 3D volvería a deducirlo por distancia y una
+    // re-medida de la sala podría cambiársela de sitio.
     const ancho = type === 'window' ? 1 : DOOR_SIZE
     const door = {
       id: newId(),
@@ -1447,7 +1447,7 @@ export default function FloorMap({
       ...(type === 'window' ? { w: 1 } : null),
     }
     updateRoom(selectedRoom.id, { doors: [...(selectedRoom.doors ?? []), door] })
-    // ReciÃ©n puesta queda seleccionada: la herramienta avanzada abre con ella y
+    // Recién puesta queda seleccionada: la herramienta avanzada abre con ella y
     // se le escriben las medidas sin tener que ir a buscarla en el plano.
     setElemSel({ roomId: selectedRoom.id, tipo: 'vano', doorId: door.id })
   }
@@ -1484,8 +1484,8 @@ export default function FloorMap({
       })
       updateRoom(room.id, { doors })
     } else if (canManage) {
-      // Un clic sin arrastre es una selecciÃ³n: el vano se abre en la
-      // herramienta avanzada del recuadro de ediciÃ³n.
+      // Un clic sin arrastre es una selección: el vano se abre en la
+      // herramienta avanzada del recuadro de edición.
       setElemSel({ roomId: room.id, tipo: 'vano', doorId: door.id })
     }
     setDdrag(null)
@@ -1497,12 +1497,12 @@ export default function FloorMap({
     updateRoom(room.id, { doors })
   }
 
-  // Hacia dÃ³nde abre la hoja en el recorrido 3D. Sin valor lo decide Ã©l solo,
-  // por reglas (espacio confinado, baÃ±o, salida al exterior, pasillo, y a
-  // igualdad hacia la sala mÃ¡s amplia) y luego reajusta las que estorban. Eso
-  // acierta casi siempre, pero no lo ve todo: la puerta del Ã¡rea tÃ©cnica da a
+  // Hacia dónde abre la hoja en el recorrido 3D. Sin valor lo decide él solo,
+  // por reglas (espacio confinado, baño, salida al exterior, pasillo, y a
+  // igualdad hacia la sala más amplia) y luego reajusta las que estorban. Eso
+  // acierta casi siempre, pero no lo ve todo: la puerta del área técnica da a
   // la escalera, que no es una sala, y la trataba como salida al exterior
-  // abriÃ©ndola sobre el hueco. Escrito a mano manda, y la deja fija.
+  // abriéndola sobre el hueco. Escrito a mano manda, y la deja fija.
   const cycleDoorAbre = (room, door) => {
     const abre = door.abre === 'adentro' ? 'afuera' : door.abre === 'afuera' ? null : 'adentro'
     const doors = (room.doors ?? []).map((d) => {
@@ -1513,7 +1513,7 @@ export default function FloorMap({
     updateRoom(room.id, { doors })
   }
 
-  // â”€â”€ RotaciÃ³n de salas y mÃ¡quinas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Rotación de salas y máquinas ───────────────────────────
   const startRotate = (e, room) => {
     if (!canManage) return
     e.stopPropagation()
@@ -1537,7 +1537,7 @@ export default function FloorMap({
     updateMachine?.(m.id, { rotation: rot })
   }
 
-  // â”€â”€ Dibujo de Ã¡rea de forma libre â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dibujo de área de forma libre ──────────────────────────
   const onCanvasPointerDown = (e) => {
     if (!drawing) return
     const coords = getMapCoords(e)
@@ -1550,7 +1550,7 @@ export default function FloorMap({
     ])
   }
 
-  // Observadores: arrastrar con el mouse para desplazar el plano (ademÃ¡s del zoom y el scroll nativo).
+  // Observadores: arrastrar con el mouse para desplazar el plano (además del zoom y el scroll nativo).
   // En pantalla completa esto hace el plano "navegable" como un mapa.
   const startPan = (e) => {
     const wrap = wrapRef.current
@@ -1575,9 +1575,9 @@ export default function FloorMap({
   }
 
   const handleMapPointerDown = (e) => {
-    onCanvasPointerDown(e) // dibujo de Ã¡rea de forma libre (solo activo en modo ediciÃ³n)
+    onCanvasPointerDown(e) // dibujo de área de forma libre (solo activo en modo edición)
     if (canManage || drawing) return
-    if (e.pointerType && e.pointerType !== 'mouse') return // en tÃ¡ctil basta el scroll nativo
+    if (e.pointerType && e.pointerType !== 'mouse') return // en táctil basta el scroll nativo
     startPan(e)
   }
 
@@ -1616,9 +1616,9 @@ export default function FloorMap({
     setCursor(null)
   }
 
-  // â”€â”€ Equipos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Equipos ────────────────────────────────────────────────────────────
   // Nace en la sala seleccionada, medio metro adentro de su esquina, y queda
-  // seleccionado: el tipo y la medida se le escriben ahÃ­ mismo, sin ir al
+  // seleccionado: el tipo y la medida se le escriben ahí mismo, sin ir al
   // listado de equipos y volver.
   const crearEquipo = async () => {
     if (!selectedRoom || !createMachine) return
@@ -1641,7 +1641,7 @@ export default function FloorMap({
   const eliminarEquipo = async () => {
     if (!selectedMachine || !deleteMachine) return
     if (!window.confirm(
-      `Â¿Eliminar el equipo "${selectedMachine.name}" (${selectedMachine.code})? Esta acciÃ³n no se puede deshacer.`
+      `¿Eliminar el equipo "${selectedMachine.name}" (${selectedMachine.code})? Esta acción no se puede deshacer.`
     )) return
     const { error: err } = await deleteMachine(selectedMachine.id)
     if (!err) onSelectMachine?.(null)
@@ -1649,7 +1649,7 @@ export default function FloorMap({
 
   const onDelete = async () => {
     if (!selectedRoom) return
-    if (!window.confirm(`Â¿Eliminar el ${isFarm ? 'mÃ³dulo' : 'sala'} "${selectedRoom.name}"? Esta acciÃ³n no se puede deshacer.`)) return
+    if (!window.confirm(`¿Eliminar el ${isFarm ? 'módulo' : 'sala'} "${selectedRoom.name}"? Esta acción no se puede deshacer.`)) return
     const { error: err } = await deleteRoom(selectedRoom.id)
     if (!err) setSelectedId(null)
   }
@@ -1658,8 +1658,8 @@ export default function FloorMap({
     <div className={`floor-map-wrap${expanded ? ' expanded' : ''}`} ref={wrapRef}>
       <div className="floor-map-toolbar">
         <span className="hint" style={{ margin: 0 }}>
-          {canManage 
-            ? (isFarm ? 'Arrastra los mÃ³dulos para reubicarlos en el plano.' : 'Arrastra las salas para reubicarlas en el plano.') 
+          {canManage
+            ? (isFarm ? 'Arrastra los módulos para reubicarlos en el plano.' : 'Arrastra las salas para reubicarlas en el plano.')
             : (isFarm ? 'Vista de solo lectura del plano de granja.' : 'Vista de solo lectura del plano de planta.')}
         </span>
         <div className="floor-map-tools">
@@ -1684,33 +1684,33 @@ export default function FloorMap({
             </div>
           )}
           <div className="zoom-controls" role="group" aria-label="Zoom del plano">
-            <button className="chip ghost" onClick={zoomOut} title="Alejar" aria-label="Alejar">âˆ’</button>
+            <button className="chip ghost" onClick={zoomOut} title="Alejar" aria-label="Alejar">−</button>
             <button className="chip ghost" onClick={fitToScreen} title="Ajustar a la pantalla">Ajustar</button>
             <button className="chip ghost" onClick={zoomIn} title="Acercar" aria-label="Acercar">+</button>
           </div>
           {canExpand && (
             <button className="chip ghost" onClick={toggleExpand} title={expanded ? 'Cerrar vista completa' : 'Ver el plano completo'}>
-              {expanded ? 'âœ• Cerrar' : 'â¤¢ Ver completo'}
+              {expanded ? '✕ Cerrar' : '⤢ Ver completo'}
             </button>
           )}
           {canManage && !showForm && !pendingShape && (
             drawing ? (
-              <div className="draw-controls" role="group" aria-label="Dibujar Ã¡rea">
+              <div className="draw-controls" role="group" aria-label="Dibujar área">
                 <span className="hint" style={{ margin: 0 }}>
-                  {drawingPlenum ? 'Toca las esquinas del plenumâ€¦' : 'Toca las esquinas del Ã¡reaâ€¦'}
+                  {drawingPlenum ? 'Toca las esquinas del plenum…' : 'Toca las esquinas del área…'}
                 </span>
-                <button className="chip ghost" onClick={undoPoint} disabled={draftPoints.length === 0}>â†¶ Punto</button>
-                <button className="chip ghost" onClick={cancelDraw}>âœ• Cancelar</button>
-                <button className="chip primary" onClick={closeArea} disabled={draftPoints.length < 3}>âœ“ Cerrar Ã¡rea</button>
+                <button className="chip ghost" onClick={undoPoint} disabled={draftPoints.length === 0}>↶ Punto</button>
+                <button className="chip ghost" onClick={cancelDraw}>✕ Cancelar</button>
+                <button className="chip primary" onClick={closeArea} disabled={draftPoints.length < 3}>✓ Cerrar área</button>
               </div>
             ) : (
               <>
                 <button
                   className="chip ghost"
                   onClick={() => { setDrawing(true); setDrawingPlenum(false); setEditing(false) }}
-                  title={isFarm ? "Dibujar un mÃ³dulo con forma libre" : "Dibujar un Ã¡rea con forma libre"}
+                  title={isFarm ? "Dibujar un módulo con forma libre" : "Dibujar un área con forma libre"}
                 >
-                  âœï¸ Dibujar Ã¡rea
+                  Dibujar area
                 </button>
                 {!isFarm && (
                   <button
@@ -1718,11 +1718,11 @@ export default function FloorMap({
                     onClick={() => { setPlenumHost(null); setDrawing(true); setDrawingPlenum(true); setEditing(false) }}
                     title="Dibujar un plenum de forma libre, colgado de una sala"
                   >
-                    ðŸ§© Crear plenum
+                    🧩 Crear plenum
                   </button>
                 )}
                 <button className="chip ghost" onClick={() => setShowForm(true)}>
-                  {isFarm ? '+ Nuevo mÃ³dulo' : '+ Nueva sala'}
+                  {isFarm ? '+ Nuevo módulo' : '+ Nueva sala'}
                 </button>
               </>
             )
@@ -1741,7 +1741,7 @@ export default function FloorMap({
           />
         ) : (
           <NewRoomForm
-            heading="Nueva Ã¡rea de forma libre"
+            heading="Nueva área de forma libre"
             defaultType={isFarm ? 'road' : 'parking'}
             onCreate={(vals) => createRoom({ ...vals, ...pendingShape, nivel })}
             onCancel={() => setPendingShape(null)}
@@ -1751,16 +1751,16 @@ export default function FloorMap({
       )}
       {!isFarm && nivel === 2 && rooms.length === 0 && (
         <p className="hint" style={{ marginTop: 8 }}>
-          El entrepiso estÃ¡ vacÃ­o. Dibuja aquÃ­ sus salas: el plano de abajo queda
+          El entrepiso está vacío. Dibuja aquí sus salas: el plano de abajo queda
           de calco, y lo que agregues vive solo en este nivel.
         </p>
       )}
       {error && <p className="msg error">{error}</p>}
 
       {loading ? (
-        <p className="hint">{isFarm ? 'Cargando mÃ³dulosâ€¦' : 'Cargando salasâ€¦'}</p>
+        <p className="hint">{isFarm ? 'Cargando módulos…' : 'Cargando salas…'}</p>
       ) : rooms.length === 0 && !showForm ? (
-        <p className="hint">{isFarm ? 'Esta granja todavÃ­a no tiene mÃ³dulos en el mapa.' : 'Esta planta todavÃ­a no tiene salas en el mapa.'}</p>
+        <p className="hint">{isFarm ? 'Esta granja todavía no tiene módulos en el mapa.' : 'Esta planta todavía no tiene salas en el mapa.'}</p>
       ) : (
         <div
           className={`floor-map${drawing ? ' drawing' : ''}${isFarm ? ' is-farm-3d' : ''}${!canManage ? ' pannable' : ''}${livePeople?.length ? ' has-live-people' : ''}${calibrationPickMode ? ' geo-pick' : ''}`}
@@ -1833,7 +1833,7 @@ export default function FloorMap({
                       <polygon points={polyStr(pts)} vectorEffect="non-scaling-stroke" />
                     </svg>
                   )}
-                  {/* El nombre corre a lo largo del lado mÃ¡s extenso de la sala (vertical si es mÃ¡s alta que ancha) */}
+                  {/* El nombre corre a lo largo del lado más extenso de la sala (vertical si es más alta que ancha) */}
                   <span
                     className={`room-name${H > W ? ' vertical' : ''}`}
                     style={{ maxWidth: Math.max(24, (H > W ? H : W) * scale - 12) }}
@@ -1843,7 +1843,7 @@ export default function FloorMap({
                   <span className="room-code">{room.code}</span>
                 </div>
 
-                {/* MÃ¡quinas de la sala (giran junto con ella) */}
+                {/* Máquinas de la sala (giran junto con ella) */}
                 {roomMachines.map((m) => {
                   const isMdrag = mdrag?.id === m.id
                   const { w: mW, h: mH } = machineSize(m)
@@ -1881,8 +1881,8 @@ export default function FloorMap({
                           style={{ left: (mx + mW / 2) * scale, top: my * scale }}
                           onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <button title="Girar âˆ’15Â°" onClick={(e) => { e.stopPropagation(); rotateMachine(m, -15) }}>â†º</button>
-                          <button title="Girar +15Â°" onClick={(e) => { e.stopPropagation(); rotateMachine(m, 15) }}>â†»</button>
+                          <button title="Girar −15°" onClick={(e) => { e.stopPropagation(); rotateMachine(m, -15) }}>↺</button>
+                          <button title="Girar +15°" onClick={(e) => { e.stopPropagation(); rotateMachine(m, 15) }}>↻</button>
                         </div>
                       )}
                     </Fragment>
@@ -1915,18 +1915,18 @@ export default function FloorMap({
                         <>
                           <button
                             className="door-rot"
-                            title="Girar puerta 90Â°"
+                            title="Girar puerta 90°"
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => { e.stopPropagation(); rotateDoor(room, d) }}
                           >
-                            âŸ³
+                            ⟳
                           </button>
                           <button
                             className={`door-abre${d.abre ? ' fijo' : ''}`}
                             title={
                               d.abre === 'adentro' ? 'Abre hacia adentro de la sala (clic: hacia afuera)'
-                              : d.abre === 'afuera' ? 'Abre hacia afuera de la sala (clic: automÃ¡tico)'
-                              : 'Sentido de apertura automÃ¡tico (clic: fijarlo hacia adentro)'
+                                : d.abre === 'afuera' ? 'Abre hacia afuera de la sala (clic: automático)'
+                                  : 'Sentido de apertura automático (clic: fijarlo hacia adentro)'
                             }
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => { e.stopPropagation(); cycleDoorAbre(room, d) }}
@@ -1939,7 +1939,7 @@ export default function FloorMap({
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => { e.stopPropagation(); removeDoor(room, d.id) }}
                           >
-                            âœ•
+                            ✕
                           </button>
                         </>
                       )}
@@ -1947,8 +1947,8 @@ export default function FloorMap({
                   )
                 })}
 
-                {/* Muros seleccionables: cada lado se puede fijar en automÃ¡tico,
-                    hasta la cubierta, o una altura especÃ­fica en metros. */}
+                {/* Muros seleccionables: cada lado se puede fijar en automático,
+                    hasta la cubierta, o una altura específica en metros. */}
                 {!isFarm && editableRoom && LADOS.map((lado) => (
                   <div
                     key={lado}
@@ -1963,7 +1963,7 @@ export default function FloorMap({
                 {canManage && selected && !isDragging && !drawing && (
                   <div
                     className="room-rotate-handle"
-                    title={isFarm ? "Girar el mÃ³dulo (arrastra)" : "Girar la sala (arrastra)"}
+                    title={isFarm ? "Girar el módulo (arrastra)" : "Girar la sala (arrastra)"}
                     onPointerDown={(e) => startRotate(e, room)}
                     onPointerUp={() => endRotate(room)}
                     onPointerCancel={() => setRotDrag(null)}
@@ -1973,7 +1973,7 @@ export default function FloorMap({
             )
           })}
 
-          {/* Trazo en curso del Ã¡rea de forma libre */}
+          {/* Trazo en curso del área de forma libre */}
           {drawing && (
             <svg className="draw-overlay" width={canvasW} height={canvasH} aria-hidden="true">
               {draftPoints.length > 0 && (
@@ -2000,7 +2000,7 @@ export default function FloorMap({
             </svg>
           )}
 
-          {/* Hito de calibraciÃ³n GPS (2 puntos) */}
+          {/* Hito de calibración GPS (2 puntos) */}
           {calibrationLandmark && (
             <div
               className="geo-landmark-marker"
@@ -2008,14 +2008,14 @@ export default function FloorMap({
                 left: calibrationLandmark.x * scale,
                 top: calibrationLandmark.y * scale,
               }}
-              title={`Hito calibraciÃ³n (${calibrationLandmark.x} m, ${calibrationLandmark.y} m)`}
+              title={`Hito calibración (${calibrationLandmark.x} m, ${calibrationLandmark.y} m)`}
             >
               <span className="geo-landmark-cross" aria-hidden="true" />
               <span className="geo-landmark-label">Hito</span>
             </div>
           )}
 
-          {/* Personal en el recinto (GPS â†’ plano, tiempo real) */}
+          {/* Personal en el recinto (GPS → plano, tiempo real) */}
           {(livePeople || []).map((p) => (
             <div
               key={p.userId}
@@ -2024,9 +2024,8 @@ export default function FloorMap({
                 left: p.x * scale,
                 top: p.y * scale,
               }}
-              title={`${p.name}${p.roleLabel ? ` Â· ${p.roleLabel}` : ''}${
-                p.accuracy != null ? ` Â· Â±${Math.round(p.accuracy)} m` : ''
-              }`}
+              title={`${p.name}${p.roleLabel ? ` · ${p.roleLabel}` : ''}${p.accuracy != null ? ` · ±${Math.round(p.accuracy)} m` : ''
+                }`}
             >
               <span className="live-person-pulse" aria-hidden="true" />
               <span className="live-person-core" aria-hidden="true" />
@@ -2038,7 +2037,7 @@ export default function FloorMap({
 
       {calibrationPickMode && (
         <p className="msg ok" style={{ marginTop: 8 }}>
-          Modo calibraciÃ³n: toque en el plano el segundo hito (esquina de sala, portÃ³n, etc.).
+          Modo calibración: toque en el plano el segundo hito (esquina de sala, portón, etc.).
         </p>
       )}
 
@@ -2048,7 +2047,7 @@ export default function FloorMap({
             <span className="dot" />
             {(livePeople || []).length} en el plano
           </span>
-          Puntos en vivo por geolocalizaciÃ³n (solo quienes comparten ubicaciÃ³n y estÃ¡n dentro del
+          Puntos en vivo por geolocalización (solo quienes comparten ubicación y están dentro del
           recinto calibrado).
         </p>
       )}
@@ -2059,14 +2058,14 @@ export default function FloorMap({
             <div style={{ flex: 1, minWidth: 220 }}>
               <strong>{selectedRoom.name}</strong>
               <span className="hint" style={{ margin: '2px 0 0', display: 'block' }}>
-                {selectedRoom.code} Â· {typeLabel(selectedRoom.type)}{isFarm ? ' (granja)' : ''} Â· {selectedRoom.width}m Ã— {selectedRoom.height}m
-                {Number(selectedRoom.rotation) ? ` Â· girada ${Math.round(Number(selectedRoom.rotation))}Â°` : ''}
-                {` Â· ${(selectedRoom.doors ?? []).length} puerta(s)`}
-                {` Â· ${selectedRoomMachines.length} ${isFarm ? 'componente(s)' : 'mÃ¡quina(s)'}`}
+                {selectedRoom.code} · {typeLabel(selectedRoom.type)}{isFarm ? ' (granja)' : ''} · {selectedRoom.width}m × {selectedRoom.height}m
+                {Number(selectedRoom.rotation) ? ` · girada ${Math.round(Number(selectedRoom.rotation))}°` : ''}
+                {` · ${(selectedRoom.doors ?? []).length} puerta(s)`}
+                {` · ${selectedRoomMachines.length} ${isFarm ? 'componente(s)' : 'máquina(s)'}`}
               </span>
               {canManage && (
                 <span className="hint" style={{ margin: '2px 0 0', display: 'block', opacity: 0.75 }}>
-                  En {selectedRoom.pos_x} m, {selectedRoom.pos_y} m Â· flechas para empujar 0,5 m â€” con Shift, 0,1 m
+                  En {selectedRoom.pos_x} m, {selectedRoom.pos_y} m · flechas para empujar 0,5 m — con Shift, 0,1 m
                 </span>
               )}
             </div>
@@ -2074,7 +2073,7 @@ export default function FloorMap({
               {canManage && (
                 <>
                   <button className="ghost" onClick={() => { if (editing) setElemSel(null); setEditing(!editing) }}>
-                    {editing ? 'Cerrar ediciÃ³n' : (isFarm ? 'Editar mÃ³dulo' : 'Editar sala')}
+                    {editing ? 'Cerrar edición' : (isFarm ? 'Editar módulo' : 'Editar sala')}
                   </button>
                   {createMachine && (
                     <button className="ghost" onClick={crearEquipo}>
@@ -2082,7 +2081,7 @@ export default function FloorMap({
                     </button>
                   )}
                   <button className="ghost danger" onClick={onDelete}>
-                    {isFarm ? 'Eliminar mÃ³dulo' : 'Eliminar sala'}
+                    {isFarm ? 'Eliminar módulo' : 'Eliminar sala'}
                   </button>
                 </>
               )}
@@ -2105,7 +2104,7 @@ export default function FloorMap({
                     title="Ver este equipo en el plano y en el listado"
                   >
                     <strong>{m.name}</strong>
-                    <span>{m.code} Â· {MACHINE_TYPE_LABELS[m.type] ?? m.type}{m.capacity_eggs ? ` Â· ${Number(m.capacity_eggs).toLocaleString('es-CO')} huevos` : ''}</span>
+                    <span>{m.code} · {MACHINE_TYPE_LABELS[m.type] ?? m.type}{m.capacity_eggs ? ` · ${Number(m.capacity_eggs).toLocaleString('es-CO')} huevos` : ''}</span>
                     <span className={`pill status ${st.cls}`}>{st.label}</span>
                   </button>
                 )
@@ -2128,7 +2127,7 @@ export default function FloorMap({
         </>
       )}
 
-      {/* Equipo seleccionado: identidad, medidas y ubicaciÃ³n */}
+      {/* Equipo seleccionado: identidad, medidas y ubicación */}
       {canManage && selectedMachine && (
         <MachineEditor
           key={selectedMachine.id}

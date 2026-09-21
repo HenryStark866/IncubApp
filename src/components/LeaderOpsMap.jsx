@@ -1,21 +1,21 @@
 ﻿/**
  * =============================================================================
  * ARCHIVO: src/components/LeaderOpsMap.jsx
- * PROPÃ“SITO: Home del lÃ­der de planta. Su pantalla principal ES la planta 3D a
- *   pantalla completa â€”el recorrido virtual, no una miniaturaâ€” y todo lo demÃ¡s
- *   cuelga de UN menÃº desplegable en la barra de arriba. AhÃ­ es donde se irÃ¡n
- *   agregando las funcionalidades del perfil: la lista del menÃº es el Ãºnico
+ * PROPÓSITO: Home del líder de planta. Su pantalla principal ES la planta 3D a
+ *   pantalla completa —el recorrido virtual, no una miniatura— y todo lo demás
+ *   cuelga de UN menú desplegable en la barra de arriba. Ahí es donde se irán
+ *   agregando las funcionalidades del perfil: la lista del menú es el único
  *   sitio que hay que tocar para sumar una.
- * CÃ“MO FUNCIONA: el recorrido vive en /planta3d/, una pÃ¡gina aparte servida
- *   desde public/, y entra aquÃ­ en un iframe del mismo origen. El menÃº lleva
- *   ademÃ¡s la otra vista del lÃ­der â€”el plano 2D en vivo, con salas, mÃ¡quinas
- *   por su condiciÃ³n real y personal proyectado del GPSâ€” que antes era la
+ * CÓMO FUNCIONA: el recorrido vive en /planta3d/, una página aparte servida
+ *   desde public/, y entra aquí en un iframe del mismo origen. El menú lleva
+ *   además la otra vista del líder —el plano 2D en vivo, con salas, máquinas
+ *   por su condición real y personal proyectado del GPS— que antes era la
  *   pantalla principal y sigue entera: sus filtros
  *   (persona/actividad/sector/fecha/turno) aparecen al cambiar a ella.
  *
  *   Para que el iframe funcione, la CSP de vercel.json tuvo que pasar de
  *   `frame-ancestors 'none'` a `'self'` (y X-Frame-Options de DENY a
- *   SAMEORIGIN): la app puede enmarcar SUS propias pÃ¡ginas, y ningÃºn sitio
+ *   SAMEORIGIN): la app puede enmarcar SUS propias páginas, y ningún sitio
  *   ajeno puede enmarcar IncubApp, que es de lo que protege esa cabecera.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
@@ -38,10 +38,10 @@ import { conditionOf } from '../lib/machineCondition'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 
 /**
- * Tabs que son HERRAMIENTAS PARA HACER (turnos, rondas, OT, calibraciÃ³n,
- * asistencia, misionales): el lÃ­der de Ã¡rea de este panel solo necesita ver
- * datos, no ejecutar esas tareas. Editar esta lista ajusta quÃ© entradas salen
- * en la secciÃ³n Â«MÃ³dulosÂ» del menÃº.
+ * Tabs que son HERRAMIENTAS PARA HACER (turnos, rondas, OT, calibración,
+ * asistencia, misionales): el líder de área de este panel solo necesita ver
+ * datos, no ejecutar esas tareas. Editar esta lista ajusta qué entradas salen
+ * en la sección «Módulos» del menú.
  */
 const EXCLUDED_TOOL_TABS = new Set([
   'horarios',
@@ -55,15 +55,15 @@ const EXCLUDED_TOOL_TABS = new Set([
 ])
 
 const FILTER_DEFS = [
-  { key: 'personId', icon: 'ðŸ‘¤', label: 'Persona' },
-  { key: 'kind', icon: 'ðŸ·ï¸', label: 'Actividad' },
-  { key: 'roomId', icon: 'ðŸ­', label: 'Sector' },
-  { key: 'date', icon: 'ðŸ“…', label: 'Fecha' },
-  { key: 'shift', icon: 'ðŸ”', label: 'Turno' },
+  { key: 'personId', icon: '👤', label: 'Persona' },
+  { key: 'kind', icon: '[A]', label: 'Actividad' },
+  { key: 'roomId', icon: '[S]', label: 'Sector' },
+  { key: 'date', icon: '📅', label: 'Fecha' },
+  { key: 'shift', icon: '[T]', label: 'Turno' },
 ]
 const ACTIVITY_KINDS = ['Ronda', 'Actividad', 'Cargue', 'Transferencia']
 
-/* â”€â”€ Icono de filtro desplegable: botÃ³n discreto que abre un popover con el control real â”€â”€ */
+/* ── Icono de filtro desplegable: botón discreto que abre un popover con el control real ── */
 function FilterIcon({ def, active, value, onChange, options, open, onToggle }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -108,9 +108,9 @@ function FilterIcon({ def, active, value, onChange, options, open, onToggle }) {
 }
 
 /**
- * MenÃº del lÃ­der: un solo desplegable con TODO lo que no es el mapa. AquÃ­ es
- * donde se agregan las funcionalidades nuevas del perfil â€” basta con sumar una
- * entrada a la secciÃ³n que le corresponda.
+ * Menú del líder: un solo desplegable con TODO lo que no es el mapa. Aquí es
+ * donde se agregan las funcionalidades nuevas del perfil — basta con sumar una
+ * entrada a la sección que le corresponda.
  */
 function MenuLider({ abierto, onAbrir, secciones }) {
   const ref = useRef(null)
@@ -139,7 +139,7 @@ function MenuLider({ abierto, onAbrir, secciones }) {
         aria-haspopup="menu"
         onClick={() => onAbrir(!abierto)}
       >
-        <span aria-hidden="true">â˜°</span> MenÃº
+        <span aria-hidden="true">☰</span> Menú
       </button>
       {abierto && (
         <div className="lom-menu" role="menu">
@@ -216,17 +216,17 @@ export default function LeaderOpsMap({
   const [exporting, setExporting] = useState(false)
   const [openFilter, setOpenFilter] = useState(null)
 
-  /* â”€â”€ Vista principal: la planta 3D; el plano 2D en vivo queda en el menÃº â”€â”€ */
+  /* ── Vista principal: la planta 3D; el plano 2D en vivo queda en el menú ── */
   const puede3D = canSeePlant3DTour(role)
   const [vista, setVista] = useState(initialVista ?? (puede3D ? '3d' : '2d'))
   const [menuAbierto, setMenuAbierto] = useState(false)
-  // El recorrido tarda un par de segundos en levantar la planta entera, asÃ­ que
-  // una vez cargado se queda montado y solo se esconde: volver a Ã©l es
-  // instantÃ¡neo y, oculto, el navegador le frena el bucle de dibujo.
+  // El recorrido tarda un par de segundos en levantar la planta entera, así que
+  // una vez cargado se queda montado y solo se esconde: volver a él es
+  // instantáneo y, oculto, el navegador le frena el bucle de dibujo.
   const [tourMontado, setTourMontado] = useState(puede3D)
   // La barra de arriba tapaba parte del mundo 3D. Arranca plegada: solo queda
-  // el botÃ³n del menÃº y el tirador para desplegarla; el nombre, el estado de
-  // las mÃ¡quinas y el selector de planta salen al abrirla.
+  // el botón del menú y el tirador para desplegarla; el nombre, el estado de
+  // las máquinas y el selector de planta salen al abrirla.
   const [barraAbierta, setBarraAbierta] = useState(false)
   useEffect(() => {
     if (vista === '3d') setTourMontado(true)
@@ -286,7 +286,7 @@ export default function LeaderOpsMap({
     return s
   }, [machines, latestByMachine])
 
-  /* â”€â”€ SimulaciÃ³n en tiempo real: personal proyectado del GPS al plano â”€â”€ */
+  /* ── Simulación en tiempo real: personal proyectado del GPS al plano ── */
   const plantGeo = useMemo(() => (selectedPlant ? readPlantGeo(selectedPlant) : null), [selectedPlant])
   const livePeopleAll = useMemo(
     () =>
@@ -300,7 +300,7 @@ export default function LeaderOpsMap({
     [presence?.peers, plantGeo, roomsApi.rooms, userId]
   )
 
-  /* â”€â”€ Herramientas flotantes: su menÃº normal, sin las de turno/supervisiÃ³n/operario â”€â”€ */
+  /* ── Herramientas flotantes: su menú normal, sin las de turno/supervisión/operario ── */
   const tools = useMemo(() => {
     if (!can) return []
     return buildClientNavItems({ can, role }).filter((i) => !EXCLUDED_TOOL_TABS.has(i.id))
@@ -323,7 +323,7 @@ export default function LeaderOpsMap({
     }
   }, [assignments, mc.checks, loads, transfers, so.activities, people, machineName])
 
-  /* â”€â”€ Eventos unificados: alimentan el efecto visual de los filtros sobre el mapa â”€â”€ */
+  /* ── Eventos unificados: alimentan el efecto visual de los filtros sobre el mapa ── */
   const events = useMemo(() => {
     const out = []
     for (const c of mc.checks) {
@@ -382,7 +382,7 @@ export default function LeaderOpsMap({
     setFilters({ personId: '', kind: '', roomId: '', date: '', shift: '' })
     setOpenFilter(null)
   }
-  // Â¿Hay algo, aparte del sector, que deba recalcular la condiciÃ³n mostrada?
+  // ¿Hay algo, aparte del sector, que deba recalcular la condición mostrada?
   const dataFiltersActive = !!(filters.personId || filters.kind || filters.date || filters.shift)
 
   const filteredEvents = useMemo(
@@ -402,7 +402,7 @@ export default function LeaderOpsMap({
     return livePeopleAll.filter((p) => p.userId === filters.personId)
   }, [livePeopleAll, filters.personId])
 
-  /* Sectores/mÃ¡quinas a resaltar en el plano segÃºn los filtros activos */
+  /* Sectores/máquinas a resaltar en el plano según los filtros activos */
   const highlightRoomIds = useMemo(() => {
     if (filters.roomId) return new Set([filters.roomId])
     if (!dataFiltersActive) return null
@@ -411,7 +411,7 @@ export default function LeaderOpsMap({
     return set.size ? set : null
   }, [filters.roomId, dataFiltersActive, filteredEvents])
 
-  /* CondiciÃ³n de mÃ¡quina mostrada: Ãºltima en general, o la que corresponda al filtro (persona/tipo/fecha/turno) */
+  /* Condición de máquina mostrada: última en general, o la que corresponda al filtro (persona/tipo/fecha/turno) */
   const effectiveConditionByMachine = useMemo(() => {
     if (!dataFiltersActive) return conditionByMachine
     const map = {}
@@ -437,13 +437,13 @@ export default function LeaderOpsMap({
   const shiftOptions = [1, 2, 3].map((n) => ({ value: String(n), label: SHIFT_LABEL[n] }))
   const optionsFor = (key) =>
     key === 'personId' ? personOptions
-    : key === 'kind' ? kindOptions
-    : key === 'roomId' ? roomOptions
-    : key === 'shift' ? shiftOptions
-    : []
+      : key === 'kind' ? kindOptions
+        : key === 'roomId' ? roomOptions
+          : key === 'shift' ? shiftOptions
+            : []
 
-  /* â”€â”€ El menÃº: TODO lo que no es el mapa. AquÃ­ se suman las funcionalidades
-        nuevas del perfil, cada una en su secciÃ³n. â”€â”€ */
+  /* ── El menú: TODO lo que no es el mapa. Aquí se suman las funcionalidades
+        nuevas del perfil, cada una en su sección. ── */
   const secciones = [
     {
       titulo: 'Vista',
@@ -460,18 +460,18 @@ export default function LeaderOpsMap({
           id: 'v2d',
           label: 'Plano en vivo',
           icon: 'ðŸ—ºï¸',
-          hint: 'Plano 2D con las mÃ¡quinas por su condiciÃ³n real y el personal por GPS',
+          hint: 'Plano 2D con las máquinas por su condición real y el personal por GPS',
           activo: vista === '2d',
           onClick: () => setVista('2d'),
         },
       ].filter(Boolean),
     },
     {
-      titulo: 'MÃ³dulos',
+      titulo: 'Módulos',
       items: tools.map((t) => ({
         id: t.id,
         label: t.label,
-        icon: t.icon || 'ðŸ”¹',
+        icon: t.icon || '🔹',
         hint: t.hint || t.label,
         onClick: () => onNavigate?.(t.id),
       })),
@@ -481,8 +481,8 @@ export default function LeaderOpsMap({
       items: [
         {
           id: 'reporte',
-          label: 'Reporte de operaciÃ³n',
-          icon: 'ðŸ“Š',
+          label: 'Reporte de operación',
+          icon: '📊',
           hint: 'Descargar Excel con turnos, operarios, rondas, cargues y transferencias',
           disabled: exporting,
           onClick: handleExport,
@@ -491,7 +491,7 @@ export default function LeaderOpsMap({
           id: 'tour-aparte',
           label: 'Abrir la planta 3D aparte',
           icon: 'â†—ï¸',
-          hint: 'El recorrido a pantalla completa, en otra pestaÃ±a',
+          hint: 'El recorrido a pantalla completa, en otra pestaña',
           href: PLANT_3D_TOUR_URL,
         },
       ].filter(Boolean),
@@ -507,7 +507,7 @@ export default function LeaderOpsMap({
           <iframe
             className="lom-tour-3d"
             src={PLANT_3D_TOUR_URL}
-            title="Planta 3D â€” recorrido virtual"
+            title="Planta 3D — recorrido virtual"
             hidden={vista !== '3d'}
             allow="fullscreen"
           />
@@ -516,18 +516,18 @@ export default function LeaderOpsMap({
         {vista === '2d' &&
           (roomsApi.rooms.length === 0 && !roomsApi.loading ? (
             <p className="hint" style={{ padding: 16 }}>
-              Esta planta todavÃ­a no tiene salas dibujadas en el plano.
+              Esta planta todavía no tiene salas dibujadas en el plano.
             </p>
           ) : (
             <FloorMap
-            moveRoom={roomsApi?.moveRoom || (() => {})}
+              moveRoom={roomsApi?.moveRoom || (() => { })}
               canManage={false}
               canExpand
               roomsApi={roomsApi}
               machines={machines}
-              updateMachine={() => {}}
+              updateMachine={() => { }}
               selectedMachineId={null}
-              onSelectMachine={() => {}}
+              onSelectMachine={() => { }}
               livePeople={livePeople}
               conditionByMachine={effectiveConditionByMachine}
               highlightRoomIds={highlightRoomIds}
@@ -540,18 +540,18 @@ export default function LeaderOpsMap({
             <>
               <div
                 className="lom-hud-title"
-                title={`LÃ­der de Ã¡rea${area && area !== 'general' ? ` Â· ${area}` : ''}${orgName ? ` Â· ${orgName}` : ''}`}
+                title={`Líder de área${area && area !== 'general' ? ` · ${area}` : ''}${orgName ? ` · ${orgName}` : ''}`}
               >
-                <strong>{userName ? `${userName.split(' ')[0]} Â· ` : ''}Planta en vivo</strong>
+                <strong>{userName ? `${userName.split(' ')[0]} · ` : ''}Planta en vivo</strong>
                 <span className="pill live">
                   <span className="dot" /> En vivo
                 </span>
               </div>
               <div className="lom-hud-status">
-                <span className="pill status ok">âœ“ {summary.normal}</span>
-                <span className="pill status warn">â–² {summary.warning}</span>
-                <span className="pill status off">âœ• {summary.fault}</span>
-                <span className="pill status idle">â—§ {summary.off}</span>
+                <span className="pill status ok">✓ {summary.normal}</span>
+                <span className="pill status warn">▲ {summary.warning}</span>
+                <span className="pill status off">✕ {summary.fault}</span>
+                <span className="pill status idle">◧ {summary.off}</span>
               </div>
               {plants.length > 1 && (
                 <div className="lmp-plant-chips">
@@ -572,10 +572,10 @@ export default function LeaderOpsMap({
             type="button"
             className="lom-hud-toggle"
             aria-expanded={barraAbierta}
-            title={barraAbierta ? 'Plegar la barra y despejar la vista' : 'Ver nombre, estado de mÃ¡quinas y planta'}
+            title={barraAbierta ? 'Plegar la barra y despejar la vista' : 'Ver nombre, estado de máquinas y planta'}
             onClick={() => setBarraAbierta((v) => !v)}
           >
-            {barraAbierta ? 'âŒƒ' : 'âŒ„'}
+            {barraAbierta ? '⌃' : '⌄'}
           </button>
           <MenuLider abierto={menuAbierto} onAbrir={setMenuAbierto} secciones={secciones} />
         </div>
@@ -597,7 +597,7 @@ export default function LeaderOpsMap({
             ))}
             {hasFilters && (
               <button type="button" className="lom-filter-icon lom-filter-clear" title="Limpiar filtros" onClick={clearFilters}>
-                âœ•
+                ✕
               </button>
             )}
           </div>

@@ -1,11 +1,11 @@
-/* =============================================================================
+﻿/* =============================================================================
  * ARCHIVO: src/index.css
- * PROPÃ“SITO: Estilos globales de IncubApp: temas claro/oscuro, layout, KPIs, cockpits y componentes.
- * CÃ“MO FUNCIONA: Variables CSS de tema, layout del shell, tarjetas, tabs, mapas, asistencia y cockpits; Vite empaqueta este archivo en el build.
+ * PROPÓSITO: Estilos globales de IncubApp: temas claro/oscuro, layout, KPIs, cockpits y componentes.
+ * CÓMO FUNCIONA: Variables CSS de tema, layout del shell, tarjetas, tabs, mapas, asistencia y cockpits; Vite empaqueta este archivo en el build.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * ============================================================================= */
 
-/* INCUBAPP â€” tema CLARO corporativo (predeterminado) + modo oscuro futurista */
+/* INCUBAPP — tema CLARO corporativo (predeterminado) + modo oscuro futurista */
 :root, :root[data-theme="dark"] {
   /* High-Tech Dark Mode (Glassmorphism) */
   --cyan: #00f0ff;
@@ -62,7 +62,7 @@ body {
   z-index: 1;
 }
 
-/* QA Â«Ver comoÂ»: oculto por defecto; chip compacto + panel desplegable */
+/* QA «Ver como»: oculto por defecto; chip compacto + panel desplegable */
 .role-preview-toggle-wrap {
   width: min(920px, 100%);
   margin: 0 0 8px;
@@ -210,7 +210,7 @@ body {
   .role-preview-chip { width: 100%; text-align: center; }
 }
 
-/* AnalÃ­tica de cumplimiento */
+/* Analítica de cumplimiento */
 .comp-filters {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -287,7 +287,7 @@ body {
   word-break: break-all;
 }
 
-/* Banner offline / sincronizaciÃ³n */
+/* Banner offline / sincronización */
 .offline-banner {
   width: min(920px, 100%);
   margin: 0 0 10px;
@@ -407,7 +407,7 @@ body {
 }
 :root[data-theme="dark"] .app-bg.client-bg::after { background: none; }
 
-/* Producto IncubApp â€” futurista / IA (consola y marketing) */
+/* Producto IncubApp — futurista / IA (consola y marketing) */
 :root[data-brand="incubapp"] {
   --cyan: #35d6e8;
   --accent: #7c5cff;
@@ -444,7 +444,7 @@ body {
   --on-accent: #050a14;
 }
 
-/* â”€â”€ Consola plataforma: selector de empresa â”€â”€ */
+/* ── Consola plataforma: selector de empresa ── */
 .platform-company-bar {
   position: relative;
   z-index: 40;
@@ -731,7 +731,7 @@ body {
   justify-content: center;
 }
 
-/* â”€â”€ Landing / sitio de marca â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Landing / sitio de marca ─────────────────────────────── */
 .landing {
   position: relative;
   z-index: 1;
@@ -1133,7 +1133,7 @@ input {
   color: var(--text); font-size: 15px;
 }
 /* El atributo hidden debe ganar siempre (el input global lo pisaba y
-   aparecÃ­an controles duplicados, ej. "Elegir archivo" en el avatar) */
+   aparecían controles duplicados, ej. "Elegir archivo" en el avatar) */
 [hidden] { display: none !important; }
 input:focus { outline: 2px solid var(--accent-dim); border-color: var(--accent-dim); }
 
@@ -1281,7 +1281,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .tab-nav button.active { background: var(--bg-2); color: var(--accent); border-color: var(--accent-dim); }
 
-/* â”€â”€ Barra social + menÃº Ãºnico (portal encima de todo) â”€â”€â”€â”€â”€â”€ */
+/* ── Barra social + menú único (portal encima de todo) ────── */
 .ws-social-bar {
   display: flex;
   align-items: center;
@@ -1494,7 +1494,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   flex-shrink: 0;
 }
 
-/* Mini-menÃº de perfil (portal) */
+/* Mini-menú de perfil (portal) */
 .ws-profile-overlay {
   position: fixed;
   inset: 0;
@@ -1665,7 +1665,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* Overlay del menÃº â€” z-index por encima de FABs (1200) y header */
+/* Overlay del menú — z-index por encima de FABs (1200) y header */
 .ws-menu-overlay {
   position: fixed;
   inset: 0;
@@ -1880,18 +1880,18 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   opacity: 1;
 }
 
-/* Observador: el plano se navega arrastrando (pan), ademÃ¡s del zoom y el scroll */
+/* Observador: el plano se navega arrastrando (pan), además del zoom y el scroll */
 .floor-map.pannable { cursor: grab; }
 .floor-map.panning { cursor: grabbing; }
 .floor-map.pannable .room-box { cursor: pointer; } /* tocar una sala abre su detalle */
 
-/* Grupo posicionado por sala: contiene la sala + sus mÃ¡quinas + puertas y gira en conjunto */
+/* Grupo posicionado por sala: contiene la sala + sus máquinas + puertas y gira en conjunto */
 .room-group { position: absolute; transform-origin: center center; }
 .room-group.dragging, .room-group.rotating { z-index: 6; }
 
 .room-box {
   position: absolute;
-  inset: 0; /* llena su grupo (el tamaÃ±o/posiciÃ³n los lleva .room-group) */
+  inset: 0; /* llena su grupo (el tamaño/posición los lleva .room-group) */
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   gap: 2px; text-align: center;
   border-radius: 4px;
@@ -1907,7 +1907,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
     0 6px 16px rgba(0, 0, 0, 0.5);
   color: var(--text); font-size: 12px; cursor: grab;
   padding: 4px; overflow: hidden; user-select: none;
-  /* En tÃ¡ctil: el dedo panea el plano; el arrastre de salas es con mouse */
+  /* En táctil: el dedo panea el plano; el arrastre de salas es con mouse */
   touch-action: pan-x pan-y;
 }
 @media (pointer: fine) {
@@ -1917,9 +1917,9 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .room-box.dragging { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 .room-box.selected { outline: 2px solid var(--amber); outline-offset: 1px; }
 /* El nombre va oculto para no saturar el plano: aparece al pasar el cursor
-   por la sala o cuando estÃ¡ seleccionada (en tÃ¡ctil: al tocarla).
-   Se centra y corre a lo largo del lado mÃ¡s extenso: si la sala es mÃ¡s alta
-   que ancha se gira 90Â° (.vertical); el maxWidth inline lo limita a ese lado. */
+   por la sala o cuando está seleccionada (en táctil: al tocarla).
+   Se centra y corre a lo largo del lado más extenso: si la sala es más alta
+   que ancha se gira 90° (.vertical); el maxWidth inline lo limita a ese lado. */
 .room-name {
   position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
@@ -1950,7 +1950,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 /* Un plenum es un vacío técnico, no una sala pisable: el contorno se ve punteado */
 .room-plenum.room-box { border-style: dashed; }
 
-/* Salas de forma libre (polÃ­gono): el fondo se recorta y el contorno lo dibuja el SVG */
+/* Salas de forma libre (polígono): el fondo se recorta y el contorno lo dibuja el SVG */
 .room-box.poly { border: none; border-radius: 0; box-shadow: none; }
 .room-poly-outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .room-poly-outline polygon { fill: transparent; stroke: var(--room-edge, #46598a); stroke-width: 2; stroke-linejoin: round; }
@@ -2020,7 +2020,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .elem-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .elem-seg .chip { width: auto; margin: 0; padding: 6px 12px; font-size: 12px; }
 
-/* Botones de giro para mÃ¡quina seleccionada (posicionados sobre la mÃ¡quina, dentro del grupo) */
+/* Botones de giro para máquina seleccionada (posicionados sobre la máquina, dentro del grupo) */
 .obj-rotate {
   position: absolute; transform: translate(-50%, calc(-100% - 6px));
   display: flex; gap: 4px; z-index: 9;
@@ -2032,7 +2032,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .obj-rotate button:hover { background: var(--amber); color: #0a1120; }
 
-/* BotÃ³n de giro de puerta (junto al de eliminar) */
+/* Botón de giro de puerta (junto al de eliminar) */
 .door-rot {
   position: absolute; top: -9px; left: -9px; width: 18px; height: 18px; padding: 0;
   line-height: 1; border-radius: 50%; border: 1px solid var(--accent, #35d6e8);
@@ -2041,7 +2041,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .door-rot:hover { background: var(--accent, #35d6e8); color: #0a1120; }
 
-/* Herramienta de dibujo de Ã¡rea libre */
+/* Herramienta de dibujo de área libre */
 .floor-map.drawing { cursor: crosshair; }
 .floor-map.drawing .room-group { pointer-events: none; }
 .draw-overlay { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 12; }
@@ -2050,7 +2050,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .draw-pt { fill: #0a1120; stroke: var(--amber, #f0b34a); stroke-width: 2; }
 .draw-controls { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* Fila de rotaciÃ³n en "Editar sala" */
+/* Fila de rotación en "Editar sala" */
 .room-rot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .room-rot-row input[type="number"] { width: 74px; }
 
@@ -2060,7 +2060,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   background: var(--bg-0); flex-wrap: wrap;
 }
 
-/* Componentes (mÃ¡quinas/equipos) de la sala seleccionada */
+/* Componentes (máquinas/equipos) de la sala seleccionada */
 .room-detail-components {
   margin-top: 8px; display: grid; gap: 8px;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -2075,7 +2075,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .room-comp span { font-size: 11.5px; color: var(--text-dim); }
 .room-comp .pill { margin-top: 2px; }
 
-/* â”€â”€ Editar sala: color de fondo y puertas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Editar sala: color de fondo y puertas ────────────────── */
 .room-color-row, .room-door-row {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px;
 }
@@ -2087,7 +2087,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .ghost.small { width: auto; padding: 6px 10px; font-size: 12px; margin-top: 0; }
 
-/* â”€â”€ Puertas en el plano â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Puertas en el plano ──────────────────────────────────── */
 .door { position: absolute; z-index: 6; pointer-events: none; touch-action: none; }
 .door.editable { pointer-events: auto; cursor: grab; }
 .door.editable:active { cursor: grabbing; }
@@ -2166,7 +2166,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .door-abre.fijo { border-color: var(--amber, #f0b34a); color: var(--amber, #f0b34a); background: #241d10; }
 .door-abre:hover { background: var(--amber, #f0b34a); color: #0a1120; border-color: var(--amber, #f0b34a); }
 
-/* â”€â”€ MÃ¡quinas incubadoras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Máquinas incubadoras ─────────────────────────────────── */
 .machines-wrap { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 18px; }
 /* section-title unificado arriba en tokens */
 
@@ -2201,7 +2201,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-radius: 8px; padding: 5px 8px; font-size: 12.5px;
 }
 
-/* â”€â”€ Miniaturas de mÃ¡quinas en el plano â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Miniaturas de máquinas en el plano ───────────────────── */
 .machine-mini {
   position: absolute;
   z-index: 3;
@@ -2394,7 +2394,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   white-space: nowrap;
 }
 
-/* â”€â”€ Chiller â”€â”€ */
+/* ── Chiller ── */
 .mach-chiller {
   width: 100%;
   height: 100%;
@@ -2524,7 +2524,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 
 
-/* â”€â”€ Compressor â”€â”€ */
+/* ── Compressor ── */
 .mach-compressor {
   width: 100%;
   height: 100%;
@@ -2667,7 +2667,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 
 
-/* â”€â”€ GalpÃ³n (Granjas) â”€â”€ */
+/* ── Galpón (Granjas) ── */
 .mach-galpon {
   width: 100%;
   height: 100%;
@@ -2715,7 +2715,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   background: #7f8c8d;
   border: 0.5px solid #333;
 }
-/* Luces/ventanas encendidas segÃºn estado del galpÃ³n */
+/* Luces/ventanas encendidas según estado del galpón */
 .st-active .galpon-win,
 .st-ready .galpon-win {
   background: #57d9a3;
@@ -2734,9 +2734,9 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   background: #f07070;
 }
 
-/* â”€â”€ Plano 3D para Granjas (visual-only, canvas PLANO para que el arrastre funcione) â”€â”€ */
+/* ── Plano 3D para Granjas (visual-only, canvas PLANO para que el arrastre funcione) ── */
 
-/* El contenedor se mantiene plano â€” solo cambia el fondo */
+/* El contenedor se mantiene plano — solo cambia el fondo */
 .floor-map.is-farm-3d {
   background-color: #2d6e3a;
   background-image:
@@ -2746,7 +2746,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-radius: 8px;
 }
 
-/* MÃ³dulos de granja: fondo semitransparente verde */
+/* Módulos de granja: fondo semitransparente verde */
 .floor-map.is-farm-3d .room-box {
   background: rgba(50, 160, 80, 0.18) !important;
   border: 2px dashed rgba(180, 255, 180, 0.6) !important;
@@ -2755,13 +2755,13 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-radius: 4px;
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Efecto 3D isomÃ©trico para los GALPONES
+/* ─────────────────────────────────────────────────
+   Efecto 3D isométrico para los GALPONES
    mediante box-shadow multicapa + clip-path
    El elemento flota sobre el terreno verde
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+───────────────────────────────────────────────── */
 .floor-map.is-farm-3d .machine-mini.galpon-wrapper {
-  /* elevaciÃ³n: sombra abajo+derecha simula la cara lateral */
+  /* elevación: sombra abajo+derecha simula la cara lateral */
   border-radius: 4px 4px 2px 2px;
   overflow: visible !important;
 }
@@ -2772,16 +2772,16 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border: 1.5px solid #c0392b;
   border-radius: 4px 4px 2px 2px;
   box-shadow:
-    /* Cara derecha (mÃ¡s oscura) */
+    /* Cara derecha (más oscura) */
     8px 8px 0 0 #7d2810,
     /* Cara inferior (frontal) */
     0 8px 0 0 #a04010,
-    /* Borde de separaciÃ³n */
+    /* Borde de separación */
     8px 16px 0 0 #7d2810,
     /* Sombra suave de profundidad */
     6px 6px 18px rgba(0,0,0,0.55);
 }
-/* Piso 2: tono mÃ¡s claro, elevado visualmente con margen negativo */
+/* Piso 2: tono más claro, elevado visualmente con margen negativo */
 .floor-map.is-farm-3d .mach-galpon.p2 {
   background: linear-gradient(160deg, #f39c12 60%, #e67e22 100%);
   border: 1.5px solid #e67e22;
@@ -2793,7 +2793,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
     6px 6px 18px rgba(0,0,0,0.45);
 }
 
-/* Etiqueta de cÃ³digo visible */
+/* Etiqueta de código visible */
 .floor-map.is-farm-3d .mach-code-overlay {
   font-size: 9px;
   font-weight: 900;
@@ -2810,7 +2810,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-bottom: 1px solid #7b241c;
 }
 
-/* Ventanas mÃ¡s nÃ­tidas en la vista 3D */
+/* Ventanas más nítidas en la vista 3D */
 .floor-map.is-farm-3d .galpon-win {
   width: 5px;
   height: 5px;
@@ -2818,9 +2818,9 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
 }
 
-/* â”€â”€ MÃ³dulos de producciÃ³n: vÃ­a RURAL central de cargue â”€â”€
-   Entre los dos edificios corre la vÃ­a destapada (tierra) por donde entran los
-   camiones a cargar el huevo y dejar el alimento; sobre ella estÃ¡n los silos.
+/* ── Módulos de producción: vía RURAL central de cargue ──
+   Entre los dos edificios corre la vía destapada (tierra) por donde entran los
+   camiones a cargar el huevo y dejar el alimento; sobre ella están los silos.
    Dos franjas oscuras = huellas de llanta; el punteado simula la gravilla. */
 .floor-map.is-farm-3d .room-box.room-produccion::before {
   content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 36%;
@@ -2835,13 +2835,13 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.35);
 }
 .floor-map.is-farm-3d .room-box.room-produccion::after {
-  content: "ðŸšš"; position: absolute; left: 50%; bottom: 4%;
+  content: "🚚"; position: absolute; left: 50%; bottom: 4%;
   transform: translateX(-50%) rotate(90deg);
   font-size: 16px; filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.55));
 }
 
-/* â”€â”€ Salas tipo "VÃ­a rural / Camino" (dibujadas a mano alzada) â”€â”€
-   Mismo lenguaje visual de tierra para que el usuario complete la vÃ­a. */
+/* ── Salas tipo "Vía rural / Camino" (dibujadas a mano alzada) ──
+   Mismo lenguaje visual de tierra para que el usuario complete la vía. */
 .floor-map.is-farm-3d .room-box.room-road {
   background:
     radial-gradient(rgba(60, 44, 24, 0.35) 1.5px, transparent 1.6px) 0 0 / 11px 13px,
@@ -2862,7 +2862,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .machine-mini.dragging { opacity: 0.85; z-index: 5; }
 
-/* â”€â”€ Ficha de mÃ¡quina seleccionada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Ficha de máquina seleccionada ────────────────────────── */
 .machine-detail {
   border: 1px solid var(--accent-dim); border-radius: 12px;
   background: var(--bg-0); padding: 10px 14px 14px; margin-bottom: 16px;
@@ -2878,7 +2878,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .hist-text { flex: 1; color: var(--text); overflow-wrap: anywhere; }
 .hist-when { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 
-/* Lista de mÃ¡quinas como filas seleccionables */
+/* Lista de máquinas como filas seleccionables */
 .machine-row-btn {
   display: flex; align-items: center; gap: 12px; width: 100%;
   padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px;
@@ -2888,7 +2888,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .machine-row-btn:hover { border-color: var(--accent-dim); }
 .machine-row-btn.selected { border-color: var(--accent); background: rgba(53, 214, 232, 0.06); }
 
-/* â”€â”€ Sensores IoT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sensores IoT ─────────────────────────────────────────── */
 .sensor-panel {
   margin-top: 4px; border-top: 1px dashed var(--line); padding-top: 10px;
   display: grid; gap: 8px;
@@ -2920,7 +2920,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 12.5px;
 }
 
-/* â”€â”€ Splash (siempre oscuro futurista, independiente del tema) â”€â”€â”€ */
+/* ── Splash (siempre oscuro futurista, independiente del tema) ─── */
 .splash {
   /* tokens forzados a oscuro: el splash es un momento de marca oscuro */
   --bg-0: #060b18; --bg-1: #0b1428; --bg-2: #101d3a; --line: #1c2c52;
@@ -2980,12 +2980,12 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   .splash-rings .ring, .splash-scanline, .splash-logo svg, .splash-name { animation: none; }
 }
 
-/* â”€â”€ Pantalla de cuenta pendiente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Pantalla de cuenta pendiente ─────────────────────────── */
 .pending-card { text-align: center; align-items: center; }
 .pending-card h1 { margin: 6px 0 0; font-size: 22px; }
 .pending-icon { font-size: 40px; }
 
-/* â”€â”€ Panel de administraciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Panel de administración ──────────────────────────────── */
 .admin-section-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; margin: 14px 0 10px; flex-wrap: wrap;
@@ -3022,7 +3022,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .check-label { flex-direction: row !important; align-items: center; gap: 8px; font-size: 13px; }
 .check-label input { width: auto; }
 
-/* â”€â”€ Presencia en lÃ­nea + geolocalizaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Presencia en línea + geolocalización ─────────────────── */
 .presence-panel {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -3110,7 +3110,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .presence-meta a:hover { text-decoration: underline; }
 
-/* â”€â”€ Personal en vivo sobre el plano (GPS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Personal en vivo sobre el plano (GPS) ────────────────── */
 .live-person-dot {
   position: absolute;
   z-index: 40;
@@ -3277,7 +3277,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   color: var(--ok);
 }
 
-/* â”€â”€ IoT / bioseguridad (dashboards en construcciÃ³n) â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── IoT / bioseguridad (dashboards en construcción) ──────── */
 .iot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -3346,7 +3346,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 /* section-title unified */
 
-/* â”€â”€ Mapa estilo Waze (logÃ­stica) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Mapa estilo Waze (logística) ─────────────────────────── */
 .waze-map-shell {
   position: relative;
   border-radius: 14px;
@@ -3491,7 +3491,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .leaflet-control-attribution a { color: #7ec8ff !important; }
 
-/* â”€â”€ Resumen (KPIs y alarmas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Resumen (KPIs y alarmas) ─────────────────────────────── */
 .kpi-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px; margin-top: 14px;
@@ -3511,7 +3511,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   background: rgba(240, 112, 112, 0.06) !important;
 }
 
-/* â”€â”€ Tablero ejecutivo (admin resumen + gerencia) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tablero ejecutivo (admin resumen + gerencia) ─────────── */
 .exec-board {
   display: flex;
   flex-direction: column;
@@ -3839,7 +3839,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .exec-links button {
   margin: 0;
 }
-/* â”€â”€ Mantenimiento (Ã³rdenes de trabajo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Mantenimiento (órdenes de trabajo) ───────────────────── */
 .wo-card { border-left: 3px solid var(--line); }
 .wo-card.pr-low { border-left-color: var(--text-dim); }
 .wo-card.pr-medium { border-left-color: var(--accent-dim); }
@@ -3917,7 +3917,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 
 /* textarea base unificado en tokens */
 
-/* â”€â”€ SupervisiÃ³n y monitoreo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Supervisión y monitoreo ──────────────────────────────── */
 .round-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   flex-wrap: wrap; margin: 14px 0 12px; padding: 10px 14px;
@@ -3949,7 +3949,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border: 1px solid var(--line);
 }
 
-/* SelecciÃ³n de sala en la ronda */
+/* Selección de sala en la ronda */
 .room-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px;
@@ -4073,7 +4073,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-radius: 8px; padding: 8px 10px; font-size: 12.5px;
 }
 
-/* â”€â”€ Buscador + paginaciÃ³n de listas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Buscador + paginación de listas ──────────────────────── */
 .list-controls {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin: 10px 0 12px;
@@ -4114,7 +4114,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .cdh-sig-text { font-size: 11.5px; color: var(--text-dim); letter-spacing: 0.02em; }
 .cdh-sig-text strong { color: var(--text); font-weight: 700; letter-spacing: 0.06em; }
 
-/* â”€â”€ Login / portada (tema claro corporativo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Login / portada (tema claro corporativo) ─────────────── */
 .auth-light {
   position: relative;
   background: var(--paper);
@@ -4161,11 +4161,11 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .auth-light .cdh-sig-text { color: var(--ink-dim); }
 .auth-light .cdh-sig-text strong { color: var(--ink); }
 
-/* â”€â”€ Marca en el header del interior â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Marca en el header del interior ──────────────────────── */
 .ws-brand { display: flex; align-items: center; gap: 10px; }
 .ws-brand strong { letter-spacing: 0.02em; }
 
-/* â”€â”€ Firma global al pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Firma global al pie ──────────────────────────────────── */
 .app-foot {
   position: relative; z-index: 1;
   display: flex; justify-content: center; align-items: center; gap: 10px;
@@ -4184,7 +4184,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   color: var(--accent);
 }
 
-/* â”€â”€ Splash: marca IncubApp + firma CDH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Splash: marca IncubApp + firma CDH ───────────────────── */
 .splash-mark {
   display: grid; place-items: center; margin-bottom: 6px;
   filter: drop-shadow(0 0 22px rgba(245, 144, 15, 0.45));
@@ -4197,7 +4197,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 }
 .splash-sig { margin-top: 16px; opacity: 0.9; }
 
-/* â”€â”€ Selector de tema (Perfil) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Selector de tema (Perfil) ────────────────────────────── */
 .theme-toggle {
   display: inline-flex; gap: 4px; padding: 4px;
   background: var(--bg-0); border: 1px solid var(--line); border-radius: 999px;
@@ -4212,7 +4212,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   box-shadow: 0 1px 4px rgba(20, 25, 40, 0.12);
 }
 
-/* â”€â”€ Monitoreo (tablero en vivo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Monitoreo (tablero en vivo) ─────────────────────── */
 .card.mon { width: min(1200px, 100%); }
 
 .mon-topbar {
@@ -4288,7 +4288,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .mon-cell-foot .pill.status { margin-left: 0; }
 .mon-cell-when { font-size: 11px; color: var(--text-dim); }
 
-/* â”€â”€ Dashboard de perfil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Dashboard de perfil ──────────────────────────────────── */
 .profile-hero {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: 4px 0 14px; border-bottom: 1px solid var(--line);
@@ -4304,7 +4304,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .avatar-uploader { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
 .avatar-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 
-/* â”€â”€ Chat flotante (general + directos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Chat flotante (general + directos) ────────────────────── */
 .chat-fab {
   position: fixed; right: 20px; bottom: 20px; z-index: 1200;
   width: 54px; height: 54px; border-radius: 50%;
@@ -4374,7 +4374,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   .notif-fab { right: 14px; bottom: 78px; }
 }
 
-/* â”€â”€ DiseÃ±o (taller del desarrollador front): editor de bloques â”€â”€ */
+/* ── Diseño (taller del desarrollador front): editor de bloques ── */
 .dev-block {
   border: 1px solid var(--line); border-radius: 10px; background: var(--bg-0);
   padding: 8px 10px; margin-top: 8px;
@@ -4386,7 +4386,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   color: var(--text); font: inherit; padding: 9px 10px; box-sizing: border-box;
 }
 
-/* â”€â”€ Campana de notificaciones (FAB sobre el chat) â”€â”€ */
+/* ── Campana de notificaciones (FAB sobre el chat) ── */
 .notif-fab {
   position: fixed; right: 20px; bottom: 84px; z-index: 1200;
   width: 48px; height: 48px; border-radius: 50%;
@@ -4409,7 +4409,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .notif-composer { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .notif-composer input { width: 100%; }
 
-/* â”€â”€ Calendario de turnos â”€â”€ */
+/* ── Calendario de turnos ── */
 .sched-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; }
 .sched-table { border-collapse: collapse; width: 100%; font-size: 12px; }
 .sched-table th, .sched-table td { border: 1px solid var(--line); padding: 2px 3px; text-align: center; white-space: nowrap; }
@@ -4427,7 +4427,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
 .profile-hero-info h2 { margin: 0; font-size: 20px; }
 .profile-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 
-/* â”€â”€ Registro de actividades: banner automÃ¡tico y evidencias â”€â”€ */
+/* ── Registro de actividades: banner automático y evidencias ── */
 .auto-banner {
   display: flex; gap: 16px; flex-wrap: wrap;
   padding: 10px 14px; border: 1px solid var(--accent-dim); border-radius: 10px;
@@ -4462,7 +4462,7 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   border-radius: 8px; padding: 7px 10px; font-size: 12.5px;
 }
 
-/* â”€â”€ Informe imprimible (PDF) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Informe imprimible (PDF) ─────────────────────────────── */
 .print-report-overlay {
   position: fixed; inset: 0; z-index: 900; overflow: auto;
   background: #f4f6fa; color: #1a2233; padding: 20px;
@@ -4490,12 +4490,12 @@ button.ghost.small { padding: 5px 12px; font-size: 12.5px; width: auto; margin-t
   .print-report { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
 }
 
-/* â”€â”€ Endurecimiento responsive (todos los tamaÃ±os) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Endurecimiento responsive (todos los tamaños) ────────── */
 html, body { overflow-x: clip; }
 img, svg, video { max-width: 100%; }
 select, input, textarea, button { max-width: 100%; }
 
-/* Los textos largos (correos, cÃ³digos, notas) nunca desbordan */
+/* Los textos largos (correos, códigos, notas) nunca desbordan */
 .admin-row-main { min-width: 0; }
 .admin-row-main strong, .admin-row-main span,
 .hint, .check-notes, .evidence-row strong, .machine-meta span,
@@ -4516,12 +4516,12 @@ select, input, textarea, button { max-width: 100%; }
 /* El informe imprimible se desplaza si la tabla es ancha */
 .print-report { overflow-x: auto; }
 
-/* â”€â”€ MÃ³vil (PWA de operarios) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Móvil (PWA de operarios) ─────────────────────────────── */
 @media (max-width: 640px) {
   .shell {
     padding: 10px 8px calc(16px + env(safe-area-inset-bottom));
     padding-top: calc(8px + env(safe-area-inset-top));
-    /* Arriba, no centrado: el menÃº siempre se alcanza */
+    /* Arriba, no centrado: el menú siempre se alcanza */
     justify-content: flex-start;
     align-items: stretch;
   }
@@ -4580,7 +4580,7 @@ select, input, textarea, button { max-width: 100%; }
     padding: 8px 12px;
     flex-shrink: 0;
   }
-  /* BotÃ³n MenÃº bien visible en mÃ³vil */
+  /* Botón Menú bien visible en móvil */
   .ws-menu-btn {
     min-height: 44px;
     min-width: 88px;
@@ -4600,7 +4600,7 @@ select, input, textarea, button { max-width: 100%; }
   }
   .ws-menu-btn-lines i { background: var(--on-accent); }
 
-  /* MenÃº a pantalla casi completa (drawer) */
+  /* Menú a pantalla casi completa (drawer) */
   .ws-menu-overlay {
     padding: 0;
     align-items: stretch;
@@ -4637,7 +4637,7 @@ select, input, textarea, button { max-width: 100%; }
   .ws-menu-search { padding: 10px 14px; }
   .ws-menu-search input {
     min-height: 44px;
-    font-size: 16px; /* evita zoom automÃ¡tico en iOS */
+    font-size: 16px; /* evita zoom automático en iOS */
   }
   .ws-menu-scroll {
     padding: 8px 12px calc(24px + env(safe-area-inset-bottom));
@@ -4681,7 +4681,7 @@ select, input, textarea, button { max-width: 100%; }
     padding: 10px 14px;
   }
 
-  /* Objetivos tÃ¡ctiles grandes (dedos con guantes en planta) */
+  /* Objetivos táctiles grandes (dedos con guantes en planta) */
   button.primary, button.ghost, .chip { min-height: 42px; }
   button.primary.small { min-height: 38px; }
   .inline-form input, .inline-form select, .inline-form textarea,
@@ -4702,7 +4702,7 @@ select, input, textarea, button { max-width: 100%; }
   .check-thumb { width: 96px; height: 96px; }
 
   .admin-row { padding: 10px; }
-  /* La info del usuario/mÃ¡quina ocupa toda la fila; pills y acciones pasan abajo */
+  /* La info del usuario/máquina ocupa toda la fila; pills y acciones pasan abajo */
   .admin-row-main { flex: 1 1 100%; }
   .admin-row-actions { margin-left: 0; width: 100%; justify-content: flex-start; }
   .admin-row-actions select { flex: 1 1 auto; min-width: 0; }
@@ -4716,7 +4716,7 @@ select, input, textarea, button { max-width: 100%; }
 
   .auto-banner { flex-direction: column; gap: 6px; }
 
-  /* Buscador de listas: bÃºsqueda arriba, controles abajo */
+  /* Buscador de listas: búsqueda arriba, controles abajo */
   .list-search { flex: 1 1 100%; }
   .list-controls { justify-content: space-between; }
 
@@ -4738,7 +4738,7 @@ select, input, textarea, button { max-width: 100%; }
   .splash-rings .r3 { display: none; }
 }
 
-/* Pantallas muy angostas (â‰¤400px) */
+/* Pantallas muy angostas (≤400px) */
 @media (max-width: 400px) {
   .shell { padding-left: 8px; padding-right: 8px; }
   .card.wide, .card { padding: 12px 10px; }
@@ -4766,7 +4766,7 @@ select, input, textarea, button { max-width: 100%; }
 .cart-chip.active { color: var(--accent); border-color: var(--accent-dim); background: var(--bg-2); font-weight: 600; }
 .cart-chip sup { position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--accent); }
 
-/* -- Cockpit inmersivo (gerencia + coordinaciÃ³n IE) --------- */
+/* -- Cockpit inmersivo (gerencia + coordinación IE) --------- */
 .cockpit-shell {
   position: relative;
   overflow: hidden;
@@ -5189,7 +5189,7 @@ select, input, textarea, button { max-width: 100%; }
 
 .coord-shell .exec-kpi-grid { margin-top: 4px; }
 
-/* -- Asistencia / gate ubicaciÃ³n / reportes ----------------- */
+/* -- Asistencia / gate ubicación / reportes ----------------- */
 .location-gate { max-width: 560px; margin: 24px auto; }
 .location-gate-list {
   margin: 12px 0;
@@ -5309,8 +5309,8 @@ select, input, textarea, button { max-width: 100%; }
    CAPA GALÃƒÂCTICA Ã¢â‚¬â€ vida inmersiva y sutil para IncubApp
    Estrellas + nebulosas en el fondo, un cometa ocasional y
    micro-interacciones suaves. Todo respeta prefers-reduced-motion
-   y se atenÃƒÂºa (o apaga) en tema claro / fondo de cliente.
-   Henry Stark Desarrollador Ã‚Â· CDH Maker
+   y se atenúa (o apaga) en tema claro / fondo de cliente.
+   Henry Stark Desarrollador · CDH Maker
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Campo de estrellas + nebulosas (capa ::before del fondo) Ã¢â€â‚¬Ã¢â€â‚¬ */
@@ -5344,7 +5344,7 @@ select, input, textarea, button { max-width: 100%; }
   will-change: transform, opacity;
 }
 
-/* Consola de plataforma: siempre galÃƒÂ¡ctica */
+/* Consola de plataforma: siempre galáctica */
 .app-bg.platform-bg::before,
 .app-bg.platform-immersive::before {
   opacity: 0.75;
@@ -5393,7 +5393,7 @@ select, input, textarea, button { max-width: 100%; }
 }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Vida sutil en la interfaz Ã¢â€â‚¬Ã¢â€â‚¬ */
-/* Tarjetas pequeÃƒÂ±as: elevaciÃƒÂ³n suave al pasar el cursor */
+/* Tarjetas pequeñas: elevación suave al pasar el cursor */
 .kpi-card, .admin-card, .presence-card, .room-comp {
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
@@ -5407,7 +5407,7 @@ select, input, textarea, button { max-width: 100%; }
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 14px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-/* BotÃƒÂ³n primario: halo de energÃƒÂ­a al pasar el cursor */
+/* Botón primario: halo de energía al pasar el cursor */
 button.primary { transition: box-shadow 0.18s ease, filter 0.18s ease; }
 button.primary:hover:not(:disabled) {
   filter: brightness(1.05);
@@ -5417,13 +5417,13 @@ button.primary:hover:not(:disabled) {
 /* Encabezado con vidrio (glassmorphism discreto) */
 .workspace-header { backdrop-filter: blur(10px) saturate(1.15); }
 
-/* Anillo de enfoque accesible con la energÃƒÂ­a de la marca */
+/* Anillo de enfoque accesible con la energía de la marca */
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 75%, transparent);
   outline-offset: 2px;
 }
 
-/* SelecciÃƒÂ³n de texto con la marca */
+/* Selección de texto con la marca */
 ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 
 /* Barra de scroll fina y del tema */
