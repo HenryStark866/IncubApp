@@ -1,4 +1,4 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/LeaderDashboard.jsx
  * PROPÓSITO: Panel de control (home) predeterminado del líder de área (coordinator).
@@ -9,13 +9,15 @@
  * =============================================================================
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { usePlants } from '../hooks/usePlants'
 import { useRooms } from '../hooks/useRooms'
 import { useMachines } from '../hooks/useMachines'
 import { useMachineChecks, shiftOfHour, SHIFT_LABEL } from '../hooks/useMachineChecks'
 import { useShiftOps } from '../hooks/useShiftOps'
 import { useLoads } from '../hooks/useLoads'
+import { useEvidence } from '../hooks/useEvidence'
+import { useWorkOrders } from '../hooks/useWorkOrders'
 import { conditionOf } from '../lib/machineCondition'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
@@ -91,6 +93,44 @@ function FeedItem({ event, peopleName }) {
   )
 }
 
+function EvidenceCard({ item, getFileUrl, peopleName }) {
+  const [url, setUrl] = useState(null)
+  useEffect(() => {
+    if (item.file_path) {
+      getFileUrl(item.file_path).then((u) => setUrl(u))
+    }
+  }, [item.file_path, getFileUrl])
+
+  const uploader = peopleName?.[item.uploaded_by] || 'Operario'
+  const dateStr = item.created_at
+    ? new Date(item.created_at).toLocaleDateString('es-CO', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+      })
+    : ''
+
+  return (
+    <div className="ldr-ev-card">
+      <div className="ldr-ev-thumb">
+        {item.file_type === 'image' && url ? (
+          <img src={url} alt={item.file_name} className="ldr-ev-img" />
+        ) : (
+          <span className="ldr-ev-doc-icon">📄</span>
+        )}
+      </div>
+      <div className="ldr-ev-info">
+        <span className="ldr-ev-name" title={item.file_name}>{item.file_name}</span>
+        <span className="ldr-ev-meta">{uploader} · {dateStr}</span>
+        {item.note && <span className="ldr-ev-note">"{item.note}"</span>}
+      </div>
+      {url && (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="ldr-ev-link" title="Ver archivo original">
+          ↗
+        </a>
+      )}
+    </div>
+  )
+}
+
 export default function LeaderDashboard({
   orgId,
   userId,
@@ -117,6 +157,8 @@ export default function LeaderDashboard({
   const mc = useMachineChecks(orgId, userId, { canSupervise: false })
   const so = useShiftOps(orgId, userId)
   const { loads, transfers } = useLoads(orgId, userId)
+  const { evidence, getFileUrl } = useEvidence(orgId, userId)
+  const { orders } = useWorkOrders(orgId, userId)
 
   const latestByMachine = useMemo(() => {
     const map = new Map()
@@ -146,6 +188,10 @@ export default function LeaderDashboard({
   const totalMachines = machines.length
   const onlineCount = presence?.onlineCount ?? 0
   const puede3D = canSeePlant3DTour(role)
+
+  const activeOrdersCount = useMemo(() => {
+    return orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length
+  }, [orders])
 
   const quickItems = useMemo(() => {
     if (!can) return []
@@ -210,7 +256,8 @@ export default function LeaderDashboard({
         <KpiCard label="Operativas" value={summary.normal} icon="✅" color={CONDITION_COLOR.normal} sub={`de ${totalMachines} máquinas`} />
         <KpiCard label="En alerta" value={summary.warning} icon="⚠️" color={CONDITION_COLOR.warning} />
         <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
-        <KpiCard label="Apagadas" value={summary.off} icon="⭘" color={CONDITION_COLOR.off} />
+        <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
+        <KpiCard label="Evidencias SIG" value={evidence.length} icon="📁" color="#a78bfa" sub="Adjuntos registrados" />
         <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
       </section>
 
@@ -224,6 +271,23 @@ export default function LeaderDashboard({
           </div>
         </section>
       )}
+
+      {/* Evidencias SIG Mantenimiento y Producción */}
+      <section className="ldr-evidence-section" aria-label="Evidencias SIG Mantenimiento y Producción">
+        <h2 className="ldr-section-title">
+          <span aria-hidden="true">📸</span> Evidencias Registradas (SIG Mantenimiento & Producción)
+          <span className="ldr-section-sub">{evidence.length} archivos vinculados</span>
+        </h2>
+        {evidence.length === 0 ? (
+          <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.</p>
+        ) : (
+          <div className="ldr-ev-grid">
+            {evidence.slice(0, 6).map((item) => (
+              <EvidenceCard key={item.id} item={item} getFileUrl={getFileUrl} peopleName={peopleName} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="ldr-main-split">
         <section className="ldr-map-section" aria-label="Plano de planta en vivo">
