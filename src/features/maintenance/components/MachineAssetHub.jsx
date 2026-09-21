@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { LOCAL_MAINTENANCE_MANUALS } from '../../../data/maintenanceManuals';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
@@ -405,13 +406,18 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...calibrations,
         ...mantumInventoryEvidence(),
         ...mantumHistoricalEvidence(),
+        ...LOCAL_MAINTENANCE_MANUALS,
       ]);
       setAllEvidence(combined);
       onEvidenceLoaded?.(combined);
       setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
-      const fallbackEvidence = sortEvidence([...mantumInventoryEvidence(), ...mantumHistoricalEvidence()]);
+      const fallbackEvidence = sortEvidence([
+        ...mantumInventoryEvidence(),
+        ...mantumHistoricalEvidence(),
+        ...LOCAL_MAINTENANCE_MANUALS,
+      ]);
       setAllEvidence(fallbackEvidence);
       onEvidenceLoaded?.(fallbackEvidence);
     } finally {

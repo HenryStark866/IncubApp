@@ -11,6 +11,20 @@ import componentsMap from './mantumComponents.json'
 import plansMap from './mantumMaintenancePlans.json'
 import historicalOTsMap from './mantumHistoricalOTs.json'
 
+function enrichEquipment(equipo, machine = {}) {
+  if (!equipo) return equipo
+  const code = String(equipo.mantum_code || machine.code || '').toUpperCase()
+  const name = String(equipo.nombre || machine.name || '').toUpperCase()
+  const isEnvironmentalControl = /INCUBADORA|NACEDORA|AHU MANEJADORA/.test(name)
+  const isLegacyAsset = /^(?:00[1-9]|011)\.|^EQ-/.test(code)
+  return {
+    ...equipo,
+    supplier: isEnvironmentalControl ? 'Petersime' : equipo.supplier,
+    manufacturer: isEnvironmentalControl ? 'Petersime' : (equipo.manufacturer || equipo.supplier || null),
+    purchase_year: equipo.purchase_year || (isLegacyAsset ? 2025 : 2026),
+  }
+}
+
 export {
   inventoryMap as MANTUM_INVENTORY,
   equiposMap as MANTUM_EQUIPOS,
@@ -196,7 +210,7 @@ export function getMantumDataForMachine(machine) {
   return {
     matchedKey: candidates[0] || machine.code,
     inventory,
-    equipo,
+    equipo: enrichEquipment(equipo, machine),
     components,
     maintenancePlan,
     historicalOTs,
