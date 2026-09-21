@@ -1,36 +1,36 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/DevStudio.jsx
- * PROPÓSITO: Componente UI «DevStudio»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«DevStudioÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { UI_FONTS, UI_SCALES, applyUiVars } from '../hooks/useUiSettings'
+import { UI_FONTS, UI_SCALES, applyUiVars } from '../shared/hooks/useUiSettings'
 
 /**
- * 🎨 Diseño — el taller del rol desarrollador (y de la gestión).
+ * ðŸŽ¨ DiseÃ±o â€” el taller del rol desarrollador (y de la gestiÃ³n).
  *
  * Permite trabajar el front desde la propia interfaz:
- *  - Apariencia: fuente, escala (tamaños/espacios) y colores de acento, en vivo.
- *  - Pestañas: crear/editar/deshabilitar módulos principales por bloques de contenido.
- *  - Bitácora: TODO cambio exige una descripción y queda registrado (inmutable).
+ *  - Apariencia: fuente, escala (tamaÃ±os/espacios) y colores de acento, en vivo.
+ *  - PestaÃ±as: crear/editar/deshabilitar mÃ³dulos principales por bloques de contenido.
+ *  - BitÃ¡cora: TODO cambio exige una descripciÃ³n y queda registrado (inmutable).
  *
- * Lo que NO se puede desde aquí (a propósito): código arbitrario y el módulo de
- * Planos — ese solo lo trabaja el desarrollador, o quien tenga activa la tarea
+ * Lo que NO se puede desde aquÃ­ (a propÃ³sito): cÃ³digo arbitrario y el mÃ³dulo de
+ * Planos â€” ese solo lo trabaja el desarrollador, o quien tenga activa la tarea
  * "crear planos" (grants_module='plans').
  */
 
 const fmtDT = (iso) => new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-const AREA_LABEL = { theme: '🎨 Apariencia', module: '🧩 Pestañas', plans: '🗺 Planos', other: 'Otro' }
+const AREA_LABEL = { theme: 'ðŸŽ¨ Apariencia', module: 'ðŸ§© PestaÃ±as', plans: 'ðŸ—º Planos', other: 'Otro' }
 
-/** Registra el cambio en la bitácora (obligatorio en todo guardado del estudio). */
+/** Registra el cambio en la bitÃ¡cora (obligatorio en todo guardado del estudio). */
 async function logChange({ orgId, userId, area, action, target, description, diff }) {
   await supabase.from('dev_changes').insert({
     org_id: orgId, actor: userId, area, action, target: target || null,
@@ -38,7 +38,7 @@ async function logChange({ orgId, userId, area, action, target, description, dif
   })
 }
 
-/* ══ Apariencia ══════════════════════════════════════════════ */
+/* â•â• Apariencia â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function AppearanceTab({ orgId, userId }) {
   const [saved, setSaved] = useState({})
   const [form, setForm] = useState({ font: '', scale: '', accent: '', accentDim: '' })
@@ -62,7 +62,7 @@ function AppearanceTab({ orgId, userId }) {
   }
 
   const save = async () => {
-    if (desc.trim().length < 5) { setMsg({ kind: 'error', text: 'Describe el cambio (mínimo 5 caracteres) — todo queda documentado.' }); return }
+    if (desc.trim().length < 5) { setMsg({ kind: 'error', text: 'Describe el cambio (mÃ­nimo 5 caracteres) â€” todo queda documentado.' }); return }
     setBusy(true)
     setMsg(null)
     const vars = {}
@@ -93,7 +93,7 @@ function AppearanceTab({ orgId, userId }) {
           </select>
         </label>
         <label>
-          Escala general (tamaños y espacios)
+          Escala general (tamaÃ±os y espacios)
           <select value={form.scale} onChange={set('scale')}>
             {UI_SCALES.map((s) => <option key={s.label} value={s.value}>{s.label}</option>)}
           </select>
@@ -110,19 +110,19 @@ function AppearanceTab({ orgId, userId }) {
         </label>
       </div>
       <label>
-        Descripción del cambio (obligatoria — queda en la bitácora)
-        <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej. Letra más grande para los operarios de campo" />
+        DescripciÃ³n del cambio (obligatoria â€” queda en la bitÃ¡cora)
+        <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej. Letra mÃ¡s grande para los operarios de campo" />
       </label>
       {msg && <p className={`msg ${msg.kind}`}>{msg.text}</p>}
       <div className="actions row">
-        <button className="primary" onClick={save} disabled={busy}>{busy ? 'Guardando…' : 'Guardar apariencia'}</button>
+        <button className="primary" onClick={save} disabled={busy}>{busy ? 'Guardandoâ€¦' : 'Guardar apariencia'}</button>
         <button className="ghost" onClick={reset} disabled={busy}>Restablecer a la base</button>
       </div>
     </div>
   )
 }
 
-/* ══ Editor de bloques de una pestaña ════════════════════════ */
+/* â•â• Editor de bloques de una pestaÃ±a â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const NEW_BLOCK = {
   titulo: () => ({ type: 'titulo', text: '' }),
   texto: () => ({ type: 'texto', text: '' }),
@@ -156,30 +156,30 @@ function BlockEditor({ blocks, setBlocks }) {
           <div className="dev-block-head">
             <span className="pill">{b.type}</span>
             <span>
-              <button type="button" className="ghost small" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
-              <button type="button" className="ghost small" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}>↓</button>
-              <button type="button" className="ghost small danger" onClick={() => remove(i)}>✕</button>
+              <button type="button" className="ghost small" onClick={() => move(i, -1)} disabled={i === 0}>â†‘</button>
+              <button type="button" className="ghost small" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}>â†“</button>
+              <button type="button" className="ghost small danger" onClick={() => remove(i)}>âœ•</button>
             </span>
           </div>
           {b.type === 'titulo' && (
-            <input type="text" value={b.text} onChange={(e) => setB(i, { text: e.target.value })} placeholder="Texto del título" />
+            <input type="text" value={b.text} onChange={(e) => setB(i, { text: e.target.value })} placeholder="Texto del tÃ­tulo" />
           )}
           {b.type === 'texto' && (
-            <textarea rows={3} value={b.text} onChange={(e) => setB(i, { text: e.target.value })} placeholder="Párrafo de texto…" style={{ width: '100%', marginTop: 6 }} />
+            <textarea rows={3} value={b.text} onChange={(e) => setB(i, { text: e.target.value })} placeholder="PÃ¡rrafo de textoâ€¦" style={{ width: '100%', marginTop: 6 }} />
           )}
           {b.type === 'lista' && (
             <textarea
               rows={3}
               value={(b.items ?? []).join('\n')}
               onChange={(e) => setB(i, { items: e.target.value.split('\n') })}
-              placeholder={'Un ítem por línea'}
+              placeholder={'Un Ã­tem por lÃ­nea'}
               style={{ width: '100%', marginTop: 6 }}
             />
           )}
           {b.type === 'enlace' && (
             <div className="two-col">
-              <label>Texto<input type="text" value={b.label} onChange={(e) => setB(i, { label: e.target.value })} placeholder="Ej. Formato de vacunación" /></label>
-              <label>URL (https://…)<input type="text" value={b.url} onChange={(e) => setB(i, { url: e.target.value })} /></label>
+              <label>Texto<input type="text" value={b.label} onChange={(e) => setB(i, { label: e.target.value })} placeholder="Ej. Formato de vacunaciÃ³n" /></label>
+              <label>URL (https://â€¦)<input type="text" value={b.url} onChange={(e) => setB(i, { url: e.target.value })} /></label>
             </div>
           )}
         </div>
@@ -188,7 +188,7 @@ function BlockEditor({ blocks, setBlocks }) {
   )
 }
 
-/* ══ Pestañas personalizadas ═════════════════════════════════ */
+/* â•â• PestaÃ±as personalizadas â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ModulesTab({ orgId, userId }) {
   const [list, setList] = useState([])
   const [editing, setEditing] = useState(null) // null | 'new' | module
@@ -224,8 +224,8 @@ function ModulesTab({ orgId, userId }) {
   }
 
   const save = async () => {
-    if (form.title.trim().length < 2) { setMsg({ kind: 'error', text: 'El título es obligatorio (mínimo 2 caracteres).' }); return }
-    if (desc.trim().length < 5) { setMsg({ kind: 'error', text: 'Describe el cambio (mínimo 5 caracteres) — todo queda documentado.' }); return }
+    if (form.title.trim().length < 2) { setMsg({ kind: 'error', text: 'El tÃ­tulo es obligatorio (mÃ­nimo 2 caracteres).' }); return }
+    if (desc.trim().length < 5) { setMsg({ kind: 'error', text: 'Describe el cambio (mÃ­nimo 5 caracteres) â€” todo queda documentado.' }); return }
     setBusy(true)
     setMsg(null)
     const payload = {
@@ -238,10 +238,10 @@ function ModulesTab({ orgId, userId }) {
     let error
     if (editing === 'new') {
       ;({ error } = await supabase.from('custom_modules').insert({ org_id: orgId, created_by: userId, ...payload }))
-      if (!error) await logChange({ orgId, userId, area: 'module', action: 'crear pestaña', target: payload.title, description: desc, diff: { despues: payload } })
+      if (!error) await logChange({ orgId, userId, area: 'module', action: 'crear pestaÃ±a', target: payload.title, description: desc, diff: { despues: payload } })
     } else {
       ;({ error } = await supabase.from('custom_modules').update(payload).eq('id', editing.id))
-      if (!error) await logChange({ orgId, userId, area: 'module', action: 'editar pestaña', target: payload.title, description: desc, diff: { antes: { title: editing.title, blocks: editing.blocks }, despues: payload } })
+      if (!error) await logChange({ orgId, userId, area: 'module', action: 'editar pestaÃ±a', target: payload.title, description: desc, diff: { antes: { title: editing.title, blocks: editing.blocks }, despues: payload } })
     }
     setBusy(false)
     if (error) setMsg({ kind: 'error', text: error.message })
@@ -249,35 +249,35 @@ function ModulesTab({ orgId, userId }) {
   }
 
   const remove = async (m) => {
-    const motivo = window.prompt(`¿Eliminar la pestaña "${m.title}"?\n\nEscribe el motivo (queda en la bitácora):`)
+    const motivo = window.prompt(`Â¿Eliminar la pestaÃ±a "${m.title}"?\n\nEscribe el motivo (queda en la bitÃ¡cora):`)
     if (!motivo || motivo.trim().length < 5) return
     const { error } = await supabase.from('custom_modules').delete().eq('id', m.id)
-    if (!error) await logChange({ orgId, userId, area: 'module', action: 'eliminar pestaña', target: m.title, description: motivo, diff: { antes: { title: m.title, blocks: m.blocks } } })
+    if (!error) await logChange({ orgId, userId, area: 'module', action: 'eliminar pestaÃ±a', target: m.title, description: motivo, diff: { antes: { title: m.title, blocks: m.blocks } } })
     load()
   }
 
   return (
     <>
       <p className="hint" style={{ margin: '8px 0' }}>
-        Las pestañas habilitadas aparecen como módulos principales para toda la empresa. El contenido se arma por bloques (sin código).
+        Las pestaÃ±as habilitadas aparecen como mÃ³dulos principales para toda la empresa. El contenido se arma por bloques (sin cÃ³digo).
       </p>
       {!editing && (
         <>
-          <div className="actions row"><button className="primary small" onClick={startNew}>+ Nueva pestaña</button></div>
+          <div className="actions row"><button className="primary small" onClick={startNew}>+ Nueva pestaÃ±a</button></div>
           <div className="admin-list" style={{ marginTop: 10 }}>
-            {list.length === 0 && <p className="hint">Aún no hay pestañas personalizadas.</p>}
+            {list.length === 0 && <p className="hint">AÃºn no hay pestaÃ±as personalizadas.</p>}
             {list.map((m) => (
               <div key={m.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
                     <strong>{m.icon ? `${m.icon} ` : ''}{m.title}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      Posición {m.position} · {(m.blocks ?? []).length} bloque(s) · Actualizada {fmtDT(m.updated_at)}
+                      PosiciÃ³n {m.position} Â· {(m.blocks ?? []).length} bloque(s) Â· Actualizada {fmtDT(m.updated_at)}
                     </span>
                   </div>
                   <span className={`pill status ${m.enabled ? 'ok' : 'idle'}`}>{m.enabled ? 'Visible' : 'Oculta'}</span>
                   <span className="admin-row-actions">
-                    <button className="ghost small" onClick={() => startEdit(m)}>✏️ Editar</button>
+                    <button className="ghost small" onClick={() => startEdit(m)}>âœï¸ Editar</button>
                     <button className="ghost small danger" onClick={() => remove(m)}>Eliminar</button>
                   </span>
                 </div>
@@ -290,11 +290,11 @@ function ModulesTab({ orgId, userId }) {
       {editing && (
         <div className="inline-form">
           <div className="two-col">
-            <label>Título de la pestaña<input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ej. Protocolos" autoFocus /></label>
-            <label>Ícono (emoji, opcional)<input type="text" value={form.icon} onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))} placeholder="Ej. 📋" maxLength={4} /></label>
+            <label>TÃ­tulo de la pestaÃ±a<input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ej. Protocolos" autoFocus /></label>
+            <label>Ãcono (emoji, opcional)<input type="text" value={form.icon} onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))} placeholder="Ej. ðŸ“‹" maxLength={4} /></label>
           </div>
           <div className="two-col">
-            <label>Posición (orden en el menú)<input type="number" value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} /></label>
+            <label>PosiciÃ³n (orden en el menÃº)<input type="number" value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} /></label>
             <label className="check-inline" style={{ marginTop: 26 }}>
               <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} />
               Visible para la empresa
@@ -305,12 +305,12 @@ function ModulesTab({ orgId, userId }) {
           <BlockEditor blocks={blocks} setBlocks={setBlocks} />
 
           <label style={{ marginTop: 10 }}>
-            Descripción del cambio (obligatoria — queda en la bitácora)
-            <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej. Nueva pestaña de protocolos de bioseguridad" />
+            DescripciÃ³n del cambio (obligatoria â€” queda en la bitÃ¡cora)
+            <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej. Nueva pestaÃ±a de protocolos de bioseguridad" />
           </label>
           {msg && <p className={`msg ${msg.kind}`}>{msg.text}</p>}
           <div className="actions row">
-            <button className="primary" onClick={save} disabled={busy}>{busy ? 'Guardando…' : editing === 'new' ? 'Crear pestaña' : 'Guardar cambios'}</button>
+            <button className="primary" onClick={save} disabled={busy}>{busy ? 'Guardandoâ€¦' : editing === 'new' ? 'Crear pestaÃ±a' : 'Guardar cambios'}</button>
             <button className="ghost" onClick={() => setEditing(null)} disabled={busy}>Cancelar</button>
           </div>
         </div>
@@ -319,7 +319,7 @@ function ModulesTab({ orgId, userId }) {
   )
 }
 
-/* ══ Bitácora ════════════════════════════════════════════════ */
+/* â•â• BitÃ¡cora â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function LogTab({ orgId }) {
   const [rows, setRows] = useState([])
   const [people, setPeople] = useState({})
@@ -331,7 +331,7 @@ function LogTab({ orgId }) {
     ]).then(([r, t]) => {
       setRows(r.data ?? [])
       const map = {}
-      for (const x of t.data ?? []) map[x.user_id] = x.profiles?.full_name || x.profiles?.email || '—'
+      for (const x of t.data ?? []) map[x.user_id] = x.profiles?.full_name || x.profiles?.email || 'â€”'
       setPeople(map)
     })
   }, [orgId])
@@ -339,19 +339,19 @@ function LogTab({ orgId }) {
   return (
     <>
       <p className="hint" style={{ margin: '8px 0' }}>
-        Registro inmutable de todos los cambios hechos desde Diseño (quién, cuándo, qué y por qué). Últimos 100.
+        Registro inmutable de todos los cambios hechos desde DiseÃ±o (quiÃ©n, cuÃ¡ndo, quÃ© y por quÃ©). Ãšltimos 100.
       </p>
       <div className="admin-list">
-        {rows.length === 0 && <p className="hint">Sin cambios registrados todavía.</p>}
+        {rows.length === 0 && <p className="hint">Sin cambios registrados todavÃ­a.</p>}
         {rows.map((r) => (
           <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
             <span>{(AREA_LABEL[r.area] ?? r.area).split(' ')[0]}</span>
             <div className="admin-row-main" style={{ flex: 1 }}>
-              <strong>{r.action}{r.target ? ` — ${r.target}` : ''}</strong>
+              <strong>{r.action}{r.target ? ` â€” ${r.target}` : ''}</strong>
               <span className="hint" style={{ margin: 0 }}>{r.description}</span>
             </div>
             <span className="hint" style={{ margin: 0, textAlign: 'right' }}>
-              {people[r.actor] ?? '—'}<br />{fmtDT(r.created_at)}
+              {people[r.actor] ?? 'â€”'}<br />{fmtDT(r.created_at)}
             </span>
           </div>
         ))}
@@ -360,23 +360,23 @@ function LogTab({ orgId }) {
   )
 }
 
-/* ══ Panel principal ═════════════════════════════════════════ */
+/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export default function DevStudio({ orgId, userId, role }) {
   const [view, setView] = useState('apariencia')
   return (
     <div className="card wide">
       <div className="card-head">
-        <h2>🎨 Diseño</h2>
-        <span className="pill role">{role === 'developer' ? 'Desarrollador front' : 'Gestión'}</span>
+        <h2>ðŸŽ¨ DiseÃ±o</h2>
+        <span className="pill role">{role === 'developer' ? 'Desarrollador front' : 'GestiÃ³n'}</span>
       </div>
       <p className="hint" style={{ margin: '4px 0 0' }}>
-        Taller del front: apariencia global, pestañas/módulos por bloques y bitácora. Los Planos no se editan aquí:
+        Taller del front: apariencia global, pestaÃ±as/mÃ³dulos por bloques y bitÃ¡cora. Los Planos no se editan aquÃ­:
         los trabaja el desarrollador, o quien tenga activa la tarea de crear planos.
       </p>
       <div className="tabs" role="tablist" style={{ marginTop: 10 }}>
         <button className={view === 'apariencia' ? 'tab active' : 'tab'} onClick={() => setView('apariencia')}>Apariencia</button>
-        <button className={view === 'pestanas' ? 'tab active' : 'tab'} onClick={() => setView('pestanas')}>Pestañas y módulos</button>
-        <button className={view === 'bitacora' ? 'tab active' : 'tab'} onClick={() => setView('bitacora')}>Bitácora</button>
+        <button className={view === 'pestanas' ? 'tab active' : 'tab'} onClick={() => setView('pestanas')}>PestaÃ±as y mÃ³dulos</button>
+        <button className={view === 'bitacora' ? 'tab active' : 'tab'} onClick={() => setView('bitacora')}>BitÃ¡cora</button>
       </div>
       {view === 'apariencia' ? (
         <AppearanceTab orgId={orgId} userId={userId} />
@@ -388,3 +388,4 @@ export default function DevStudio({ orgId, userId, role }) {
     </div>
   )
 }
+

@@ -1,10 +1,10 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/PlatformOrgModulesPanel.jsx
- * PROPÓSITO: Consola CDH Maker · «Módulos por empresa»: control total del
- * catálogo por tenant. Habilitar/deshabilitar módulos del producto y crear
- * módulos personalizados asignándolos a una o varias empresas.
- * CÓMO FUNCIONA: Los apagados se guardan en organizations.settings
+ * PROPÃ“SITO: Consola CDH Maker Â· Â«MÃ³dulos por empresaÂ»: control total del
+ * catÃ¡logo por tenant. Habilitar/deshabilitar mÃ³dulos del producto y crear
+ * mÃ³dulos personalizados asignÃ¡ndolos a una o varias empresas.
+ * CÃ“MO FUNCIONA: Los apagados se guardan en organizations.settings
  * (disabled_menu_ids) y la app del cliente los deja de mostrar al instante.
  * Los personalizados viven en custom_modules (una fila por empresa asignada);
  * su contenido por bloques se edita en Studio UI con la empresa elegida.
@@ -16,12 +16,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { buildModuleCatalog } from '../lib/orgModules'
-import { useOrgModuleConfig } from '../hooks/useOrgModuleConfig'
+import { useOrgModuleConfig } from '../features/platform/hooks/useOrgModuleConfig'
 
 const fmtDT = (iso) =>
   new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-/** Bitácora inmutable de la consola (misma tabla que Studio UI). */
+/** BitÃ¡cora inmutable de la consola (misma tabla que Studio UI). */
 async function logChange({ orgId, userId, action, target, description, diff }) {
   await supabase.from('dev_changes').insert({
     org_id: orgId,
@@ -34,7 +34,7 @@ async function logChange({ orgId, userId, action, target, description, diff }) {
   })
 }
 
-/* ══ Catálogo del producto: encender/apagar por empresa ══════ */
+/* â•â• CatÃ¡logo del producto: encender/apagar por empresa â•â•â•â•â•â• */
 function CatalogSection({ org, userId, config }) {
   const catalog = useMemo(() => buildModuleCatalog(), [])
   const groups = useMemo(() => {
@@ -54,7 +54,7 @@ function CatalogSection({ org, userId, config }) {
     if (
       disable &&
       !window.confirm(
-        `¿Desactivar «${mod.label}» para ${org.name}?\n\nLos usuarios de la empresa dejarán de ver este módulo de inmediato.`
+        `Â¿Desactivar Â«${mod.label}Â» para ${org.name}?\n\nLos usuarios de la empresa dejarÃ¡n de ver este mÃ³dulo de inmediato.`
       )
     ) {
       return
@@ -71,7 +71,7 @@ function CatalogSection({ org, userId, config }) {
     else
       setMsg({
         kind: 'ok',
-        text: `«${mod.label}» ${disable ? 'desactivado' : 'activado'} para ${org.name}. Aplica al instante en la app del cliente.`,
+        text: `Â«${mod.label}Â» ${disable ? 'desactivado' : 'activado'} para ${org.name}. Aplica al instante en la app del cliente.`,
       })
   }
 
@@ -80,8 +80,8 @@ function CatalogSection({ org, userId, config }) {
   return (
     <>
       <p className="hint" style={{ margin: '8px 0' }}>
-        Catálogo del producto para <strong>{org.name}</strong>. Los módulos base (núcleo) no se
-        pueden apagar. {disabledCount > 0 ? `${disabledCount} módulo(s) desactivado(s).` : 'Todos los módulos están activos.'}
+        CatÃ¡logo del producto para <strong>{org.name}</strong>. Los mÃ³dulos base (nÃºcleo) no se
+        pueden apagar. {disabledCount > 0 ? `${disabledCount} mÃ³dulo(s) desactivado(s).` : 'Todos los mÃ³dulos estÃ¡n activos.'}
       </p>
       {msg && <p className={`msg ${msg.kind}`}>{msg.text}</p>}
       {groups.map(([group, mods]) => (
@@ -98,13 +98,13 @@ function CatalogSection({ org, userId, config }) {
                     <strong>{m.label}</strong>
                     <span className="hint" style={{ margin: 0 }}>
                       {m.id}
-                      {m.hint ? ` · ${m.hint}` : ''}
-                      {m.domains.length ? ` · ${m.domains.join(' · ')}` : ''}
+                      {m.hint ? ` Â· ${m.hint}` : ''}
+                      {m.domains.length ? ` Â· ${m.domains.join(' Â· ')}` : ''}
                     </span>
                   </div>
                   {m.core ? (
-                    <span className="pill role" title="Módulo del núcleo: siempre activo">
-                      Núcleo
+                    <span className="pill role" title="MÃ³dulo del nÃºcleo: siempre activo">
+                      NÃºcleo
                     </span>
                   ) : (
                     <>
@@ -118,7 +118,7 @@ function CatalogSection({ org, userId, config }) {
                           disabled={busyId === m.id || config.loading}
                           onClick={() => toggle(m)}
                         >
-                          {busyId === m.id ? '…' : enabled ? 'Desactivar' : 'Activar'}
+                          {busyId === m.id ? 'â€¦' : enabled ? 'Desactivar' : 'Activar'}
                         </button>
                       </span>
                     </>
@@ -133,7 +133,7 @@ function CatalogSection({ org, userId, config }) {
   )
 }
 
-/* ══ Módulos personalizados: crear y asignar a empresas ══════ */
+/* â•â• MÃ³dulos personalizados: crear y asignar a empresas â•â•â•â•â•â• */
 function CustomSection({ org, orgs, userId }) {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -181,7 +181,7 @@ function CustomSection({ org, orgs, userId }) {
   const create = async () => {
     const title = form.title.trim()
     if (title.length < 2) {
-      setMsg({ kind: 'error', text: 'El título es obligatorio (mínimo 2 caracteres).' })
+      setMsg({ kind: 'error', text: 'El tÃ­tulo es obligatorio (mÃ­nimo 2 caracteres).' })
       return
     }
     if (targets.size === 0) {
@@ -209,21 +209,21 @@ function CustomSection({ org, orgs, userId }) {
         await logChange({
           orgId: targetId,
           userId,
-          action: 'crear módulo personalizado',
+          action: 'crear mÃ³dulo personalizado',
           target: title,
-          description: `Módulo personalizado «${title}» creado y asignado a ${target?.name || 'la empresa'} desde la consola de plataforma`,
+          description: `MÃ³dulo personalizado Â«${title}Â» creado y asignado a ${target?.name || 'la empresa'} desde la consola de plataforma`,
           diff: { despues: payload },
         })
       }
     }
     setBusy(false)
     if (errors.length) {
-      setMsg({ kind: 'error', text: `Errores: ${errors.join(' · ')}` })
+      setMsg({ kind: 'error', text: `Errores: ${errors.join(' Â· ')}` })
     } else {
       setCreating(false)
       setMsg({
         kind: 'ok',
-        text: `Módulo «${title}» creado en ${targets.size} empresa(s). El contenido por bloques se edita en Studio UI con la empresa elegida.`,
+        text: `MÃ³dulo Â«${title}Â» creado en ${targets.size} empresa(s). El contenido por bloques se edita en Studio UI con la empresa elegida.`,
       })
     }
     load()
@@ -241,16 +241,16 @@ function CustomSection({ org, orgs, userId }) {
     await logChange({
       orgId: org.id,
       userId,
-      action: m.enabled ? 'desactivar módulo personalizado' : 'activar módulo personalizado',
+      action: m.enabled ? 'desactivar mÃ³dulo personalizado' : 'activar mÃ³dulo personalizado',
       target: m.title,
-      description: `Módulo personalizado «${m.title}» ${m.enabled ? 'desactivado' : 'activado'} para ${org.name} desde la consola de plataforma`,
+      description: `MÃ³dulo personalizado Â«${m.title}Â» ${m.enabled ? 'desactivado' : 'activado'} para ${org.name} desde la consola de plataforma`,
     })
     load()
   }
 
   const remove = async (m) => {
     const motivo = window.prompt(
-      `¿Eliminar el módulo «${m.title}» de ${org.name}?\n\nEscribe el motivo (queda en la bitácora):`
+      `Â¿Eliminar el mÃ³dulo Â«${m.title}Â» de ${org.name}?\n\nEscribe el motivo (queda en la bitÃ¡cora):`
     )
     if (!motivo || motivo.trim().length < 5) return
     const { error } = await supabase.from('custom_modules').delete().eq('id', m.id)
@@ -261,7 +261,7 @@ function CustomSection({ org, orgs, userId }) {
     await logChange({
       orgId: org.id,
       userId,
-      action: 'eliminar módulo personalizado',
+      action: 'eliminar mÃ³dulo personalizado',
       target: m.title,
       description: motivo.trim(),
       diff: { antes: { title: m.title, blocks: m.blocks } },
@@ -272,8 +272,8 @@ function CustomSection({ org, orgs, userId }) {
   return (
     <>
       <p className="hint" style={{ margin: '8px 0' }}>
-        Módulos creados a medida. Aparecen en el menú del cliente (grupo «Personalizados») cuando
-        están activos. Aquí se crean y se asignan; el contenido por bloques se afina en{' '}
+        MÃ³dulos creados a medida. Aparecen en el menÃº del cliente (grupo Â«PersonalizadosÂ») cuando
+        estÃ¡n activos. AquÃ­ se crean y se asignan; el contenido por bloques se afina en{' '}
         <strong>Studio UI</strong> con la empresa elegida en la barra.
       </p>
       {msg && <p className={`msg ${msg.kind}`}>{msg.text}</p>}
@@ -282,13 +282,13 @@ function CustomSection({ org, orgs, userId }) {
         <>
           <div className="actions row">
             <button type="button" className="primary small" onClick={startCreate}>
-              + Nuevo módulo (asignar a empresas)
+              + Nuevo mÃ³dulo (asignar a empresas)
             </button>
           </div>
           <div className="admin-list" style={{ marginTop: 10 }}>
-            {loading && <p className="hint">Cargando…</p>}
+            {loading && <p className="hint">Cargandoâ€¦</p>}
             {!loading && list.length === 0 && (
-              <p className="hint">Esta empresa no tiene módulos personalizados.</p>
+              <p className="hint">Esta empresa no tiene mÃ³dulos personalizados.</p>
             )}
             {list.map((m) => (
               <div key={m.id} className="admin-row compact" style={{ margin: '0 0 4px' }}>
@@ -298,7 +298,7 @@ function CustomSection({ org, orgs, userId }) {
                     {m.title}
                   </strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    Posición {m.position} · {(m.blocks ?? []).length} bloque(s) · Actualizado{' '}
+                    PosiciÃ³n {m.position} Â· {(m.blocks ?? []).length} bloque(s) Â· Actualizado{' '}
                     {fmtDT(m.updated_at)}
                   </span>
                 </div>
@@ -327,7 +327,7 @@ function CustomSection({ org, orgs, userId }) {
         <div className="inline-form">
           <div className="two-col">
             <label>
-              Título del módulo
+              TÃ­tulo del mÃ³dulo
               <input
                 type="text"
                 value={form.title}
@@ -337,19 +337,19 @@ function CustomSection({ org, orgs, userId }) {
               />
             </label>
             <label>
-              Ícono (emoji, opcional)
+              Ãcono (emoji, opcional)
               <input
                 type="text"
                 value={form.icon}
                 onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-                placeholder="Ej. 📋"
+                placeholder="Ej. ðŸ“‹"
                 maxLength={4}
               />
             </label>
           </div>
           <div className="two-col">
             <label>
-              Posición (orden en el menú)
+              PosiciÃ³n (orden en el menÃº)
               <input
                 type="number"
                 value={form.position}
@@ -358,12 +358,12 @@ function CustomSection({ org, orgs, userId }) {
             </label>
           </div>
           <label>
-            Contenido inicial (opcional — un párrafo; los bloques se editan en Studio UI)
+            Contenido inicial (opcional â€” un pÃ¡rrafo; los bloques se editan en Studio UI)
             <textarea
               rows={3}
               value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              placeholder="Texto inicial del módulo…"
+              placeholder="Texto inicial del mÃ³duloâ€¦"
               style={{ width: '100%' }}
             />
           </label>
@@ -384,7 +384,7 @@ function CustomSection({ org, orgs, userId }) {
           </div>
           <div className="actions row">
             <button type="button" className="primary" onClick={create} disabled={busy}>
-              {busy ? 'Creando…' : `Crear en ${targets.size} empresa(s)`}
+              {busy ? 'Creandoâ€¦' : `Crear en ${targets.size} empresa(s)`}
             </button>
             <button type="button" className="ghost" onClick={() => setCreating(false)} disabled={busy}>
               Cancelar
@@ -396,7 +396,7 @@ function CustomSection({ org, orgs, userId }) {
   )
 }
 
-/* ══ Panel principal ═════════════════════════════════════════ */
+/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export default function PlatformOrgModulesPanel({ orgs = [], defaultOrgId = null, userId }) {
   const [orgId, setOrgId] = useState(defaultOrgId || orgs[0]?.id || '')
   const [view, setView] = useState('catalogo')
@@ -412,10 +412,10 @@ export default function PlatformOrgModulesPanel({ orgs = [], defaultOrgId = null
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0 }}>🧩 Módulos por empresa</h2>
+          <h2 style={{ margin: 0 }}>ðŸ§© MÃ³dulos por empresa</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            Control total del catálogo por tenant: habilite, deshabilite y cree módulos y asígnelos
-            a las empresas. Todo cambio queda en la bitácora.
+            Control total del catÃ¡logo por tenant: habilite, deshabilite y cree mÃ³dulos y asÃ­gnelos
+            a las empresas. Todo cambio queda en la bitÃ¡cora.
           </p>
         </div>
         <label>
@@ -432,7 +432,7 @@ export default function PlatformOrgModulesPanel({ orgs = [], defaultOrgId = null
 
       {!org ? (
         <p className="hint" style={{ marginTop: 12 }}>
-          No hay empresas todavía. Cree una en <strong>Empresas y usuarios</strong>.
+          No hay empresas todavÃ­a. Cree una en <strong>Empresas y usuarios</strong>.
         </p>
       ) : (
         <>
@@ -442,7 +442,7 @@ export default function PlatformOrgModulesPanel({ orgs = [], defaultOrgId = null
               className={view === 'catalogo' ? 'tab active' : 'tab'}
               onClick={() => setView('catalogo')}
             >
-              Catálogo del producto
+              CatÃ¡logo del producto
             </button>
             <button
               type="button"
@@ -463,3 +463,4 @@ export default function PlatformOrgModulesPanel({ orgs = [], defaultOrgId = null
     </div>
   )
 }
+

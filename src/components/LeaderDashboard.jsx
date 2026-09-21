@@ -11,11 +11,11 @@
 
 import { useMemo, useState } from 'react'
 import { usePlants } from '../hooks/usePlants'
-import { useRooms } from '../hooks/useRooms'
-import { useMachines } from '../hooks/useMachines'
-import { useMachineChecks, shiftOfHour, SHIFT_LABEL } from '../hooks/useMachineChecks'
-import { useShiftOps } from '../hooks/useShiftOps'
-import { useLoads } from '../hooks/useLoads'
+import { useRooms } from '../features/logistics/hooks/useRooms'
+import { useMachines } from '../features/maintenance/hooks/useMachines'
+import { useMachineChecks, shiftOfHour, SHIFT_LABEL } from '../features/maintenance/hooks/useMachineChecks'
+import { useShiftOps } from '../features/operations/hooks/useShiftOps'
+import { useLoads } from '../features/production/hooks/useLoads'
 import { conditionOf } from '../lib/machineCondition'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
@@ -267,7 +267,16 @@ export default function LeaderDashboard({
         </section>
       </div>
 
-      <footer className="ldr-actions">
+     
+      <section className="ldr-assets-section" style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }} aria-label="Gestión de Activos SIG">
+        <h2 className="ldr-section-title" style={{ marginBottom: '1rem' }}>
+          <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
+        </h2>
+        <div style={{ height: '600px', overflow: 'hidden', borderRadius: '0.5rem' }}>
+          <MachineAssetHub />
+        </div>
+      </section>
+ <footer className="ldr-actions">
         <button type="button" className="ldr-action-btn ldr-primary" onClick={() => onNavigate?.('mapa-planta')}>
           🗺️ Plano completo
         </button>
@@ -285,3 +294,5 @@ export default function LeaderDashboard({
     </div>
   )
 }
+
+

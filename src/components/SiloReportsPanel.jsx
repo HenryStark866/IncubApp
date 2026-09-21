@@ -1,25 +1,25 @@
-/**
- * Bandeja de reportes + canal entre módulos (completa).
- * OC / facturas / cotizaciones / solicitudes + aprobación gerencial.
+﻿/**
+ * Bandeja de reportes + canal entre mÃ³dulos (completa).
+ * OC / facturas / cotizaciones / solicitudes + aprobaciÃ³n gerencial.
  * Henry Stark Desarrollador
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useSiloDispatches } from '../hooks/useSiloDispatches'
-import { useNotifications } from '../hooks/useNotifications'
+import { useNotifications } from '../shared/hooks/useNotifications'
 import { PRIVACY_DOMAINS } from '../lib/privacyScopes'
 import { ROLE_LABEL } from '../lib/roles'
 import ExportMenu from './ExportMenu'
 
 const KIND_OPTS = [
-  { value: 'purchase_order', label: 'Orden de compra', icon: '🛒' },
-  { value: 'invoice', label: 'Factura', icon: '🧾' },
-  { value: 'quotation', label: 'Cotización', icon: '📋' },
-  { value: 'solicitud', label: 'Solicitud a gerencia/líder', icon: '📨' },
-  { value: 'informe', label: 'Informe / reporte de área', icon: '📊' },
-  { value: 'novedad', label: 'Novedad', icon: '⚠️' },
-  { value: 'dato', label: 'Dato operativo', icon: '📎' },
-  { value: 'evidencia', label: 'Evidencia / archivo', icon: '📷' },
-  { value: 'otro', label: 'Otro', icon: '📄' },
+  { value: 'purchase_order', label: 'Orden de compra', icon: 'ðŸ›’' },
+  { value: 'invoice', label: 'Factura', icon: 'ðŸ§¾' },
+  { value: 'quotation', label: 'CotizaciÃ³n', icon: 'ðŸ“‹' },
+  { value: 'solicitud', label: 'Solicitud a gerencia/lÃ­der', icon: 'ðŸ“¨' },
+  { value: 'informe', label: 'Informe / reporte de Ã¡rea', icon: 'ðŸ“Š' },
+  { value: 'novedad', label: 'Novedad', icon: 'âš ï¸' },
+  { value: 'dato', label: 'Dato operativo', icon: 'ðŸ“Ž' },
+  { value: 'evidencia', label: 'Evidencia / archivo', icon: 'ðŸ“·' },
+  { value: 'otro', label: 'Otro', icon: 'ðŸ“„' },
 ]
 
 const KIND_LABEL = Object.fromEntries(KIND_OPTS.map((k) => [k.value, k.label]))
@@ -39,7 +39,7 @@ const DISPATCH_TO_NOTIF = {
 
 const STATUS = {
   sent: 'Pendiente',
-  read: 'Leído',
+  read: 'LeÃ­do',
   verified: 'Aprobado / verificado',
   rejected: 'Rechazado',
   archived: 'Archivado',
@@ -49,7 +49,7 @@ const MGMT_KINDS = new Set(['purchase_order', 'invoice', 'quotation', 'solicitud
 const DOC_KINDS = new Set(['purchase_order', 'invoice', 'quotation'])
 
 function money(n, cur = 'COP') {
-  if (n == null || n === '') return '—'
+  if (n == null || n === '') return 'â€”'
   try {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -117,7 +117,7 @@ export default function SiloReportsPanel({
     const m = Object.fromEntries(
       members.filter((x) => x?.id).map((x) => [x.id, x.name || 'Usuario'])
     )
-    return (id) => m[id] || (id ? String(id).slice(0, 8) : '—')
+    return (id) => m[id] || (id ? String(id).slice(0, 8) : 'â€”')
   }, [members])
 
   useEffect(() => {
@@ -277,14 +277,14 @@ export default function SiloReportsPanel({
     list.map((r) => ({
       Fecha: new Date(r.created_at).toLocaleString('es-CO'),
       Tipo: KIND_LABEL[r.kind] || r.kind,
-      Título: r.title,
+      TÃ­tulo: r.title,
       Monto: r.payload?.amount ?? '',
       Moneda: r.payload?.currency ?? '',
       Proveedor: r.payload?.vendor ?? '',
       Referencia: r.payload?.reference ?? '',
       Estado: STATUS[r.status] || r.status,
       De: nameOf(r.sender_id),
-      Módulo_origen: r.sender_scope || '',
+      MÃ³dulo_origen: r.sender_scope || '',
       Para: r.recipient_id ? nameOf(r.recipient_id) : r.recipient_scope || '',
       Cuerpo: r.body || '',
       Nota: r.verify_note || '',
@@ -331,7 +331,7 @@ export default function SiloReportsPanel({
           type="search"
           value={filterQ}
           onChange={(e) => setFilterQ(e.target.value)}
-          placeholder="Título, proveedor, referencia…"
+          placeholder="TÃ­tulo, proveedor, referenciaâ€¦"
         />
       </label>
       <div className="two-col" style={{ gap: 8 }}>
@@ -368,7 +368,7 @@ export default function SiloReportsPanel({
           <div style={{ flex: 1, minWidth: 200 }}>
             <h2 style={{ margin: 0 }}>Reportes y documentos</h2>
             <p className="hint" style={{ margin: '4px 0 0' }}>
-              Envía a un módulo o persona. Gerencia aprueba OC, facturas y cotizaciones.
+              EnvÃ­a a un mÃ³dulo o persona. Gerencia aprueba OC, facturas y cotizaciones.
             </p>
           </div>
         </div>
@@ -479,7 +479,7 @@ export default function SiloReportsPanel({
                 value={form.toMode}
                 onChange={(e) => setForm((f) => ({ ...f, toMode: e.target.value }))}
               >
-                <option value="silo">Módulo / área</option>
+                <option value="silo">MÃ³dulo / Ã¡rea</option>
                 <option value="person">Persona</option>
               </select>
             </label>
@@ -491,24 +491,24 @@ export default function SiloReportsPanel({
                 value={form.recipientId}
                 onChange={(e) => setForm((f) => ({ ...f, recipientId: e.target.value }))}
               >
-                <option value="">— Elegir —</option>
+                <option value="">â€” Elegir â€”</option>
                 {members
                   .filter((m) => m.id && m.id !== userId)
                   .map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} · {ROLE_LABEL[m.role] || m.role}
+                      {m.name} Â· {ROLE_LABEL[m.role] || m.role}
                     </option>
                   ))}
               </select>
             </label>
           ) : (
             <label>
-              Módulo
+              MÃ³dulo
               <select
                 value={form.recipientScope}
                 onChange={(e) => setForm((f) => ({ ...f, recipientScope: e.target.value }))}
               >
-                <option value="">— Elegir —</option>
+                <option value="">â€” Elegir â€”</option>
                 {PRIVACY_DOMAINS.filter((d) => d.id !== 'datos').map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.label}
@@ -518,7 +518,7 @@ export default function SiloReportsPanel({
             </label>
           )}
           <label>
-            Título / asunto
+            TÃ­tulo / asunto
             <input
               type="text"
               value={form.title}
@@ -563,7 +563,7 @@ export default function SiloReportsPanel({
                   />
                 </label>
                 <label>
-                  Nº factura / OC / cotiz.
+                  NÂº factura / OC / cotiz.
                   <input
                     type="text"
                     value={form.reference}
@@ -580,7 +580,7 @@ export default function SiloReportsPanel({
               rows={4}
               value={form.body}
               onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              placeholder="Justificación, proveedor, cifras, novedades…"
+              placeholder="JustificaciÃ³n, proveedor, cifras, novedadesâ€¦"
               style={{ width: '100%', marginTop: 6 }}
             />
           </label>
@@ -598,7 +598,7 @@ export default function SiloReportsPanel({
             )}
           </label>
           <button type="button" className="primary" disabled={busy} onClick={submit}>
-            {busy ? 'Enviando…' : 'Enviar a bandeja'}
+            {busy ? 'Enviandoâ€¦' : 'Enviar a bandeja'}
           </button>
         </div>
       )}
@@ -613,18 +613,18 @@ export default function SiloReportsPanel({
             <ExportMenu
               filename="bandeja_gerencial"
               sheets={[{ name: 'Bandeja', rows: buildExportRows(bandejaItems) }]}
-              meta={exportMeta('Bandeja gerencial · OC / facturas / cotizaciones')}
+              meta={exportMeta('Bandeja gerencial Â· OC / facturas / cotizaciones')}
               label="Exportar vista"
               disabled={!bandejaItems.length}
             />
           </div>
           {api?.loading ? (
-            <p className="hint">Cargando…</p>
+            <p className="hint">Cargandoâ€¦</p>
           ) : (
             <ItemList
               items={tab === 'inbox' ? inbox : bandejaItems}
               nameOf={nameOf}
-              empty="Bandeja vacía. Envía un documento desde la pestaña Enviar."
+              empty="Bandeja vacÃ­a. EnvÃ­a un documento desde la pestaÃ±a Enviar."
               onOpen={openDetail}
               selectedId={selected?.id}
             />
@@ -638,7 +638,7 @@ export default function SiloReportsPanel({
           <ItemList
             items={outbox}
             nameOf={nameOf}
-            empty="Aún no has enviado documentos."
+            empty="AÃºn no has enviado documentos."
             onOpen={openDetail}
             selectedId={selected?.id}
           />
@@ -662,7 +662,7 @@ export default function SiloReportsPanel({
           <ItemList
             items={verified}
             nameOf={nameOf}
-            empty="No hay documentos aprobados todavía."
+            empty="No hay documentos aprobados todavÃ­a."
             onOpen={openDetail}
             selectedId={selected?.id}
           />
@@ -680,12 +680,12 @@ export default function SiloReportsPanel({
             </button>
           </div>
           <p className="hint" style={{ margin: '0 0 8px' }}>
-            {KIND_LABEL[selected.kind] || selected.kind} · {STATUS[selected.status] || selected.status}
-            {' · '}
+            {KIND_LABEL[selected.kind] || selected.kind} Â· {STATUS[selected.status] || selected.status}
+            {' Â· '}
             De {nameOf(selected.sender_id)}
             {selected.payload?.amount != null && (
               <>
-                {' · '}
+                {' Â· '}
                 <strong>{money(selected.payload.amount, selected.payload.currency)}</strong>
               </>
             )}
@@ -693,7 +693,7 @@ export default function SiloReportsPanel({
           {(selected.payload?.vendor || selected.payload?.reference) && (
             <p className="hint" style={{ margin: '0 0 8px' }}>
               {selected.payload.vendor && <>Proveedor: <strong>{selected.payload.vendor}</strong></>}
-              {selected.payload.vendor && selected.payload.reference && ' · '}
+              {selected.payload.vendor && selected.payload.reference && ' Â· '}
               {selected.payload.reference && <>Ref: <strong>{selected.payload.reference}</strong></>}
             </p>
           )}
@@ -710,7 +710,7 @@ export default function SiloReportsPanel({
           {canActOn(selected) && (
             <>
               <label style={{ display: 'block', marginTop: 10 }}>
-                Nota de aprobación / rechazo
+                Nota de aprobaciÃ³n / rechazo
                 <input
                   type="text"
                   value={note}
@@ -737,13 +737,13 @@ export default function SiloReportsPanel({
               {selected.verified_at
                 ? ` el ${new Date(selected.verified_at).toLocaleString('es-CO')}`
                 : ''}
-              {selected.verify_note ? ` · ${selected.verify_note}` : ''}
+              {selected.verify_note ? ` Â· ${selected.verify_note}` : ''}
             </p>
           )}
           {selected.status === 'rejected' && (
             <p className="msg error" style={{ marginTop: 10 }}>
               Rechazado
-              {selected.verify_note ? ` · ${selected.verify_note}` : ''}
+              {selected.verify_note ? ` Â· ${selected.verify_note}` : ''}
             </p>
           )}
         </div>
@@ -769,7 +769,7 @@ function AttachmentPreview({ path, fileName, url }) {
   }
   return (
     <a className="chip primary" href={href} target="_blank" rel="noreferrer" download={name}>
-      📎 Abrir adjunto: {name}
+      ðŸ“Ž Abrir adjunto: {name}
     </a>
   )
 }
@@ -794,24 +794,24 @@ function ItemList({ items, nameOf, empty, onOpen, selectedId }) {
           tabIndex={0}
         >
           <span style={{ fontSize: 18 }} aria-hidden>
-            {KIND_ICON[r.kind] || '📄'}
+            {KIND_ICON[r.kind] || 'ðŸ“„'}
           </span>
           <div className="admin-row-main" style={{ flex: 1, minWidth: 160 }}>
             <strong>{r.title}</strong>
             <span className="hint" style={{ margin: 0 }}>
               {KIND_LABEL[r.kind] || r.kind}
-              {r.payload?.amount != null && ` · ${money(r.payload.amount, r.payload.currency)}`}
-              {r.payload?.vendor ? ` · ${r.payload.vendor}` : ''}
-              {' · '}
+              {r.payload?.amount != null && ` Â· ${money(r.payload.amount, r.payload.currency)}`}
+              {r.payload?.vendor ? ` Â· ${r.payload.vendor}` : ''}
+              {' Â· '}
               {nameOf(r.sender_id)}
-              {' · '}
+              {' Â· '}
               {new Date(r.created_at).toLocaleString('es-CO', {
                 day: '2-digit',
                 month: 'short',
                 hour: '2-digit',
                 minute: '2-digit',
               })}
-              {r.photo_path ? ' · 📎' : ''}
+              {r.photo_path ? ' Â· ðŸ“Ž' : ''}
             </span>
           </div>
           <span
@@ -826,3 +826,4 @@ function ItemList({ items, nameOf, empty, onOpen, selectedId }) {
     </div>
   )
 }
+

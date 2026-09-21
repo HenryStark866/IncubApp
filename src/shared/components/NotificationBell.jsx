@@ -1,16 +1,16 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/NotificationBell.jsx
- * PROPÓSITO: Componente UI «NotificationBell»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«NotificationBellÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { useNotifications } from '../hooks/useNotifications'
+import { useNotifications } from '../shared/hooks/useNotifications'
 import { notifIcon } from '../lib/notificationPolicy'
 
 const fmt = (iso) =>
@@ -108,7 +108,7 @@ export default function NotificationBell({
           <div className="chat-head">
             <strong style={{ fontSize: 14 }}>Notificaciones</strong>
             <button className="chat-close" onClick={() => setOpen(false)} aria-label="Cerrar">
-              ✕
+              âœ•
             </button>
           </div>
 
@@ -131,18 +131,18 @@ export default function NotificationBell({
                 <select value={kind} onChange={(e) => setKind(e.target.value)}>
                   <option value="general">General (equipo)</option>
                   <option value="ot">OT / planta (coord. planta)</option>
-                  <option value="purchase_order">Orden de compra → gerencia</option>
-                  <option value="invoice">Factura → gerencia</option>
-                  <option value="quotation">Cotización → gerencia</option>
-                  <option value="area_report">Reporte de área → gerencia</option>
-                  <option value="leader_request">Solicitud de líder → gerencia</option>
+                  <option value="purchase_order">Orden de compra â†’ gerencia</option>
+                  <option value="invoice">Factura â†’ gerencia</option>
+                  <option value="quotation">CotizaciÃ³n â†’ gerencia</option>
+                  <option value="area_report">Reporte de Ã¡rea â†’ gerencia</option>
+                  <option value="leader_request">Solicitud de lÃ­der â†’ gerencia</option>
                   <option value="management">Aviso gerencial</option>
                 </select>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Título"
+                  placeholder="TÃ­tulo"
                   autoFocus
                 />
                 <input
@@ -170,7 +170,7 @@ export default function NotificationBell({
                 style={{ margin: '8px 10px 0' }}
                 onClick={() => setComposing(true)}
               >
-                + Nueva notificación
+                + Nueva notificaciÃ³n
               </button>
             ))}
 
@@ -195,7 +195,7 @@ export default function NotificationBell({
                 </div>
                 {n.created_by === userId && (
                   <button className="chat-del" title="Eliminar" onClick={() => nt.remove(n.id)}>
-                    ✕
+                    âœ•
                   </button>
                 )}
               </div>
@@ -211,3 +211,4 @@ export default function NotificationBell({
     </>
   )
 }
+

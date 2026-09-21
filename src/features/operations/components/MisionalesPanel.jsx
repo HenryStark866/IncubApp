@@ -1,10 +1,10 @@
-/**
- * Desplazamientos Misionales — inspección pre-operacional de vehículos.
+﻿/**
+ * Desplazamientos Misionales â€” inspecciÃ³n pre-operacional de vehÃ­culos.
  * Portado desde repo_misionales a IncubApp (multi-tenant).
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMisionales } from '../hooks/useMisionales'
+import { useMisionales } from '../features/operations/hooks/useMisionales'
 import {
   VEHICLE_TYPES,
   GRADE_LABEL,
@@ -41,12 +41,12 @@ export default function MisionalesPanel({
         <div style={{ flex: 1, minWidth: 220 }}>
           <h2 style={{ margin: 0 }}>Desplazamientos misionales</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            Inspección pre-operacional de vehículos · {orgName || 'Empresa'}
-            {api.localMode ? ' · datos en este dispositivo' : ''}
+            InspecciÃ³n pre-operacional de vehÃ­culos Â· {orgName || 'Empresa'}
+            {api.localMode ? ' Â· datos en este dispositivo' : ''}
           </p>
         </div>
         <span className="pill live">
-          <span className="dot" /> SST · Misionales
+          <span className="dot" /> SST Â· Misionales
         </span>
       </div>
 
@@ -65,7 +65,7 @@ export default function MisionalesPanel({
         </div>
         <div className={`kpi-card${api.stats.notOptimal ? ' warn' : ''}`}>
           <span className="kpi-value">{api.stats.notOptimal}</span>
-          <span className="kpi-label">No óptimas</span>
+          <span className="kpi-label">No Ã³ptimas</span>
         </div>
       </div>
 
@@ -75,14 +75,14 @@ export default function MisionalesPanel({
           className={tab === 'nueva' ? 'tab active' : 'tab'}
           onClick={() => setTab('nueva')}
         >
-          Nueva inspección
+          Nueva inspecciÃ³n
         </button>
         <button
           type="button"
           className={tab === 'historial' ? 'tab active' : 'tab'}
           onClick={() => setTab('historial')}
         >
-          Historial{canSeeAll ? ' (empresa)' : ' (mío)'}
+          Historial{canSeeAll ? ' (empresa)' : ' (mÃ­o)'}
         </button>
       </div>
 
@@ -105,7 +105,7 @@ export default function MisionalesPanel({
             else {
               setMsg({
                 kind: 'ok',
-                text: `Inspección registrada · cumplimiento ${res.row?.compliance_pct ?? '—'}%`,
+                text: `InspecciÃ³n registrada Â· cumplimiento ${res.row?.compliance_pct ?? 'â€”'}%`,
               })
               setTab('historial')
             }
@@ -120,7 +120,7 @@ export default function MisionalesPanel({
           loading={api.loading}
           canDelete={canSeeAll}
           onDelete={async (id) => {
-            if (!window.confirm('¿Eliminar esta inspección?')) return
+            if (!window.confirm('Â¿Eliminar esta inspecciÃ³n?')) return
             await api.removeInspection(id)
           }}
         />
@@ -277,11 +277,11 @@ function InspectionForm({ userName, orgName, onSubmit }) {
   return (
     <div style={{ marginTop: 12 }}>
       <p className="hint">
-        Antes de cada desplazamiento, registre el estado del vehículo. Formatos SST digitalizados
-        (moto 13 aspectos · carro/camión 50). Fecha: {todayIso()}
+        Antes de cada desplazamiento, registre el estado del vehÃ­culo. Formatos SST digitalizados
+        (moto 13 aspectos Â· carro/camiÃ³n 50). Fecha: {todayIso()}
         {gps.lat != null
-          ? ` · GPS ${Number(gps.lat).toFixed(5)}, ${Number(gps.lng).toFixed(5)}`
-          : ' · GPS pendiente'}
+          ? ` Â· GPS ${Number(gps.lat).toFixed(5)}, ${Number(gps.lng).toFixed(5)}`
+          : ' Â· GPS pendiente'}
       </p>
 
       <div className="tabs" style={{ margin: '10px 0', flexWrap: 'wrap' }}>
@@ -351,13 +351,13 @@ function InspectionForm({ userName, orgName, onSubmit }) {
             <input value={form.odometer} onChange={set('odometer')} />
           </label>
           <label>
-            Nº interno
+            NÂº interno
             <input value={form.internal_number} onChange={set('internal_number')} />
           </label>
         </div>
         <div className="two-col">
           <label>
-            Licencia Nº
+            Licencia NÂº
             <input value={form.license_num} onChange={set('license_num')} />
           </label>
           <label>
@@ -377,10 +377,10 @@ function InspectionForm({ userName, orgName, onSubmit }) {
         </div>
 
         <h3 className="section-title" style={{ margin: '16px 0 8px' }}>
-          Aspectos a revisar ({done}/{aspectosList.length}) · cumplimiento estimado {pct}%
+          Aspectos a revisar ({done}/{aspectosList.length}) Â· cumplimiento estimado {pct}%
         </h3>
         <p className="hint" style={{ marginTop: 0 }}>
-          {grades.map((g) => `${g}=${GRADE_LABEL[g]}`).join(' · ')}
+          {grades.map((g) => `${g}=${GRADE_LABEL[g]}`).join(' Â· ')}
         </p>
         <div className="misionales-aspects">
           {aspectosList.map((label, i) => {
@@ -409,12 +409,12 @@ function InspectionForm({ userName, orgName, onSubmit }) {
         </div>
 
         <label style={{ marginTop: 12, display: 'block' }}>
-          ¿Vehículo en óptimas condiciones?
+          Â¿VehÃ­culo en Ã³ptimas condiciones?
           <select
             value={form.optimal === true || form.optimal === 'true' ? 'true' : 'false'}
             onChange={(e) => setForm((f) => ({ ...f, optimal: e.target.value === 'true' }))}
           >
-            <option value="true">SÍ</option>
+            <option value="true">SÃ</option>
             <option value="false">NO</option>
           </select>
         </label>
@@ -424,7 +424,7 @@ function InspectionForm({ userName, orgName, onSubmit }) {
             rows={3}
             value={form.observations}
             onChange={set('observations')}
-            placeholder="Novedades, fallas, acciones…"
+            placeholder="Novedades, fallas, accionesâ€¦"
           />
         </label>
 
@@ -448,12 +448,12 @@ function InspectionForm({ userName, orgName, onSubmit }) {
             disabled={busy || done < aspectosList.length}
             onClick={submit}
           >
-            {busy ? 'Guardando…' : 'Registrar inspección'}
+            {busy ? 'Guardandoâ€¦' : 'Registrar inspecciÃ³n'}
           </button>
         </div>
         <p className="hint" style={{ marginTop: 8 }}>
-          Empresa: {orgName || '—'} · Ante condición insegura detenga la operación y notifique al
-          líder inmediato.
+          Empresa: {orgName || 'â€”'} Â· Ante condiciÃ³n insegura detenga la operaciÃ³n y notifique al
+          lÃ­der inmediato.
         </p>
       </div>
     </div>
@@ -461,11 +461,11 @@ function InspectionForm({ userName, orgName, onSubmit }) {
 }
 
 function HistoryList({ rows, loading, canDelete, onDelete }) {
-  if (loading) return <p className="hint">Cargando…</p>
+  if (loading) return <p className="hint">Cargandoâ€¦</p>
   if (!rows.length) {
     return (
       <p className="hint" style={{ marginTop: 12 }}>
-        Sin inspecciones registradas todavía.
+        Sin inspecciones registradas todavÃ­a.
       </p>
     )
   }
@@ -478,20 +478,20 @@ function HistoryList({ rows, loading, canDelete, onDelete }) {
           <div key={r.id} className="admin-row compact" style={{ margin: 0, flexWrap: 'wrap' }}>
             <div className="admin-row-main" style={{ flex: 1 }}>
               <strong>
-                {r.plate} · {r.vehicle_type} · {r.driver_name}
+                {r.plate} Â· {r.vehicle_type} Â· {r.driver_name}
               </strong>
               <span className="hint" style={{ margin: 0 }}>
                 {r.inspected_at
                   ? new Date(r.inspected_at).toLocaleString('es-CO')
-                  : '—'}
+                  : 'â€”'}
                 {r.origin || r.destination
-                  ? ` · ${r.origin || '?'} → ${r.destination || '?'}`
+                  ? ` Â· ${r.origin || '?'} â†’ ${r.destination || '?'}`
                   : ''}
-                {` · ${nAspects} aspectos · ${r.compliance_pct ?? '—'}%`}
+                {` Â· ${nAspects} aspectos Â· ${r.compliance_pct ?? 'â€”'}%`}
               </span>
             </div>
             <span className={`pill status ${r.optimal ? 'ok' : 'warn'}`}>
-              {r.optimal ? 'Óptimo' : 'No óptimo'}
+              {r.optimal ? 'Ã“ptimo' : 'No Ã³ptimo'}
             </span>
             {canDelete && (
               <button type="button" className="ghost small" onClick={() => onDelete(r.id)}>
@@ -504,3 +504,4 @@ function HistoryList({ rows, loading, canDelete, onDelete }) {
     </div>
   )
 }
+

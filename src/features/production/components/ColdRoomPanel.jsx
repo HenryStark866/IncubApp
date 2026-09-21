@@ -1,34 +1,34 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/ColdRoomPanel.jsx
- * PROPÓSITO: Componente UI «ColdRoomPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«ColdRoomPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useBatches } from '../hooks/useBatches'
+import { useBatches } from '../features/production/hooks/useBatches'
 import { useColdRoom, COLD_ROOM_TYPES, CLASSIFICATION_TYPES } from '../hooks/useColdRoom'
 import { exportToExcel } from '../lib/exportExcel'
 
 /**
- * Cuarto frío (operario de recepción):
- *  1. Saldos reales por lote + fecha + galpón (Incubable, Deforme, Extra, Roto, Sucio)
- *  2. Actividad de clasificación del huevo: operarios, carros a clasificar,
+ * Cuarto frÃ­o (operario de recepciÃ³n):
+ *  1. Saldos reales por lote + fecha + galpÃ³n (Incubable, Deforme, Extra, Roto, Sucio)
+ *  2. Actividad de clasificaciÃ³n del huevo: operarios, carros a clasificar,
  *     orden de los carros 1..12 (un cargue de incubadora), sencilla 12 / doble 24.
  */
 
 const today = () => new Date().toLocaleDateString('sv-SE')
 const fmtDate = (v) =>
-  v ? new Date(`${v}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  v ? new Date(`${v}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
 const totalOf = (counts) => COLD_ROOM_TYPES.reduce((s, t) => s + Number(counts?.[t.code] || 0), 0)
 
-/* ══ Formulario de saldo (cargar / actualizar) ═══════════════ */
+/* â•â• Formulario de saldo (cargar / actualizar) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function StockForm({
   batches,
   rooms,
@@ -54,7 +54,7 @@ function StockForm({
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
-  // Alta rápida de lote (queda provisional; lo edita gestión)
+  // Alta rÃ¡pida de lote (queda provisional; lo edita gestiÃ³n)
   const [addBatch, setAddBatch] = useState(false)
   const [newBatch, setNewBatch] = useState({ farmId: plants[0]?.id ?? '', code: '', layDate: today() })
   const [addRoom, setAddRoom] = useState(false)
@@ -62,14 +62,14 @@ function StockForm({
   const [creating, setCreating] = useState(false)
   const [createErr, setCreateErr] = useState(null)
 
-  // Galpones del lote seleccionado (su distribución); si no hay, todos los galpones
+  // Galpones del lote seleccionado (su distribuciÃ³n); si no hay, todos los galpones
   const batchRooms = useMemo(() => {
     const ids = new Set(placements.filter((p) => p.batch_id === batchId).map((p) => p.room_id))
     const own = rooms.filter((r) => ids.has(r.id))
     return own.length > 0 ? own : rooms
   }, [placements, rooms, batchId])
 
-  // El galpón seleccionado siempre visible (p. ej. uno recién creado sin distribución)
+  // El galpÃ³n seleccionado siempre visible (p. ej. uno reciÃ©n creado sin distribuciÃ³n)
   const roomOptions = useMemo(() => {
     const list = [...batchRooms]
     if (roomId && !list.some((r) => r.id === roomId)) {
@@ -125,16 +125,16 @@ function StockForm({
         <label>
           Lote
           <select value={batchId} onChange={(e) => setBatchId(e.target.value)}>
-            {batches.length === 0 && <option value="">— Sin lotes —</option>}
+            {batches.length === 0 && <option value="">â€” Sin lotes â€”</option>}
             {batches.map((b) => (
               <option key={b.id} value={b.id}>{b.code}</option>
             ))}
           </select>
         </label>
         <label>
-          Galpón
+          GalpÃ³n
           <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-            {roomOptions.length === 0 && <option value="">— Sin galpones —</option>}
+            {roomOptions.length === 0 && <option value="">â€” Sin galpones â€”</option>}
             {roomOptions.map((r) => (
               <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
             ))}
@@ -142,7 +142,7 @@ function StockForm({
         </label>
       </div>
 
-      {/* Alta rápida: crear lote o galpón sin salir del registro de saldos */}
+      {/* Alta rÃ¡pida: crear lote o galpÃ³n sin salir del registro de saldos */}
       {(canCreateBatch || canCreateRoom) && (
         <div className="actions row" style={{ margin: '0 0 4px' }}>
           {canCreateBatch && (
@@ -155,7 +155,7 @@ function StockForm({
                 setAddBatch((v) => !v)
               }}
             >
-              {addBatch ? '✕ Cancelar lote' : '+ Nuevo lote'}
+              {addBatch ? 'âœ• Cancelar lote' : '+ Nuevo lote'}
             </button>
           )}
           {canCreateRoom && (
@@ -168,7 +168,7 @@ function StockForm({
                 setAddRoom((v) => !v)
               }}
             >
-              {addRoom ? '✕ Cancelar galpón' : '+ Nuevo galpón'}
+              {addRoom ? 'âœ• Cancelar galpÃ³n' : '+ Nuevo galpÃ³n'}
             </button>
           )}
         </div>
@@ -176,17 +176,17 @@ function StockForm({
 
       {addBatch && (
         <div className="inline-form" style={{ margin: '0 0 8px' }}>
-          <p className="hint" style={{ margin: 0 }}>Nuevo lote de huevo (para ingresar el stock al cuarto frío)</p>
+          <p className="hint" style={{ margin: 0 }}>Nuevo lote de huevo (para ingresar el stock al cuarto frÃ­o)</p>
           <div className="two-col">
             <label>
               Granja de origen
               <select value={newBatch.farmId} onChange={(e) => setNewBatch((f) => ({ ...f, farmId: e.target.value }))}>
-                {plants.length === 0 && <option value="">— Sin granjas —</option>}
+                {plants.length === 0 && <option value="">â€” Sin granjas â€”</option>}
                 {plants.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
             </label>
             <label>
-              Código del lote
+              CÃ³digo del lote
               <input type="text" value={newBatch.code} onChange={(e) => setNewBatch((f) => ({ ...f, code: e.target.value }))} placeholder="Ej. L-2026-01" />
             </label>
           </div>
@@ -196,7 +196,7 @@ function StockForm({
           </label>
           <div className="actions row">
             <button className="primary" onClick={submitNewBatch} disabled={creating || !newBatch.farmId || newBatch.code.trim().length < 1}>
-              {creating ? 'Creando…' : 'Crear lote'}
+              {creating ? 'Creandoâ€¦' : 'Crear lote'}
             </button>
           </div>
         </div>
@@ -204,31 +204,31 @@ function StockForm({
 
       {addRoom && (
         <div className="inline-form" style={{ margin: '0 0 8px' }}>
-          <p className="hint" style={{ margin: 0 }}>Nuevo galpón (provisional · lo completa gestión)</p>
+          <p className="hint" style={{ margin: 0 }}>Nuevo galpÃ³n (provisional Â· lo completa gestiÃ³n)</p>
           <div className="two-col">
             <label>
               Granja / planta
               <select value={newRoom.plantId} onChange={(e) => setNewRoom((f) => ({ ...f, plantId: e.target.value }))}>
-                {plants.length === 0 && <option value="">— Sin granjas —</option>}
+                {plants.length === 0 && <option value="">â€” Sin granjas â€”</option>}
                 {plants.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
             </label>
             <label>
-              Nombre del galpón
-              <input type="text" value={newRoom.name} onChange={(e) => setNewRoom((f) => ({ ...f, name: e.target.value }))} placeholder="Ej. Galpón 3" />
+              Nombre del galpÃ³n
+              <input type="text" value={newRoom.name} onChange={(e) => setNewRoom((f) => ({ ...f, name: e.target.value }))} placeholder="Ej. GalpÃ³n 3" />
             </label>
           </div>
           <label>
             Tipo
             <select value={newRoom.type} onChange={(e) => setNewRoom((f) => ({ ...f, type: e.target.value }))}>
-              <option value="levante">Galpón de levante</option>
-              <option value="produccion">Galpón de producción</option>
+              <option value="levante">GalpÃ³n de levante</option>
+              <option value="produccion">GalpÃ³n de producciÃ³n</option>
               <option value="other">Otro</option>
             </select>
           </label>
           <div className="actions row">
             <button className="primary" onClick={submitNewRoom} disabled={creating || !newRoom.plantId || newRoom.name.trim().length < 1}>
-              {creating ? 'Creando…' : 'Crear galpón'}
+              {creating ? 'Creandoâ€¦' : 'Crear galpÃ³n'}
             </button>
           </div>
         </div>
@@ -259,7 +259,7 @@ function StockForm({
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !batchId || !roomId}>
-          {busy ? 'Guardando…' : 'Guardar saldo'}
+          {busy ? 'Guardandoâ€¦' : 'Guardar saldo'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -267,7 +267,7 @@ function StockForm({
   )
 }
 
-/* ══ Formulario de clasificación ═════════════════════════════ */
+/* â•â• Formulario de clasificaciÃ³n â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ClassificationForm({ batches, rooms, onSave, onCancel }) {
   const [date, setDate] = useState(today())
   const [batchId, setBatchId] = useState('')
@@ -275,7 +275,7 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
   const [operators, setOperators] = useState('')
   const [type, setType] = useState('sencilla')
   const [carts, setCarts] = useState('12')
-  const [cartOrder, setCartOrder] = useState([]) // orden de selección de los carros 1..12
+  const [cartOrder, setCartOrder] = useState([]) // orden de selecciÃ³n de los carros 1..12
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -323,21 +323,21 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
         <label>
           Lote (opcional)
           <select value={batchId} onChange={(e) => setBatchId(e.target.value)}>
-            <option value="">— Sin lote específico —</option>
+            <option value="">â€” Sin lote especÃ­fico â€”</option>
             {batches.map((b) => (<option key={b.id} value={b.id}>{b.code}</option>))}
           </select>
         </label>
         <label>
-          Galpón (opcional)
+          GalpÃ³n (opcional)
           <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-            <option value="">— Sin galpón específico —</option>
+            <option value="">â€” Sin galpÃ³n especÃ­fico â€”</option>
             {rooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
           </select>
         </label>
       </div>
       <div className="two-col">
         <label>
-          Clasificación
+          ClasificaciÃ³n
           <select value={type} onChange={(e) => pickType(e.target.value)}>
             {CLASSIFICATION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -351,7 +351,7 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
       </div>
 
       <p className="component-title" style={{ margin: '6px 0 2px' }}>
-        Orden de los carros (1 al 12 · un cargue de incubadora)
+        Orden de los carros (1 al 12 Â· un cargue de incubadora)
       </p>
       <div className="cart-order">
         {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => {
@@ -371,7 +371,7 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
         })}
       </div>
       {cartOrder.length > 0 && (
-        <p className="hint" style={{ margin: '2px 0' }}>Orden registrado: {cartOrder.join(' → ')}</p>
+        <p className="hint" style={{ margin: '2px 0' }}>Orden registrado: {cartOrder.join(' â†’ ')}</p>
       )}
       <label>
         Observaciones
@@ -381,7 +381,7 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !operators}>
-          {busy ? 'Guardando…' : 'Registrar clasificación'}
+          {busy ? 'Guardandoâ€¦' : 'Registrar clasificaciÃ³n'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -389,14 +389,14 @@ function ClassificationForm({ batches, rooms, onSave, onCancel }) {
   )
 }
 
-/* ══ Panel principal ═════════════════════════════════════════ */
+/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export default function ColdRoomPanel({ orgId, userId, role }) {
-  // El auxiliar de producción solo llega aquí con la tarea "recibir huevo" activa
-  // (la pestaña se oculta sin el grant y la RLS de cold_room_stock lo refuerza).
+  // El auxiliar de producciÃ³n solo llega aquÃ­ con la tarea "recibir huevo" activa
+  // (la pestaÃ±a se oculta sin el grant y la RLS de cold_room_stock lo refuerza).
   const canWrite = ['owner', 'admin', 'supervisor', 'coordinator', 'reception_operator', 'operator', 'auxiliary_production'].includes(role)
   // El recepcionista (personal de PLANTA) crea el LOTE de huevo con su fecha de postura para
-  // ingresar el stock existente al cuarto frío. Los GALPONES son de granja → no se crean aquí
-  // (la RLS de rooms también se lo impide a recepción).
+  // ingresar el stock existente al cuarto frÃ­o. Los GALPONES son de granja â†’ no se crean aquÃ­
+  // (la RLS de rooms tambiÃ©n se lo impide a recepciÃ³n).
   const canCreateBatch = ['owner', 'admin', 'supervisor', 'coordinator', 'reception_operator'].includes(role)
   const canCreateRoom = false
   const cr = useColdRoom(orgId, userId)
@@ -419,15 +419,15 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
       setRooms(r.data ?? [])
       setPlants(pl.data ?? [])
       const map = {}
-      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || '—'
+      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || 'â€”'
       setPeople(map)
     })
   }, [orgId])
 
-  // Crear galpón provisional (código único por planta: constraint plant_id+code)
+  // Crear galpÃ³n provisional (cÃ³digo Ãºnico por planta: constraint plant_id+code)
   const createRoom = async ({ plantId, name, type }) => {
     if (!plantId) return { error: 'Selecciona la granja/planta' }
-    if (!name?.trim()) return { error: 'El nombre del galpón es obligatorio' }
+    if (!name?.trim()) return { error: 'El nombre del galpÃ³n es obligatorio' }
     let nextNum = 1
     rooms
       .filter((r) => r.plant_id === plantId)
@@ -448,10 +448,10 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
     return { room: data }
   }
 
-  // Crear lote de huevo con su fecha de postura (queda en estado 'received'; gestión lo edita)
+  // Crear lote de huevo con su fecha de postura (queda en estado 'received'; gestiÃ³n lo edita)
   const createBatch = async ({ farmId, code, layDate }) => {
     if (!farmId) return { error: 'Selecciona la granja de origen' }
-    if (!code?.trim()) return { error: 'El código del lote es obligatorio' }
+    if (!code?.trim()) return { error: 'El cÃ³digo del lote es obligatorio' }
     const { data, error } = await supabase
       .from('bird_batches')
       .insert({ org_id: orgId, farm_id: farmId, code: code.trim(), lay_date: layDate || null, created_by: userId, status: 'received' })
@@ -462,14 +462,14 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
     return { batch: data }
   }
 
-  const batchCode = (id) => bt.batches.find((b) => b.id === id)?.code ?? '—'
+  const batchCode = (id) => bt.batches.find((b) => b.id === id)?.code ?? 'â€”'
   const roomName = (id) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? `${r.name} (${r.code})` : '—'
+    return r ? `${r.name} (${r.code})` : 'â€”'
   }
-  const nameOf = (id) => (id ? people[id] ?? '—' : '—')
+  const nameOf = (id) => (id ? people[id] ?? 'â€”' : 'â€”')
 
-  // Saldos ordenados por la tipificación: lote → fecha → galpón
+  // Saldos ordenados por la tipificaciÃ³n: lote â†’ fecha â†’ galpÃ³n
   const orderedStock = useMemo(
     () =>
       [...cr.stock].sort(
@@ -507,11 +507,11 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
         rows: orderedStock.map((s) => ({
           Lote: batchCode(s.batch_id),
           Fecha: s.stock_date,
-          'Galpón': roomName(s.room_id),
+          'GalpÃ³n': roomName(s.room_id),
           ...Object.fromEntries(COLD_ROOM_TYPES.map((t) => [t.label, Number(s.counts?.[t.code] || 0)])),
           Total: totalOf(s.counts),
           Observaciones: s.notes ?? '',
-          'Actualizó': nameOf(s.updated_by),
+          'ActualizÃ³': nameOf(s.updated_by),
         })),
       },
       {
@@ -522,15 +522,15 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
           Carros: c.carts_count,
           Operarios: c.operators_count,
           Lote: c.batch_id ? batchCode(c.batch_id) : '',
-          'Galpón': c.room_id ? roomName(c.room_id) : '',
-          'Orden de carros': c.cart_numbers?.join(' → ') ?? '',
+          'GalpÃ³n': c.room_id ? roomName(c.room_id) : '',
+          'Orden de carros': c.cart_numbers?.join(' â†’ ') ?? '',
           Observaciones: c.notes ?? '',
-          'Registró': nameOf(c.created_by),
+          'RegistrÃ³': nameOf(c.created_by),
         })),
       },
     ], {
-      title: 'Cuarto frío · saldos y clasificaciones',
-      module: 'Recepción · cuarto frío',
+      title: 'Cuarto frÃ­o Â· saldos y clasificaciones',
+      module: 'RecepciÃ³n Â· cuarto frÃ­o',
     })
   }
 
@@ -538,14 +538,14 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
     <div className="card wide">
       <div className="card-head">
         <div>
-          <h2>Cuarto frío</h2>
+          <h2>Cuarto frÃ­o</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Saldos reales por lote, fecha y galpón · clasificación del huevo
+            Saldos reales por lote, fecha y galpÃ³n Â· clasificaciÃ³n del huevo
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {(cr.stock.length > 0 || cr.classifications.length > 0) && (
-            <button className="chip ghost" onClick={exportAll}>⬇ Exportar Excel</button>
+            <button className="chip ghost" onClick={exportAll}>â¬‡ Exportar Excel</button>
           )}
           <span className="pill live"><span className="dot" /> En vivo</span>
         </div>
@@ -558,7 +558,7 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{num(kpis.total)}</span>
-          <span className="kpi-label">Total huevos en cuarto frío</span>
+          <span className="kpi-label">Total huevos en cuarto frÃ­o</span>
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{kpis.lotes}</span>
@@ -572,9 +572,9 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
 
       {cr.error && <p className="msg error">{cr.error}</p>}
 
-      {/* ── Saldos ─────────────────────────────────────────── */}
+      {/* â”€â”€ Saldos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="admin-section-head">
-        <span className="component-title" style={{ margin: 0 }}>Saldos en cuarto frío</span>
+        <span className="component-title" style={{ margin: 0 }}>Saldos en cuarto frÃ­o</span>
         {canWrite && !showStockForm && (
           <button className="chip ghost" onClick={() => setShowStockForm(true)}>+ Cargar saldo</button>
         )}
@@ -597,19 +597,19 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
       )}
 
       {cr.loading ? (
-        <p className="hint">Cargando…</p>
+        <p className="hint">Cargandoâ€¦</p>
       ) : orderedStock.length === 0 ? (
-        <p className="hint">Sin saldos cargados. Usa “+ Cargar saldo” para registrar el inventario real.</p>
+        <p className="hint">Sin saldos cargados. Usa â€œ+ Cargar saldoâ€ para registrar el inventario real.</p>
       ) : (
         <div className="admin-list">
           {orderedStock.slice(0, 40).map((s) => (
             <div key={s.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>❄️</span>
+              <span>â„ï¸</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
-                <strong>{batchCode(s.batch_id)} · {fmtDate(s.stock_date)} · {roomName(s.room_id)}</strong>
+                <strong>{batchCode(s.batch_id)} Â· {fmtDate(s.stock_date)} Â· {roomName(s.room_id)}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  {COLD_ROOM_TYPES.map((t) => `${t.label} ${num(s.counts?.[t.code])}`).join(' · ')}
-                  {s.updated_by ? ` · ${nameOf(s.updated_by)}` : ''}
+                  {COLD_ROOM_TYPES.map((t) => `${t.label} ${num(s.counts?.[t.code])}`).join(' Â· ')}
+                  {s.updated_by ? ` Â· ${nameOf(s.updated_by)}` : ''}
                 </span>
               </div>
               <span className="pill status ok">{num(totalOf(s.counts))}</span>
@@ -627,12 +627,12 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
                   <button
                     className="chip ghost danger"
                     onClick={async () => {
-                      if (window.confirm(`¿Eliminar el saldo de ${batchCode(s.batch_id)} · ${fmtDate(s.stock_date)} · ${roomName(s.room_id)}?`)) {
+                      if (window.confirm(`Â¿Eliminar el saldo de ${batchCode(s.batch_id)} Â· ${fmtDate(s.stock_date)} Â· ${roomName(s.room_id)}?`)) {
                         await cr.deleteStock(s.id)
                       }
                     }}
                   >
-                    ✕
+                    âœ•
                   </button>
                 </>
               )}
@@ -641,11 +641,11 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
         </div>
       )}
 
-      {/* ── Clasificación ──────────────────────────────────── */}
+      {/* â”€â”€ ClasificaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="admin-section-head" style={{ marginTop: 18 }}>
-        <span className="component-title" style={{ margin: 0 }}>Clasificación del huevo</span>
+        <span className="component-title" style={{ margin: 0 }}>ClasificaciÃ³n del huevo</span>
         {canWrite && !showClsForm && (
-          <button className="chip ghost" onClick={() => setShowClsForm(true)}>+ Registrar clasificación</button>
+          <button className="chip ghost" onClick={() => setShowClsForm(true)}>+ Registrar clasificaciÃ³n</button>
         )}
       </div>
 
@@ -666,29 +666,29 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
         <div className="admin-list">
           {cr.classifications.slice(0, 30).map((c) => (
             <div key={c.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>🛒</span>
+              <span>ðŸ›’</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
                 <strong>
-                  {fmtDate(c.activity_date)} · {c.classification_type === 'doble' ? 'Doble (24)' : 'Sencilla (12)'} · {c.carts_count} carro{c.carts_count === 1 ? '' : 's'}
+                  {fmtDate(c.activity_date)} Â· {c.classification_type === 'doble' ? 'Doble (24)' : 'Sencilla (12)'} Â· {c.carts_count} carro{c.carts_count === 1 ? '' : 's'}
                 </strong>
                 <span className="hint" style={{ margin: 0 }}>
                   {c.operators_count} operario{c.operators_count === 1 ? '' : 's'}
-                  {c.batch_id ? ` · Lote ${batchCode(c.batch_id)}` : ''}
-                  {c.room_id ? ` · ${roomName(c.room_id)}` : ''}
-                  {c.cart_numbers?.length ? ` · Orden ${c.cart_numbers.join(' → ')}` : ''}
-                  {c.created_by ? ` · ${nameOf(c.created_by)}` : ''}
+                  {c.batch_id ? ` Â· Lote ${batchCode(c.batch_id)}` : ''}
+                  {c.room_id ? ` Â· ${roomName(c.room_id)}` : ''}
+                  {c.cart_numbers?.length ? ` Â· Orden ${c.cart_numbers.join(' â†’ ')}` : ''}
+                  {c.created_by ? ` Â· ${nameOf(c.created_by)}` : ''}
                 </span>
               </div>
               {canWrite && (
                 <button
                   className="chip ghost danger"
                   onClick={async () => {
-                    if (window.confirm(`¿Eliminar la clasificación del ${fmtDate(c.activity_date)}?`)) {
+                    if (window.confirm(`Â¿Eliminar la clasificaciÃ³n del ${fmtDate(c.activity_date)}?`)) {
                       await cr.deleteClassification(c.id)
                     }
                   }}
                 >
-                  ✕
+                  âœ•
                 </button>
               )}
             </div>
@@ -698,3 +698,4 @@ export default function ColdRoomPanel({ orgId, userId, role }) {
     </div>
   )
 }
+

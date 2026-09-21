@@ -1,10 +1,10 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/ShiftOpsPanels.jsx
- * PROPÓSITO: Componente UI «ShiftOpsPanels»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«ShiftOpsPanelsÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -12,21 +12,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWorkOrders } from '../hooks/useWorkOrders'
 import { useEvidence } from '../hooks/useEvidence'
-import { useShiftOps } from '../hooks/useShiftOps'
+import { useShiftOps } from '../features/operations/hooks/useShiftOps'
 import { compressImage } from '../lib/image'
 import { canAssignShiftWork } from '../lib/roles'
 
-/* ── Helpers compartidos ─────────────────────────────────────── */
-const fmtDT = (v) => (v ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
+/* â”€â”€ Helpers compartidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const fmtDT = (v) => (v ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'â€”')
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
 const PRIORITIES = [
   { value: 'low', label: 'Baja' },
   { value: 'medium', label: 'Media' },
   { value: 'high', label: 'Alta' },
-  { value: 'critical', label: 'Crítica' },
+  { value: 'critical', label: 'CrÃ­tica' },
 ]
-const WO_STATUS = { open: { label: 'Abierta', cls: 'warn' }, in_progress: { label: 'En ejecución', cls: '' }, completed: { label: 'Completada', cls: 'ok' }, cancelled: { label: 'Cancelada', cls: 'idle' } }
-const ACT_STATUS = { pending: { label: 'Pendiente', cls: 'warn' }, in_progress: { label: 'En ejecución', cls: '' }, completed: { label: 'Completada', cls: 'ok' } }
+const WO_STATUS = { open: { label: 'Abierta', cls: 'warn' }, in_progress: { label: 'En ejecuciÃ³n', cls: '' }, completed: { label: 'Completada', cls: 'ok' }, cancelled: { label: 'Cancelada', cls: 'idle' } }
+const ACT_STATUS = { pending: { label: 'Pendiente', cls: 'warn' }, in_progress: { label: 'En ejecuciÃ³n', cls: '' }, completed: { label: 'Completada', cls: 'ok' } }
 
 // Operarios + gerencia + coord. planta / supervisor pueden atender incidencias
 const ATTENDERS = [
@@ -48,8 +48,8 @@ function elapsed(fromIso, toIso) {
   return `${Math.floor(min / 60)} h ${min % 60} min`
 }
 
-/* ── Captura de foto (abre la cámara en móvil) ───────────────── */
-function PhotoInput({ file, onFile, label = '📷 Tomar foto' }) {
+/* â”€â”€ Captura de foto (abre la cÃ¡mara en mÃ³vil) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function PhotoInput({ file, onFile, label = 'ðŸ“· Tomar foto' }) {
   const ref = useRef(null)
   const [preview, setPreview] = useState(null)
   const [compressing, setCompressing] = useState(false)
@@ -77,7 +77,7 @@ function PhotoInput({ file, onFile, label = '📷 Tomar foto' }) {
     <div className="photo-field">
       <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={handleChange} />
       <button type="button" className="ghost" onClick={() => ref.current?.click()} disabled={compressing}>
-        {compressing ? '⌛ Comprimiendo...' : file ? '📷 Cambiar foto' : label}
+        {compressing ? 'âŒ› Comprimiendo...' : file ? 'ðŸ“· Cambiar foto' : label}
       </button>
       {preview && <img src={preview} alt="Vista previa" style={{ display: 'block', maxWidth: 180, borderRadius: 8, marginTop: 6 }} />}
     </div>
@@ -90,10 +90,10 @@ function PhotoLink({ path, getUrl }) {
     const url = await getUrl(path)
     if (url) window.open(url, '_blank', 'noreferrer')
   }
-  return <button type="button" className="ghost small" onClick={open}>📷 Ver foto</button>
+  return <button type="button" className="ghost small" onClick={open}>ðŸ“· Ver foto</button>
 }
 
-/* ══ 1) Reporte de incidencias ═══════════════════════════════ */
+/* â•â• 1) Reporte de incidencias â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export function IncidentReportView({ orgId, userId, plants, rooms, machines }) {
   const wo = useWorkOrders(orgId, userId)
   const ev = useEvidence(orgId, userId)
@@ -125,7 +125,7 @@ export function IncidentReportView({ orgId, userId, plants, rooms, machines }) {
 
   return (
     <div>
-      <p className="hint">Reporta una alarma o novedad. Se genera automáticamente una OT <strong>crítica</strong> y general que ven los auxiliares de mantenimiento, los jefes y los operarios de turno (pestaña OT); cualquiera puede atenderla.</p>
+      <p className="hint">Reporta una alarma o novedad. Se genera automÃ¡ticamente una OT <strong>crÃ­tica</strong> y general que ven los auxiliares de mantenimiento, los jefes y los operarios de turno (pestaÃ±a OT); cualquiera puede atenderla.</p>
       <div className="inline-form">
         <div className="two-col">
           <label>
@@ -143,34 +143,34 @@ export function IncidentReportView({ orgId, userId, plants, rooms, machines }) {
         </div>
         <div className="two-col">
           <label>
-            Salón / sala
+            SalÃ³n / sala
             <select value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value, machineId: '' }))}>
-              <option value="">— Sin sala específica —</option>
+              <option value="">â€” Sin sala especÃ­fica â€”</option>
               {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
             </select>
           </label>
           <label>
-            Máquina (si aplica)
+            MÃ¡quina (si aplica)
             <select value={form.machineId} onChange={set('machineId')}>
-              <option value="">— Sin máquina —</option>
+              <option value="">â€” Sin mÃ¡quina â€”</option>
               {roomMachines.map((m) => (<option key={m.id} value={m.id}>{m.name} ({m.code})</option>))}
             </select>
           </label>
         </div>
         <label>
-          Alarma / título de la incidencia
+          Alarma / tÃ­tulo de la incidencia
           <input type="text" value={form.title} onChange={set('title')} placeholder="Ej. Alarma de alta temperatura" />
         </label>
         <label>
-          Descripción
-          <textarea rows={3} value={form.description} onChange={set('description')} placeholder="Describe la novedad…" />
+          DescripciÃ³n
+          <textarea rows={3} value={form.description} onChange={set('description')} placeholder="Describe la novedadâ€¦" />
         </label>
-        <PhotoInput file={file} onFile={setFile} label="📷 Tomar foto de la incidencia" />
+        <PhotoInput file={file} onFile={setFile} label="ðŸ“· Tomar foto de la incidencia" />
         {msg && <p className={`msg ${msg.kind}`}>{msg.text}</p>}
         {wo.error && <p className="msg error">{wo.error}</p>}
         <div className="actions row">
           <button className="primary" onClick={submit} disabled={busy || form.title.trim().length < 3 || !form.plantId}>
-            {busy ? 'Reportando…' : 'Reportar incidencia'}
+            {busy ? 'Reportandoâ€¦' : 'Reportar incidencia'}
           </button>
         </div>
       </div>
@@ -183,11 +183,11 @@ export function IncidentReportView({ orgId, userId, plants, rooms, machines }) {
               const st = WO_STATUS[o.status] ?? { label: o.status, cls: '' }
               return (
                 <div key={o.id} className="admin-row compact" style={{ margin: 0 }}>
-                  <span>⚠️</span>
+                  <span>âš ï¸</span>
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>{o.code} · {o.title}</strong>
+                    <strong>{o.code} Â· {o.title}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {[roomName(o.room_id), machineName(o.machine_id)].filter(Boolean).join(' · ') || 'Instalaciones'} · {fmtDT(o.created_at)}
+                      {[roomName(o.room_id), machineName(o.machine_id)].filter(Boolean).join(' Â· ') || 'Instalaciones'} Â· {fmtDT(o.created_at)}
                     </span>
                   </div>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
@@ -201,7 +201,7 @@ export function IncidentReportView({ orgId, userId, plants, rooms, machines }) {
   )
 }
 
-/* ══ 2) OT generales (atender / cerrar) ══════════════════════ */
+/* â•â• 2) OT generales (atender / cerrar) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function CompleteWoForm({ order, ev, onDone }) {
   const [resolution, setResolution] = useState('')
   const [file, setFile] = useState(null)
@@ -215,12 +215,12 @@ function CompleteWoForm({ order, ev, onDone }) {
   return (
     <div className="inline-form compact">
       <label>
-        Resolución / trabajo realizado
+        ResoluciÃ³n / trabajo realizado
         <textarea rows={2} value={resolution} onChange={(e) => setResolution(e.target.value)} autoFocus />
       </label>
-      <PhotoInput file={file} onFile={setFile} label="📷 Foto de evidencia" />
+      <PhotoInput file={file} onFile={setFile} label="ðŸ“· Foto de evidencia" />
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Cerrando…' : 'Cerrar OT'}</button>
+        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Cerrandoâ€¦' : 'Cerrar OT'}</button>
       </div>
     </div>
   )
@@ -239,16 +239,16 @@ export function WorkOrdersView({ orgId, userId, role, rooms, machines }) {
 
   return (
     <div>
-      <p className="hint">Órdenes de trabajo generales. Cualquier técnico o jefe (y operarios con experiencia) puede atenderlas y cerrarlas.</p>
+      <p className="hint">Ã“rdenes de trabajo generales. Cualquier tÃ©cnico o jefe (y operarios con experiencia) puede atenderlas y cerrarlas.</p>
       {wo.error && <p className="msg error">{wo.error}</p>}
       {active.length === 0 ? (
-        <p className="hint">No hay OT activas. 🎉</p>
+        <p className="hint">No hay OT activas. ðŸŽ‰</p>
       ) : (
         <div className="admin-list">
           {active.map((o) => {
             const st = WO_STATUS[o.status] ?? { label: o.status, cls: '' }
             const mine = o.assigned_to === userId
-            const lugar = [roomName(o.room_id), machineName(o.machine_id)].filter(Boolean).join(' · ') || 'Instalaciones'
+            const lugar = [roomName(o.room_id), machineName(o.machine_id)].filter(Boolean).join(' Â· ') || 'Instalaciones'
             return (
               <div key={o.id} className={`admin-card wo-card pr-${o.priority}`}>
                 <div className="admin-row">
@@ -258,9 +258,9 @@ export function WorkOrdersView({ orgId, userId, role, rooms, machines }) {
                       {o.source === 'incident' && <span className="pill status warn" style={{ marginLeft: 6 }}>Incidencia</span>}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      📍 {lugar}
-                      {o.assigned_to ? ` · 👤 ${wo.team.find((t) => t.id === o.assigned_to)?.name ?? '—'}${mine ? ' (tú)' : ''}` : ' · Sin asignar'}
-                      {nEv(o.id) > 0 ? ` · 📎 ${nEv(o.id)}` : ''}
+                      ðŸ“ {lugar}
+                      {o.assigned_to ? ` Â· ðŸ‘¤ ${wo.team.find((t) => t.id === o.assigned_to)?.name ?? 'â€”'}${mine ? ' (tÃº)' : ''}` : ' Â· Sin asignar'}
+                      {nEv(o.id) > 0 ? ` Â· ðŸ“Ž ${nEv(o.id)}` : ''}
                     </span>
                   </div>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
@@ -293,7 +293,7 @@ export function WorkOrdersView({ orgId, userId, role, rooms, machines }) {
   )
 }
 
-/* ══ 3) Actividades del turno ════════════════════════════════ */
+/* â•â• 3) Actividades del turno â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
   const [completion, setCompletion] = useState('complete')
   const [resultQty, setResultQty] = useState('')
@@ -315,7 +315,7 @@ function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
     <div className="inline-form compact">
       <div className="two-col">
         <label>
-          ¿Se cumplió?
+          Â¿Se cumpliÃ³?
           <select value={completion} onChange={(e) => setCompletion(e.target.value)}>
             <option value="complete">Completa</option>
             <option value="partial">Parcial</option>
@@ -330,14 +330,14 @@ function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
         <label>
           Sala
           <select value={roomId} onChange={(e) => { setRoomId(e.target.value); setMachineId('') }}>
-            <option value="">— Sin sala —</option>
+            <option value="">â€” Sin sala â€”</option>
             {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
           </select>
         </label>
         <label>
-          Máquina
+          MÃ¡quina
           <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-            <option value="">— Sin máquina —</option>
+            <option value="">â€” Sin mÃ¡quina â€”</option>
             {roomMachines.map((m) => (<option key={m.id} value={m.id}>{m.name} ({m.code})</option>))}
           </select>
         </label>
@@ -346,17 +346,17 @@ function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
         Observaciones
         <input type="text" value={resultNote} onChange={(e) => setResultNote(e.target.value)} placeholder="Opcional" />
       </label>
-      <PhotoInput file={file} onFile={setFile} label="📷 Foto de evidencia" />
+      <PhotoInput file={file} onFile={setFile} label="ðŸ“· Foto de evidencia" />
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Guardando…' : 'Finalizar actividad'}</button>
+        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Guardandoâ€¦' : 'Finalizar actividad'}</button>
       </div>
     </div>
   )
 }
 
 const GRANT_MODULES = [
-  { value: '', label: '— Sin módulo —' },
-  { value: 'reception', label: 'Habilita Recepción' },
+  { value: '', label: 'â€” Sin mÃ³dulo â€”' },
+  { value: 'reception', label: 'Habilita RecepciÃ³n' },
 ]
 const grantLabel = (v) => GRANT_MODULES.find((g) => g.value === v)?.label ?? v
 
@@ -373,26 +373,26 @@ function CatalogManager({ catalog, onAdd, onRemove, onClose }) {
   }
   return (
     <div className="inline-form">
-      <p className="component-title" style={{ margin: 0 }}>Catálogo de actividades del turno</p>
+      <p className="component-title" style={{ margin: 0 }}>CatÃ¡logo de actividades del turno</p>
       <div className="two-col">
         <label>Nombre<input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Lavado de canastas" /></label>
-        <label>Descripción<input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" /></label>
+        <label>DescripciÃ³n<input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" /></label>
       </div>
       <label>
-        Habilita módulo (opcional)
+        Habilita mÃ³dulo (opcional)
         <select value={grantsModule} onChange={(e) => setGrantsModule(e.target.value)}>
           {GRANT_MODULES.map((g) => (<option key={g.value} value={g.value}>{g.label}</option>))}
         </select>
       </label>
       {grantsModule && (
-        <p className="hint" style={{ margin: 0 }}>Al asignar esta actividad, el operario podrá usar ese módulo mientras la tarea esté activa.</p>
+        <p className="hint" style={{ margin: 0 }}>Al asignar esta actividad, el operario podrÃ¡ usar ese mÃ³dulo mientras la tarea estÃ© activa.</p>
       )}
       <div className="actions row">
-        <button className="primary small" onClick={add} disabled={busy || name.trim().length < 2}>+ Agregar al catálogo</button>
+        <button className="primary small" onClick={add} disabled={busy || name.trim().length < 2}>+ Agregar al catÃ¡logo</button>
         <button className="ghost" onClick={onClose}>Cerrar</button>
       </div>
       {catalog.length === 0 ? (
-        <p className="hint">El catálogo está vacío. Agrega las actividades típicas del turno.</p>
+        <p className="hint">El catÃ¡logo estÃ¡ vacÃ­o. Agrega las actividades tÃ­picas del turno.</p>
       ) : (
         <div className="admin-list">
           {catalog.map((c) => (
@@ -402,7 +402,7 @@ function CatalogManager({ catalog, onAdd, onRemove, onClose }) {
                 {c.description && <span className="hint" style={{ margin: 0 }}>{c.description}</span>}
               </div>
               {c.grants_module && <span className="pill status warn">{grantLabel(c.grants_module)}</span>}
-              <button className="ghost danger" onClick={() => onRemove(c.id)} title="Quitar del catálogo">✕</button>
+              <button className="ghost danger" onClick={() => onRemove(c.id)} title="Quitar del catÃ¡logo">âœ•</button>
             </div>
           ))}
         </div>
@@ -427,7 +427,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
 
   const roomName = (id) => rooms.find((r) => r.id === id)?.name
   const machineName = (id) => machines.find((m) => m.id === id)?.name
-  const nameOf = (id) => team.find((t) => t.id === id)?.name ?? '—'
+  const nameOf = (id) => team.find((t) => t.id === id)?.name ?? 'â€”'
   const plantRooms = rooms.filter((r) => r.plant_id === form.plantId)
 
   const visible = canAssign ? so.activities : so.activities.filter((a) => a.assigned_to === userId)
@@ -443,7 +443,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
         <span className="component-title" style={{ margin: 0 }}>{canAssign ? 'Actividades del turno' : 'Mis actividades del turno'}</span>
         {canAssign && (
           <span style={{ display: 'inline-flex', gap: 8 }}>
-            <button className={manageCatalog ? 'chip active' : 'chip ghost'} onClick={() => setManageCatalog((v) => !v)}>Catálogo</button>
+            <button className={manageCatalog ? 'chip active' : 'chip ghost'} onClick={() => setManageCatalog((v) => !v)}>CatÃ¡logo</button>
             {!showForm && <button className="chip ghost" onClick={() => setShowForm(true)}>+ Asignar actividad</button>}
           </span>
         )}
@@ -456,24 +456,24 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
       {showForm && canAssign && (
         <div className="inline-form">
           <label>
-            Actividad (del catálogo)
+            Actividad (del catÃ¡logo)
             <select value={form.catalogId} onChange={pickActivity} autoFocus>
-              <option value="">— Selecciona una actividad —</option>
+              <option value="">â€” Selecciona una actividad â€”</option>
               {so.catalog.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
           </label>
           {so.catalog.length === 0 && (
-            <p className="hint" style={{ margin: 0 }}>No hay actividades en el catálogo. Ábrelo con «Catálogo» y agrega una.</p>
+            <p className="hint" style={{ margin: 0 }}>No hay actividades en el catÃ¡logo. Ãbrelo con Â«CatÃ¡logoÂ» y agrega una.</p>
           )}
           <label>
-            Descripción
-            <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Detalle…" />
+            DescripciÃ³n
+            <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Detalleâ€¦" />
           </label>
           <div className="two-col">
             <label>
               Asignar a
               <select value={form.assignedTo} onChange={set('assignedTo')}>
-                <option value="">— Selecciona operario —</option>
+                <option value="">â€” Selecciona operario â€”</option>
                 {team.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
               </select>
             </label>
@@ -487,7 +487,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
           <label>
             Sala (opcional)
             <select value={form.roomId} onChange={set('roomId')}>
-              <option value="">— Sin sala —</option>
+              <option value="">â€” Sin sala â€”</option>
               {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
             </select>
           </label>
@@ -500,7 +500,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
       {so.error && <p className="msg error">{so.error}</p>}
 
       {so.loading ? (
-        <p className="hint">Cargando…</p>
+        <p className="hint">Cargandoâ€¦</p>
       ) : visible.length === 0 ? (
         <p className="hint">{canAssign ? 'No hay actividades asignadas.' : 'No tienes actividades asignadas en este turno.'}</p>
       ) : (
@@ -518,25 +518,25 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
                       {a.grants_module && <span className="pill status warn" style={{ marginLeft: 6 }}>{grantLabel(a.grants_module)}</span>}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      👤 {nameOf(a.assigned_to)}{mine ? ' (tú)' : ''}
-                      {[roomName(a.room_id), machineName(a.machine_id)].filter(Boolean).length ? ` · 📍 ${[roomName(a.room_id), machineName(a.machine_id)].filter(Boolean).join(' · ')}` : ''}
-                      {a.started_at ? ` · ⏱️ ${elapsed(a.started_at, a.completed_at)}` : ''}
+                      ðŸ‘¤ {nameOf(a.assigned_to)}{mine ? ' (tÃº)' : ''}
+                      {[roomName(a.room_id), machineName(a.machine_id)].filter(Boolean).length ? ` Â· ðŸ“ ${[roomName(a.room_id), machineName(a.machine_id)].filter(Boolean).join(' Â· ')}` : ''}
+                      {a.started_at ? ` Â· â±ï¸ ${elapsed(a.started_at, a.completed_at)}` : ''}
                     </span>
                   </div>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
                   <span className="admin-row-actions">
                     {canWork && a.status === 'pending' && <button className="primary small" onClick={() => so.startActivity(a.id)}>Iniciar</button>}
                     {canWork && a.status === 'in_progress' && completingId !== a.id && <button className="primary small" onClick={() => setCompletingId(a.id)}>Finalizar</button>}
-                    {canAssign && <button className="ghost danger" onClick={() => so.deleteActivity(a.id)} title="Eliminar">✕</button>}
+                    {canAssign && <button className="ghost danger" onClick={() => so.deleteActivity(a.id)} title="Eliminar">âœ•</button>}
                   </span>
                 </div>
                 {a.description && <p className="wo-desc">{a.description}</p>}
                 {a.status === 'completed' && (
                   <p className="wo-desc done">
-                    ✔ {a.completion === 'partial' ? 'Cumplida parcial' : 'Cumplida completa'}
-                    {a.result_qty != null ? ` · Cantidad: ${num(a.result_qty)}` : ''}
-                    {a.result_note ? ` · ${a.result_note}` : ''}
-                    {a.completed_at ? ` · ${fmtDT(a.completed_at)}` : ''}
+                    âœ” {a.completion === 'partial' ? 'Cumplida parcial' : 'Cumplida completa'}
+                    {a.result_qty != null ? ` Â· Cantidad: ${num(a.result_qty)}` : ''}
+                    {a.result_note ? ` Â· ${a.result_note}` : ''}
+                    {a.completed_at ? ` Â· ${fmtDT(a.completed_at)}` : ''}
                   </p>
                 )}
                 {a.photo_path && <div style={{ padding: '0 14px 8px' }}><PhotoLink path={a.photo_path} getUrl={so.getPhotoUrl} /></div>}
@@ -560,7 +560,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
   )
 }
 
-/* ══ 4) Reporte de mercancía recibida ════════════════════════ */
+/* â•â• 4) Reporte de mercancÃ­a recibida â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export function MerchandiseView({ orgId, userId, plants, rooms }) {
   const so = useShiftOps(orgId, userId)
   const [open, setOpen] = useState(false)
@@ -572,7 +572,7 @@ export function MerchandiseView({ orgId, userId, plants, rooms }) {
   const [err, setErr] = useState(null)
 
   const plantRooms = rooms.filter((r) => r.plant_id === plantId)
-  const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sin ubicación'
+  const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sin ubicaciÃ³n'
 
   const submit = async () => {
     setBusy(true)
@@ -586,14 +586,14 @@ export function MerchandiseView({ orgId, userId, plants, rooms }) {
   return (
     <div>
       <div className="admin-section-head">
-        <span className="component-title" style={{ margin: 0 }}>Mercancía recibida</span>
-        {!open && <button className="chip ghost" onClick={() => setOpen(true)}>📷 Reportar mercancía</button>}
+        <span className="component-title" style={{ margin: 0 }}>MercancÃ­a recibida</span>
+        {!open && <button className="chip ghost" onClick={() => setOpen(true)}>ðŸ“· Reportar mercancÃ­a</button>}
       </div>
 
       {open && (
         <div className="inline-form">
-          <p className="hint" style={{ margin: 0 }}>Toma la foto de la mercancía y luego indica dónde queda almacenada.</p>
-          <PhotoInput file={file} onFile={setFile} label="📷 Tomar foto de la mercancía" />
+          <p className="hint" style={{ margin: 0 }}>Toma la foto de la mercancÃ­a y luego indica dÃ³nde queda almacenada.</p>
+          <PhotoInput file={file} onFile={setFile} label="ðŸ“· Tomar foto de la mercancÃ­a" />
           <div className="two-col">
             <label>
               Planta
@@ -602,20 +602,20 @@ export function MerchandiseView({ orgId, userId, plants, rooms }) {
               </select>
             </label>
             <label>
-              Ubicación (sala)
+              UbicaciÃ³n (sala)
               <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-                <option value="">— Selecciona la sala —</option>
+                <option value="">â€” Selecciona la sala â€”</option>
                 {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
               </select>
             </label>
           </div>
           <label>
-            Descripción
+            DescripciÃ³n
             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ej. 20 sacos de alimento" />
           </label>
           {err && <p className="msg error">{err}</p>}
           <div className="actions row">
-            <button className="primary" onClick={submit} disabled={busy || !file || !roomId}>{busy ? 'Guardando…' : 'Guardar reporte'}</button>
+            <button className="primary" onClick={submit} disabled={busy || !file || !roomId}>{busy ? 'Guardandoâ€¦' : 'Guardar reporte'}</button>
             <button className="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancelar</button>
           </div>
         </div>
@@ -623,15 +623,15 @@ export function MerchandiseView({ orgId, userId, plants, rooms }) {
       {so.error && <p className="msg error">{so.error}</p>}
 
       {so.merchandise.length === 0 ? (
-        <p className="hint">Aún no hay reportes de mercancía.</p>
+        <p className="hint">AÃºn no hay reportes de mercancÃ­a.</p>
       ) : (
         <div className="admin-list">
           {so.merchandise.slice(0, 30).map((r) => (
             <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>📦</span>
+              <span>ðŸ“¦</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
-                <strong>{r.description || 'Mercancía recibida'}</strong>
-                <span className="hint" style={{ margin: 0 }}>📍 {roomName(r.room_id)} · {fmtDT(r.received_at)}</span>
+                <strong>{r.description || 'MercancÃ­a recibida'}</strong>
+                <span className="hint" style={{ margin: 0 }}>ðŸ“ {roomName(r.room_id)} Â· {fmtDT(r.received_at)}</span>
               </div>
               <PhotoLink path={r.photo_path} getUrl={so.getPhotoUrl} />
             </div>
@@ -641,3 +641,4 @@ export function MerchandiseView({ orgId, userId, plants, rooms }) {
     </div>
   )
 }
+

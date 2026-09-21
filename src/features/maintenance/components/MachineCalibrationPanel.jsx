@@ -1,15 +1,15 @@
-/**
- * Calibrar máquina: sensores temperatura (°F) y humedad (%).
+﻿/**
+ * Calibrar mÃ¡quina: sensores temperatura (Â°F) y humedad (%).
  * El usuario elige calibrar uno, el otro o ambos (el calibrador no siempre
  * da punto al mismo tiempo). Historial con evidencias para el responsable.
- * Coordinador: sincroniza estado operativo de máquinas desde datos reales.
+ * Coordinador: sincroniza estado operativo de mÃ¡quinas desde datos reales.
  *
- * Henry Stark Desarrollador · CDH Maker
+ * Henry Stark Desarrollador Â· CDH Maker
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMachineCalibration } from '../hooks/useMachineCalibration'
-import { useMachineStateSync } from '../hooks/useMachineStateSync'
+import { useMachineCalibration } from '../features/maintenance/hooks/useMachineCalibration'
+import { useMachineStateSync } from '../features/maintenance/hooks/useMachineStateSync'
 import MachineDossier from './MachineDossier'
 import {
   CALIB_REASON_LABEL,
@@ -67,7 +67,7 @@ function PhotoCapture({ label, file, onFile, hint }) {
     <div className="photo-field" style={{ marginBottom: 10 }}>
       <span className="hint" style={{ margin: 0, display: 'block' }}>
         {label}
-        {hint ? ` · ${hint}` : ''}
+        {hint ? ` Â· ${hint}` : ''}
       </span>
       <input
         ref={inputRef}
@@ -84,7 +84,7 @@ function PhotoCapture({ label, file, onFile, hint }) {
           onClick={() => inputRef.current?.click()}
           disabled={busy}
         >
-          {busy ? 'Procesando…' : file ? '📷 Cambiar foto' : '📷 Tomar foto'}
+          {busy ? 'Procesandoâ€¦' : file ? 'ðŸ“· Cambiar foto' : 'ðŸ“· Tomar foto'}
         </button>
         {file && (
           <button type="button" className="ghost" onClick={() => onFile(null)}>
@@ -144,7 +144,7 @@ function EvidenceThumbs({ paths, getUrl }) {
               placeItems: 'center',
             }}
           >
-            📷
+            ðŸ“·
           </div>
         )
       )}
@@ -170,8 +170,8 @@ function CoordStateTab({ sync, machines }) {
     else {
       setMsg({
         kind: 'ok',
-        text: `Estado actualizado: ${res.opsOk}/${res.total} máquinas · cargues con ciclo corregidos: ${res.loadsFixed}${
-          res.errors?.length ? ` · avisos: ${res.errors.length}` : ''
+        text: `Estado actualizado: ${res.opsOk}/${res.total} mÃ¡quinas Â· cargues con ciclo corregidos: ${res.loadsFixed}${
+          res.errors?.length ? ` Â· avisos: ${res.errors.length}` : ''
         }`,
       })
       sync.loadPreview()
@@ -181,13 +181,13 @@ function CoordStateTab({ sync, machines }) {
   return (
     <div style={{ marginTop: 12 }}>
       <p className="hint">
-        Calcula el estado real de cada máquina a partir de los datos ya registrados (cargues,
-        transferencias y nacimientos), desde la fecha más antigua, y lo escribe en la base de datos.
+        Calcula el estado real de cada mÃ¡quina a partir de los datos ya registrados (cargues,
+        transferencias y nacimientos), desde la fecha mÃ¡s antigua, y lo escribe en la base de datos.
         Luego puede revisar y corregir fila a fila.
       </p>
       <div className="actions row" style={{ marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <button type="button" className="chip" onClick={() => sync.loadPreview()} disabled={sync.loading}>
-          {sync.loading ? 'Calculando…' : '↻ Recalcular vista previa'}
+          {sync.loading ? 'Calculandoâ€¦' : 'â†» Recalcular vista previa'}
         </button>
         <button
           type="button"
@@ -196,7 +196,7 @@ function CoordStateTab({ sync, machines }) {
           onClick={apply}
           disabled={busy || sync.applying || !sync.preview.some((r) => r.selected)}
         >
-          {busy || sync.applying ? 'Aplicando…' : '✓ Cargar estado real a la BD'}
+          {busy || sync.applying ? 'Aplicandoâ€¦' : 'âœ“ Cargar estado real a la BD'}
         </button>
         <button
           type="button"
@@ -219,14 +219,14 @@ function CoordStateTab({ sync, machines }) {
       {msg && <p className={`msg ${msg.kind === 'ok' ? 'ok' : 'error'}`}>{msg.text}</p>}
       {sync.lastResult?.errors?.length > 0 && (
         <p className="hint" style={{ color: 'var(--danger)' }}>
-          {sync.lastResult.errors.join(' · ')}
+          {sync.lastResult.errors.join(' Â· ')}
         </p>
       )}
 
       <div className="admin-list">
-        {sync.loading && <p className="hint">Calculando estados…</p>}
+        {sync.loading && <p className="hint">Calculando estadosâ€¦</p>}
         {!sync.loading && sync.preview.length === 0 && (
-          <p className="hint">No hay máquinas o faltan datos de planta.</p>
+          <p className="hint">No hay mÃ¡quinas o faltan datos de planta.</p>
         )}
         {sync.preview.map((r) => (
           <div key={r.machine_id} className="admin-card">
@@ -240,12 +240,12 @@ function CoordStateTab({ sync, machines }) {
               </label>
               <div className="admin-row-main" style={{ flex: 1 }}>
                 <strong>
-                  {r.machine_code} · {r.machine_name}
+                  {r.machine_code} Â· {r.machine_name}
                 </strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  {MACHINE_TYPE_LABEL[r.machine_type] || r.machine_type} · {r.plant_name}
-                  {r.lote ? ` · Lote ${r.lote}` : ''}
-                  {r.age_label && r.age_label !== '—' ? ` · Edad ${r.age_label}` : ''}
+                  {MACHINE_TYPE_LABEL[r.machine_type] || r.machine_type} Â· {r.plant_name}
+                  {r.lote ? ` Â· Lote ${r.lote}` : ''}
+                  {r.age_label && r.age_label !== 'â€”' ? ` Â· Edad ${r.age_label}` : ''}
                 </span>
                 {r.notes && (
                   <span className="hint" style={{ margin: 0 }}>
@@ -258,9 +258,9 @@ function CoordStateTab({ sync, machines }) {
                     {r.timeline
                       .map(
                         (t) =>
-                          `${t.label} (${t.at ? new Date(t.at).toLocaleDateString('es-CO') : '—'})`
+                          `${t.label} (${t.at ? new Date(t.at).toLocaleDateString('es-CO') : 'â€”'})`
                       )
-                      .join(' → ')}
+                      .join(' â†’ ')}
                   </span>
                 )}
               </div>
@@ -304,7 +304,7 @@ function CoordStateTab({ sync, machines }) {
                   type="text"
                   value={r.lote || ''}
                   onChange={(e) => sync.patchPreviewRow(r.machine_id, { lote: e.target.value })}
-                  placeholder="Lote en máquina"
+                  placeholder="Lote en mÃ¡quina"
                 />
               </label>
             </div>
@@ -360,7 +360,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     [api.machines]
   )
 
-  const plantName = (id) => api.plants.find((p) => p.id === id)?.name || '—'
+  const plantName = (id) => api.plants.find((p) => p.id === id)?.name || 'â€”'
   const machineOf = (id) => api.machines.find((m) => m.id === id)
 
   const needTemp = scope === CALIB_SCOPE.temperature || scope === CALIB_SCOPE.both
@@ -394,10 +394,10 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     setMsg({
       kind: 'ok',
       text: res.offline
-        ? 'Calibración guardada en el dispositivo · se subirá al sincronizar'
+        ? 'CalibraciÃ³n guardada en el dispositivo Â· se subirÃ¡ al sincronizar'
         : res.partial
-          ? `Sensor registrado (${res.readings || scope}). Puede calibrar el otro sensor cuando el calibrador dé punto.`
-          : `Calibración completa${res.code ? ` · OT ${res.code}` : ''}${res.readings ? ` · ${res.readings}` : ''}`,
+          ? `Sensor registrado (${res.readings || scope}). Puede calibrar el otro sensor cuando el calibrador dÃ© punto.`
+          : `CalibraciÃ³n completa${res.code ? ` Â· OT ${res.code}` : ''}${res.readings ? ` Â· ${res.readings}` : ''}`,
     })
     setCalibratorFile(null)
     setScreenFile(null)
@@ -414,9 +414,9 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     return (
       <div className="card wide">
         <div className="card-head">
-          <h2>Calibrar máquina</h2>
+          <h2>Calibrar mÃ¡quina</h2>
         </div>
-        <p className="hint">Su rol no ejecuta calibraciones de máquina.</p>
+        <p className="hint">Su rol no ejecuta calibraciones de mÃ¡quina.</p>
       </div>
     )
   }
@@ -425,13 +425,13 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <h2 style={{ margin: 0 }}>Calibrar máquina</h2>
+          <h2 style={{ margin: 0 }}>Calibrar mÃ¡quina</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            Sensores: temperatura °F y humedad % · {ROLE_LABEL[role] ?? role}
+            Sensores: temperatura Â°F y humedad % Â· {ROLE_LABEL[role] ?? role}
           </p>
         </div>
         {api.generating && (
-          <span className="pill status warn">Revisando ventanas…</span>
+          <span className="pill status warn">Revisando ventanasâ€¦</span>
         )}
         <span className="pill status warn">{api.pending.length} OT pendiente(s)</span>
       </div>
@@ -442,10 +442,10 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
         al mismo tiempo). Cada registro lleva foto del calibrador + foto de la pantalla.
       </p>
 
-      <nav className="subtabs-rail" aria-label="Calibración de máquina" style={{ marginTop: 12 }}>
+      <nav className="subtabs-rail" aria-label="CalibraciÃ³n de mÃ¡quina" style={{ marginTop: 12 }}>
         <div className="subtabs-rail-head">
-          <p className="subtabs-rail-label">Calibración</p>
-          <p className="subtabs-rail-hint">T°F · HR% · evidencias</p>
+          <p className="subtabs-rail-label">CalibraciÃ³n</p>
+          <p className="subtabs-rail-hint">TÂ°F Â· HR% Â· evidencias</p>
         </div>
         <div className="tabs subtabs" role="tablist">
           <button
@@ -475,7 +475,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
               className={tab === 'estado' ? 'tab active' : 'tab'}
               onClick={() => setTab('estado')}
             >
-              Estado máquinas
+              Estado mÃ¡quinas
             </button>
           )}
         </div>
@@ -486,11 +486,11 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
 
       {tab === 'pendientes' && (
         <div className="admin-list" style={{ marginTop: 12 }}>
-          {api.loading && api.pending.length === 0 && <p className="hint">Cargando…</p>}
+          {api.loading && api.pending.length === 0 && <p className="hint">Cargandoâ€¦</p>}
           {!api.loading && api.pending.length === 0 && (
             <p className="hint">
-              No hay OT de calibración abiertas. Puede ejecutar una calibración manual en
-              «Ejecutar».
+              No hay OT de calibraciÃ³n abiertas. Puede ejecutar una calibraciÃ³n manual en
+              Â«EjecutarÂ».
             </p>
           )}
           {api.pending.map((o) => {
@@ -501,17 +501,17 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
                     <strong>
-                      {o.code || 'OT'} · {o.title}
+                      {o.code || 'OT'} Â· {o.title}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
                       {m
-                        ? `${m.name} (${m.code}) · ${MACHINE_TYPE_LABEL[m.type] || m.type} · ${plantName(m.plant_id)}`
-                        : 'Máquina'}
-                      {reason ? ` · ${CALIB_REASON_LABEL[reason] || reason}` : ''}
+                        ? `${m.name} (${m.code}) Â· ${MACHINE_TYPE_LABEL[m.type] || m.type} Â· ${plantName(m.plant_id)}`
+                        : 'MÃ¡quina'}
+                      {reason ? ` Â· ${CALIB_REASON_LABEL[reason] || reason}` : ''}
                     </span>
                   </div>
                   <span className="pill status warn">
-                    {o.status === 'in_progress' ? 'En ejecución' : 'Abierta'}
+                    {o.status === 'in_progress' ? 'En ejecuciÃ³n' : 'Abierta'}
                   </span>
                   {o.machine_id && (
                     <button
@@ -521,7 +521,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                       style={{ fontSize: 10, padding: '2px 6px', color: '#60a5fa', borderColor: '#3b82f6' }}
                       title="Ver expediente SIG completo del equipo"
                     >
-                      📋 Expediente SIG
+                      ðŸ“‹ Expediente SIG
                     </button>
                   )}
                   <button type="button" className="primary small" onClick={() => startFromOrder(o)}>
@@ -537,15 +537,15 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
       {tab === 'ejecutar' && (
         <div className="inline-form" style={{ marginTop: 12 }}>
           <label>
-            Máquina a calibrar
+            MÃ¡quina a calibrar
             <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-              <option value="">— Seleccione —</option>
+              <option value="">â€” Seleccione â€”</option>
               {activeMachines.map((m) => {
                 const open = api.openForMachine(m.id)
                 return (
                   <option key={m.id} value={m.id}>
-                    {m.code} · {m.name} · {MACHINE_TYPE_LABEL[m.type] || m.type}
-                    {open ? ' · OT pendiente' : ''}
+                    {m.code} Â· {m.name} Â· {MACHINE_TYPE_LABEL[m.type] || m.type}
+                    {open ? ' Â· OT pendiente' : ''}
                   </option>
                 )
               })}
@@ -563,19 +563,19 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                 onClick={() => setDossierMachineId(machineId)}
                 style={{ fontSize: 11, padding: '2px 8px', color: '#60a5fa', borderColor: '#3b82f6' }}
               >
-                📋 Ver Expediente SIG & Calibraciones Previas
+                ðŸ“‹ Ver Expediente SIG & Calibraciones Previas
               </button>
             </div>
           )}
 
           <p className="component-title" style={{ margin: '8px 0 6px' }}>
-            ¿Qué sensor(es) va a calibrar?
+            Â¿QuÃ© sensor(es) va a calibrar?
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {[
-              [CALIB_SCOPE.temperature, '🌡️ Solo temperatura (°F)'],
-              [CALIB_SCOPE.humidity, '💧 Solo humedad (%)'],
-              [CALIB_SCOPE.both, '🌡️💧 Ambos a la vez'],
+              [CALIB_SCOPE.temperature, 'ðŸŒ¡ï¸ Solo temperatura (Â°F)'],
+              [CALIB_SCOPE.humidity, 'ðŸ’§ Solo humedad (%)'],
+              [CALIB_SCOPE.both, 'ðŸŒ¡ï¸ðŸ’§ Ambos a la vez'],
             ].map(([val, lab]) => (
               <button
                 key={val}
@@ -590,13 +590,13 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
           <p className="hint" style={{ marginTop: 0 }}>
             {scope === CALIB_SCOPE.both
               ? 'Ingrese lecturas de ambos sensores y tome las 2 fotos una sola vez.'
-              : `Solo se pedirán lecturas de ${CALIB_SCOPE_LABEL[scope]}. Luego podrá registrar el otro sensor en otra toma.`}
+              : `Solo se pedirÃ¡n lecturas de ${CALIB_SCOPE_LABEL[scope]}. Luego podrÃ¡ registrar el otro sensor en otra toma.`}
           </p>
 
           {needTemp && (
             <div className="two-col">
               <label>
-                Temperatura en pantalla (°F)
+                Temperatura en pantalla (Â°F)
                 <input
                   type="number"
                   step="0.1"
@@ -607,7 +607,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                 />
               </label>
               <label>
-                Temperatura del calibrador (°F)
+                Temperatura del calibrador (Â°F)
                 <input
                   type="number"
                   step="0.1"
@@ -649,12 +649,12 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
 
           <PhotoCapture
             label="1. Foto del calibrador"
-            hint="instrumento en el punto de calibración"
+            hint="instrumento en el punto de calibraciÃ³n"
             file={calibratorFile}
             onFile={setCalibratorFile}
           />
           <PhotoCapture
-            label="2. Foto de la pantalla de la máquina"
+            label="2. Foto de la pantalla de la mÃ¡quina"
             hint="valores mostrados del sensor"
             file={screenFile}
             onFile={setScreenFile}
@@ -677,7 +677,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
               disabled={busy || !machineId || !calibratorFile || !screenFile}
               onClick={submit}
             >
-              {busy ? 'Guardando…' : '✓ Registrar calibración'}
+              {busy ? 'Guardandoâ€¦' : 'âœ“ Registrar calibraciÃ³n'}
             </button>
           </div>
         </div>
@@ -687,14 +687,14 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
         <div className="admin-list" style={{ marginTop: 12 }}>
           <p className="hint">
             {api.canManage
-              ? 'Todos los reportes de calibración de la empresa, con evidencias.'
-              : 'Sus reportes de calibración y evidencias fotográficas.'}
+              ? 'Todos los reportes de calibraciÃ³n de la empresa, con evidencias.'
+              : 'Sus reportes de calibraciÃ³n y evidencias fotogrÃ¡ficas.'}
           </p>
           {api.reports.length === 0 && (
             <p className="hint">
-              Aún no hay calibraciones registradas
+              AÃºn no hay calibraciones registradas
               {api.completed.length
-                ? ` (${api.completed.length} OT cerradas sin detalle de sensores — ejecute la migración machine_calibration_state).`
+                ? ` (${api.completed.length} OT cerradas sin detalle de sensores â€” ejecute la migraciÃ³n machine_calibration_state).`
                 : '.'}
             </p>
           )}
@@ -713,7 +713,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
                     <strong>
-                      {m ? `${m.code} ${m.name}` : 'Máquina'} ·{' '}
+                      {m ? `${m.code} ${m.name}` : 'MÃ¡quina'} Â·{' '}
                       {CALIB_SCOPE_LABEL[r.scope] || r.scope}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
@@ -724,10 +724,10 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                             hour: '2-digit',
                             minute: '2-digit',
                           })
-                        : '—'}
-                      {' · '}
+                        : 'â€”'}
+                      {' Â· '}
                       {formatCalibReadings(r)}
-                      {r.reason ? ` · ${CALIB_REASON_LABEL[r.reason] || r.reason}` : ''}
+                      {r.reason ? ` Â· ${CALIB_REASON_LABEL[r.reason] || r.reason}` : ''}
                     </span>
                     {r.notes && (
                       <span className="hint" style={{ margin: 0 }}>
@@ -751,7 +751,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
                       <ul className="hint" style={{ margin: '8px 0 0', paddingLeft: 18 }}>
                         {ev.map((e) => (
                           <li key={e.id}>
-                            {e.note || e.file_name} ·{' '}
+                            {e.note || e.file_name} Â·{' '}
                             {e.created_at
                               ? new Date(e.created_at).toLocaleString('es-CO')
                               : ''}
@@ -774,13 +774,13 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
               const ev = api.evidenceByWo[o.id] || []
               return (
                 <div key={o.id} className="admin-row compact" style={{ margin: 0 }}>
-                  <span>✓</span>
+                  <span>âœ“</span>
                   <div className="admin-row-main" style={{ flex: 1 }}>
                     <strong>
-                      {o.code} · {m ? `${m.code} ${m.name}` : o.title}
+                      {o.code} Â· {m ? `${m.code} ${m.name}` : o.title}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      OT cerrada · {o.resolution || '—'} · {ev.length} evidencia(s)
+                      OT cerrada Â· {o.resolution || 'â€”'} Â· {ev.length} evidencia(s)
                     </span>
                   </div>
                   <span className="pill status idle">OT</span>
@@ -794,7 +794,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
         <CoordStateTab sync={sync} machines={api.machines} />
       )}
 
-      {/* Modal / Overlay Expediente SIG de Máquina */}
+      {/* Modal / Overlay Expediente SIG de MÃ¡quina */}
       {dossierMachineId && (
         <div
           style={{
@@ -833,3 +833,4 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     </div>
   )
 }
+

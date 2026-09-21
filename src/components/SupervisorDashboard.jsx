@@ -1,41 +1,41 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/SupervisorDashboard.jsx
- * PROPÓSITO: Componente UI «SupervisorDashboard»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«SupervisorDashboardÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useMachineChecks, currentSlot } from '../hooks/useMachineChecks'
+import { useMachineChecks, currentSlot } from '../features/maintenance/hooks/useMachineChecks'
 import { useWorkOrders } from '../hooks/useWorkOrders'
-import { useShiftOps } from '../hooks/useShiftOps'
-import { useLoads } from '../hooks/useLoads'
+import { useShiftOps } from '../features/operations/hooks/useShiftOps'
+import { useLoads } from '../features/production/hooks/useLoads'
 import { useHatches } from '../hooks/useHatches'
 
 /**
- * Panel del supervisor de planta (Jhon Piedrahíta). Tablero operativo de una
- * sede de incubación: turno y ronda, OT, tareas del turno que él asigna, y el
- * estado del ciclo de incubación (cargue → transferencia día 18 → nacimiento
- * día 21) con los nacimientos en curso y su cronómetro.
+ * Panel del supervisor de planta (Jhon PiedrahÃ­ta). Tablero operativo de una
+ * sede de incubaciÃ³n: turno y ronda, OT, tareas del turno que Ã©l asigna, y el
+ * estado del ciclo de incubaciÃ³n (cargue â†’ transferencia dÃ­a 18 â†’ nacimiento
+ * dÃ­a 21) con los nacimientos en curso y su cronÃ³metro.
  */
 
-const SHIFT_LABEL = { 1: 'T1 (06–14)', 2: 'T2 (14–22)', 3: 'T3 (22–06)' }
-const STATUS_LABEL = { open: 'Abierta', in_progress: 'En ejecución', completed: 'Completada', cancelled: 'Cancelada' }
+const SHIFT_LABEL = { 1: 'T1 (06â€“14)', 2: 'T2 (14â€“22)', 3: 'T3 (22â€“06)' }
+const STATUS_LABEL = { open: 'Abierta', in_progress: 'En ejecuciÃ³n', completed: 'Completada', cancelled: 'Cancelada' }
 const MODE_LABEL = { single: 'Sencilla', double: 'Doble' }
-const TRANSFER_HOURS = 432 // día 18
-const HATCH_HOURS = 504 // día 21
+const TRANSFER_HOURS = 432 // dÃ­a 18
+const HATCH_HOURS = 504 // dÃ­a 21
 
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 const initials = (name) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
 const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—'
-const fmtDT = (v) => (v ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
+  iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : 'â€”'
+const fmtDT = (v) => (v ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'â€”')
 
 function cycleAge(cycleStartAt) {
   if (!cycleStartAt) return null
@@ -45,7 +45,7 @@ function cycleAge(cycleStartAt) {
   return { hours, label: `${Math.floor(hours / 24)}d ${Math.floor(hours % 24)}h` }
 }
 function elapsedLabel(fromIso, toMs) {
-  if (!fromIso) return '—'
+  if (!fromIso) return 'â€”'
   const ms = (toMs ?? Date.now()) - new Date(fromIso).getTime()
   const min = Math.max(0, Math.floor(ms / 60000))
   return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`
@@ -73,7 +73,7 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
       supabase.from('machines').select('id, plant_id, room_id, name, code, type, status'),
       supabase.from('organization_members').select('user_id, role, profiles ( full_name, email, phone, avatar_url )').eq('org_id', orgId),
     ]).then(([p, r, m, t]) => {
-      // Solo plantas de incubación (las granjas usan prefijo G-)
+      // Solo plantas de incubaciÃ³n (las granjas usan prefijo G-)
       setPlants((p.data ?? []).filter((x) => !(x.code?.startsWith('G') || x.name?.startsWith('G-'))))
       setRooms(r.data ?? [])
       setMachines(m.data ?? [])
@@ -103,7 +103,7 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
   const { hour, shift, shiftDate } = currentSlot()
   const plant = plants.find((p) => p.id === plantId) ?? null
   const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sala'
-  const nameOf = (id) => people[id]?.name ?? '—'
+  const nameOf = (id) => people[id]?.name ?? 'â€”'
 
   const plantMachines = useMemo(
     () => machines.filter((m) => m.plant_id === plantId && m.status !== 'decommissioned'),
@@ -187,7 +187,7 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
         <div>
           <h2>Panel del supervisor de planta</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · turno, tareas y ciclo de incubación
+            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} Â· turno, tareas y ciclo de incubaciÃ³n
           </span>
         </div>
         <span className="pill live"><span className="dot" /> En vivo</span>
@@ -209,7 +209,7 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
         </div>
         <div className={`kpi-card${novedades > 0 ? ' warn' : ''}`}>
           <span className="kpi-value">{novedades}</span>
-          <span className="kpi-label">Máquinas con novedad</span>
+          <span className="kpi-label">MÃ¡quinas con novedad</span>
         </div>
         <div className={`kpi-card${otUnassigned > 0 ? ' warn' : ''}`}>
           <span className="kpi-value">{otActive.length}</span>
@@ -233,12 +233,12 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
         </div>
       </div>
 
-      {/* Turno · operario · progreso */}
+      {/* Turno Â· operario Â· progreso */}
       <div className="mon-topbar" style={{ marginTop: 14 }}>
         <div className="mon-tile mon-shift">
           <span className="mon-label">Turno actual</span>
           <strong>{SHIFT_LABEL[shift]}</strong>
-          <span className="hint" style={{ margin: 0 }}>Hora {String(hour).padStart(2, '0')}:00 · última toma {fmtTime(lastTakeAt)}</span>
+          <span className="hint" style={{ margin: 0 }}>Hora {String(hour).padStart(2, '0')}:00 Â· Ãºltima toma {fmtTime(lastTakeAt)}</span>
         </div>
         <div className="mon-tile mon-operator">
           <span className="mon-label">Operario en turno</span>
@@ -248,13 +248,13 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
               <div className="mon-op-info">
                 <strong>{op.name}</strong>
                 <span className="mon-contact">
-                  {op.phone && <a href={`tel:${op.phone}`}>📞 {op.phone}</a>}
+                  {op.phone && <a href={`tel:${op.phone}`}>ðŸ“ž {op.phone}</a>}
                   {!op.phone && <span className="hint" style={{ margin: 0 }}>Sin contacto</span>}
                 </span>
               </div>
             </div>
           ) : (
-            <strong className="hint" style={{ margin: '4px 0 0' }}>Sin registros en este turno todavía</strong>
+            <strong className="hint" style={{ margin: '4px 0 0' }}>Sin registros en este turno todavÃ­a</strong>
           )}
         </div>
         <div className="mon-tile mon-progress">
@@ -275,12 +275,12 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
           <div className="admin-list">
             {inProgressHatches.map((h) => (
               <div key={h.id} className="admin-row compact" style={{ margin: 0 }}>
-                <span>🐤</span>
+                <span>ðŸ¤</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
-                  <strong>Lote {h.lote} · {MODE_LABEL[h.mode] ?? h.mode}</strong>
+                  <strong>Lote {h.lote} Â· {MODE_LABEL[h.mode] ?? h.mode}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    🏭 {(h.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} · ⏱️ {elapsedLabel(h.started_at, now)}
-                    {' · '}👥 sexaje {h.sexing_ops ?? 0} · vacuna {h.vaccination_ops ?? 0} · extra {h.extra_ops ?? 0}
+                    ðŸ­ {(h.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} Â· â±ï¸ {elapsedLabel(h.started_at, now)}
+                    {' Â· '}ðŸ‘¥ sexaje {h.sexing_ops ?? 0} Â· vacuna {h.vaccination_ops ?? 0} Â· extra {h.extra_ops ?? 0}
                   </span>
                 </div>
                 <button className="primary small" onClick={() => onNavigate?.('supervision')}>Cerrar jornada</button>
@@ -290,21 +290,21 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
         </>
       )}
 
-      {/* Ciclo de incubación */}
-      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Ciclo de incubación</h3>
+      {/* Ciclo de incubaciÃ³n */}
+      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Ciclo de incubaciÃ³n</h3>
       {cycleLotes.length === 0 && pendingHatch.length === 0 ? (
-        <p className="hint">No hay lotes en incubación en {plant?.name ?? 'esta sede'}.</p>
+        <p className="hint">No hay lotes en incubaciÃ³n en {plant?.name ?? 'esta sede'}.</p>
       ) : (
         <div className="admin-list">
           {cycleLotes.map((x) => {
             const ready = x.age && x.age.hours >= TRANSFER_HOURS
             return (
               <div key={`l-${x.lote}`} className="admin-row compact" style={{ margin: 0 }}>
-                <span>🥚</span>
+                <span>ðŸ¥š</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
                   <strong>Lote {x.lote}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {x.loads} cargue{x.loads === 1 ? '' : 's'}{x.age ? ` · Edad ${x.age.label}` : ''} · en incubadoras
+                    {x.loads} cargue{x.loads === 1 ? '' : 's'}{x.age ? ` Â· Edad ${x.age.label}` : ''} Â· en incubadoras
                   </span>
                 </div>
                 <span className={`pill status ${ready ? 'ok' : 'idle'}`}>{ready ? 'Transferir' : 'Incubando'}</span>
@@ -316,11 +316,11 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
             const ready = a && a.hours >= HATCH_HOURS
             return (
               <div key={`t-${t.id}`} className="admin-row compact" style={{ margin: 0 }}>
-                <span>🐣</span>
+                <span>ðŸ£</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
-                  <strong>Lote {t.lote} · {MODE_LABEL[t.mode] ?? t.mode}</strong>
+                  <strong>Lote {t.lote} Â· {MODE_LABEL[t.mode] ?? t.mode}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    🏭 {(t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} · Transferido {fmtDT(t.transferred_at)}{a ? ` · Edad ${a.label}` : ''}
+                    ðŸ­ {(t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} Â· Transferido {fmtDT(t.transferred_at)}{a ? ` Â· Edad ${a.label}` : ''}
                   </span>
                 </div>
                 {ready ? (
@@ -345,34 +345,34 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
         <div className="admin-list">
           {[...actInProgress, ...actPending].slice(0, 8).map((a) => (
             <div key={a.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>{a.status === 'in_progress' ? '🔧' : '📋'}</span>
+              <span>{a.status === 'in_progress' ? 'ðŸ”§' : 'ðŸ“‹'}</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
                 <strong>{a.title}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  👤 {nameOf(a.assigned_to)}{a.room_id ? ` · 📍 ${roomName(a.room_id)}` : ''}
+                  ðŸ‘¤ {nameOf(a.assigned_to)}{a.room_id ? ` Â· ðŸ“ ${roomName(a.room_id)}` : ''}
                 </span>
               </div>
-              <span className={`pill status ${a.status === 'in_progress' ? '' : 'warn'}`}>{a.status === 'in_progress' ? 'En ejecución' : 'Pendiente'}</span>
+              <span className={`pill status ${a.status === 'in_progress' ? '' : 'warn'}`}>{a.status === 'in_progress' ? 'En ejecuciÃ³n' : 'Pendiente'}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Requiere atención */}
+      {/* Requiere atenciÃ³n */}
       <h3 className="section-title" style={{ margin: '18px 0 8px' }}>
-        Requiere atención {alertMachines.length + otCritical.length > 0 ? `(${alertMachines.length + otCritical.length})` : ''}
+        Requiere atenciÃ³n {alertMachines.length + otCritical.length > 0 ? `(${alertMachines.length + otCritical.length})` : ''}
       </h3>
       {alertMachines.length === 0 && otCritical.length === 0 ? (
-        <p className="hint">Sin novedades críticas. Todo en orden. ✅</p>
+        <p className="hint">Sin novedades crÃ­ticas. Todo en orden. âœ…</p>
       ) : (
         <div className="admin-list">
           {alertMachines.map(({ machine: m, check: c }) => (
             <div key={m.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>{c.condition === 'fault' ? '🔴' : '🟡'}</span>
+              <span>{c.condition === 'fault' ? 'ðŸ”´' : 'ðŸŸ¡'}</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
                 <strong>{m.name} <span className="hint" style={{ margin: 0 }}>({m.code})</span></strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  {roomName(m.room_id)} · {fmtTime(c.taken_at)} · {nameOf(c.taken_by)}{c.notes ? ` · ${c.notes}` : ''}
+                  {roomName(m.room_id)} Â· {fmtTime(c.taken_at)} Â· {nameOf(c.taken_by)}{c.notes ? ` Â· ${c.notes}` : ''}
                 </span>
               </div>
               <span className={`pill status ${c.condition === 'fault' ? 'off' : 'warn'}`}>{c.condition === 'fault' ? 'Falla' : 'Alerta'}</span>
@@ -380,28 +380,29 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
           ))}
           {otCritical.map((o) => (
             <div key={o.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>🛠️</span>
+              <span>ðŸ› ï¸</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
-                <strong>{o.code} · {o.title}</strong>
+                <strong>{o.code} Â· {o.title}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  OT crítica · {STATUS_LABEL[o.status] ?? o.status}{o.assigned_to ? ` · ${nameOf(o.assigned_to)}` : ' · Sin asignar'}
+                  OT crÃ­tica Â· {STATUS_LABEL[o.status] ?? o.status}{o.assigned_to ? ` Â· ${nameOf(o.assigned_to)}` : ' Â· Sin asignar'}
                 </span>
               </div>
-              <span className="pill status off">Crítica</span>
+              <span className="pill status off">CrÃ­tica</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Accesos rápidos */}
-      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Accesos rápidos</h3>
+      {/* Accesos rÃ¡pidos */}
+      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Accesos rÃ¡pidos</h3>
       <div className="actions row" style={{ flexWrap: 'wrap' }}>
-        <button className="chip ghost" onClick={() => onNavigate?.('supervision')}>👁️ Supervisión</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('horarios')}>📅 Horarios</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('monitoreo')}>📺 Monitoreo</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('mantenimiento')}>🛠️ Mantenimiento</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('plantas')}>🗺️ Ver plano de planta</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('supervision')}>ðŸ‘ï¸ SupervisiÃ³n</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('horarios')}>ðŸ“… Horarios</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('monitoreo')}>ðŸ“º Monitoreo</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('mantenimiento')}>ðŸ› ï¸ Mantenimiento</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('plantas')}>ðŸ—ºï¸ Ver plano de planta</button>
       </div>
     </div>
   )
 }
+

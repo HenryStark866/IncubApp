@@ -1,17 +1,17 @@
-/**
+﻿/**
  * =============================================================================
  * ARCHIVO: src/components/MachineManager.jsx
- * PROPÓSITO: Componente UI «MachineManager»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
- * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
- * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
- * de incubación / granja / gerencia en IncubApp.
+ * PROPÃ“SITO: Componente UI Â«MachineManagerÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
+ * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
+ * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
+ * de incubaciÃ³n / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useLatestReadings } from '../hooks/useLatestReadings'
+import { useLatestReadings } from '../features/maintenance/hooks/useLatestReadings'
 import SensorPanel from './SensorPanel'
 import MachineDossier from './MachineDossier'
 import ListControls, { useListControls } from './ListControls'
@@ -35,16 +35,16 @@ const STATUS = [
 ]
 
 const CHECK_LABEL = {
-  normal: { label: 'Sin novedad', icon: '🟢' },
-  warning: { label: 'Alerta', icon: '🟡' },
-  fault: { label: 'Falla', icon: '🔴' },
-  off: { label: 'Apagada', icon: '🔌' },
+  normal: { label: 'Sin novedad', icon: 'ðŸŸ¢' },
+  warning: { label: 'Alerta', icon: 'ðŸŸ¡' },
+  fault: { label: 'Falla', icon: 'ðŸ”´' },
+  off: { label: 'Apagada', icon: 'ðŸ”Œ' },
 }
 const WO_LABEL = {
-  open: { label: 'Abierta', icon: '📋' },
-  in_progress: { label: 'En ejecución', icon: '🔧' },
-  completed: { label: 'Completada', icon: '✅' },
-  cancelled: { label: 'Cancelada', icon: '⛔' },
+  open: { label: 'Abierta', icon: 'ðŸ“‹' },
+  in_progress: { label: 'En ejecuciÃ³n', icon: 'ðŸ”§' },
+  completed: { label: 'Completada', icon: 'âœ…' },
+  cancelled: { label: 'Cancelada', icon: 'â›”' },
 }
 
 const typeLabel = (t) => MACHINE_TYPES.find((m) => m.value === t)?.label ?? t
@@ -82,7 +82,7 @@ function NewMachineForm({ rooms, onCreate, onCancel }) {
     <div className="inline-form">
       <div className="two-col">
         <label>
-          Código
+          CÃ³digo
           <input type="text" value={form.code} onChange={set('code')} placeholder="Ej. INC-25" autoFocus />
         </label>
         <label>
@@ -125,7 +125,7 @@ function NewMachineForm({ rooms, onCreate, onCancel }) {
           <input type="number" min="1" value={form.capacity_eggs} onChange={set('capacity_eggs')} placeholder="Ej. 57600" />
         </label>
         <label>
-          Fecha de instalación
+          Fecha de instalaciÃ³n
           <input type="date" value={form.installed_at} onChange={set('installed_at')} />
         </label>
       </div>
@@ -136,7 +136,7 @@ function NewMachineForm({ rooms, onCreate, onCancel }) {
           onClick={submit}
           disabled={busy || form.code.trim().length < 2 || form.name.trim().length < 2}
         >
-          {busy ? 'Registrando…' : 'Registrar máquina'}
+          {busy ? 'Registrandoâ€¦' : 'Registrar mÃ¡quina'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -146,7 +146,7 @@ function NewMachineForm({ rooms, onCreate, onCancel }) {
   )
 }
 
-/* ── Formulario especial para crear galpón en granjas (registra 2 pisos) ── */
+/* â”€â”€ Formulario especial para crear galpÃ³n en granjas (registra 2 pisos) â”€â”€ */
 function NewGalponForm({ rooms, onCreate, onCancel }) {
   const [num, setNum] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -155,13 +155,13 @@ function NewGalponForm({ rooms, onCreate, onCancel }) {
 
   const submit = async () => {
     const n = parseInt(num, 10)
-    if (isNaN(n) || n < 1) { setErr('Número de galpón inválido'); return }
+    if (isNaN(n) || n < 1) { setErr('NÃºmero de galpÃ³n invÃ¡lido'); return }
     setBusy(true)
     setErr(null)
     // Piso 1
     const { error: e1 } = await onCreate({
       code: `G-${n}01`,
-      name: `Galpón ${n} Piso 1`,
+      name: `GalpÃ³n ${n} Piso 1`,
       type: 'other',
       brand: 'galpon_p1',
       model: '',
@@ -173,7 +173,7 @@ function NewGalponForm({ rooms, onCreate, onCancel }) {
     // Piso 2
     const { error: e2 } = await onCreate({
       code: `G-${n}02`,
-      name: `Galpón ${n} Piso 2`,
+      name: `GalpÃ³n ${n} Piso 2`,
       type: 'other',
       brand: 'galpon_p2',
       model: '',
@@ -189,20 +189,20 @@ function NewGalponForm({ rooms, onCreate, onCancel }) {
   return (
     <div className="inline-form">
       <p className="hint" style={{ margin: '0 0 8px' }}>
-        Se registran automáticamente los dos pisos: G-N01 y G-N02.
+        Se registran automÃ¡ticamente los dos pisos: G-N01 y G-N02.
       </p>
       <div className="two-col">
         <label>
-          Número de galpón
+          NÃºmero de galpÃ³n
           <input
             type="number" min="1" value={num}
             onChange={(e) => setNum(e.target.value)}
-            placeholder="Ej. 1  →  G-101 y G-102"
+            placeholder="Ej. 1  â†’  G-101 y G-102"
             autoFocus
           />
         </label>
         <label>
-          Módulo
+          MÃ³dulo
           <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
             <option value="">Sin asignar</option>
             {rooms.map((r) => (
@@ -214,7 +214,7 @@ function NewGalponForm({ rooms, onCreate, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || num.trim() === ''}>
-          {busy ? 'Registrando pisos…' : 'Registrar galpón (ambos pisos)'}
+          {busy ? 'Registrando pisosâ€¦' : 'Registrar galpÃ³n (ambos pisos)'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -224,7 +224,7 @@ function NewGalponForm({ rooms, onCreate, onCancel }) {
   )
 }
 
-/* ══ Ficha de la máquina/galpón seleccionada ══ */
+/* â•â• Ficha de la mÃ¡quina/galpÃ³n seleccionada â•â• */
 function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, onClose, isFarm = false }) {
   const [checks, setChecks] = useState([])
   const [orders, setOrders] = useState([])
@@ -261,18 +261,18 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
   }, [machine.id])
 
   const onDelete = async () => {
-    const label = isFarm ? 'galpón' : 'máquina'
-    if (!window.confirm(`¿Eliminar ${label} "${machine.name}" (${machine.code})? Esta acción no se puede deshacer.`)) return
+    const label = isFarm ? 'galpÃ³n' : 'mÃ¡quina'
+    if (!window.confirm(`Â¿Eliminar ${label} "${machine.name}" (${machine.code})? Esta acciÃ³n no se puede deshacer.`)) return
     const { error } = await machinesApi.deleteMachine(machine.id)
     if (!error) onClose()
   }
 
   const descripcion = [
-    isGalpon ? `Galpón · ${galponFloor}` : typeLabel(machine.type),
+    isGalpon ? `GalpÃ³n Â· ${galponFloor}` : typeLabel(machine.type),
     !isGalpon && [machine.brand, machine.model].filter(Boolean).join(' ') || null,
     !isGalpon && fmtCapacity(machine.capacity_eggs),
     machine.installed_at ? `Instalado: ${new Date(machine.installed_at).toLocaleDateString('es-CO')}` : null,
-  ].filter(Boolean).join(' · ')
+  ].filter(Boolean).join(' Â· ')
 
   return (
     <div className="machine-detail">
@@ -282,7 +282,7 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
             {machine.name} <span className="machine-code">{machine.code}</span>
           </strong>
           <span className="hint" style={{ margin: 0 }}>
-            {descripcion} · 📍 {room ? `${room.name} (${room.code})` : (isFarm ? 'Sin módulo asignado' : 'Sin sala asignada')}
+            {descripcion} Â· ðŸ“ {room ? `${room.name} (${room.code})` : (isFarm ? 'Sin mÃ³dulo asignado' : 'Sin sala asignada')}
           </span>
         </div>
         <span className={`pill status ${st.cls}`}>{st.label}</span>
@@ -292,25 +292,25 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
               <select
                 value={machine.room_id ?? ''}
                 onChange={(e) => machinesApi.updateMachine(machine.id, { room_id: e.target.value || null })}
-                title={isFarm ? 'Asignar módulo' : 'Asignar sala'}
+                title={isFarm ? 'Asignar mÃ³dulo' : 'Asignar sala'}
               >
-                <option value="">{isFarm ? 'Sin módulo' : 'Sin asignar'}</option>
+                <option value="">{isFarm ? 'Sin mÃ³dulo' : 'Sin asignar'}</option>
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
                 ))}
               </select>
               {!isFarm && (
-                /* Dónde se hace la ronda, cuando el tablero está en otra sala:
+                /* DÃ³nde se hace la ronda, cuando el tablero estÃ¡ en otra sala:
                    los chillers viven en la plataforma exterior pero se leen y
-                   fotografían desde la sala técnica. Vacío = se ronda donde está. */
+                   fotografÃ­an desde la sala tÃ©cnica. VacÃ­o = se ronda donde estÃ¡. */
                 <select
                   value={machine.panel_room_id ?? ''}
                   onChange={(e) =>
                     machinesApi.updateMachine(machine.id, { panel_room_id: e.target.value || null })
                   }
-                  title="Sala donde está el tablero y se hace la ronda (si es distinta)"
+                  title="Sala donde estÃ¡ el tablero y se hace la ronda (si es distinta)"
                 >
-                  <option value="">Ronda: donde está</option>
+                  <option value="">Ronda: donde estÃ¡</option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>Ronda en: {r.name} ({r.code})</option>
                   ))}
@@ -337,20 +337,20 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
 
       <div className="detail-history">
         <div>
-          <p className="component-title" style={{ margin: '10px 0 6px' }}>Últimas rondas</p>
+          <p className="component-title" style={{ margin: '10px 0 6px' }}>Ãšltimas rondas</p>
           {histLoading ? (
-            <p className="hint">Cargando…</p>
+            <p className="hint">Cargandoâ€¦</p>
           ) : checks.length === 0 ? (
             <p className="hint">Sin registros de ronda.</p>
           ) : (
             checks.map((c) => {
-              const k = CHECK_LABEL[c.condition] ?? { label: c.condition, icon: '📟' }
+              const k = CHECK_LABEL[c.condition] ?? { label: c.condition, icon: 'ðŸ“Ÿ' }
               return (
                 <div key={c.id} className="hist-row">
                   <span>{k.icon}</span>
                   <span className="hist-text">
                     {k.label}
-                    {c.notes ? ` — ${c.notes}` : ''}
+                    {c.notes ? ` â€” ${c.notes}` : ''}
                   </span>
                   <span className="hist-when">{fmtDateTime(c.taken_at)}</span>
                 </div>
@@ -361,18 +361,18 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
         <div>
           <p className="component-title" style={{ margin: '10px 0 6px' }}>Mantenimientos</p>
           {histLoading ? (
-            <p className="hint">Cargando…</p>
+            <p className="hint">Cargandoâ€¦</p>
           ) : orders.length === 0 ? (
-            <p className="hint">Sin órdenes de trabajo.</p>
+            <p className="hint">Sin Ã³rdenes de trabajo.</p>
           ) : (
             orders.map((o) => {
-              const k = WO_LABEL[o.status] ?? { label: o.status, icon: '📋' }
+              const k = WO_LABEL[o.status] ?? { label: o.status, icon: 'ðŸ“‹' }
               return (
                 <div key={o.id} className="hist-row">
                   <span>{k.icon}</span>
                   <span className="hist-text">
-                    <strong>{o.code}</strong> {o.title} — {k.label}
-                    {o.resolution ? ` · ${o.resolution}` : ''}
+                    <strong>{o.code}</strong> {o.title} â€” {k.label}
+                    {o.resolution ? ` Â· ${o.resolution}` : ''}
                   </span>
                   <span className="hist-when">{fmtDateTime(o.completed_at ?? o.created_at)}</span>
                 </div>
@@ -385,7 +385,7 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
   )
 }
 
-/* ══ Lista de máquinas / galpones ═══════════════════════════════════════ */
+/* â•â• Lista de mÃ¡quinas / galpones â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export default function MachineManager({
   orgId,
   rooms,
@@ -404,28 +404,28 @@ export default function MachineManager({
 
   const roomName = (id) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? `${r.name} (${r.code})` : (isFarm ? 'Sin módulo' : 'Sin asignar')
+    return r ? `${r.name} (${r.code})` : (isFarm ? 'Sin mÃ³dulo' : 'Sin asignar')
   }
 
   const selectedMachine = machines.find((m) => m.id === selectedMachineId) ?? null
 
-  const entityLabel = isFarm ? 'galpón' : 'máquina'
-  const entityLabelPlural = isFarm ? 'galpones' : 'máquinas'
+  const entityLabel = isFarm ? 'galpÃ³n' : 'mÃ¡quina'
+  const entityLabelPlural = isFarm ? 'galpones' : 'mÃ¡quinas'
 
   const handleExportFomat02 = () => {
     if (!machines || machines.length === 0) return
     const rows = machines.map((m) => ({
-      'Código': m.code || 'S/C',
+      'CÃ³digo': m.code || 'S/C',
       'Nombre del Activo': m.name || 'S/N',
       'Tipo': typeLabel(m.type),
-      'Ubicación / Sala': roomName(m.room_id),
+      'UbicaciÃ³n / Sala': roomName(m.room_id),
       'Marca': m.brand || 'Petersime',
       'Modelo': m.model || 'BioStreamer',
       'Serie': m.serial_number || 'S/N',
-      'Capacidad': m.capacity_eggs ? `${Number(m.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar',
+      'Capacidad': m.capacity_eggs ? `${Number(m.capacity_eggs).toLocaleString('es-CO')} huevos` : 'EstÃ¡ndar',
       'Criticidad': m.criticidad || 'Media',
       'Estado': statusOf(m.status).label,
-      'Fecha Instalación': m.installed_at ? new Date(m.installed_at).toLocaleDateString('es-CO') : '2019-05-10',
+      'Fecha InstalaciÃ³n': m.installed_at ? new Date(m.installed_at).toLocaleDateString('es-CO') : '2019-05-10',
     }))
 
     exportToExcel('FOMAT02_INVENTARIO_EQUIPOS_SIG', [{ name: 'FOMAT02 - Inventario', rows }], {
@@ -439,7 +439,7 @@ export default function MachineManager({
   return (
     <div className="machines-wrap">
       <div className="floor-map-toolbar">
-        <h3 className="section-title">{isFarm ? 'Galpones' : 'Máquinas'}</h3>
+        <h3 className="section-title">{isFarm ? 'Galpones' : 'MÃ¡quinas'}</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
             className="chip ghost small"
@@ -447,11 +447,11 @@ export default function MachineManager({
             title="Exportar inventario general bajo formato oficial SIG FOMAT02 v02"
             style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            📥 Inventario SIG (FOMAT02)
+            ðŸ“¥ Inventario SIG (FOMAT02)
           </button>
           {canManage && !showForm && (
             <button className="chip ghost" onClick={() => setShowForm(true)}>
-              {isFarm ? '+ Registrar galpón' : '+ Nueva máquina'}
+              {isFarm ? '+ Registrar galpÃ³n' : '+ Nueva mÃ¡quina'}
             </button>
           )}
         </div>
@@ -460,7 +460,7 @@ export default function MachineManager({
 
       {!selectedMachine && (
         <p className="hint" style={{ margin: '4px 0 10px' }}>
-          Toca un {entityLabel} en el plano {canManage ? `(o arrástralo para reubicarlo en su ${isFarm ? 'módulo' : 'sala'})` : ''} para ver su
+          Toca un {entityLabel} en el plano {canManage ? `(o arrÃ¡stralo para reubicarlo en su ${isFarm ? 'mÃ³dulo' : 'sala'})` : ''} para ver su
           ficha, sensores e historial.
         </p>
       )}
@@ -502,16 +502,16 @@ export default function MachineManager({
       )}
 
       {loading ? (
-        <p className="hint">Cargando {entityLabelPlural}…</p>
+        <p className="hint">Cargando {entityLabelPlural}â€¦</p>
       ) : machines.length === 0 && !showForm ? (
         <p className="hint">
           {isFarm
-            ? `Esta granja todavía no tiene galpones registrados.${canManage ? ' Registra el primer galpón para conectar sus sensores.' : ''}`
-            : `Esta planta todavía no tiene máquinas registradas.${canManage ? ' Registra la primera para conectar luego sus sensores.' : ''}`}
+            ? `Esta granja todavÃ­a no tiene galpones registrados.${canManage ? ' Registra el primer galpÃ³n para conectar sus sensores.' : ''}`
+            : `Esta planta todavÃ­a no tiene mÃ¡quinas registradas.${canManage ? ' Registra la primera para conectar luego sus sensores.' : ''}`}
         </p>
       ) : (
         <>
-          <ListControls lc={lc} placeholder={`Buscar ${entityLabel} por nombre o código…`} />
+          <ListControls lc={lc} placeholder={`Buscar ${entityLabel} por nombre o cÃ³digoâ€¦`} />
           <div className="machine-list">
             {lc.visible.map((m) => {
               const st = statusOf(m.status)
@@ -528,12 +528,12 @@ export default function MachineManager({
                       {m.name} <span className="machine-code">{m.code}</span>
                       {!isFarm && (
                         <span style={{ marginLeft: 8, fontSize: 10, background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
-                          📋 Expediente SIG
+                          ðŸ“‹ Expediente SIG
                         </span>
                       )}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {isGalpon ? `🏚️ Galpón · ${galponFloor}` : typeLabel(m.type)} · 📍 {roomName(m.room_id)}
+                      {isGalpon ? `ðŸšï¸ GalpÃ³n Â· ${galponFloor}` : typeLabel(m.type)} Â· ðŸ“ {roomName(m.room_id)}
                     </span>
                   </div>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
@@ -546,3 +546,4 @@ export default function MachineManager({
     </div>
   )
 }
+
