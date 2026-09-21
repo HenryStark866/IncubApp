@@ -1,39 +1,39 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/OperationsDataCenter.jsx
- * PROPÃ“SITO: MÃ³dulo "Datos" del perfil de Gerencia. Punto de arranque del pipeline
- *   automatizado de incubaciÃ³n: gerencia ingresa lotes (cÃ³digo, huevos por fecha),
- *   genera y publica la ORDEN DE CLASIFICACIÃ“N para recepciÃ³n, y registra las
+ * PROPÓSITO: Módulo "Datos" del perfil de Gerencia. Punto de arranque del pipeline
+ *   automatizado de incubación: gerencia ingresa lotes (código, huevos por fecha),
+ *   genera y publica la ORDEN DE CLASIFICACIÓN para recepción, y registra las
  *   cargas actuales dentro de las incubadoras. Exporta el libro de Excel de la
- *   operaciÃ³n.
- * CÃ“MO FUNCIONA: usa useIncubationLots (lotes/Ã³rdenes) y useLoads (setter_loads),
+ *   operación.
+ * CÓMO FUNCIONA: usa useIncubationLots (lotes/órdenes) y useLoads (setter_loads),
  *   consulta plants/machines de la org, y reutiliza la config del mapa Petersime
- *   (336 huevos/bandeja Â· 16 bandejas/carro Â· 12 carros/mÃ¡quina).
+ *   (336 huevos/bandeja · 16 bandejas/carro · 12 carros/máquina).
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useIncubationLots, lotTotals } from '../features/production/hooks/useIncubationLots'
-import { useLoads } from '../features/production/hooks/useLoads'
+import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
+import { useLoads } from '../hooks/useLoads'
 import { buildOperationModel, exportOperationBook } from '../lib/operationConsolidation'
 
 const num = (n) => (n == null ? 0 : Math.round(Number(n))).toLocaleString('es-CO')
 const num1 = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO', { maximumFractionDigits: 1 })
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 const fmtDate = (v) =>
-  v ? new Date(v + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' }) : 'â€”'
+  v ? new Date(v + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
 const fmtDT = (v) =>
   v
     ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : 'â€”'
+    : '—'
 
 function today() {
   return new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD local
 }
 
-/** Edad del ciclo de incubaciÃ³n a partir de cycle_start_at â†’ "Nd Nh". */
+/** Edad del ciclo de incubación a partir de cycle_start_at → "Nd Nh". */
 function cycleAge(cycleStartAt) {
   if (!cycleStartAt) return null
   const diffMs = Date.now() - new Date(cycleStartAt).getTime()
@@ -57,13 +57,13 @@ const TAPE_PALETTE = [
 const LOT_STATUS_LABEL = {
   planned: 'Planeado',
   arrived: 'Recibido',
-  classifying: 'En clasificaciÃ³n',
+  classifying: 'En clasificación',
   classified: 'Clasificado',
   loaded: 'Cargado',
   closed: 'Cerrado',
 }
 
-/* â•â• Editor de posturas [{ productionDate, eggs }] â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Editor de posturas [{ productionDate, eggs }] ═══════════════════════════ */
 function PosturesEditor({ postures, onChange, label = 'Huevos incubables por fecha de postura' }) {
   const rows = postures.length ? postures : [{ productionDate: '', eggs: '' }]
 
@@ -109,7 +109,7 @@ function PosturesEditor({ postures, onChange, label = 'Huevos incubables por fec
                 title="Quitar fecha"
                 style={{ flex: '0 0 auto' }}
               >
-                âœ•
+                ✕
               </button>
             </div>
           </label>
@@ -122,7 +122,7 @@ function PosturesEditor({ postures, onChange, label = 'Huevos incubables por fec
   )
 }
 
-/* â•â• Formulario de lote â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Formulario de lote ══════════════════════════════════════════════════════ */
 function LotForm({ initial, onSave, onCancel }) {
   const [code, setCode] = useState(initial?.code || '')
   const [origin, setOrigin] = useState(initial?.origin || '')
@@ -159,7 +159,7 @@ function LotForm({ initial, onSave, onCancel }) {
     <div className="inline-form">
       <div className="two-col">
         <label>
-          CÃ³digo del lote
+          Código del lote
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ej. G-045" />
         </label>
         <label>
@@ -192,14 +192,14 @@ function LotForm({ initial, onSave, onCancel }) {
       </label>
 
       <p className="hint" style={{ margin: '4px 0 8px', color: 'var(--accent)' }}>
-        Total: <strong>{num(totals.eggs)}</strong> huevos Â· {num1(totals.trays)} bandejas Â·{' '}
+        Total: <strong>{num(totals.eggs)}</strong> huevos · {num1(totals.trays)} bandejas ·{' '}
         <strong>{num(totals.fullCarts)}</strong> carros
       </p>
 
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !code.trim()}>
-          {busy ? 'Guardandoâ€¦' : initial ? 'Guardar cambios' : 'Crear lote'}
+          {busy ? 'Guardando…' : initial ? 'Guardar cambios' : 'Crear lote'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -207,7 +207,7 @@ function LotForm({ initial, onSave, onCancel }) {
   )
 }
 
-/* â•â• Formulario de carga actual (setter_loads) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Formulario de carga actual (setter_loads) ══════════════════════════════ */
 function CurrentLoadForm({ lots, plants, machines, onCreate, onCancel }) {
   const [lote, setLote] = useState(lots[0]?.code || '')
   const [plantId, setPlantId] = useState(plants[0]?.id || '')
@@ -248,14 +248,14 @@ function CurrentLoadForm({ lots, plants, machines, onCreate, onCancel }) {
               {lots.map((l) => (
                 <option key={l.id} value={l.code}>{l.code}</option>
               ))}
-              <option value="">â€” Otro (escribir) â€”</option>
+              <option value="">— Otro (escribir) —</option>
             </select>
           ) : (
-            <input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="CÃ³digo del lote" />
+            <input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="Código del lote" />
           )}
         </label>
         <label>
-          Planta de incubaciÃ³n
+          Planta de incubación
           <select value={plantId} onChange={(e) => { setPlantId(e.target.value); setMachineId('') }}>
             {plants.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
           </select>
@@ -263,26 +263,26 @@ function CurrentLoadForm({ lots, plants, machines, onCreate, onCancel }) {
       </div>
       {lots.length > 0 && lote === '' && (
         <label>
-          CÃ³digo del lote
-          <input autoFocus onChange={(e) => setLote(e.target.value)} placeholder="Escriba el cÃ³digo" />
+          Código del lote
+          <input autoFocus onChange={(e) => setLote(e.target.value)} placeholder="Escriba el código" />
         </label>
       )}
       <label>
         Incubadora
         <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-          <option value="">â€” Selecciona la incubadora â€”</option>
+          <option value="">— Selecciona la incubadora —</option>
           {plantMachines.map((m) => (<option key={m.id} value={m.id}>{m.name} ({m.code})</option>))}
         </select>
       </label>
       <div className="two-col">
         <label>
-          Inicio del ciclo de incubaciÃ³n
+          Inicio del ciclo de incubación
           <input type="datetime-local" value={cycleStart} onChange={(e) => setCycleStart(e.target.value)} />
         </label>
         <label>
           Color de cinta (grupo de carros)
           <select value={tapeName} onChange={(e) => setTapeName(e.target.value)}>
-            <option value="">â€” Sin cinta â€”</option>
+            <option value="">— Sin cinta —</option>
             {TAPE_PALETTE.map((t) => (<option key={t.name} value={t.name}>{t.name}</option>))}
           </select>
         </label>
@@ -296,7 +296,7 @@ function CurrentLoadForm({ lots, plants, machines, onCreate, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !machineId || !lote?.trim()}>
-          {busy ? 'Registrandoâ€¦' : 'Registrar carga'}
+          {busy ? 'Registrando…' : 'Registrar carga'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -304,7 +304,7 @@ function CurrentLoadForm({ lots, plants, machines, onCreate, onCancel }) {
   )
 }
 
-/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Panel principal ═════════════════════════════════════════════════════════ */
 export default function OperationsDataCenter({ orgId, userId, userName }) {
   const api = useIncubationLots(orgId, userId)
   const ld = useLoads(orgId, userId)
@@ -327,7 +327,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
       supabase.from('plants').select('id, name, code').eq('org_id', orgId).order('created_at'),
       supabase.from('machines').select('id, plant_id, name, code, type, status'),
     ]).then(([p, m]) => {
-      // Plantas de incubaciÃ³n (las granjas usan prefijo G-)
+      // Plantas de incubación (las granjas usan prefijo G-)
       setPlants((p.data ?? []).filter((x) => !(x.code?.startsWith('G') || x.name?.startsWith('G-'))))
       setMachines(m.data ?? [])
     })
@@ -335,10 +335,10 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
 
   const machineName = (id) => {
     const m = machines.find((x) => x.id === id)
-    return m ? `${m.name} (${m.code})` : 'â€”'
+    return m ? `${m.name} (${m.code})` : '—'
   }
 
-  // buildClassificationOrder estÃ¡ memoizado sobre `lots`; recalcular por render es barato.
+  // buildClassificationOrder está memoizado sobre `lots`; recalcular por render es barato.
   const preview = api.buildClassificationOrder()
   const activeLots = useMemo(
     () => api.lots.filter((l) => ['planned', 'arrived'].includes(l.status)),
@@ -373,7 +373,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
     }
     const res = await api.publishClassificationOrder({ items: preview.items })
     if (res.error) flash(res.error)
-    else flash('Orden de clasificaciÃ³n publicada y notificada a recepciÃ³n.')
+    else flash('Orden de clasificación publicada y notificada a recepción.')
   }
 
   const createLoad = async (payload) => {
@@ -390,7 +390,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
       setModel(m)
       return m
     } catch (e) {
-      setModelError(e?.message || 'No se pudo consolidar la operaciÃ³n')
+      setModelError(e?.message || 'No se pudo consolidar la operación')
       return null
     } finally {
       setModelLoading(false)
@@ -413,12 +413,12 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
 
   const TABS = [
     { id: 'lotes', label: 'Lotes' },
-    { id: 'orden', label: 'Orden de clasificaciÃ³n' },
+    { id: 'orden', label: 'Orden de clasificación' },
     { id: 'cargas', label: 'Cargas actuales' },
     { id: 'consolidado', label: 'Consolidado (BI)' },
   ]
 
-  // Cargar el modelo consolidado al abrir la pestaÃ±a.
+  // Cargar el modelo consolidado al abrir la pestaña.
   useEffect(() => {
     if (tab === 'consolidado' && !model && !modelLoading) loadModel()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -428,15 +428,15 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <h2 style={{ margin: 0 }}>Datos de operaciÃ³n</h2>
+          <h2 style={{ margin: 0 }}>Datos de operación</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
             Hola{firstName(userName) ? `, ${firstName(userName)}` : ''}. Ingresa los lotes, publica la orden de
-            clasificaciÃ³n para recepciÃ³n y registra las cargas dentro de las incubadoras.
-            {api.eggsPerCart ? ` Â· 1 carro = ${num(api.eggsPerCart)} huevos (${api.traysPerCart} bandejas)` : ''}
+            clasificación para recepción y registra las cargas dentro de las incubadoras.
+            {api.eggsPerCart ? ` · 1 carro = ${num(api.eggsPerCart)} huevos (${api.traysPerCart} bandejas)` : ''}
           </p>
         </div>
         <button type="button" className="chip ghost" onClick={exportConsolidated} disabled={exporting}>
-          {exporting ? 'Generandoâ€¦' : 'â¬‡ Libro Power BI'}
+          {exporting ? 'Generando…' : '⬇ Libro Power BI'}
         </button>
       </div>
 
@@ -458,11 +458,11 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
         </div>
         <div className={`kpi-card${api.activeOrders.length ? ' warn' : ''}`}>
           <span className="kpi-value">{api.activeOrders.length}</span>
-          <span className="kpi-label">Ã“rdenes activas</span>
+          <span className="kpi-label">Órdenes activas</span>
         </div>
       </div>
 
-      {/* Sub-pestaÃ±as */}
+      {/* Sub-pestañas */}
       <div className="seg" role="tablist" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '16px 0 12px' }}>
         {TABS.map((t) => (
           <button
@@ -476,7 +476,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
         ))}
       </div>
 
-      {/* â”€â”€ LOTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── LOTES ─────────────────────────────────────────────────────── */}
       {tab === 'lotes' && (
         <>
           <div className="admin-section-head">
@@ -497,28 +497,28 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
           )}
 
           {api.loading && !api.lots.length ? (
-            <p className="hint">Cargando lotesâ€¦</p>
+            <p className="hint">Cargando lotes…</p>
           ) : api.lots.length === 0 ? (
-            <p className="hint">AÃºn no hay lotes. Crea el primero con Â«+ Nuevo loteÂ».</p>
+            <p className="hint">Aún no hay lotes. Crea el primero con «+ Nuevo lote».</p>
           ) : (
             <div className="admin-list">
               {api.lots.map((l) => {
                 const t = lotTotals(l.postures)
                 return (
                   <div key={l.id} className="admin-row" style={{ margin: 0, alignItems: 'flex-start' }}>
-                    <span>ðŸ¥š</span>
+                    <span>🥚</span>
                     <div className="admin-row-main" style={{ flex: 1 }}>
                       <strong>
                         {l.code}
-                        {l.is_treated ? ' Â· tratado' : ''}
-                        {l.origin ? ` Â· ${l.origin}` : ''}
+                        {l.is_treated ? ' · tratado' : ''}
+                        {l.origin ? ` · ${l.origin}` : ''}
                       </strong>
                       <span className="hint" style={{ margin: 0 }}>
-                        {num(t.eggs)} huevos Â· {num1(t.trays)} bandejas Â· {num(t.fullCarts)} carros
-                        {l.expected_arrival_date ? ` Â· llega ${fmtDate(l.expected_arrival_date)}` : ''}
+                        {num(t.eggs)} huevos · {num1(t.trays)} bandejas · {num(t.fullCarts)} carros
+                        {l.expected_arrival_date ? ` · llega ${fmtDate(l.expected_arrival_date)}` : ''}
                       </span>
                       <span className="hint" style={{ margin: 0, fontSize: '0.78rem' }}>
-                        {(l.postures || []).map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`).join('  Â·  ') || 'Sin posturas'}
+                        {(l.postures || []).map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`).join('  ·  ') || 'Sin posturas'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
@@ -535,7 +535,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
                           type="button"
                           className="ghost small"
                           onClick={async () => {
-                            if (window.confirm(`Â¿Eliminar el lote ${l.code}?`)) {
+                            if (window.confirm(`¿Eliminar el lote ${l.code}?`)) {
                               const r = await api.deleteLot(l.id)
                               if (r.error) flash(r.error)
                             }
@@ -553,7 +553,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
         </>
       )}
 
-      {/* â”€â”€ ORDEN DE CLASIFICACIÃ“N â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── ORDEN DE CLASIFICACIÓN ────────────────────────────────────── */}
       {tab === 'orden' && (
         <>
           <div className="admin-section-head">
@@ -561,19 +561,19 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
               Vista previa (FIFO por fecha de postura)
             </span>
             <button className="primary small" onClick={publish} disabled={!preview.items.length}>
-              Publicar orden a recepciÃ³n
+              Publicar orden a recepción
             </button>
           </div>
 
           {!preview.items.length ? (
             <p className="hint">
-              No hay lotes Â«PlaneadoÂ» o Â«RecibidoÂ» con huevos. Crea lotes en la pestaÃ±a Â«LotesÂ».
+              No hay lotes «Planeado» o «Recibido» con huevos. Crea lotes en la pestaña «Lotes».
             </p>
           ) : (
             <>
               <p className="hint" style={{ margin: '0 0 8px' }}>
-                {num(preview.totalEggs)} huevos Â· {num1(preview.totalTrays)} bandejas Â·{' '}
-                <strong>{preview.totalCarts}</strong> carros Â·{' '}
+                {num(preview.totalEggs)} huevos · {num1(preview.totalTrays)} bandejas ·{' '}
+                <strong>{preview.totalCarts}</strong> carros ·{' '}
                 <strong>{preview.groupCount}</strong> grupo{preview.groupCount === 1 ? '' : 's'} de 12
               </p>
               <div className="admin-list">
@@ -581,9 +581,9 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
                   <div key={`${it.lotId}-${it.productionDate}-${i}`} className="admin-row compact" style={{ margin: 0 }}>
                     <span className="pill" style={{ minWidth: 28, justifyContent: 'center' }}>{i + 1}</span>
                     <div className="admin-row-main" style={{ flex: 1 }}>
-                      <strong>{it.code}{it.isTreated ? ' Â· tratado' : ''}</strong>
+                      <strong>{it.code}{it.isTreated ? ' · tratado' : ''}</strong>
                       <span className="hint" style={{ margin: 0 }}>
-                        Postura {fmtDate(it.productionDate)} Â· {num(it.eggs)} huevos Â· {num1(it.trays)} bandejas Â· {Math.ceil(it.carts)} carros
+                        Postura {fmtDate(it.productionDate)} · {num(it.eggs)} huevos · {num1(it.trays)} bandejas · {Math.ceil(it.carts)} carros
                       </span>
                     </div>
                   </div>
@@ -592,9 +592,9 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
             </>
           )}
 
-          <h3 className="section-title" style={{ margin: '20px 0 8px' }}>Ã“rdenes publicadas</h3>
+          <h3 className="section-title" style={{ margin: '20px 0 8px' }}>Órdenes publicadas</h3>
           {api.orders.length === 0 ? (
-            <p className="hint">Sin Ã³rdenes publicadas todavÃ­a.</p>
+            <p className="hint">Sin órdenes publicadas todavía.</p>
           ) : (
             <div className="admin-list">
               {api.orders.map((o) => {
@@ -602,9 +602,9 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
                 const lotCount = new Set((o.items || []).map((i) => i.lotId)).size
                 return (
                   <div key={o.id} className="admin-row compact" style={{ margin: 0 }}>
-                    <span>{o.status === 'published' || o.status === 'in_progress' ? 'ðŸ“‹' : 'âœ…'}</span>
+                    <span>{o.status === 'published' || o.status === 'in_progress' ? '📋' : '✅'}</span>
                     <div className="admin-row-main" style={{ flex: 1 }}>
-                      <strong>{lotCount} lote{lotCount === 1 ? '' : 's'} Â· {num(eggs)} huevos Â· {o.group_count} grupo{o.group_count === 1 ? '' : 's'}</strong>
+                      <strong>{lotCount} lote{lotCount === 1 ? '' : 's'} · {num(eggs)} huevos · {o.group_count} grupo{o.group_count === 1 ? '' : 's'}</strong>
                       <span className="hint" style={{ margin: 0 }}>
                         {o.published_at ? `Publicada ${fmtDT(o.published_at)}` : `Creada ${fmtDT(o.created_at)}`}
                       </span>
@@ -616,7 +616,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
                           type="button"
                           className="ghost small"
                           onClick={async () => {
-                            if (window.confirm('Â¿Cancelar esta orden de clasificaciÃ³n?')) {
+                            if (window.confirm('¿Cancelar esta orden de clasificación?')) {
                               const r = await api.cancelOrder(o.id)
                               if (r.error) flash(r.error)
                             }
@@ -634,7 +634,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
         </>
       )}
 
-      {/* â”€â”€ CARGAS ACTUALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── CARGAS ACTUALES ───────────────────────────────────────────── */}
       {tab === 'cargas' && (
         <>
           <div className="admin-section-head">
@@ -647,7 +647,7 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
           </div>
 
           {!plants.length && (
-            <p className="hint">No hay plantas de incubaciÃ³n configuradas. AgrÃ©galas en Â«Plantas y planosÂ».</p>
+            <p className="hint">No hay plantas de incubación configuradas. Agrégalas en «Plantas y planos».</p>
           )}
 
           {showLoadForm && (
@@ -669,12 +669,12 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
                 const age = cycleAge(l.cycle_start_at)
                 return (
                   <div key={l.id} className="admin-row compact" style={{ margin: 0 }}>
-                    <span>ðŸ£</span>
+                    <span>🐣</span>
                     <div className="admin-row-main" style={{ flex: 1 }}>
-                      <strong>{l.lote} Â· {machineName(l.machine_id)}</strong>
+                      <strong>{l.lote} · {machineName(l.machine_id)}</strong>
                       <span className="hint" style={{ margin: 0 }}>
                         {l.cycle_start_at ? `Inicio ciclo ${fmtDT(l.cycle_start_at)}` : `Cargue ${fmtDT(l.loaded_at)}`}
-                        {age ? ` Â· Edad ${age.label}` : ''}
+                        {age ? ` · Edad ${age.label}` : ''}
                       </span>
                     </div>
                     {l.tape_color_name && (
@@ -691,31 +691,31 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
         </>
       )}
 
-      {/* â”€â”€ CONSOLIDADO (BI) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── CONSOLIDADO (BI) ──────────────────────────────────────────── */}
       {tab === 'consolidado' && (
         <>
           <div className="admin-section-head">
             <span className="component-title" style={{ margin: 0 }}>
-              Consolidado de la operaciÃ³n (modelo Power BI)
+              Consolidado de la operación (modelo Power BI)
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="ghost small" onClick={loadModel} disabled={modelLoading}>
-                {modelLoading ? 'Consolidandoâ€¦' : 'Actualizar'}
+                {modelLoading ? 'Consolidando…' : 'Actualizar'}
               </button>
               <button className="primary small" onClick={exportConsolidated} disabled={exporting}>
-                {exporting ? 'Generandoâ€¦' : 'â¬‡ Exportar libro Power BI'}
+                {exporting ? 'Generando…' : '⬇ Exportar libro Power BI'}
               </button>
             </div>
           </div>
 
           <p className="hint" style={{ margin: '0 0 8px' }}>
-            Une lotes, llegadas, clasificaciÃ³n, cargue, transferencias y nacimientos en un modelo en estrella
-            (dimensiones + hechos + KPIs + hoja Â«ModeloÂ» con las relaciones), listo para cargar en Power BI.
+            Une lotes, llegadas, clasificación, cargue, transferencias y nacimientos en un modelo en estrella
+            (dimensiones + hechos + KPIs + hoja «Modelo» con las relaciones), listo para cargar en Power BI.
           </p>
 
           {modelError && <p className="msg error">{modelError}</p>}
           {modelLoading && !model ? (
-            <p className="hint">Consolidando la operaciÃ³nâ€¦</p>
+            <p className="hint">Consolidando la operación…</p>
           ) : model ? (
             <>
               <div className="kpi-grid" style={{ marginTop: 8 }}>
@@ -761,17 +761,16 @@ export default function OperationsDataCenter({ orgId, userId, userName }) {
               )}
 
               <p className="hint" style={{ margin: '16px 0 0', fontSize: '0.78rem' }}>
-                El libro incluye {model.sheets.length} hojas ({model.counts.dates} fechas Â· {model.counts.carts} carros Â·{' '}
-                {model.counts.loads} cargues Â· {model.counts.hatches} nacimientos). En Power BI: marca Â«Dim_FechaÂ» como
-                tabla de fechas y crea las relaciones de la hoja Â«ModeloÂ».
+                El libro incluye {model.sheets.length} hojas ({model.counts.dates} fechas · {model.counts.carts} carros ·{' '}
+                {model.counts.loads} cargues · {model.counts.hatches} nacimientos). En Power BI: marca «Dim_Fecha» como
+                tabla de fechas y crea las relaciones de la hoja «Modelo».
               </p>
             </>
           ) : (
-            <p className="hint">Pulsa Â«ActualizarÂ» para consolidar la operaciÃ³n.</p>
+            <p className="hint">Pulsa «Actualizar» para consolidar la operación.</p>
           )}
         </>
       )}
     </div>
   )
 }
-

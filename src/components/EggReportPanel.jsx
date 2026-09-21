@@ -1,24 +1,24 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/EggReportPanel.jsx
- * PROPÃ“SITO: Componente UI Â«EggReportPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «EggReportPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useBatches } from '../features/production/hooks/useBatches'
-import { useEggReports } from '../features/production/hooks/useEggReports'
+import { useBatches } from '../hooks/useBatches'
+import { useEggReports } from '../hooks/useEggReports'
 import { exportToExcel } from '../lib/exportExcel'
 
 /**
  * Dashboard del operario galponero (Fase 3): reporte diario de huevos por
- * galpÃ³n, lote y fecha, con las categorÃ­as tipificadas (incubable, comercialâ€¦).
- * Los galpones reportables son los que tienen un lote en producciÃ³n.
+ * galpón, lote y fecha, con las categorías tipificadas (incubable, comercial…).
+ * Los galpones reportables son los que tienen un lote en producción.
  */
 
 const STATUS = {
@@ -29,11 +29,11 @@ const STATUS = {
 const statusOf = (v) => STATUS[v] ?? { label: v, cls: '' }
 const today = () => new Date().toLocaleDateString('sv-SE')
 const fmtDate = (v) =>
-  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'
+  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 
-/* â•â• Formulario de reporte de huevos â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Formulario de reporte de huevos ═════════════════════════ */
 function EggReportForm({ reportable, categories, findExisting, onSave, onCancel }) {
   const [roomId, setRoomId] = useState(reportable[0]?.roomId ?? '')
   const [date, setDate] = useState(today())
@@ -42,7 +42,7 @@ function EggReportForm({ reportable, categories, findExisting, onSave, onCancel 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
-  // Al cambiar galpÃ³n o fecha, precarga el reporte existente de ese dÃ­a (si lo hay)
+  // Al cambiar galpón o fecha, precarga el reporte existente de ese día (si lo hay)
   useEffect(() => {
     const ex = findExisting(roomId, date)
     if (ex) {
@@ -80,11 +80,11 @@ function EggReportForm({ reportable, categories, findExisting, onSave, onCancel 
     <div className="inline-form">
       <div className="two-col">
         <label>
-          GalpÃ³n (lote en producciÃ³n)
+          Galpón (lote en producción)
           <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-            {reportable.length === 0 && <option value="">â€” Sin galpones en producciÃ³n â€”</option>}
+            {reportable.length === 0 && <option value="">— Sin galpones en producción —</option>}
             {reportable.map((r) => (
-              <option key={r.roomId} value={r.roomId}>{r.roomName} Â· {r.batchCode}</option>
+              <option key={r.roomId} value={r.roomId}>{r.roomName} · {r.batchCode}</option>
             ))}
           </select>
         </label>
@@ -117,7 +117,7 @@ function EggReportForm({ reportable, categories, findExisting, onSave, onCancel 
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !roomId}>
-          {busy ? 'Guardandoâ€¦' : 'Guardar reporte'}
+          {busy ? 'Guardando…' : 'Guardar reporte'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -125,7 +125,7 @@ function EggReportForm({ reportable, categories, findExisting, onSave, onCancel 
   )
 }
 
-/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Panel principal ═════════════════════════════════════════ */
 export default function EggReportPanel({ orgId, userId, role, area, coordinatorName }) {
   const canReport = ['owner', 'admin', 'supervisor', 'coordinator', 'barn_operator'].includes(role)
   const barnOnly = role === 'barn_operator'
@@ -149,19 +149,19 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
       setRooms(r.data ?? [])
       setFarms(p.data ?? [])
       const map = {}
-      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || 'â€”'
+      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || '—'
       setPeople(map)
     })
   }, [orgId])
 
   const roomName = (id) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? `${r.name} (${r.code})` : 'GalpÃ³n'
+    return r ? `${r.name} (${r.code})` : 'Galpón'
   }
   const farmName = (id) => farms.find((f) => f.id === id)?.name ?? 'Granja'
-  const nameOf = (id) => (id ? people[id] ?? 'â€”' : 'â€”')
+  const nameOf = (id) => (id ? people[id] ?? '—' : '—')
 
-  // Galpones reportables: placements de producciÃ³n de lotes en producciÃ³n
+  // Galpones reportables: placements de producción de lotes en producción
   const reportable = useMemo(() => {
     const prod = bt.batches.filter((b) => b.status === 'production')
     const seen = new Set()
@@ -211,7 +211,7 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
   }, [todayReports, er.categories])
 
   const onDelete = async (r) => {
-    if (!window.confirm(`Â¿Eliminar el reporte de ${roomName(r.room_id)} del ${fmtDate(r.report_date)}?`)) return
+    if (!window.confirm(`¿Eliminar el reporte de ${roomName(r.room_id)} del ${fmtDate(r.report_date)}?`)) return
     await er.deleteReport(r.id)
   }
 
@@ -225,22 +225,22 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
           return {
             Fecha: r.report_date,
             Lote: batchCodeOf(r.batch_id),
-            'GalpÃ³n': roomName(r.room_id),
+            'Galpón': roomName(r.room_id),
             Granja: farmName(r.farm_id),
             ...Object.fromEntries(er.categories.map((c) => [c.name, Number(r.counts?.[c.code] || 0)])),
             Incubable: t.inc,
             Comercial: t.com,
             Total: t.inc + t.com,
             Estado: r.status === 'received' ? 'Recibido en planta' : r.status === 'verified' ? 'Verificado' : 'Reportado',
-            'ReportÃ³': nameOf(r.reported_by),
-            'VerificÃ³': nameOf(r.verified_by),
+            'Reportó': nameOf(r.reported_by),
+            'Verificó': nameOf(r.verified_by),
             Observaciones: r.notes ?? '',
           }
         }),
       },
     ], {
       title: 'Reportes de huevo',
-      module: 'ProducciÃ³n Â· huevo',
+      module: 'Producción · huevo',
     })
   }
 
@@ -250,12 +250,12 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
         <div>
           <h2>Reporte de huevos</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} Â· registra los huevos por galpÃ³n y lote
+            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · registra los huevos por galpón y lote
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {!barnOnly && visibleReports.length > 0 && (
-            <button className="chip ghost" onClick={exportReports}>â¬‡ Exportar Excel</button>
+            <button className="chip ghost" onClick={exportReports}>⬇ Exportar Excel</button>
           )}
           <span className="pill live"><span className="dot" /> En vivo</span>
         </div>
@@ -293,8 +293,8 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
 
       {reportable.length === 0 && (
         <p className="hint">
-          No hay lotes en producciÃ³n todavÃ­a. El reporte se habilita cuando un lote en levante
-          pasa el grading y se mueve a un mÃ³dulo de producciÃ³n.
+          No hay lotes en producción todavía. El reporte se habilita cuando un lote en levante
+          pasa el grading y se mueve a un módulo de producción.
         </p>
       )}
       {showForm && (
@@ -309,9 +309,9 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
       {er.error && <p className="msg error">{er.error}</p>}
 
       {er.loading ? (
-        <p className="hint">Cargando reportesâ€¦</p>
+        <p className="hint">Cargando reportes…</p>
       ) : visibleReports.length === 0 ? (
-        <p className="hint">AÃºn no hay reportes de huevos.</p>
+        <p className="hint">Aún no hay reportes de huevos.</p>
       ) : (
         <div className="admin-list">
           {visibleReports.slice(0, 40).map((r) => {
@@ -319,21 +319,21 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
             const t = kindTotals(r.counts)
             return (
               <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
-                <span>ðŸ¥š</span>
+                <span>🥚</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
-                  <strong>{roomName(r.room_id)} Â· {fmtDate(r.report_date)}</strong>
+                  <strong>{roomName(r.room_id)} · {fmtDate(r.report_date)}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    Incubable {num(t.inc)} Â· Comercial {num(t.com)} Â· {farmName(r.farm_id)}
-                    {r.reported_by ? ` Â· ${nameOf(r.reported_by)}` : ''}
-                    {r.notes ? ` Â· ${r.notes}` : ''}
+                    Incubable {num(t.inc)} · Comercial {num(t.com)} · {farmName(r.farm_id)}
+                    {r.reported_by ? ` · ${nameOf(r.reported_by)}` : ''}
+                    {r.notes ? ` · ${r.notes}` : ''}
                   </span>
                 </div>
                 <span className={`pill status ${st.cls}`}>{st.label}</span>
                 {canVerify && r.status === 'reported' && (
-                  <button className="ghost" onClick={() => er.verifyReport(r.id)} title="Aceptar el reporte">âœ“ Verificar</button>
+                  <button className="ghost" onClick={() => er.verifyReport(r.id)} title="Aceptar el reporte">✓ Verificar</button>
                 )}
                 {(r.reported_by === userId || ['owner', 'admin'].includes(role)) && r.status === 'reported' && (
-                  <button className="ghost danger" onClick={() => onDelete(r)} title="Eliminar">âœ•</button>
+                  <button className="ghost danger" onClick={() => onDelete(r)} title="Eliminar">✕</button>
                 )}
               </div>
             )
@@ -343,4 +343,3 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
     </div>
   )
 }
-

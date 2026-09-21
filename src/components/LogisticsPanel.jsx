@@ -1,10 +1,10 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/LogisticsPanel.jsx
- * PROPÃ“SITO: Componente UI Â«LogisticsPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «LogisticsPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -16,12 +16,12 @@ import {
   DELIVERY_STATUS,
   OPERATION_TYPES,
   CONTACT_KINDS,
-} from '../features/logistics/hooks/useLogisticsFleet'
+} from '../hooks/useLogisticsFleet'
 import { useRemittances, REMITTANCE_STATUS } from '../hooks/useRemittances'
 import { useSalesOrders, ORDER_STATUS_LABEL } from '../hooks/useSalesOrders'
 import { ROLE_LABEL, areaLabel } from '../lib/roles'
 import { exportToExcel } from '../lib/exportExcel'
-import { mapsUrl } from '../features/platform/hooks/useOrgPresence'
+import { mapsUrl } from '../hooks/useOrgPresence'
 import ListControls, { useListControls } from './ListControls'
 import CoordinatorInventoryPanel from './CoordinatorInventoryPanel'
 import WazeStyleMap from './WazeStyleMap'
@@ -40,7 +40,7 @@ const VIEWS = [
 ]
 
 /**
- * Panel de LogÃ­stica: flota, rutas, entregas, mapa en vivo, chat y contactos.
+ * Panel de Logística: flota, rutas, entregas, mapa en vivo, chat y contactos.
  */
 export default function LogisticsPanel({
   orgId,
@@ -101,7 +101,7 @@ export default function LogisticsPanel({
     },
   })
 
-  // Fusionar presencia de app con conductores (si user_id) + fix local de precisiÃ³n
+  // Fusionar presencia de app con conductores (si user_id) + fix local de precisión
   const mapPoints = useMemo(() => {
     const pts = []
     for (const d of fleet.drivers) {
@@ -118,7 +118,7 @@ export default function LogisticsPanel({
           accuracy = p.accuracy
         }
       }
-      // Override con rastreador de alta precisiÃ³n si soy este conductor
+      // Override con rastreador de alta precisión si soy este conductor
       if (linkedDriver?.id === d.id && precisionGps.fix) {
         lat = precisionGps.fix.lat
         lng = precisionGps.fix.lng
@@ -158,7 +158,7 @@ export default function LogisticsPanel({
   )
 
   const mapRoutes = useMemo(() => {
-    // PolilÃ­neas simples: orden de paradas con coordenadas o GPS planta
+    // Polilíneas simples: orden de paradas con coordenadas o GPS planta
     return fleet.routes
       .filter((r) => r.status === 'en_route' || r.status === 'planned')
       .map((r) => {
@@ -250,19 +250,19 @@ export default function LogisticsPanel({
         name: 'Conductores',
         rows: fleet.drivers.map((d) => ({
           Nombre: d.full_name,
-          TelÃ©fono: d.phone || '',
+          Teléfono: d.phone || '',
           Placa: d.plate || '',
-          VehÃ­culo: d.vehicle || '',
+          Vehículo: d.vehicle || '',
           Licencia: d.license_id || '',
-          En_ruta: d.on_route ? 'SÃ­' : 'No',
-          Activo: d.active ? 'SÃ­' : 'No',
-          Ãšltima_lat: d.last_lat ?? '',
-          Ãšltima_lng: d.last_lng ?? '',
+          En_ruta: d.on_route ? 'Sí' : 'No',
+          Activo: d.active ? 'Sí' : 'No',
+          Última_lat: d.last_lat ?? '',
+          Última_lng: d.last_lng ?? '',
         })),
       },
     ], {
-      title: 'Conductores y flota Â· LogÃ­stica',
-      module: 'LogÃ­stica',
+      title: 'Conductores y flota · Logística',
+      module: 'Logística',
     })
   }
 
@@ -270,12 +270,12 @@ export default function LogisticsPanel({
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <h2 style={{ margin: 0 }}>LogÃ­stica</h2>
+          <h2 style={{ margin: 0 }}>Logística</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            {first ? `${first} Â· ` : ''}
+            {first ? `${first} · ` : ''}
             {ROLE_LABEL[role] ?? role}
-            {area ? ` Â· ${areaLabel(area)}` : ''}
-            Â· rutas Â· flota Â· GPS Â· contactos
+            {area ? ` · ${areaLabel(area)}` : ''}
+            · rutas · flota · GPS · contactos
           </p>
         </div>
       </div>
@@ -291,7 +291,7 @@ export default function LogisticsPanel({
       {linkedDriver?.on_route && (
         <p className="msg ok">
           <strong>GPS en ruta activo</strong> para {linkedDriver.full_name}. La llegada a planta /
-          paradas se registra automÃ¡ticamente al entrar en geocerca.
+          paradas se registra automáticamente al entrar en geocerca.
         </p>
       )}
 
@@ -308,7 +308,7 @@ export default function LogisticsPanel({
         ))}
       </div>
 
-      {/* â•â• TABLERO â•â• */}
+      {/* ══ TABLERO ══ */}
       {view === 'tablero' && (
         <>
           <div className="kpi-grid" style={{ marginTop: 14 }}>
@@ -356,10 +356,10 @@ export default function LogisticsPanel({
                   <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
                     <div className="admin-row-main">
                       <strong>
-                        {r.code} Â· {r.name}
+                        {r.code} · {r.name}
                       </strong>
                       <span className="hint" style={{ margin: 0 }}>
-                        {ROUTE_STATUS[r.status]} Â· {dr?.full_name || 'Sin conductor'} Â·{' '}
+                        {ROUTE_STATUS[r.status]} · {dr?.full_name || 'Sin conductor'} ·{' '}
                         {fleet.deliveriesByRoute(r.id).length} paradas
                       </span>
                     </div>
@@ -397,7 +397,7 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• CONDUCTORES â•â• */}
+      {/* ══ CONDUCTORES ══ */}
       {view === 'conductores' && (
         <>
           <div className="actions row" style={{ marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
@@ -434,7 +434,7 @@ export default function LogisticsPanel({
                   }
                 }}
               >
-                <option value="">â€”</option>
+                <option value="">—</option>
                 {fleet.drivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.full_name}
@@ -456,7 +456,7 @@ export default function LogisticsPanel({
                   />
                 </label>
                 <label>
-                  TelÃ©fono
+                  Teléfono
                   <input
                     value={driverForm.phone}
                     onChange={(e) => setDriverForm((f) => ({ ...f, phone: e.target.value }))}
@@ -470,7 +470,7 @@ export default function LogisticsPanel({
                   />
                 </label>
                 <label>
-                  VehÃ­culo
+                  Vehículo
                   <input
                     value={driverForm.vehicle}
                     onChange={(e) => setDriverForm((f) => ({ ...f, vehicle: e.target.value }))}
@@ -502,22 +502,22 @@ export default function LogisticsPanel({
             </div>
           )}
 
-          <ListControls lc={driverLc} placeholder="Buscar conductorâ€¦" />
+          <ListControls lc={driverLc} placeholder="Buscar conductor…" />
           <div className="admin-list" style={{ marginTop: 8 }}>
             {driverLc.visible.map((d) => (
               <div key={d.id} className="admin-row" style={{ margin: 0, flexWrap: 'wrap' }}>
                 <div className="admin-row-main" style={{ flex: 1 }}>
                   <strong>
                     {d.full_name}
-                    {d.on_route ? ' Â· EN RUTA' : ''}
-                    {!d.active ? ' Â· inactivo' : ''}
+                    {d.on_route ? ' · EN RUTA' : ''}
+                    {!d.active ? ' · inactivo' : ''}
                   </strong>
                   <span className="hint" style={{ margin: 0 }}>
                     {[d.phone, d.plate, d.vehicle, d.license_id && `Lic. ${d.license_id}`]
                       .filter(Boolean)
-                      .join(' Â· ')}
+                      .join(' · ')}
                     {d.last_lat != null &&
-                      ` Â· GPS ${Number(d.last_lat).toFixed(4)}, ${Number(d.last_lng).toFixed(4)}`}
+                      ` · GPS ${Number(d.last_lat).toFixed(4)}, ${Number(d.last_lng).toFixed(4)}`}
                   </span>
                 </div>
                 <span className="admin-row-actions" style={{ flexWrap: 'wrap' }}>
@@ -557,7 +557,7 @@ export default function LogisticsPanel({
                     type="button"
                     className="ghost small danger"
                     onClick={async () => {
-                      if (!window.confirm(`Â¿Eliminar conductor ${d.full_name}?`)) return
+                      if (!window.confirm(`¿Eliminar conductor ${d.full_name}?`)) return
                       await fleet.deleteDriver(d.id)
                     }}
                   >
@@ -570,7 +570,7 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• RUTAS â•â• */}
+      {/* ══ RUTAS ══ */}
       {view === 'rutas' && (
         <>
           <div className="actions row" style={{ marginTop: 12, gap: 8 }}>
@@ -621,13 +621,13 @@ export default function LogisticsPanel({
                     value={routeForm.driver_id}
                     onChange={(e) => setRouteForm((f) => ({ ...f, driver_id: e.target.value }))}
                   >
-                    <option value="">â€”</option>
+                    <option value="">—</option>
                     {fleet.drivers
                       .filter((d) => d.active)
                       .map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.full_name}
-                          {d.plate ? ` Â· ${d.plate}` : ''}
+                          {d.plate ? ` · ${d.plate}` : ''}
                         </option>
                       ))}
                   </select>
@@ -638,11 +638,11 @@ export default function LogisticsPanel({
                     value={routeForm.plant_id}
                     onChange={(e) => setRouteForm((f) => ({ ...f, plant_id: e.target.value }))}
                   >
-                    <option value="">â€”</option>
+                    <option value="">—</option>
                     {fleet.plants.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
-                        {p.geo_origin_lat != null ? ' Â· GPS calibrado' : ' Â· sin GPS'}
+                        {p.geo_origin_lat != null ? ' · GPS calibrado' : ' · sin GPS'}
                       </option>
                     ))}
                   </select>
@@ -656,13 +656,13 @@ export default function LogisticsPanel({
                 </label>
               </div>
               <p className="hint" style={{ margin: '8px 0' }}>
-                Paradas (tipo de operaciÃ³n, direcciÃ³n). La llegada a planta se detecta por GPS si la
+                Paradas (tipo de operación, dirección). La llegada a planta se detecta por GPS si la
                 sede tiene origen GPS calibrado.
               </p>
               {(routeForm.stops || []).map((s, i) => (
                 <div key={i} className="two-col" style={{ marginBottom: 8 }}>
                   <label>
-                    Tipo de operaciÃ³n
+                    Tipo de operación
                     <select
                       value={s.operation_type}
                       onChange={(e) => {
@@ -701,7 +701,7 @@ export default function LogisticsPanel({
                     />
                   </label>
                   <label>
-                    DirecciÃ³n
+                    Dirección
                     <input
                       value={s.address || ''}
                       onChange={(e) => {
@@ -748,10 +748,10 @@ export default function LogisticsPanel({
                   <div className="admin-row" style={{ margin: 0, border: 'none' }}>
                     <div className="admin-row-main">
                       <strong>
-                        {r.code} Â· {r.name}
+                        {r.code} · {r.name}
                       </strong>
                       <span className="hint" style={{ margin: 0 }}>
-                        {ROUTE_STATUS[r.status]} Â· {dr?.full_name || 'Sin conductor'} Â· {stops.length}{' '}
+                        {ROUTE_STATUS[r.status]} · {dr?.full_name || 'Sin conductor'} · {stops.length}{' '}
                         paradas
                       </span>
                     </div>
@@ -778,7 +778,7 @@ export default function LogisticsPanel({
                         type="button"
                         className="ghost small danger"
                         onClick={async () => {
-                          if (!window.confirm('Â¿Eliminar ruta?')) return
+                          if (!window.confirm('¿Eliminar ruta?')) return
                           await fleet.deleteRoute(r.id)
                         }}
                       >
@@ -793,11 +793,11 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• ENTREGAS â•â• */}
+      {/* ══ ENTREGAS ══ */}
       {view === 'entregas' && (
         <>
           <p className="hint" style={{ marginTop: 12 }}>
-            Reporte de <strong>salida</strong> del lugar y tipo de operaciÃ³n. La llegada a planta se
+            Reporte de <strong>salida</strong> del lugar y tipo de operación. La llegada a planta se
             marca sola cuando el GPS del conductor entra en la geocerca de la sede.
           </p>
           {fleet.routes.filter((r) => r.status === 'en_route').length === 0 && (
@@ -808,14 +808,14 @@ export default function LogisticsPanel({
             .map((r) => (
               <div key={r.id} style={{ marginTop: 12 }}>
                 <h3 className="section-title" style={{ margin: '0 0 8px' }}>
-                  {r.code} Â· {r.name}
+                  {r.code} · {r.name}
                 </h3>
                 <div className="admin-list">
                   {fleet.deliveriesByRoute(r.id).map((s) => (
                     <div key={s.id} className="admin-row compact" style={{ margin: 0 }}>
                       <div className="admin-row-main">
                         <strong>
-                          #{s.sequence} {s.label || 'Parada'} Â·{' '}
+                          #{s.sequence} {s.label || 'Parada'} ·{' '}
                           {OPERATION_TYPES.find((o) => o.value === s.operation_type)?.label ||
                             s.operation_type}
                         </strong>
@@ -830,7 +830,7 @@ export default function LogisticsPanel({
                               `Llegada ${new Date(s.arrived_at).toLocaleTimeString('es-CO')}`,
                           ]
                             .filter(Boolean)
-                            .join(' Â· ')}
+                            .join(' · ')}
                         </span>
                       </div>
                       <span className="admin-row-actions">
@@ -861,12 +861,12 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• MAPA â•â• */}
+      {/* ══ MAPA ══ */}
       {view === 'mapa' && (
         <>
           <p className="hint" style={{ marginTop: 12 }}>
-            Mapa estilo Waze con modo satÃ©lite realista. El rastreador usa{' '}
-            <strong>GNSS de alta precisiÃ³n</strong> (el dispositivo combina todas las
+            Mapa estilo Waze con modo satélite realista. El rastreador usa{' '}
+            <strong>GNSS de alta precisión</strong> (el dispositivo combina todas las
             constelaciones disponibles: GPS, GLONASS, Galileo, BeiDou, etc.), varias lecturas en
             paralelo y elige la de menor error. En ruta el GPS se mantiene activo.
           </p>
@@ -876,17 +876,17 @@ export default function LogisticsPanel({
               <span className="kpi-value" style={{ fontSize: 18 }}>
                 {precisionGps.accuracyLabel}
               </span>
-              <span className="kpi-label">PrecisiÃ³n actual</span>
+              <span className="kpi-label">Precisión actual</span>
             </div>
             <div className="kpi-card">
               <span className="kpi-value" style={{ fontSize: 18 }}>
-                {precisionGps.quality || 'â€”'}
+                {precisionGps.quality || '—'}
               </span>
               <span className="kpi-label">Calidad fix</span>
             </div>
             <div className="kpi-card">
               <span className="kpi-value" style={{ fontSize: 18 }}>
-                {precisionGps.speedKmh != null ? `${precisionGps.speedKmh}` : 'â€”'}
+                {precisionGps.speedKmh != null ? `${precisionGps.speedKmh}` : '—'}
               </span>
               <span className="kpi-label">km/h</span>
             </div>
@@ -901,7 +901,7 @@ export default function LogisticsPanel({
           <div className="actions row" style={{ marginTop: 10, flexWrap: 'wrap', gap: 8 }}>
             {!precisionGps.running ? (
               <button type="button" className="primary small" onClick={() => precisionGps.start()}>
-                Activar GPS mÃ¡xima precisiÃ³n
+                Activar GPS máxima precisión
               </button>
             ) : (
               <button type="button" className="ghost small" onClick={() => precisionGps.stop()}>
@@ -926,7 +926,7 @@ export default function LogisticsPanel({
                 }
               }}
             >
-              RÃ¡faga 4 lecturas en paralelo
+              Ráfaga 4 lecturas en paralelo
             </button>
             {precisionGps.error && (
               <span className="msg error" style={{ margin: 0 }}>
@@ -951,15 +951,15 @@ export default function LogisticsPanel({
                 <div className="admin-row-main">
                   <strong>
                     {p.name}
-                    {p.on_route ? ' Â· EN RUTA' : ''}
+                    {p.on_route ? ' · EN RUTA' : ''}
                   </strong>
                   <span className="hint" style={{ margin: 0 }}>
                     {p.lat.toFixed(6)}, {p.lng.toFixed(6)}
-                    {p.accuracy != null ? ` Â· Â±${Math.round(p.accuracy)} m` : ''}
+                    {p.accuracy != null ? ` · ±${Math.round(p.accuracy)} m` : ''}
                     {p.speed != null && p.speed >= 0
-                      ? ` Â· ${Math.round(p.speed * 3.6)} km/h`
+                      ? ` · ${Math.round(p.speed * 3.6)} km/h`
                       : ''}
-                    {p.plate ? ` Â· ${p.plate}` : ''}
+                    {p.plate ? ` · ${p.plate}` : ''}
                   </span>
                 </div>
                 <a
@@ -977,7 +977,7 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• CHAT â•â• */}
+      {/* ══ CHAT ══ */}
       {view === 'chat' && (
         <>
           <div className="two-col" style={{ marginTop: 12 }}>
@@ -990,7 +990,7 @@ export default function LogisticsPanel({
                   await fleet.loadMessages(e.target.value)
                 }}
               >
-                <option value="">Seleccionarâ€¦</option>
+                <option value="">Seleccionar…</option>
                 {fleet.drivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.full_name}
@@ -1018,7 +1018,7 @@ export default function LogisticsPanel({
                   fleet.messages.map((m) => (
                     <div key={m.id} className="admin-row compact" style={{ margin: '0 0 6px' }}>
                       <div className="admin-row-main">
-                        <strong>{m.sender_role === 'logistics' ? 'LogÃ­stica' : 'Conductor'}</strong>
+                        <strong>{m.sender_role === 'logistics' ? 'Logística' : 'Conductor'}</strong>
                         <span className="hint" style={{ margin: 0 }}>
                           {m.body}
                         </span>
@@ -1037,7 +1037,7 @@ export default function LogisticsPanel({
                   style={{ flex: 1, minWidth: 180 }}
                   value={chatText}
                   onChange={(e) => setChatText(e.target.value)}
-                  placeholder="Mensaje al conductorâ€¦"
+                  placeholder="Mensaje al conductor…"
                   onKeyDown={(e) => e.key === 'Enter' && sendChat()}
                 />
                 <button type="button" className="primary small" onClick={sendChat} disabled={busy}>
@@ -1049,7 +1049,7 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• CONTACTOS â•â• */}
+      {/* ══ CONTACTOS ══ */}
       {view === 'contactos' && (
         <>
           <div className="actions row" style={{ marginTop: 12, gap: 8 }}>
@@ -1095,7 +1095,7 @@ export default function LogisticsPanel({
                   </select>
                 </label>
                 <label>
-                  TelÃ©fono
+                  Teléfono
                   <input
                     value={contactForm.phone}
                     onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
@@ -1133,16 +1133,16 @@ export default function LogisticsPanel({
               </div>
             </div>
           )}
-          <ListControls lc={contactLc} placeholder="Buscar mecÃ¡nico, proveedorâ€¦" />
+          <ListControls lc={contactLc} placeholder="Buscar mecánico, proveedor…" />
           <div className="admin-list" style={{ marginTop: 8 }}>
             {contactLc.visible.map((c) => (
               <div key={c.id} className="admin-row compact" style={{ margin: 0 }}>
                 <div className="admin-row-main">
                   <strong>
-                    {c.name} Â· {CONTACT_KINDS.find((k) => k.value === c.kind)?.label || c.kind}
+                    {c.name} · {CONTACT_KINDS.find((k) => k.value === c.kind)?.label || c.kind}
                   </strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {[c.phone, c.email, c.city].filter(Boolean).join(' Â· ')}
+                    {[c.phone, c.email, c.city].filter(Boolean).join(' · ')}
                   </span>
                 </div>
                 <span className="admin-row-actions">
@@ -1182,11 +1182,11 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• REMISIONES (compact) â•â• */}
+      {/* ══ REMISIONES (compact) ══ */}
       {view === 'remisiones' && (
         <>
           <p className="hint" style={{ marginTop: 12 }}>
-            Pedidos confirmados por ventas listos para remisiÃ³n / despacho.
+            Pedidos confirmados por ventas listos para remisión / despacho.
           </p>
           {readyOrders.length === 0 ? (
             <p className="hint">No hay pedidos confirmados pendientes.</p>
@@ -1196,10 +1196,10 @@ export default function LogisticsPanel({
                 <div key={o.id} className="admin-row compact" style={{ margin: 0 }}>
                   <div className="admin-row-main">
                     <strong>
-                      {o.customers?.name} Â· {o.code}
+                      {o.customers?.name} · {o.code}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {ORDER_STATUS_LABEL[o.status]} Â·{' '}
+                      {ORDER_STATUS_LABEL[o.status]} ·{' '}
                       {(Number(o.qty_females) || 0) + (Number(o.qty_males) || 0)} und
                     </span>
                   </div>
@@ -1217,10 +1217,10 @@ export default function LogisticsPanel({
                       if (!res.error) await ordersApi.updateStatus(o.id, 'dispatched')
                       setBusy(false)
                       if (res.error) setMsg({ kind: 'error', text: res.error })
-                      else setMsg({ kind: 'ok', text: 'RemisiÃ³n creada y pedido despachado' })
+                      else setMsg({ kind: 'ok', text: 'Remisión creada y pedido despachado' })
                     }}
                   >
-                    RemisiÃ³n
+                    Remisión
                   </button>
                 </div>
               ))}
@@ -1234,10 +1234,10 @@ export default function LogisticsPanel({
               <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
                 <div className="admin-row-main">
                   <strong>
-                    {r.code} Â· {r.customers?.name}
+                    {r.code} · {r.customers?.name}
                   </strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {REMITTANCE_STATUS[r.status] || r.status} Â· {r.dispatch_date}
+                    {REMITTANCE_STATUS[r.status] || r.status} · {r.dispatch_date}
                   </span>
                 </div>
               </div>
@@ -1246,7 +1246,7 @@ export default function LogisticsPanel({
         </>
       )}
 
-      {/* â•â• INVENTARIO â•â• */}
+      {/* ══ INVENTARIO ══ */}
       {view === 'inventario' && (
         <div style={{ marginTop: 12 }}>
           <CoordinatorInventoryPanel
@@ -1261,4 +1261,3 @@ export default function LogisticsPanel({
     </div>
   )
 }
-

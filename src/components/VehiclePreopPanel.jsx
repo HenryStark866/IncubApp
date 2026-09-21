@@ -1,16 +1,16 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/VehiclePreopPanel.jsx
- * PROPÃ“SITO: Componente UI Â«VehiclePreopPanelÂ»: FOSST22 digital â€” inspecciÃ³n
- *   preoperacional de vehÃ­culos. El conductor diligencia (evidencia en su
- *   historial); el lÃ­der de logÃ­stica filtra por conductor/fecha/ruta/cliente,
+ * PROPÓSITO: Componente UI «VehiclePreopPanel»: FOSST22 digital — inspección
+ *   preoperacional de vehículos. El conductor diligencia (evidencia en su
+ *   historial); el líder de logística filtra por conductor/fecha/ruta/cliente,
  *   revisa y exporta a Excel o PDF; gerencia monitorea todo.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useMemo, useState } from 'react'
-import { useVehiclePreop } from '../features/logistics/hooks/useVehiclePreop'
+import { useVehiclePreop } from '../hooks/useVehiclePreop'
 import {
   PREOP_FORM_CODE,
   PREOP_FORM_VERSION,
@@ -26,13 +26,13 @@ import { exportCorporateExcel, exportCorporatePdfPrint } from '../lib/exportDocu
 import { ROLE_LABEL } from '../lib/roles'
 
 const today = () => new Date().toLocaleDateString('sv-SE')
-const fmtD = (v) => (v ? String(v) : 'â€”')
+const fmtD = (v) => (v ? String(v) : '—')
 const fmtDT = (v) =>
   v
     ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : 'â€”'
+    : '—'
 
-/** Â¿Este rol revisa/monitorea el preoperacional? (espejo de private.can_review_preop) */
+/** ¿Este rol revisa/monitorea el preoperacional? (espejo de private.can_review_preop) */
 export function canReviewPreop(role, area) {
   if (['owner', 'admin', 'management'].includes(role)) return true
   if (role === 'logistics_auxiliary') return true
@@ -57,9 +57,9 @@ export default function VehiclePreopPanel({
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <h2 style={{ margin: 0 }}>Preoperacional de vehÃ­culos Â· {PREOP_FORM_CODE}</h2>
+          <h2 style={{ margin: 0 }}>Preoperacional de vehículos · {PREOP_FORM_CODE}</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            {PREOP_FORM_TITLE} Â· versiÃ³n {PREOP_FORM_VERSION} Â· {ROLE_LABEL[role] ?? role}
+            {PREOP_FORM_TITLE} · versión {PREOP_FORM_VERSION} · {ROLE_LABEL[role] ?? role}
           </p>
         </div>
         <span className="pill live">
@@ -73,7 +73,7 @@ export default function VehiclePreopPanel({
           className={tab === 'diligenciar' ? 'tab active' : 'tab'}
           onClick={() => setTab('diligenciar')}
         >
-          Diligenciar inspecciÃ³n
+          Diligenciar inspección
         </button>
         <button
           type="button"
@@ -96,7 +96,7 @@ export default function VehiclePreopPanel({
       {api.error && <p className="msg error">{api.error}</p>}
       {api.tableMissing && (
         <p className="msg error">
-          Falta la tabla vehicle_preop_reports en Supabase (migraciÃ³n vehicle_preop_fosst22).
+          Falta la tabla vehicle_preop_reports en Supabase (migración vehicle_preop_fosst22).
         </p>
       )}
 
@@ -111,7 +111,7 @@ export default function VehiclePreopPanel({
   )
 }
 
-/* â”€â”€â”€ Formulario del conductor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Formulario del conductor ───────────────────────────── */
 
 function PreopForm({ api, userName, onDone }) {
   const [head, setHead] = useState({
@@ -148,7 +148,7 @@ function PreopForm({ api, userName, onDone }) {
     else {
       setMsg({
         kind: 'ok',
-        text: `InspecciÃ³n ${head.vehiclePlate.toUpperCase()} enviada. Queda en tu historial como evidencia.`,
+        text: `Inspección ${head.vehiclePlate.toUpperCase()} enviada. Queda en tu historial como evidencia.`,
       })
       setItems(emptyPreopItems())
       setMaint({})
@@ -159,13 +159,13 @@ function PreopForm({ api, userName, onDone }) {
 
   return (
     <div style={{ marginTop: 12 }}>
-      <p className="hint preop-reminder">ðŸ›¡ {DRIVER_SAFETY_REMINDER}</p>
+      <p className="hint preop-reminder">🛡 {DRIVER_SAFETY_REMINDER}</p>
 
-      <h3 className="section-title">InspecciÃ³n general del vehÃ­culo</h3>
+      <h3 className="section-title">Inspección general del vehículo</h3>
       <div className="inline-form">
         <div className="two-col">
           <label>
-            Placa del vehÃ­culo *
+            Placa del vehículo *
             <input
               value={head.vehiclePlate}
               onChange={(e) => setH('vehiclePlate', e.target.value.toUpperCase())}
@@ -179,7 +179,7 @@ function PreopForm({ api, userName, onDone }) {
         </div>
         <div className="two-col">
           <label>
-            Fecha de inspecciÃ³n
+            Fecha de inspección
             <input type="date" value={head.inspectionDate} onChange={(e) => setH('inspectionDate', e.target.value)} />
           </label>
           <label>
@@ -205,7 +205,7 @@ function PreopForm({ api, userName, onDone }) {
             <input value={head.licenseNumber} onChange={(e) => setH('licenseNumber', e.target.value)} />
           </label>
           <label>
-            CategorÃ­a
+            Categoría
             <input value={head.licenseCategory} onChange={(e) => setH('licenseCategory', e.target.value)} placeholder="Ej. C2" />
           </label>
         </div>
@@ -214,11 +214,11 @@ function PreopForm({ api, userName, onDone }) {
           <input type="date" value={head.licenseExpiry} onChange={(e) => setH('licenseExpiry', e.target.value)} />
         </label>
 
-        <h3 className="section-title" style={{ margin: '12px 0 4px' }}>Ruta y cliente (para trazabilidad del lÃ­der)</h3>
+        <h3 className="section-title" style={{ margin: '12px 0 4px' }}>Ruta y cliente (para trazabilidad del líder)</h3>
         <div className="two-col">
           <label>
             Ruta
-            <input value={head.routeName} onChange={(e) => setH('routeName', e.target.value)} placeholder="Ej. MedellÃ­n â†’ UrabÃ¡" />
+            <input value={head.routeName} onChange={(e) => setH('routeName', e.target.value)} placeholder="Ej. Medellín → Urabá" />
           </label>
           <label>
             Cliente
@@ -228,7 +228,7 @@ function PreopForm({ api, userName, onDone }) {
       </div>
 
       <h3 className="section-title" style={{ margin: '18px 0 6px' }}>
-        Criterios de inspecciÃ³n (B = bueno Â· M = malo)
+        Criterios de inspección (B = bueno · M = malo)
       </h3>
       {PREOP_GROUPS.map((g) => (
         <div key={g} className="preop-group">
@@ -269,7 +269,7 @@ function PreopForm({ api, userName, onDone }) {
                         onChange={(e) => setItem(i.id, 'observation', e.target.value)}
                       />
                       <input
-                        placeholder="AcciÃ³n correctiva"
+                        placeholder="Acción correctiva"
                         value={i.correctiveAction}
                         onChange={(e) => setItem(i.id, 'correctiveAction', e.target.value)}
                       />
@@ -281,7 +281,7 @@ function PreopForm({ api, userName, onDone }) {
         </div>
       ))}
 
-      <h3 className="section-title" style={{ margin: '18px 0 6px' }}>17. Ãšltimas fechas de mantenimiento</h3>
+      <h3 className="section-title" style={{ margin: '18px 0 6px' }}>17. Últimas fechas de mantenimiento</h3>
       <div className="inline-form">
         <div className="two-col">
           {PREOP_MAINTENANCE_FIELDS.map((f) => (
@@ -303,11 +303,11 @@ function PreopForm({ api, userName, onDone }) {
 
       <div className={`balance-note ${compliant ? 'ok' : 'warn'}`} style={{ marginTop: 12 }}>
         {compliant ? (
-          <strong>âœ“ Todos los criterios en B: el vehÃ­culo queda APROBADO para operar.</strong>
+          <strong>✓ Todos los criterios en B: el vehículo queda APROBADO para operar.</strong>
         ) : (
           <strong>
-            âš  {badCount} criterio(s) en M: el vehÃ­culo queda con NOVEDAD. Registre observaciÃ³n y
-            acciÃ³n correctiva; el lÃ­der de logÃ­stica decidirÃ¡.
+            ⚠ {badCount} criterio(s) en M: el vehículo queda con NOVEDAD. Registre observación y
+            acción correctiva; el líder de logística decidirá.
           </strong>
         )}
       </div>
@@ -321,30 +321,30 @@ function PreopForm({ api, userName, onDone }) {
           disabled={busy || !head.vehiclePlate.trim() || !head.driverName.trim()}
           onClick={submit}
         >
-          {busy ? 'Enviandoâ€¦' : 'Firmar y enviar inspecciÃ³n'}
+          {busy ? 'Enviando…' : 'Firmar y enviar inspección'}
         </button>
       </div>
       <p className="hint" style={{ marginTop: 6 }}>
-        Al enviar queda firmada con tu usuario y NO se puede editar: es evidencia para auditorÃ­as.
+        Al enviar queda firmada con tu usuario y NO se puede editar: es evidencia para auditorías.
       </p>
     </div>
   )
 }
 
-/* â”€â”€â”€ Historial del conductor (evidencia) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Historial del conductor (evidencia) ────────────────── */
 
 function DriverHistory({ reports, loading }) {
   if (!reports.length) {
     return (
       <p className="hint" style={{ marginTop: 12 }}>
-        {loading ? 'Cargandoâ€¦' : 'AÃºn no has enviado inspecciones. Cada envÃ­o queda aquÃ­ como evidencia.'}
+        {loading ? 'Cargando…' : 'Aún no has enviado inspecciones. Cada envío queda aquí como evidencia.'}
       </p>
     )
   }
   return (
     <div style={{ marginTop: 12 }}>
       <p className="hint">
-        Estas inspecciones son tu <strong>evidencia</strong>: presÃ©ntalas cuando te la soliciten.
+        Estas inspecciones son tu <strong>evidencia</strong>: preséntalas cuando te la soliciten.
       </p>
       <div className="admin-list">
         {reports.map((r) => (
@@ -361,16 +361,16 @@ function PreopRow({ r, action }) {
   return (
     <div>
       <div className="admin-row compact" style={{ margin: 0 }}>
-        <span>{r.compliant ? 'âœ…' : 'âš ï¸'}</span>
+        <span>{r.compliant ? '✅' : '⚠️'}</span>
         <div className="admin-row-main" style={{ flex: 1 }}>
           <strong>
-            {r.vehicle_plate} Â· {fmtD(r.inspection_date)} Â· {r.driver_name}
+            {r.vehicle_plate} · {fmtD(r.inspection_date)} · {r.driver_name}
           </strong>
           <span className="hint" style={{ margin: 0 }}>
-            {r.route_name ? `Ruta ${r.route_name} Â· ` : ''}
-            {r.client_name ? `Cliente ${r.client_name} Â· ` : ''}
-            {bad.length ? `${bad.length} novedad(es)` : 'sin novedades'} Â·{' '}
-            {r.status === 'reviewed' ? `Revisado por ${r.reviewer_name || 'lÃ­der'} ${fmtDT(r.reviewed_at)}` : 'Pendiente de revisiÃ³n'}
+            {r.route_name ? `Ruta ${r.route_name} · ` : ''}
+            {r.client_name ? `Cliente ${r.client_name} · ` : ''}
+            {bad.length ? `${bad.length} novedad(es)` : 'sin novedades'} ·{' '}
+            {r.status === 'reviewed' ? `Revisado por ${r.reviewer_name || 'líder'} ${fmtDT(r.reviewed_at)}` : 'Pendiente de revisión'}
           </span>
         </div>
         <button type="button" className="ghost small" onClick={() => setOpen(!open)}>
@@ -386,18 +386,18 @@ function PreopRow({ r, action }) {
               <ul className="hint" style={{ margin: '4px 0 8px', paddingLeft: 18 }}>
                 {bad.map((i) => (
                   <li key={i.id}>
-                    {i.group} â€” {i.label}
-                    {i.observation ? ` Â· Obs: ${i.observation}` : ''}
-                    {i.correctiveAction ? ` Â· AcciÃ³n: ${i.correctiveAction}` : ''}
+                    {i.group} — {i.label}
+                    {i.observation ? ` · Obs: ${i.observation}` : ''}
+                    {i.correctiveAction ? ` · Acción: ${i.correctiveAction}` : ''}
                   </li>
                 ))}
               </ul>
             </>
           )}
           <span className="hint" style={{ margin: 0 }}>
-            Licencia {r.license_number || 'â€”'} ({r.license_category || 'â€”'}) vence {fmtD(r.license_expiry)} Â· CC{' '}
-            {r.driver_cc || 'â€”'} Â· Turno {r.work_shift || 'â€”'}
-            {r.commitments ? ` Â· Compromisos: ${r.commitments}` : ''}
+            Licencia {r.license_number || '—'} ({r.license_category || '—'}) vence {fmtD(r.license_expiry)} · CC{' '}
+            {r.driver_cc || '—'} · Turno {r.work_shift || '—'}
+            {r.commitments ? ` · Compromisos: ${r.commitments}` : ''}
           </span>
         </div>
       )}
@@ -405,7 +405,7 @@ function PreopRow({ r, action }) {
   )
 }
 
-/* â”€â”€â”€ Monitoreo del lÃ­der de logÃ­stica / gerencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Monitoreo del líder de logística / gerencia ────────── */
 
 function LeaderMonitor({ api, orgName, userName }) {
   const [f, setF] = useState({ driver: '', plate: '', from: '', to: '', route: '', client: '' })
@@ -424,10 +424,10 @@ function LeaderMonitor({ api, orgName, userName }) {
       Ruta: r.route_name || '',
       Cliente: r.client_name || '',
       Turno: r.work_shift || '',
-      Cumple: r.compliant ? 'SÃ' : 'NO',
+      Cumple: r.compliant ? 'SÍ' : 'NO',
       'Novedades (M)': (r.items || [])
         .filter((i) => i.status === 'M')
-        .map((i) => `${i.label}${i.correctiveAction ? ` â†’ ${i.correctiveAction}` : ''}`)
+        .map((i) => `${i.label}${i.correctiveAction ? ` → ${i.correctiveAction}` : ''}`)
         .join(' | '),
       Estado: r.status === 'reviewed' ? `Revisado (${r.reviewer_name || ''})` : 'Enviado',
       'Licencia vence': r.license_expiry || '',
@@ -440,9 +440,9 @@ function LeaderMonitor({ api, orgName, userName }) {
     }
     setBusyExport(true)
     const meta = {
-      title: `${PREOP_FORM_CODE} Â· Preoperacional de vehÃ­culos`,
+      title: `${PREOP_FORM_CODE} · Preoperacional de vehículos`,
       orgName,
-      module: 'LogÃ­stica Â· preoperacional',
+      module: 'Logística · preoperacional',
       generatedBy: userName,
     }
     const sheets = [{ name: 'Preoperacional', rows: exportRows() }]
@@ -451,7 +451,7 @@ function LeaderMonitor({ api, orgName, userName }) {
         ? await exportCorporateExcel('preoperacional-vehiculos', sheets, meta)
         : exportCorporatePdfPrint('preoperacional-vehiculos', sheets, meta)
     setBusyExport(false)
-    setMsg(r?.error ? { kind: 'error', text: r.error } : { kind: 'ok', text: `Exportadas ${rows.length} inspecciÃ³n(es)` })
+    setMsg(r?.error ? { kind: 'error', text: r.error } : { kind: 'ok', text: `Exportadas ${rows.length} inspección(es)` })
   }
 
   const pending = rows.filter((r) => r.status === 'submitted')
@@ -534,10 +534,10 @@ function LeaderMonitor({ api, orgName, userName }) {
       </div>
 
       <h3 className="section-title" style={{ margin: '16px 0 8px' }}>
-        Inspecciones ({rows.length}) â€” orden: mÃ¡s reciente primero
+        Inspecciones ({rows.length}) — orden: más reciente primero
       </h3>
       {!rows.length ? (
-        <p className="hint">{api.loading ? 'Cargandoâ€¦' : 'Sin inspecciones para el filtro.'}</p>
+        <p className="hint">{api.loading ? 'Cargando…' : 'Sin inspecciones para el filtro.'}</p>
       ) : (
         <div className="admin-list">
           {rows.slice(0, 100).map((r) => (
@@ -554,11 +554,11 @@ function LeaderMonitor({ api, orgName, userName }) {
                       setMsg(
                         res.error
                           ? { kind: 'error', text: res.error }
-                          : { kind: 'ok', text: `InspecciÃ³n ${r.vehicle_plate} revisada y sellada` }
+                          : { kind: 'ok', text: `Inspección ${r.vehicle_plate} revisada y sellada` }
                       )
                     }}
                   >
-                    Revisar âœ“
+                    Revisar ✓
                   </button>
                 ) : null
               }
@@ -569,4 +569,3 @@ function LeaderMonitor({ api, orgName, userName }) {
     </div>
   )
 }
-

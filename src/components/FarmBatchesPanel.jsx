@@ -1,30 +1,30 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/FarmBatchesPanel.jsx
- * PROPÃ“SITO: Componente UI Â«FarmBatchesPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «FarmBatchesPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useBatches } from '../features/production/hooks/useBatches'
+import { useBatches } from '../hooks/useBatches'
 import { exportToExcel } from '../lib/exportExcel'
 
 /**
  * Levantes / lotes en levante.
- *  - RecepciÃ³n del lote â†’ galpones de levante.
+ *  - Recepción del lote → galpones de levante.
  *  - Coordinador aprueba e inicia el levante.
- *  - Â«ProducciÃ³nÂ» = grading (pesaje) y traslado del lote a un mÃ³dulo de producciÃ³n.
+ *  - «Producción» = grading (pesaje) y traslado del lote a un módulo de producción.
  */
 
 const BATCH_STATUS = {
   received: { label: 'Por aprobar', cls: 'warn' },
   levante: { label: 'Lote en levante', cls: '' },
-  production: { label: 'En producciÃ³n', cls: 'ok' },
+  production: { label: 'En producción', cls: 'ok' },
   closed: { label: 'Cerrado', cls: 'idle' },
 }
 const statusOf = (v) => BATCH_STATUS[v] ?? { label: v, cls: '' }
@@ -33,16 +33,16 @@ const FILTERS = [
   { value: 'all', label: 'Todos' },
   { value: 'received', label: 'Por aprobar' },
   { value: 'levante', label: 'En levante' },
-  { value: 'production', label: 'En producciÃ³n' },
+  { value: 'production', label: 'En producción' },
 ]
 
 const fmtDate = (v) =>
-  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'
+  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
 
-// Galpones reales para distribuir aves: salas tipificadas como levante/producciÃ³n.
+// Galpones reales para distribuir aves: salas tipificadas como levante/producción.
 // Las salas "MODULO ..." son contenedores del plano y se excluyen. Si la granja
-// aÃºn no tiene galpones tipificados, se muestran todas sus salas para no bloquear.
+// aún no tiene galpones tipificados, se muestran todas sus salas para no bloquear.
 const isGalpon = (r) => (r.type === 'levante' || r.type === 'produccion') && !/^\s*MODUL/i.test(r.name || '')
 const galponesDe = (list, stage) => {
   const barns = list.filter(isGalpon)
@@ -52,7 +52,7 @@ const galponesDe = (list, stage) => {
   return [...out].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { numeric: true }))
 }
 
-/* â•â• Formulario de recepciÃ³n (supervisor) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Formulario de recepción (supervisor) ════════════════════ */
 function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
   const [form, setForm] = useState({
     farmId: farms[0]?.id ?? '',
@@ -67,7 +67,7 @@ function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
   const [err, setErr] = useState(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  // La recepciÃ³n distribuye en galpones de LEVANTE
+  // La recepción distribuye en galpones de LEVANTE
   const farmRooms = galponesDe(rooms.filter((r) => r.plant_id === form.farmId), 'levante')
 
   const setRow = (i, k) => (e) =>
@@ -96,7 +96,7 @@ function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
           </select>
         </label>
         <label>
-          NÂº de lote
+          Nº de lote
           <input type="text" value={form.code} onChange={set('code')} placeholder="Ej. L-2026-07" autoFocus />
         </label>
       </div>
@@ -121,18 +121,18 @@ function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
         </label>
       </div>
 
-      <p className="component-title" style={{ margin: '6px 0 4px' }}>DistribuciÃ³n por galpÃ³n / mÃ³dulo</p>
+      <p className="component-title" style={{ margin: '6px 0 4px' }}>Distribución por galpón / módulo</p>
       {farmRooms.length === 0 && (
         <p className="hint" style={{ margin: '0 0 6px' }}>
-          Esta granja no tiene galpones en el plano todavÃ­a. Puedes registrar el lote y distribuirlo luego.
+          Esta granja no tiene galpones en el plano todavía. Puedes registrar el lote y distribuirlo luego.
         </p>
       )}
       {dist.map((r, i) => (
         <div className="two-col" key={i} style={{ alignItems: 'end' }}>
           <label>
-            GalpÃ³n (levante)
+            Galpón (levante)
             <select value={r.roomId} onChange={setRow(i, 'roomId')}>
-              <option value="">â€” Selecciona â€”</option>
+              <option value="">— Selecciona —</option>
               {farmRooms.map((rm) => (
                 <option key={rm.id} value={rm.id}>{rm.name} ({rm.code})</option>
               ))}
@@ -149,18 +149,18 @@ function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
             </label>
           </div>
           {dist.length > 1 && (
-            <button className="ghost danger" type="button" onClick={() => removeRow(i)} title="Quitar fila" style={{ marginBottom: 2 }}>âœ•</button>
+            <button className="ghost danger" type="button" onClick={() => removeRow(i)} title="Quitar fila" style={{ marginBottom: 2 }}>✕</button>
           )}
         </div>
       ))}
       <div className="actions row">
-        <button className="ghost" type="button" onClick={addRow} disabled={farmRooms.length === 0}>+ Agregar galpÃ³n</button>
+        <button className="ghost" type="button" onClick={addRow} disabled={farmRooms.length === 0}>+ Agregar galpón</button>
       </div>
 
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !form.farmId || form.code.trim().length < 1}>
-          {busy ? 'Registrandoâ€¦' : 'Registrar recepciÃ³n'}
+          {busy ? 'Registrando…' : 'Registrar recepción'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -168,7 +168,7 @@ function NewReceptionForm({ farms, rooms, onCreate, onCancel }) {
   )
 }
 
-/* â•â• AprobaciÃ³n e inicio de levante (coordinador de granja) â•â•â• */
+/* ══ Aprobación e inicio de levante (coordinador de granja) ═══ */
 function ApproveForm({ onApprove, onCancel }) {
   const [ageWeeks, setAgeWeeks] = useState('')
   const [levanteDays, setLevanteDays] = useState('')
@@ -184,7 +184,7 @@ function ApproveForm({ onApprove, onCancel }) {
   return (
     <div className="inline-form compact">
       <p className="hint" style={{ margin: 0 }}>
-        Al aprobar defines los parÃ¡metros de levante e inicias el ciclo. (Las vacunas se configuran en una etapa posterior.)
+        Al aprobar defines los parámetros de levante e inicias el ciclo. (Las vacunas se configuran en una etapa posterior.)
       </p>
       <div className="two-col">
         <label>
@@ -192,17 +192,17 @@ function ApproveForm({ onApprove, onCancel }) {
           <input type="number" min="0" step="any" value={ageWeeks} onChange={(e) => setAgeWeeks(e.target.value)} placeholder="Ej. 16" autoFocus />
         </label>
         <label>
-          Tiempo estimado de levante (dÃ­as)
+          Tiempo estimado de levante (días)
           <input type="number" min="1" value={levanteDays} onChange={(e) => setLevanteDays(e.target.value)} placeholder="Ej. 140" />
         </label>
       </div>
       <label>
-        Comida por dÃ­a (kg)
+        Comida por día (kg)
         <input type="number" min="0" step="any" value={feedKg} onChange={(e) => setFeedKg(e.target.value)} placeholder="Ej. 120" />
       </label>
       <div className="actions row">
         <button className="primary small" onClick={submit} disabled={busy}>
-          {busy ? 'Aprobandoâ€¦' : 'âœ“ Aprobar e iniciar levante'}
+          {busy ? 'Aprobando…' : '✓ Aprobar e iniciar levante'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -210,7 +210,7 @@ function ApproveForm({ onApprove, onCancel }) {
   )
 }
 
-/* â•â• Grading: pesaje + paso a mÃ³dulo de producciÃ³n â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Grading: pesaje + paso a módulo de producción ═══════════ */
 function GreadingForm({ rooms, initial, onGrade, onCancel }) {
   const [avgWeight, setAvgWeight] = useState('')
   const [notes, setNotes] = useState('')
@@ -233,25 +233,25 @@ function GreadingForm({ rooms, initial, onGrade, onCancel }) {
   return (
     <div className="inline-form compact">
       <p className="hint" style={{ margin: 0 }}>
-        Grading: pesaje y reubicaciÃ³n del lote en un mÃ³dulo de producciÃ³n. Deja de ser levante y
-        pasa a estado Â«en producciÃ³nÂ».
+        Grading: pesaje y reubicación del lote en un módulo de producción. Deja de ser levante y
+        pasa a estado «en producción».
       </p>
       <label>
         Peso promedio de las aves (gramos, opcional)
         <input type="number" min="0" step="any" value={avgWeight} onChange={(e) => setAvgWeight(e.target.value)} placeholder="Ej. 1450" />
       </label>
       <p className="component-title" style={{ margin: '4px 0 2px' }}>
-        DistribuciÃ³n en mÃ³dulo de producciÃ³n
+        Distribución en módulo de producción
       </p>
       {rooms.length === 0 && (
-        <p className="hint" style={{ margin: '0 0 6px' }}>Esta granja no tiene galpones en el plano; agrÃ©galos para distribuir.</p>
+        <p className="hint" style={{ margin: '0 0 6px' }}>Esta granja no tiene galpones en el plano; agrégalos para distribuir.</p>
       )}
       {dist.map((r, i) => (
         <div className="two-col" key={i} style={{ alignItems: 'end' }}>
           <label>
-            GalpÃ³n (producciÃ³n)
+            Galpón (producción)
             <select value={r.roomId} onChange={setRow(i, 'roomId')}>
-              <option value="">â€” Selecciona â€”</option>
+              <option value="">— Selecciona —</option>
               {rooms.map((rm) => (<option key={rm.id} value={rm.id}>{rm.name} ({rm.code})</option>))}
             </select>
           </label>
@@ -260,12 +260,12 @@ function GreadingForm({ rooms, initial, onGrade, onCancel }) {
             <label>Gallos<input type="number" min="0" value={r.roosters} onChange={setRow(i, 'roosters')} placeholder="0" /></label>
           </div>
           {dist.length > 1 && (
-            <button className="ghost danger" type="button" onClick={() => removeRow(i)} style={{ marginBottom: 2 }}>âœ•</button>
+            <button className="ghost danger" type="button" onClick={() => removeRow(i)} style={{ marginBottom: 2 }}>✕</button>
           )}
         </div>
       ))}
       <div className="actions row">
-        <button className="ghost" type="button" onClick={addRow} disabled={rooms.length === 0}>+ Agregar galpÃ³n</button>
+        <button className="ghost" type="button" onClick={addRow} disabled={rooms.length === 0}>+ Agregar galpón</button>
       </div>
       <label>
         Observaciones del grading
@@ -274,7 +274,7 @@ function GreadingForm({ rooms, initial, onGrade, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary small" onClick={submit} disabled={busy}>
-          {busy ? 'Procesandoâ€¦' : 'âœ“ Grading y pasar a producciÃ³n'}
+          {busy ? 'Procesando…' : '✓ Grading y pasar a producción'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
@@ -282,7 +282,7 @@ function GreadingForm({ rooms, initial, onGrade, onCancel }) {
   )
 }
 
-/* â•â• Registro diario del galpÃ³n (comida + mortalidad) â•â•â•â•â•â•â•â• */
+/* ══ Registro diario del galpón (comida + mortalidad) ════════ */
 function DailyLogForm({ rooms, onSave, onCancel }) {
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? '')
   const [logDate, setLogDate] = useState(new Date().toLocaleDateString('sv-SE'))
@@ -303,13 +303,13 @@ function DailyLogForm({ rooms, onSave, onCancel }) {
   return (
     <div className="inline-form compact">
       <p className="hint" style={{ margin: 0 }}>
-        Registro diario del galpÃ³n: consumo de comida y aves muertas. (Se sobrescribe si ya existe ese dÃ­a.)
+        Registro diario del galpón: consumo de comida y aves muertas. (Se sobrescribe si ya existe ese día.)
       </p>
       <div className="two-col">
         <label>
-          GalpÃ³n
+          Galpón
           <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-            {rooms.length === 0 && <option value="">â€” Sin galpones â€”</option>}
+            {rooms.length === 0 && <option value="">— Sin galpones —</option>}
             {rooms.map((rm) => (<option key={rm.id} value={rm.id}>{rm.name} ({rm.code})</option>))}
           </select>
         </label>
@@ -325,21 +325,21 @@ function DailyLogForm({ rooms, onSave, onCancel }) {
       <label>Observaciones<input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" /></label>
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy || !roomId}>{busy ? 'Guardandoâ€¦' : 'Guardar registro'}</button>
+        <button className="primary small" onClick={submit} disabled={busy || !roomId}>{busy ? 'Guardando…' : 'Guardar registro'}</button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
     </div>
   )
 }
 
-/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Panel principal ═════════════════════════════════════════ */
 export default function FarmBatchesPanel({ orgId, userId, role, area }) {
-  // El coordinador de GRANJA (Ã¡rea 'farm') aprueba; el supervisor/operario de recepciÃ³n registra. Owner/admin todo.
+  // El coordinador de GRANJA (área 'farm') aprueba; el supervisor/operario de recepción registra. Owner/admin todo.
   const isFarmCoord = role === 'coordinator' && area === 'farm'
   const canReceive = ['owner', 'admin', 'supervisor', 'reception_operator'].includes(role) || isFarmCoord
   const canApprove = ['owner', 'admin'].includes(role) || isFarmCoord
   const canDelete = ['owner', 'admin'].includes(role)
-  // El grading (paso a producciÃ³n) y el registro diario: supervisor o coord. de granja
+  // El grading (paso a producción) y el registro diario: supervisor o coord. de granja
   const canGrade = ['owner', 'admin', 'supervisor'].includes(role) || isFarmCoord
   const canLog = canGrade
 
@@ -363,7 +363,7 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
       setFarms((p.data ?? []).filter((x) => x.code?.startsWith('G') || x.name?.startsWith('G-')))
       setRooms(r.data ?? [])
       const map = {}
-      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || 'â€”'
+      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || '—'
       setPeople(map)
     })
   }, [orgId, bt.batches.length])
@@ -371,9 +371,9 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
   const farmName = (id) => farms.find((f) => f.id === id)?.name ?? 'Granja'
   const roomName = (id) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? `${r.name} (${r.code})` : 'GalpÃ³n'
+    return r ? `${r.name} (${r.code})` : 'Galpón'
   }
-  const nameOf = (id) => (id ? people[id] ?? 'â€”' : 'â€”')
+  const nameOf = (id) => (id ? people[id] ?? '—' : '—')
   const placementsOf = (batchId) => bt.placements.filter((p) => p.batch_id === batchId)
   const logsOf = (batchId) => bt.dailyLogs.filter((l) => l.batch_id === batchId)
 
@@ -386,20 +386,20 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
   const visible = filter === 'all' ? bt.batches : bt.batches.filter((b) => b.status === filter)
 
   const onDelete = async (b) => {
-    if (!window.confirm(`Â¿Eliminar el lote ${b.code}? Se borrarÃ¡ tambiÃ©n su distribuciÃ³n. Irreversible.`)) return
+    if (!window.confirm(`¿Eliminar el lote ${b.code}? Se borrará también su distribución. Irreversible.`)) return
     await bt.deleteBatch(b.id)
   }
 
   const BATCH_STATUS_ES = {
     received: 'Por aprobar',
     levante: 'Lote en levante',
-    production: 'En producciÃ³n (post-grading)',
+    production: 'En producción (post-grading)',
     closed: 'Cerrado',
   }
   const exportBatches = async () => {
     await exportToExcel('granjas-levantes-lotes', [
       {
-        name: 'Lotes levante-producciÃ³n',
+        name: 'Lotes levante-producción',
         rows: bt.batches.map((b) => ({
           Lote: b.code,
           Granja: farmName(b.farm_id),
@@ -408,10 +408,10 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
           Gallinas: b.hens_received ?? 0,
           Gallos: b.roosters_received ?? 0,
           'Edad llegada (sem)': b.arrival_age_weeks ?? '',
-          'Levante (dÃ­as est.)': b.estimated_levante_days ?? '',
+          'Levante (días est.)': b.estimated_levante_days ?? '',
           'Comida diaria (kg)': b.daily_feed_kg ?? '',
           'Peso grading (g)': b.avg_weight_g ?? '',
-          'Inicio producciÃ³n (post-grading)': b.production_started_at
+          'Inicio producción (post-grading)': b.production_started_at
             ? b.production_started_at.slice(0, 10)
             : '',
           Observaciones: b.notes ?? '',
@@ -422,26 +422,26 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
         rows: bt.dailyLogs.map((l) => ({
           Fecha: l.log_date,
           Lote: bt.batches.find((b) => b.id === l.batch_id)?.code ?? '',
-          'GalpÃ³n': roomName(l.room_id),
+          'Galpón': roomName(l.room_id),
           'Comida (kg)': l.feed_kg ?? '',
           Mortalidad: l.deaths ?? 0,
           Observaciones: l.notes ?? '',
-          'RegistrÃ³': nameOf(l.recorded_by),
+          'Registró': nameOf(l.recorded_by),
         })),
       },
     ], {
       title: 'Levantes y lotes de granja',
-      module: 'Granjas Â· levantes',
+      module: 'Granjas · levantes',
     })
   }
 
   return (
     <div className="card wide">
       <div className="card-head">
-        <h2>Levantes Â· Lotes de aves</h2>
+        <h2>Levantes · Lotes de aves</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {bt.batches.length > 0 && (
-            <button className="chip ghost" onClick={exportBatches}>â¬‡ Exportar Excel</button>
+            <button className="chip ghost" onClick={exportBatches}>⬇ Exportar Excel</button>
           )}
           {counts.received > 0 && <span className="pill status warn">{counts.received} por aprobar</span>}
         </div>
@@ -458,7 +458,7 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{counts.production}</span>
-          <span className="kpi-label">En producciÃ³n</span>
+          <span className="kpi-label">En producción</span>
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{bt.batches.length}</span>
@@ -467,8 +467,8 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
       </div>
       <p className="hint" style={{ marginTop: 8 }}>
         <strong>Levante</strong> = lote de aves en galpones de levante.{' '}
-        <strong>ProducciÃ³n</strong> = tras el grading (pesaje), el lote se mueve a un mÃ³dulo de
-        producciÃ³n.
+        <strong>Producción</strong> = tras el grading (pesaje), el lote se mueve a un módulo de
+        producción.
       </p>
 
       <div className="admin-section-head">
@@ -480,7 +480,7 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
           ))}
         </div>
         {canReceive && !showForm && (
-          <button className="chip ghost" onClick={() => setShowForm(true)}>+ Registrar recepciÃ³n</button>
+          <button className="chip ghost" onClick={() => setShowForm(true)}>+ Registrar recepción</button>
         )}
       </div>
 
@@ -488,14 +488,14 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
         <NewReceptionForm farms={farms} rooms={rooms} onCreate={bt.createReception} onCancel={() => setShowForm(false)} />
       )}
       {!canReceive && (
-        <p className="hint">Vista de solo lectura. La recepciÃ³n la registra el supervisor u operario de recepciÃ³n.</p>
+        <p className="hint">Vista de solo lectura. La recepción la registra el supervisor u operario de recepción.</p>
       )}
       {bt.error && <p className="msg error">{bt.error}</p>}
 
       {bt.loading ? (
-        <p className="hint">Cargando lotesâ€¦</p>
+        <p className="hint">Cargando lotes…</p>
       ) : visible.length === 0 ? (
-        <p className="hint">No hay lotes{filter !== 'all' ? ' con ese estado' : ' registrados todavÃ­a'}.</p>
+        <p className="hint">No hay lotes{filter !== 'all' ? ' con ese estado' : ' registrados todavía'}.</p>
       ) : (
         <div className="admin-list">
           {visible.map((b) => {
@@ -514,11 +514,11 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
                     <strong>
-                      <span className="machine-code">{b.code}</span> Â· {farmName(b.farm_id)}
+                      <span className="machine-code">{b.code}</span> · {farmName(b.farm_id)}
                     </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ” {num(b.hens_received)} gallinas Â· ðŸ“ {num(b.roosters_received)} gallos Â· Llegada {fmtDate(b.arrival_date)}
-                      {b.created_by ? ` Â· RegistrÃ³ ${nameOf(b.created_by)}` : ''}
+                      🐔 {num(b.hens_received)} gallinas · 🐓 {num(b.roosters_received)} gallos · Llegada {fmtDate(b.arrival_date)}
+                      {b.created_by ? ` · Registró ${nameOf(b.created_by)}` : ''}
                     </span>
                   </div>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
@@ -535,11 +535,11 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
                           setLoggingId(null)
                         }}
                       >
-                        Grading â†’ producciÃ³n
+                        Grading → producción
                       </button>
                     )}
                     {b.status === 'production' && canLog && loggingId !== b.id && (
-                      <button className="primary small" onClick={() => { setLoggingId(b.id); setGradingId(null); setApprovingId(null) }}>Registrar dÃ­a</button>
+                      <button className="primary small" onClick={() => { setLoggingId(b.id); setGradingId(null); setApprovingId(null) }}>Registrar día</button>
                     )}
                     {b.status === 'received' && canDelete && (
                       <button className="ghost danger" onClick={() => onDelete(b)}>Eliminar</button>
@@ -547,38 +547,38 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
                   </span>
                 </div>
 
-                {/* ParÃ¡metros de levante (tras la aprobaciÃ³n) */}
+                {/* Parámetros de levante (tras la aprobación) */}
                 {b.status !== 'received' && (
                   <p className="wo-desc">
                     Levante: {b.arrival_age_weeks != null ? `${b.arrival_age_weeks} sem. inicial` : 'edad s/d'}
-                    {b.estimated_levante_days != null ? ` Â· ${b.estimated_levante_days} dÃ­as estimados` : ''}
-                    {b.daily_feed_kg != null ? ` Â· ${num(b.daily_feed_kg)} kg/dÃ­a` : ''}
-                    {b.approved_by ? ` Â· AprobÃ³ ${nameOf(b.approved_by)}` : ''}
+                    {b.estimated_levante_days != null ? ` · ${b.estimated_levante_days} días estimados` : ''}
+                    {b.daily_feed_kg != null ? ` · ${num(b.daily_feed_kg)} kg/día` : ''}
+                    {b.approved_by ? ` · Aprobó ${nameOf(b.approved_by)}` : ''}
                   </p>
                 )}
-                {/* Datos de producciÃ³n (tras el grading) */}
+                {/* Datos de producción (tras el grading) */}
                 {b.status === 'production' && (
                   <p className="wo-desc done">
-                    En producciÃ³n desde {fmtDate(b.production_started_at)}
-                    {b.avg_weight_g != null ? ` Â· Grading ${num(b.avg_weight_g)} g` : ''}
-                    {` Â· Mortalidad acum. ${num(deathsTotal)}`}
+                    En producción desde {fmtDate(b.production_started_at)}
+                    {b.avg_weight_g != null ? ` · Grading ${num(b.avg_weight_g)} g` : ''}
+                    {` · Mortalidad acum. ${num(deathsTotal)}`}
                     {lastLog
-                      ? ` Â· Ãšltimo dÃ­a ${fmtDate(lastLog.log_date)}${lastLog.feed_kg != null ? ` (${num(lastLog.feed_kg)} kg)` : ''}`
-                      : ' Â· Sin registros diarios aÃºn'}
+                      ? ` · Último día ${fmtDate(lastLog.log_date)}${lastLog.feed_kg != null ? ` (${num(lastLog.feed_kg)} kg)` : ''}`
+                      : ' · Sin registros diarios aún'}
                   </p>
                 )}
                 {b.grading_notes && <p className="wo-desc">Grading: {b.grading_notes}</p>}
-                {b.notes && <p className="wo-desc">ðŸ“ {b.notes}</p>}
+                {b.notes && <p className="wo-desc">📝 {b.notes}</p>}
 
-                {/* DistribuciÃ³n por galpÃ³n (segÃºn etapa) */}
+                {/* Distribución por galpón (según etapa) */}
                 {shownPlaces.length > 0 && (
                   <div className="hint" style={{ margin: '2px 14px 6px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                     <span className="hint" style={{ margin: 0 }}>
-                      {b.status === 'production' ? 'MÃ³dulo de producciÃ³n:' : 'Galpones de levante:'}
+                      {b.status === 'production' ? 'Módulo de producción:' : 'Galpones de levante:'}
                     </span>
                     {shownPlaces.map((p) => (
                       <span key={p.id} className="pill">
-                        {roomName(p.room_id)}: {num(p.hens)}ðŸ” / {num(p.roosters)}ðŸ“
+                        {roomName(p.room_id)}: {num(p.hens)}🐔 / {num(p.roosters)}🐓
                       </span>
                     ))}
                   </div>
@@ -624,4 +624,3 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
     </div>
   )
 }
-

@@ -1,24 +1,24 @@
-﻿/**
+/**
  * src/components/MachineDossier.jsx
- * Dossier SIG Integral de MÃ¡quina (AuditorÃ­a SIG / CDH Maker).
- * Integra en un solo componente todos los requerimientos de auditorÃ­a y operaciÃ³n:
+ * Dossier SIG Integral de Máquina (Auditoría SIG / CDH Maker).
+ * Integra en un solo componente todos los requerimientos de auditoría y operación:
  * - Hoja de Vida del Equipo (FOMAT03)
- * - Componentes y Vida Ãštil de Piezas
- * - Plan de Mantenimiento AM y CreaciÃ³n AutomÃ¡tica de OTs (FOMAT07)
- * - Ã“rdenes de Trabajo con TÃ©cnico Ejecutor y LÃ­der Aprobador (FOMAT01 + HistÃ³rico Mantum)
- * - Calibraciones con Lecturas, Deltas y Evidencias FotogrÃ¡ficas (FOMAT08)
+ * - Componentes y Vida Útil de Piezas
+ * - Plan de Mantenimiento AM y Creación Automática de OTs (FOMAT07)
+ * - Órdenes de Trabajo con Técnico Ejecutor y Líder Aprobador (FOMAT01 + Histórico Mantum)
+ * - Calibraciones con Lecturas, Deltas y Evidencias Fotográficas (FOMAT08)
  * - Inspecciones de Ronda (FOMAT04)
- * - Estado Operativo en Tiempo Real y SemÃ¡foro de AuditorÃ­a
- * - ExportaciÃ³n oficial FOMAT03 a Excel
+ * - Estado Operativo en Tiempo Real y Semáforo de Auditoría
+ * - Exportación oficial FOMAT03 a Excel
  */
 
 import { useState } from 'react'
-import { useMachineDossier } from '../features/maintenance/hooks/useMachineDossier'
+import { useMachineDossier } from '../hooks/useMachineDossier'
 import { exportFomat03Excel } from '../lib/exportFomat03'
 import { IncubantSigPill } from './Brand'
 import SensorPanel from './SensorPanel'
 
-function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process = 'GESTIÃ“N DE MANTENIMIENTO', onAction = null, actionLabel = null }) {
+function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process = 'GESTIÓN DE MANTENIMIENTO', onAction = null, actionLabel = null }) {
   return (
     <div
       style={{
@@ -43,13 +43,13 @@ function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process
       />
       <div style={{ flex: 1, minWidth: 200 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#f5900f', letterSpacing: 0.6 }}>
-          ANTIOQUEÃ‘A DE INCUBACIÃ“N S.A.S. Â· SIG (ISO 9001)
+          ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SIG (ISO 9001)
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', marginTop: 1 }}>
-          {code} â€” {name}
+          {code} — {name}
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-          VersiÃ³n: <strong>{version}</strong> Â· Fecha: <strong>{date}</strong> Â· Proceso: <strong>{process}</strong> Â· <em>"Nuestra calidad nos define."</em>
+          Versión: <strong>{version}</strong> · Fecha: <strong>{date}</strong> · Proceso: <strong>{process}</strong> · <em>"Nuestra calidad nos define."</em>
         </div>
       </div>
       {onAction && actionLabel && (
@@ -63,14 +63,14 @@ function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process
 
 
 const TABS = [
-  { id: 'resumen', label: 'ðŸ“Š Resumen & AuditorÃ­a' },
-  { id: 'fomat03', label: 'ðŸ“‹ Hoja de Vida (FOMAT03)' },
-  { id: 'componentes', label: 'âš™ï¸ Componentes & Vida Ãštil' },
-  { id: 'fomat07', label: 'ðŸ“… Plan AM & OTs Auto (FOMAT07)' },
-  { id: 'fomat01', label: 'ðŸ”§ Ã“rdenes de Trabajo (FOMAT01)' },
-  { id: 'fomat08', label: 'ðŸŽ¯ Calibraciones (FOMAT08)' },
-  { id: 'fomat04', label: 'ðŸ” Rondas (FOMAT04)' },
-  { id: 'iot', label: 'ðŸ“¡ Sensores IoT' },
+  { id: 'resumen', label: '📊 Resumen & Auditoría' },
+  { id: 'fomat03', label: '📋 Hoja de Vida (FOMAT03)' },
+  { id: 'componentes', label: '⚙️ Componentes & Vida Útil' },
+  { id: 'fomat07', label: '📅 Plan AM & OTs Auto (FOMAT07)' },
+  { id: 'fomat01', label: '🔧 Órdenes de Trabajo (FOMAT01)' },
+  { id: 'fomat08', label: '🎯 Calibraciones (FOMAT08)' },
+  { id: 'fomat04', label: '🔍 Rondas (FOMAT04)' },
+  { id: 'iot', label: '📡 Sensores IoT' },
 ]
 
 export default function MachineDossier({
@@ -108,7 +108,7 @@ export default function MachineDossier({
   if (loading) {
     return (
       <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
-        <p className="hint">â³ Cargando expediente SIG completo del activoâ€¦</p>
+        <p className="hint">⏳ Cargando expediente SIG completo del activo…</p>
       </div>
     )
   }
@@ -116,7 +116,7 @@ export default function MachineDossier({
   if (error || !machine) {
     return (
       <div className="glass-card" style={{ padding: 24 }}>
-        <p className="msg error">âŒ {error || 'No se encontrÃ³ la informaciÃ³n del activo'}</p>
+        <p className="msg error">❌ {error || 'No se encontró la información del activo'}</p>
         {onClose && (
           <button className="ghost small" onClick={onClose} style={{ marginTop: 8 }}>
             Cerrar
@@ -148,19 +148,19 @@ export default function MachineDossier({
     } else {
       setAutoOtMsg({
         type: 'ok',
-        text: `âœ… OT automÃ¡tica creada con Ã©xito (${res.data?.code || 'CÃ³digo generado'}). Visible en pestaÃ±a Ã“rdenes de Trabajo.`,
+        text: `✅ OT automática creada con éxito (${res.data?.code || 'Código generado'}). Visible en pestaña Órdenes de Trabajo.`,
       })
       setTimeout(() => setAutoOtMsg(null), 6000)
     }
   }
 
-  // SemÃ¡foro visual
+  // Semáforo visual
   const semaforoColor = stats?.auditSemaphore === 'green' ? '#10b981' : stats?.auditSemaphore === 'yellow' ? '#f59e0b' : '#ef4444'
   const semaforoBg = stats?.auditSemaphore === 'green' ? 'rgba(16, 185, 129, 0.12)' : stats?.auditSemaphore === 'yellow' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)'
 
   return (
     <div className="machine-dossier glass-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-color, #334155)' }}>
-      {/* â”€â”€ HEADER PRINCIPAL AUDITORÃA â”€â”€ */}
+      {/* ── HEADER PRINCIPAL AUDITORÍA ── */}
       <div
         style={{
           display: 'flex',
@@ -185,7 +185,7 @@ export default function MachineDossier({
             />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
-              ðŸ­
+              🏭
             </div>
           )}
           {mantum?.imageUrl && (
@@ -221,30 +221,30 @@ export default function MachineDossier({
               </span>
             )}
             <span className="pill status" style={{ fontSize: 12 }}>
-              {machine.status === 'active' ? 'ðŸŸ¢ Operativa' : machine.status === 'maintenance' ? 'ðŸŸ¡ En Mtto' : 'âšª ' + machine.status}
+              {machine.status === 'active' ? '🟢 Operativa' : machine.status === 'maintenance' ? '🟡 En Mtto' : '⚪ ' + machine.status}
             </span>
-            <IncubantSigPill text="SIG Â· AntioqueÃ±a de IncubaciÃ³n SAS" />
+            <IncubantSigPill text="SIG · Antioqueña de Incubación SAS" />
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: '#94a3b8' }}>
-            <span>ðŸ“ <strong>UbicaciÃ³n:</strong> {room ? `${room.name} (${room.code})` : 'Sin sala asignada'}</span>
-            <span>ðŸ­ <strong>Planta:</strong> {plant?.name || 'Incubadora Principal'}</span>
-            <span>ðŸ·ï¸ <strong>Marca/Modelo:</strong> {[machine.brand, machine.model].filter(Boolean).join(' ') || 'Petersime BioStreamer'}</span>
-            <span>â­ <strong>Criticidad:</strong> {machine.criticidad || mantum?.equipo?.criticidad || 'Media'}</span>
+            <span>📍 <strong>Ubicación:</strong> {room ? `${room.name} (${room.code})` : 'Sin sala asignada'}</span>
+            <span>🏭 <strong>Planta:</strong> {plant?.name || 'Incubadora Principal'}</span>
+            <span>🏷️ <strong>Marca/Modelo:</strong> {[machine.brand, machine.model].filter(Boolean).join(' ') || 'Petersime BioStreamer'}</span>
+            <span>⭐ <strong>Criticidad:</strong> {machine.criticidad || mantum?.equipo?.criticidad || 'Media'}</span>
           </div>
 
           {/* Estado Operativo / Fase de Ciclo */}
           {opsState && (
             <div style={{ marginTop: 8, fontSize: 12, display: 'flex', gap: 16, flexWrap: 'wrap', color: '#38bdf8' }}>
-              <span>ðŸ”„ <strong>Fase actual:</strong> {opsState.phase}</span>
-              {opsState.lote && <span>ðŸ“¦ <strong>Lote:</strong> {opsState.lote}</span>}
-              {opsState.age_hours > 0 && <span>â±ï¸ <strong>Edad ciclo:</strong> {Math.round(opsState.age_hours)}h</span>}
-              {opsState.calib_due && <span style={{ color: '#f59e0b', fontWeight: 600 }}>âš ï¸ Ventana de CalibraciÃ³n abierta</span>}
+              <span>🔄 <strong>Fase actual:</strong> {opsState.phase}</span>
+              {opsState.lote && <span>📦 <strong>Lote:</strong> {opsState.lote}</span>}
+              {opsState.age_hours > 0 && <span>⏱️ <strong>Edad ciclo:</strong> {Math.round(opsState.age_hours)}h</span>}
+              {opsState.calib_due && <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠️ Ventana de Calibración abierta</span>}
             </div>
           )}
         </div>
 
-        {/* SemÃ¡foro de AuditorÃ­a SIG & Acciones */}
+        {/* Semáforo de Auditoría SIG & Acciones */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
           <div
             style={{
@@ -260,7 +260,7 @@ export default function MachineDossier({
               fontSize: 13,
             }}
           >
-            <span style={{ fontSize: 16 }}>{stats?.auditSemaphore === 'green' ? 'âœ…' : stats?.auditSemaphore === 'yellow' ? 'âš ï¸' : 'âŒ'}</span>
+            <span style={{ fontSize: 16 }}>{stats?.auditSemaphore === 'green' ? '✅' : stats?.auditSemaphore === 'yellow' ? '⚠️' : '❌'}</span>
             <span>{stats?.auditSummary || 'Conforme con SIG'}</span>
           </div>
 
@@ -271,18 +271,18 @@ export default function MachineDossier({
               title="Descarga la Hoja de Vida oficial del SIG en formato Excel (FOMAT03)"
               style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              ðŸ“¥ Exportar Hoja de Vida (FOMAT03)
+              📥 Exportar Hoja de Vida (FOMAT03)
             </button>
             {onClose && (
               <button className="chip ghost small" onClick={onClose} title="Cerrar ficha">
-                âœ• Cerrar
+                ✕ Cerrar
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ BARRA DE PESTAÃ‘AS â”€â”€ */}
+      {/* ── BARRA DE PESTAÑAS ── */}
       <div
         style={{
           display: 'flex',
@@ -317,22 +317,22 @@ export default function MachineDossier({
         })}
       </div>
 
-      {/* NotificaciÃ³n de acciones automÃ¡ticas */}
+      {/* Notificación de acciones automáticas */}
       {autoOtMsg && (
         <div style={{ padding: '10px 24px', background: autoOtMsg.type === 'ok' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13 }}>
           {autoOtMsg.text}
         </div>
       )}
 
-      {/* â”€â”€ CONTENIDO DE PESTAÃ‘AS â”€â”€ */}
+      {/* ── CONTENIDO DE PESTAÑAS ── */}
       <div style={{ padding: 24 }}>
-        {/* â•â• 1. RESUMEN & AUDITORÃA â•â• */}
+        {/* ══ 1. RESUMEN & AUDITORÍA ══ */}
         {activeTab === 'resumen' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {/* Card 1: Estado MetrolÃ³gico (FOMAT08) */}
+            {/* Card 1: Estado Metrológico (FOMAT08) */}
             <div className="glass-card" style={{ padding: 18, borderLeft: `4px solid ${stats?.calibColor === 'green' ? '#10b981' : stats?.calibColor === 'red' ? '#ef4444' : '#94a3b8'}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <strong style={{ fontSize: 15, color: '#f8fafc' }}>ðŸŽ¯ CalibraciÃ³n de Sensores</strong>
+                <strong style={{ fontSize: 15, color: '#f8fafc' }}>🎯 Calibración de Sensores</strong>
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>FOMAT08</span>
               </div>
               <p style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600, color: stats?.calibColor === 'green' ? '#10b981' : stats?.calibColor === 'red' ? '#ef4444' : '#cbd5e1' }}>
@@ -340,22 +340,22 @@ export default function MachineDossier({
               </p>
               {stats?.lastCalibration ? (
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
-                  <div>ðŸ“… Ãšltima calibraciÃ³n: {new Date(stats.lastCalibration.calibrated_at).toLocaleDateString('es-CO')}</div>
-                  <div>ðŸŒ¡ï¸ Delta Temp: <strong>{stats.lastCalibration.temp_delta_f ?? 'N/A'} Â°F</strong> (Tolerancia: Â±0.3Â°F)</div>
-                  <div>ðŸ’§ Delta HR: <strong>{stats.lastCalibration.rh_delta_pct ?? 'N/A'} %</strong> (Tolerancia: Â±3.0%)</div>
+                  <div>📅 Última calibración: {new Date(stats.lastCalibration.calibrated_at).toLocaleDateString('es-CO')}</div>
+                  <div>🌡️ Delta Temp: <strong>{stats.lastCalibration.temp_delta_f ?? 'N/A'} °F</strong> (Tolerancia: ±0.3°F)</div>
+                  <div>💧 Delta HR: <strong>{stats.lastCalibration.rh_delta_pct ?? 'N/A'} %</strong> (Tolerancia: ±3.0%)</div>
                 </div>
               ) : (
                 <p className="hint">No registra calibraciones recientes.</p>
               )}
               <button className="chip ghost small" onClick={() => setActiveTab('fomat08')} style={{ marginTop: 12 }}>
-                Ver historial y evidencias â†’
+                Ver historial y evidencias →
               </button>
             </div>
 
-            {/* Card 2: Rondas de InspecciÃ³n (FOMAT04) */}
+            {/* Card 2: Rondas de Inspección (FOMAT04) */}
             <div className="glass-card" style={{ padding: 18, borderLeft: '4px solid #3b82f6' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <strong style={{ fontSize: 15, color: '#f8fafc' }}>ðŸ” Inspecciones de Ronda</strong>
+                <strong style={{ fontSize: 15, color: '#f8fafc' }}>🔍 Inspecciones de Ronda</strong>
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>FOMAT04</span>
               </div>
               <p style={{ margin: '0 0 8px 0', fontSize: 24, fontWeight: 700, color: '#60a5fa' }}>
@@ -366,14 +366,14 @@ export default function MachineDossier({
                 <div>Sin novedad: {stats?.normalChecks || 0} inspecciones conformes</div>
               </div>
               <button className="chip ghost small" onClick={() => setActiveTab('fomat04')} style={{ marginTop: 12 }}>
-                Ver lista de chequeos â†’
+                Ver lista de chequeos →
               </button>
             </div>
 
-            {/* Card 3: Ã“rdenes de Trabajo (FOMAT01) */}
+            {/* Card 3: Órdenes de Trabajo (FOMAT01) */}
             <div className="glass-card" style={{ padding: 18, borderLeft: '4px solid #8b5cf6' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <strong style={{ fontSize: 15, color: '#f8fafc' }}>ðŸ”§ Ã“rdenes de Trabajo</strong>
+                <strong style={{ fontSize: 15, color: '#f8fafc' }}>🔧 Órdenes de Trabajo</strong>
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>FOMAT01</span>
               </div>
               <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
@@ -391,34 +391,34 @@ export default function MachineDossier({
                   <span style={{ fontSize: 22, fontWeight: 700, color: '#60a5fa' }}>
                     {(mantum?.historicalOTs || []).length}
                   </span>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>HistÃ³rico Mantum</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Histórico Mantum</div>
                 </div>
               </div>
               <button className="chip ghost small" onClick={() => setActiveTab('fomat01')} style={{ marginTop: 12 }}>
-                Ver OTs e historial â†’
+                Ver OTs e historial →
               </button>
             </div>
 
             {/* Card 4: Plan de Mantenimiento AM (FOMAT07) */}
             <div className="glass-card" style={{ padding: 18, borderLeft: '4px solid #ec4899' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <strong style={{ fontSize: 15, color: '#f8fafc' }}>ðŸ“… Plan Anual AM</strong>
+                <strong style={{ fontSize: 15, color: '#f8fafc' }}>📅 Plan Anual AM</strong>
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>FOMAT07</span>
               </div>
               <p style={{ margin: '0 0 8px 0', fontSize: 24, fontWeight: 700, color: '#f472b6' }}>
                 {(mantum?.maintenancePlan || []).length} <span style={{ fontSize: 12, fontWeight: 400, color: '#94a3b8' }}>tareas programadas</span>
               </p>
               <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-                Tareas preventivas y correctivas listas para generar Ã³rdenes de trabajo automÃ¡ticas.
+                Tareas preventivas y correctivas listas para generar órdenes de trabajo automáticas.
               </p>
               <button className="chip ghost small" onClick={() => setActiveTab('fomat07')} style={{ marginTop: 12 }}>
-                Ver Plan y generar OTs â†’
+                Ver Plan y generar OTs →
               </button>
             </div>
           </div>
         )}
 
-        {/* â•â• 2. HOJA DE VIDA (FOMAT03) â•â• */}
+        {/* ══ 2. HOJA DE VIDA (FOMAT03) ══ */}
         {activeTab === 'fomat03' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <SigDocBanner
@@ -426,16 +426,16 @@ export default function MachineDossier({
               name="HOJA DE VIDA DEL EQUIPO"
               version="01"
               date="18-08-2026"
-              actionLabel="ðŸ“¥ Descargar Hoja de Vida (.xlsx)"
+              actionLabel="📥 Descargar Hoja de Vida (.xlsx)"
               onAction={handleExportExcel}
             />
             <div className="glass-card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>ðŸ“‹</span> 1. IdentificaciÃ³n Oficial del Equipo (Placa y Registro)
+                <span>📋</span> 1. Identificación Oficial del Equipo (Placa y Registro)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>CÃ³digo Interno:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Código Interno:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.code}</div>
                 </div>
                 <div>
@@ -443,7 +443,7 @@ export default function MachineDossier({
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.name}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>CÃ³digo Mantum / SIG:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Código Mantum / SIG:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
                     {machine.mantum_code || mantum?.equipo?.mantum_code || 'S/C'}
                   </div>
@@ -463,7 +463,7 @@ export default function MachineDossier({
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.model || 'BioStreamer 24S / Convencional'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>NÃºmero de Serie:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Número de Serie:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
                     {machine.serial_number || mantum?.equipo?.serial_number || 'D0757-D158500084700L'}
                   </div>
@@ -471,40 +471,40 @@ export default function MachineDossier({
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Capacidad Nominal:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
-                    {machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'EstÃ¡ndar'}
+                    {machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar'}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Fecha de InstalaciÃ³n:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Fecha de Instalación:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
                     {machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : '2019-05-10'}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Vida Ãštil Estimada:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Vida Útil Estimada:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
-                    {machine.useful_life_years || 10} aÃ±os (RenovaciÃ³n periÃ³dica de componentes)
+                    {machine.useful_life_years || 10} años (Renovación periódica de componentes)
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Manual TÃ©cnico OEM:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Manual Técnico OEM:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#10b981' }}>
                     Disponible en Repositorio SIG (Digitalizado Mantum)
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Responsable TÃ©cnico:</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Responsable Técnico:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
-                    {mantum?.equipo?.responsable || 'Auxiliar de Mantenimiento / LÃ­der de Planta'}
+                    {mantum?.equipo?.responsable || 'Auxiliar de Mantenimiento / Líder de Planta'}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* AsignaciÃ³n y gestiÃ³n rÃ¡pida para LÃ­der */}
+            {/* Asignación y gestión rápida para Líder */}
             {canManage && (
               <div className="glass-card" style={{ padding: 20 }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#cbd5e1' }}>âš™ï¸ ModificaciÃ³n de UbicaciÃ³n y Estado (LÃ­der / Admin)</h4>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#cbd5e1' }}>⚙️ Modificación de Ubicación y Estado (Líder / Admin)</h4>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
                   <label style={{ fontSize: 13, color: '#94a3b8' }}>
                     Sala asignada:
@@ -529,7 +529,7 @@ export default function MachineDossier({
                       onChange={(e) => machinesApi?.updateMachine?.(machine.id, { status: e.target.value })}
                       style={{ marginLeft: 8, padding: '4px 8px' }}
                     >
-                      <option value="active">Activa (En operaciÃ³n)</option>
+                      <option value="active">Activa (En operación)</option>
                       <option value="idle">En espera</option>
                       <option value="maintenance">En Mantenimiento</option>
                       <option value="decommissioned">Fuera de servicio</option>
@@ -541,16 +541,16 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 3. COMPONENTES & VIDA ÃšTIL â•â• */}
+        {/* ══ 3. COMPONENTES & VIDA ÚTIL ══ */}
         {activeTab === 'componentes' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
-                  âš™ï¸ Desglose de Componentes CrÃ­ticos y Estado de Vida Ãštil
+                  ⚙️ Desglose de Componentes Críticos y Estado de Vida Útil
                 </h3>
                 <p className="hint" style={{ margin: '4px 0 0 0' }}>
-                  InformaciÃ³n integrada de piezas y partes de recambio segÃºn manual Mantum.
+                  Información integrada de piezas y partes de recambio según manual Mantum.
                 </p>
               </div>
             </div>
@@ -559,11 +559,11 @@ export default function MachineDossier({
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <th style={{ padding: '10px 12px' }}>CÃ³digo</th>
+                    <th style={{ padding: '10px 12px' }}>Código</th>
                     <th style={{ padding: '10px 12px' }}>Componente</th>
-                    <th style={{ padding: '10px 12px' }}>EspecificaciÃ³n TÃ©cnica</th>
+                    <th style={{ padding: '10px 12px' }}>Especificación Técnica</th>
                     <th style={{ padding: '10px 12px' }}>Referencia OEM</th>
-                    <th style={{ padding: '10px 12px' }}>Vida Ãštil Estimada</th>
+                    <th style={{ padding: '10px 12px' }}>Vida Útil Estimada</th>
                     <th style={{ padding: '10px 12px' }}>Estado</th>
                   </tr>
                 </thead>
@@ -573,7 +573,7 @@ export default function MachineDossier({
                       <td style={{ padding: '10px 12px', fontWeight: 600, color: '#60a5fa' }}>{c.code}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 600, color: '#f8fafc' }}>{c.name}</td>
                       <td style={{ padding: '10px 12px', color: '#cbd5e1' }}>{c.component_spec}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{c.reference || 'OEM EstÃ¡ndar'}</td>
+                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{c.reference || 'OEM Estándar'}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 60 }}>
@@ -601,7 +601,7 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 4. PLAN DE MANTENIMIENTO AM (FOMAT07) â•â• */}
+        {/* ══ 4. PLAN DE MANTENIMIENTO AM (FOMAT07) ══ */}
         {activeTab === 'fomat07' && (
           <div>
             <SigDocBanner
@@ -609,16 +609,16 @@ export default function MachineDossier({
               name="PLAN ANUAL DE MANTENIMIENTO"
               version="01"
               date="18-08-2026"
-              actionLabel="ðŸ“¥ Descargar Plan con Hoja de Vida"
+              actionLabel="📥 Descargar Plan con Hoja de Vida"
               onAction={handleExportExcel}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
-                  ðŸ“… Tareas Programadas del Plan de Mantenimiento AM (FOMAT07)
+                  📅 Tareas Programadas del Plan de Mantenimiento AM (FOMAT07)
                 </h3>
                 <p className="hint" style={{ margin: '4px 0 0 0' }}>
-                  Seleccione cualquier tarea para generar automÃ¡ticamente la Orden de Trabajo correspondiente en IncubApp.
+                  Seleccione cualquier tarea para generar automáticamente la Orden de Trabajo correspondiente en IncubApp.
                 </p>
               </div>
             </div>
@@ -627,13 +627,13 @@ export default function MachineDossier({
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <th style={{ padding: '10px 12px' }}>CÃ³digo Plan</th>
+                    <th style={{ padding: '10px 12px' }}>Código Plan</th>
                     <th style={{ padding: '10px 12px' }}>Actividad Programada</th>
                     <th style={{ padding: '10px 12px' }}>Tipo</th>
                     <th style={{ padding: '10px 12px' }}>Especialidad</th>
                     <th style={{ padding: '10px 12px' }}>Frecuencia</th>
                     <th style={{ padding: '10px 12px' }}>Estado</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>AcciÃ³n</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -656,7 +656,7 @@ export default function MachineDossier({
                           disabled={autoOtBusy === (p.plan_code || p.activity)}
                           style={{ fontSize: 11, padding: '4px 8px' }}
                         >
-                          {autoOtBusy === (p.plan_code || p.activity) ? 'Generandoâ€¦' : 'âš¡ Crear OT Auto'}
+                          {autoOtBusy === (p.plan_code || p.activity) ? 'Generando…' : '⚡ Crear OT Auto'}
                         </button>
                       </td>
                     </tr>
@@ -667,7 +667,7 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 5. Ã“RDENES DE TRABAJO (FOMAT01) â•â• */}
+        {/* ══ 5. ÓRDENES DE TRABAJO (FOMAT01) ══ */}
         {activeTab === 'fomat01' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <SigDocBanner
@@ -679,21 +679,21 @@ export default function MachineDossier({
             {/* OTs Vivas de IncubApp */}
             <div>
               <h3 style={{ margin: '0 0 12px 0', fontSize: 16, color: '#f8fafc' }}>
-                ðŸ“‹ Ã“rdenes de Trabajo Activas y Recientes (IncubApp)
+                📋 Órdenes de Trabajo Activas y Recientes (IncubApp)
               </h3>
               {workOrders.length === 0 ? (
-                <p className="hint">No hay Ã³rdenes de trabajo abiertas en la plataforma para este equipo.</p>
+                <p className="hint">No hay órdenes de trabajo abiertas en la plataforma para este equipo.</p>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                        <th style={{ padding: '8px 12px' }}>CÃ³digo</th>
-                        <th style={{ padding: '8px 12px' }}>TÃ­tulo / Tarea</th>
+                        <th style={{ padding: '8px 12px' }}>Código</th>
+                        <th style={{ padding: '8px 12px' }}>Título / Tarea</th>
                         <th style={{ padding: '8px 12px' }}>Tipo</th>
                         <th style={{ padding: '8px 12px' }}>Prioridad</th>
-                        <th style={{ padding: '8px 12px' }}>TÃ©cnico Asignado</th>
-                        <th style={{ padding: '8px 12px' }}>LÃ­der / Autor</th>
+                        <th style={{ padding: '8px 12px' }}>Técnico Asignado</th>
+                        <th style={{ padding: '8px 12px' }}>Líder / Autor</th>
                         <th style={{ padding: '8px 12px' }}>Estado</th>
                         <th style={{ padding: '8px 12px' }}>Fecha</th>
                       </tr>
@@ -719,8 +719,8 @@ export default function MachineDossier({
                                 {wo.priority}
                               </span>
                             </td>
-                            <td style={{ padding: '8px 12px', color: '#f8fafc' }}>ðŸ‘¨â€ðŸ”§ {assignedUser}</td>
-                            <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>ðŸ‘” {creatorUser}</td>
+                            <td style={{ padding: '8px 12px', color: '#f8fafc' }}>👨‍🔧 {assignedUser}</td>
+                            <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>👔 {creatorUser}</td>
                             <td style={{ padding: '8px 12px' }}>
                               <span className={`pill status ${wo.status === 'completed' ? 'ok' : wo.status === 'in_progress' ? 'warn' : 'idle'}`} style={{ fontSize: 11 }}>
                                 {wo.status}
@@ -738,16 +738,16 @@ export default function MachineDossier({
               )}
             </div>
 
-            {/* HistÃ³rico Cerrado Mantum */}
+            {/* Histórico Cerrado Mantum */}
             <div>
               <h3 style={{ margin: '0 0 12px 0', fontSize: 16, color: '#f8fafc' }}>
-                ðŸ“š Historial Consolidado de Intervenciones (Mantum)
+                📚 Historial Consolidado de Intervenciones (Mantum)
               </h3>
               <p className="hint" style={{ margin: '0 0 12px 0' }}>
-                Registro de trazabilidad histÃ³rica con el personal tÃ©cnico ejecutor y lÃ­der registrador.
+                Registro de trazabilidad histórica con el personal técnico ejecutor y líder registrador.
               </p>
               {(mantum?.historicalOTs || []).length === 0 ? (
-                <p className="hint">No hay intervenciones histÃ³ricas registradas para este equipo.</p>
+                <p className="hint">No hay intervenciones históricas registradas para este equipo.</p>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -756,9 +756,9 @@ export default function MachineDossier({
                         <th style={{ padding: '8px 12px' }}>OT Mantum</th>
                         <th style={{ padding: '8px 12px' }}>Fecha</th>
                         <th style={{ padding: '8px 12px' }}>Actividad Realizada</th>
-                        <th style={{ padding: '8px 12px' }}>TÃ©cnico que AtendiÃ³ (Ejecutor)</th>
-                        <th style={{ padding: '8px 12px' }}>LÃ­der / Registro</th>
-                        <th style={{ padding: '8px 12px' }}>RetroalimentaciÃ³n / Cierre</th>
+                        <th style={{ padding: '8px 12px' }}>Técnico que Atendió (Ejecutor)</th>
+                        <th style={{ padding: '8px 12px' }}>Líder / Registro</th>
+                        <th style={{ padding: '8px 12px' }}>Retroalimentación / Cierre</th>
                         <th style={{ padding: '8px 12px' }}>Costo Real</th>
                       </tr>
                     </thead>
@@ -768,8 +768,8 @@ export default function MachineDossier({
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: '#f59e0b' }}>{ot.code}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{ot.created_at || ot.started_at}</td>
                           <td style={{ padding: '8px 12px', fontWeight: 500, color: '#f8fafc' }}>{ot.activity}</td>
-                          <td style={{ padding: '8px 12px', color: '#60a5fa' }}>ðŸ‘¨â€ðŸ”§ {ot.technician}</td>
-                          <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>ðŸ‘” {ot.approver || 'LÃ­der Mantum'}</td>
+                          <td style={{ padding: '8px 12px', color: '#60a5fa' }}>👨‍🔧 {ot.technician}</td>
+                          <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>👔 {ot.approver || 'Líder Mantum'}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12, maxWidth: 300 }}>{ot.feedback || ot.description || '-'}</td>
                           <td style={{ padding: '8px 12px', color: '#10b981', fontWeight: 600 }}>${ot.cost || '0'}</td>
                         </tr>
@@ -782,28 +782,28 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 6. CALIBRACIONES (FOMAT08) â•â• */}
+        {/* ══ 6. CALIBRACIONES (FOMAT08) ══ */}
         {activeTab === 'fomat08' && (
           <div>
             <SigDocBanner
               code="FOMAT08"
-              name="CALIBRACIÃ“N DE EQUIPOS"
+              name="CALIBRACIÓN DE EQUIPOS"
               version="01"
               date="18-08-2026"
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
-                  ðŸŽ¯ Historial de CalibraciÃ³n de Sensores (FOMAT08)
+                  🎯 Historial de Calibración de Sensores (FOMAT08)
                 </h3>
                 <p className="hint" style={{ margin: '4px 0 0 0' }}>
-                  Tolerancia oficial del Sistema Integrado de GestiÃ³n: Temperatura <strong>Â±0.3 Â°F</strong> Â· Humedad Relativa <strong>Â±3.0 %</strong>.
+                  Tolerancia oficial del Sistema Integrado de Gestión: Temperatura <strong>±0.3 °F</strong> · Humedad Relativa <strong>±3.0 %</strong>.
                 </p>
               </div>
             </div>
 
             {calibrations.length === 0 ? (
-              <p className="hint">No hay registros de calibraciÃ³n para este equipo en el sistema.</p>
+              <p className="hint">No hay registros de calibración para este equipo en el sistema.</p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -812,10 +812,10 @@ export default function MachineDossier({
                       <th style={{ padding: '8px 12px' }}>Fecha</th>
                       <th style={{ padding: '8px 12px' }}>Alcance</th>
                       <th style={{ padding: '8px 12px' }}>Lectura Pantalla</th>
-                      <th style={{ padding: '8px 12px' }}>Lectura PatrÃ³n</th>
+                      <th style={{ padding: '8px 12px' }}>Lectura Patrón</th>
                       <th style={{ padding: '8px 12px' }}>Delta Hallado</th>
-                      <th style={{ padding: '8px 12px' }}>EvaluaciÃ³n SIG</th>
-                      <th style={{ padding: '8px 12px' }}>MetrÃ³logo / Ejecutor</th>
+                      <th style={{ padding: '8px 12px' }}>Evaluación SIG</th>
+                      <th style={{ padding: '8px 12px' }}>Metrólogo / Ejecutor</th>
                       <th style={{ padding: '8px 12px' }}>Evidencias</th>
                     </tr>
                   </thead>
@@ -826,7 +826,7 @@ export default function MachineDossier({
                       const tempDelta = Math.abs(Number(c.temp_delta_f || 0))
                       const rhDelta = Math.abs(Number(c.rh_delta_pct || 0))
                       const isConforme = (!isTemp || tempDelta <= 0.3) && (!isRh || rhDelta <= 3.0)
-                      const performer = usersMap[c.performed_by]?.name || 'MetrÃ³logo / Auxiliar'
+                      const performer = usersMap[c.performed_by]?.name || 'Metrólogo / Auxiliar'
 
                       return (
                         <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -834,27 +834,27 @@ export default function MachineDossier({
                             {new Date(c.calibrated_at).toLocaleDateString('es-CO')}
                           </td>
                           <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>
-                            {c.scope === 'both' ? 'TÂ°F y HR%' : c.scope === 'temperature' ? 'Temperatura' : 'Humedad'}
+                            {c.scope === 'both' ? 'T°F y HR%' : c.scope === 'temperature' ? 'Temperatura' : 'Humedad'}
                           </td>
                           <td style={{ padding: '8px 12px' }}>
-                            {isTemp && <div>T: {c.temp_machine_f} Â°F</div>}
+                            {isTemp && <div>T: {c.temp_machine_f} °F</div>}
                             {isRh && <div>HR: {c.rh_machine_pct} %</div>}
                           </td>
                           <td style={{ padding: '8px 12px' }}>
-                            {isTemp && <div>T: {c.temp_calibrator_f} Â°F</div>}
+                            {isTemp && <div>T: {c.temp_calibrator_f} °F</div>}
                             {isRh && <div>HR: {c.rh_calibrator_pct} %</div>}
                           </td>
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: isConforme ? '#10b981' : '#ef4444' }}>
-                            {isTemp && <div>Î”T: {c.temp_delta_f} Â°F</div>}
-                            {isRh && <div>Î”HR: {c.rh_delta_pct} %</div>}
+                            {isTemp && <div>ΔT: {c.temp_delta_f} °F</div>}
+                            {isRh && <div>ΔHR: {c.rh_delta_pct} %</div>}
                           </td>
                           <td style={{ padding: '8px 12px' }}>
                             <span className={`pill status ${isConforme ? 'ok' : 'warn'}`} style={{ fontSize: 11 }}>
-                              {isConforme ? 'âœ… CONFORME' : 'âš ï¸ FUERA TOLERANCIA'}
+                              {isConforme ? '✅ CONFORME' : '⚠️ FUERA TOLERANCIA'}
                             </span>
                           </td>
                           <td style={{ padding: '8px 12px', color: '#f8fafc' }}>
-                            ðŸ‘¨â€ðŸ”¬ {performer}
+                            👨‍🔬 {performer}
                           </td>
                           <td style={{ padding: '8px 12px' }}>
                             <div style={{ display: 'flex', gap: 6 }}>
@@ -864,16 +864,16 @@ export default function MachineDossier({
                                   onClick={() => setSelectedPhoto({ title: 'Evidencia Pantalla', path: c.photo_screen_path })}
                                   style={{ fontSize: 10, padding: '2px 6px' }}
                                 >
-                                  ðŸ“· Pantalla
+                                  📷 Pantalla
                                 </button>
                               )}
                               {c.photo_calibrator_path && (
                                 <button
                                   className="chip ghost small"
-                                  onClick={() => setSelectedPhoto({ title: 'Evidencia PatrÃ³n', path: c.photo_calibrator_path })}
+                                  onClick={() => setSelectedPhoto({ title: 'Evidencia Patrón', path: c.photo_calibrator_path })}
                                   style={{ fontSize: 10, padding: '2px 6px' }}
                                 >
-                                  ðŸ“· PatrÃ³n
+                                  📷 Patrón
                                 </button>
                               )}
                               {!c.photo_screen_path && !c.photo_calibrator_path && <span style={{ color: '#64748b' }}>-</span>}
@@ -889,22 +889,22 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 7. RONDAS DE INSPECCIÃ“N (FOMAT04) â•â• */}
+        {/* ══ 7. RONDAS DE INSPECCIÓN (FOMAT04) ══ */}
         {activeTab === 'fomat04' && (
           <div>
             <SigDocBanner
               code="FOMAT04"
-              name="LISTA DE CHEQUEO DE INSPECCIÃ“N DE INFRAESTRUCTURA Y EQUIPOS"
+              name="LISTA DE CHEQUEO DE INSPECCIÓN DE INFRAESTRUCTURA Y EQUIPOS"
               version="01"
               date="18-08-2026"
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, color: '#f8fafc' }}>
-                  ðŸ” Chequeos Operativos de Ronda (FOMAT04)
+                  🔍 Chequeos Operativos de Ronda (FOMAT04)
                 </h3>
                 <p className="hint" style={{ margin: '4px 0 0 0' }}>
-                  Registro de inspecciÃ³n turno a turno de variables mecÃ¡nicas y visuales.
+                  Registro de inspección turno a turno de variables mecánicas y visuales.
                 </p>
               </div>
             </div>
@@ -918,7 +918,7 @@ export default function MachineDossier({
                     <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                       <th style={{ padding: '8px 12px' }}>Fecha y Hora</th>
                       <th style={{ padding: '8px 12px' }}>Turno / Franja</th>
-                      <th style={{ padding: '8px 12px' }}>CondiciÃ³n</th>
+                      <th style={{ padding: '8px 12px' }}>Condición</th>
                       <th style={{ padding: '8px 12px' }}>Observaciones</th>
                     </tr>
                   </thead>
@@ -929,17 +929,17 @@ export default function MachineDossier({
                           {new Date(chk.taken_at).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>
-                          Turno {chk.shift_number || 1} Â· {chk.hour_slot || 'Ronda regular'}
+                          Turno {chk.shift_number || 1} · {chk.hour_slot || 'Ronda regular'}
                         </td>
                         <td style={{ padding: '8px 12px' }}>
                           <span
                             className={`pill status ${chk.condition === 'normal' ? 'ok' : chk.condition === 'warning' ? 'warn' : 'off'}`}
                             style={{ fontSize: 11 }}
                           >
-                            {chk.condition === 'normal' ? 'ðŸŸ¢ Sin novedad' : chk.condition === 'warning' ? 'ðŸŸ¡ Alerta' : 'ðŸ”´ Falla'}
+                            {chk.condition === 'normal' ? '🟢 Sin novedad' : chk.condition === 'warning' ? '🟡 Alerta' : '🔴 Falla'}
                           </span>
                         </td>
-                        <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{chk.notes || 'OperaciÃ³n conforme'}</td>
+                        <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{chk.notes || 'Operación conforme'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -949,11 +949,11 @@ export default function MachineDossier({
           </div>
         )}
 
-        {/* â•â• 8. SENSORES IoT â•â• */}
+        {/* ══ 8. SENSORES IoT ══ */}
         {activeTab === 'iot' && (
           <div>
             <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#f8fafc' }}>
-              ðŸ“¡ TelemetrÃ­a y Sensores IoT Conectados
+              📡 Telemetría y Sensores IoT Conectados
             </h3>
             <SensorPanel machineId={machine.id} orgId={orgId} canManage={canManage} latest={latest} />
           </div>
@@ -990,7 +990,7 @@ export default function MachineDossier({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ color: '#fff' }}>{selectedPhoto.title}</strong>
-              <button className="ghost small" onClick={() => setSelectedPhoto(null)}>âœ•</button>
+              <button className="ghost small" onClick={() => setSelectedPhoto(null)}>✕</button>
             </div>
             <div style={{ textAlign: 'center', background: '#0f172a', borderRadius: 4, padding: 8 }}>
               <img
@@ -1005,4 +1005,3 @@ export default function MachineDossier({
     </div>
   )
 }
-

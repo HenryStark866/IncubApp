@@ -1,16 +1,16 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/TodayBoard.jsx
- * PROPÃ“SITO: Componente UI Â«TodayBoardÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «TodayBoard»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { ROLE_LABEL, areaLabel, canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
-import { useTodayBoard } from '../features/operations/hooks/useTodayBoard'
+import { useTodayBoard } from '../hooks/useTodayBoard'
 import OnlinePresencePanel from './OnlinePresencePanel'
 import {
   ExecEmpty,
@@ -26,8 +26,8 @@ import {
 } from './ExecBoard'
 
 /**
- * Tablero de entrada por rol: KPIs, alertas y accesos del dÃ­a.
- * DirecciÃ³n / gerencia usan el mismo lenguaje visual del resumen admin.
+ * Tablero de entrada por rol: KPIs, alertas y accesos del día.
+ * Dirección / gerencia usan el mismo lenguaje visual del resumen admin.
  */
 export default function TodayBoard({
   orgId,
@@ -73,10 +73,10 @@ export default function TodayBoard({
         <div style={{ flex: 1, minWidth: 220 }}>
           <h2 style={{ margin: 0 }}>{board.loading ? 'Hoy' : board.title}</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            {first ? `${first} Â· ` : ''}
+            {first ? `${first} · ` : ''}
             {roleName}
-            {area ? ` Â· ${areaLabel(area)}` : ''}
-            {orgName ? ` Â· ${orgName}` : ''}
+            {area ? ` · ${areaLabel(area)}` : ''}
+            {orgName ? ` · ${orgName}` : ''}
           </p>
           {!board.loading && board.subtitle && (
             <p className="hint" style={{ margin: '6px 0 0' }}>
@@ -90,7 +90,7 @@ export default function TodayBoard({
           disabled={board.loading}
           onClick={() => board.reload()}
         >
-          {board.loading ? 'Actualizandoâ€¦' : 'Actualizar'}
+          {board.loading ? 'Actualizando…' : 'Actualizar'}
         </button>
       </div>
 
@@ -111,7 +111,7 @@ export default function TodayBoard({
           ? [1, 2, 3, 4].map((i) => (
               <div key={i} className="kpi-card">
                 <span className="kpi-value" style={{ opacity: 0.4 }}>
-                  â€¦
+                  …
                 </span>
                 <span className="kpi-label">Cargando</span>
               </div>
@@ -132,7 +132,7 @@ export default function TodayBoard({
       {(board.alerts || []).length > 0 && (
         <>
           <h3 className="section-title" style={{ margin: '20px 0 8px' }}>
-            Requiere atenciÃ³n
+            Requiere atención
           </h3>
           <div className="admin-list">
             {board.alerts.map((a, i) => (
@@ -180,7 +180,7 @@ export default function TodayBoard({
       {(board.actions || []).length > 0 && (
         <>
           <h3 className="section-title" style={{ margin: '18px 0 8px' }}>
-            Accesos del dÃ­a
+            Accesos del día
           </h3>
           <div className="actions row" style={{ flexWrap: 'wrap', gap: 8 }}>
             {board.actions.map((a) => (
@@ -216,8 +216,8 @@ function ExecTodayBoard({
   first,
   roleName,
   area,
-  /* orgId se usa abajo en OnlinePresencePanel: sin recibirlo aquÃ­, la
-     referencia reventaba el tablero de direcciÃ³n en cuanto llegaba presence. */
+  /* orgId se usa abajo en OnlinePresencePanel: sin recibirlo aquí, la
+     referencia reventaba el tablero de dirección en cuanto llegaba presence. */
   orgId,
   orgName,
   role,
@@ -243,7 +243,7 @@ function ExecTodayBoard({
   const alertItems = (board.alerts || []).map((a, i) => ({
     id: `alert-${i}`,
     title: a.text,
-    meta: a.tab ? 'Abrir mÃ³dulo relacionado' : null,
+    meta: a.tab ? 'Abrir módulo relacionado' : null,
     warn: a.warn,
     action: a.tab ? (
       <button type="button" className="primary small" onClick={() => onNavigate?.(a.tab)}>
@@ -266,37 +266,37 @@ function ExecTodayBoard({
       })}`
     : null
 
-  const context = [roleName, area ? areaLabel(area) : null, orgName].filter(Boolean).join(' Â· ')
+  const context = [roleName, area ? areaLabel(area) : null, orgName].filter(Boolean).join(' · ')
 
   return (
     <div className="card wide">
       <div className="exec-board">
         <ExecHero
-          kicker="Hoy Â· DirecciÃ³n"
-          title={first ? `Buen dÃ­a, ${first}` : board.title || 'Hoy'}
+          kicker="Hoy · Dirección"
+          title={first ? `Buen día, ${first}` : board.title || 'Hoy'}
           subtitle={
             board.subtitle ||
-            `${context}. Panorama del dÃ­a con indicadores operativos y accesos de gerencia.`
+            `${context}. Panorama del día con indicadores operativos y accesos de gerencia.`
           }
           status={
             <ExecStatus tone={tone}>
-              {board.loading ? 'Cargandoâ€¦' : healthLabel(health)}
+              {board.loading ? 'Cargando…' : healthLabel(health)}
             </ExecStatus>
           }
           meta={updatedMeta}
           actions={
             <>
               {canSeePlant3DTour(role) && (
-                /* Metaverso IncubApp: pÃ¡gina aparte, en pestaÃ±a nueva (la CSP
+                /* Metaverso IncubApp: página aparte, en pestaña nueva (la CSP
                    de la app pone frame-ancestors 'none', no admite iframe). */
                 <a
                   className="ghost small plant3d-link"
                   href={PLANT_3D_TOUR_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="Recorrido virtual de la planta en 3D (abre en otra pestaÃ±a)"
+                  title="Recorrido virtual de la planta en 3D (abre en otra pestaña)"
                 >
-                  ðŸ•¶ï¸ Planta 3D
+                  🕶️ Planta 3D
                 </a>
               )}
               <button
@@ -305,7 +305,7 @@ function ExecTodayBoard({
                 disabled={board.loading}
                 onClick={() => board.reload()}
               >
-                {board.loading ? 'Actualizandoâ€¦' : 'Actualizar'}
+                {board.loading ? 'Actualizando…' : 'Actualizar'}
               </button>
             </>
           }
@@ -326,22 +326,22 @@ function ExecTodayBoard({
                 items={
                   board.loading && !coverage.length
                     ? [
-                        { label: 'Cargando', value: 'â€¦' },
-                        { label: 'Cargando', value: 'â€¦' },
+                        { label: 'Cargando', value: '…' },
+                        { label: 'Cargando', value: '…' },
                       ]
                     : coverage
                 }
               />
             </ExecGroup>
           )}
-          <ExecGroup title="OperaciÃ³n del dÃ­a" hint="Mantenimiento, lotes y controles">
+          <ExecGroup title="Operación del día" hint="Mantenimiento, lotes y controles">
             <ExecKpiGrid
               items={
                 board.loading && !operation.length
                   ? [
-                      { label: 'Cargando', value: 'â€¦' },
-                      { label: 'Cargando', value: 'â€¦' },
-                      { label: 'Cargando', value: 'â€¦' },
+                      { label: 'Cargando', value: '…' },
+                      { label: 'Cargando', value: '…' },
+                      { label: 'Cargando', value: '…' },
                     ]
                   : operation.length
                     ? operation
@@ -352,10 +352,10 @@ function ExecTodayBoard({
         </div>
 
         <div className="exec-split">
-          <ExecPanel title="Requiere atenciÃ³n">
+          <ExecPanel title="Requiere atención">
             {alertItems.length === 0 ? (
               <ExecEmpty ok>
-                {board.loading ? 'Revisando alertasâ€¦' : 'Sin pendientes crÃ­ticos por ahora.'}
+                {board.loading ? 'Revisando alertas…' : 'Sin pendientes críticos por ahora.'}
               </ExecEmpty>
             ) : (
               <ExecList items={alertItems} />
@@ -364,7 +364,7 @@ function ExecTodayBoard({
           <ExecPanel title="Actividad reciente">
             {lineItems.length === 0 ? (
               <ExecEmpty>
-                {board.loading ? 'Cargando actividadâ€¦' : 'Sin actividad prioritaria listada.'}
+                {board.loading ? 'Cargando actividad…' : 'Sin actividad prioritaria listada.'}
               </ExecEmpty>
             ) : (
               <ExecList items={lineItems} />
@@ -373,7 +373,7 @@ function ExecTodayBoard({
         </div>
 
         {(board.actions || []).length > 0 && (
-          <ExecGroup title="Accesos del dÃ­a" hint="Atajos de direcciÃ³n">
+          <ExecGroup title="Accesos del día" hint="Atajos de dirección">
             <ExecLinks links={board.actions} onNavigate={onNavigate} />
           </ExecGroup>
         )}
@@ -381,4 +381,3 @@ function ExecTodayBoard({
     </div>
   )
 }
-

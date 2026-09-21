@@ -1,21 +1,21 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/ShiftSchedule.jsx
- * PROPÃ“SITO: Componente UI Â«ShiftScheduleÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «ShiftSchedule»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useShiftSchedule } from '../features/operations/hooks/useShiftSchedule'
+import { useShiftSchedule } from '../hooks/useShiftSchedule'
 
 const DAYS = 17 // ciclo 15 turno + 2 descanso
 const SHIFT_LABEL = { 1: 'T1', 2: 'T2', 3: 'T3' }
-const SHIFT_LONG = { 1: 'T1 Â· 06â€“14', 2: 'T2 Â· 14â€“22', 3: 'T3 Â· 22â€“06' }
+const SHIFT_LONG = { 1: 'T1 · 06–14', 2: 'T2 · 14–22', 3: 'T3 · 22–06' }
 const iso = (d) => {
   const x = new Date(d)
   x.setMinutes(x.getMinutes() - x.getTimezoneOffset())
@@ -23,7 +23,7 @@ const iso = (d) => {
 }
 const firstName = (n) => (n || '').trim().split(/\s+/)[0] || ''
 
-// Estado de una celda a partir de su asignaciÃ³n
+// Estado de una celda a partir de su asignación
 const cellVal = (a) => (a ? (a.is_rest ? 'rest' : a.shift_number ? String(a.shift_number) : '') : '')
 
 export default function ShiftSchedule({ orgId, userId, role }) {
@@ -49,7 +49,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
       supabase.from('plants').select('id, name, code').eq('org_id', orgId).order('created_at'),
     ]).then(([m, p]) => {
       setOps((m.data ?? []).map((r) => ({ id: r.user_id, name: r.profiles?.full_name || r.profiles?.email || 'Operario', role: r.role })))
-      // Solo plantas de incubaciÃ³n (las granjas usan prefijo G-)
+      // Solo plantas de incubación (las granjas usan prefijo G-)
       setPlants((p.data ?? []).filter((x) => !(x.code?.startsWith('G') || x.name?.startsWith('G-'))))
     })
   }, [orgId])
@@ -58,7 +58,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
     if (!plantId && plants.length > 0) setPlantId(plants[0].id)
   }, [plants, plantId])
 
-  // DÃ­as visibles a partir de `start`
+  // Días visibles a partir de `start`
   const days = useMemo(() => {
     const s = new Date(`${start}T00:00:00`)
     return Array.from({ length: DAYS }, (_, i) => {
@@ -75,7 +75,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
     return m
   }, [sch.assignments])
 
-  // Operarios que ve cada quien: gestiÃ³n ve a todos; un operario solo a sÃ­ mismo
+  // Operarios que ve cada quien: gestión ve a todos; un operario solo a sí mismo
   const rows = canEdit ? ops : ops.filter((o) => o.id === userId)
 
   const shiftDays = (from) => {
@@ -127,7 +127,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
         <div>
           <h2>Horarios de turno</h2>
           <span className="hint" style={{ margin: 0 }}>
-            {canEdit ? 'Asigna T1/T2/T3 o descanso Â· rotaciÃ³n 15/2' : 'Tu calendario de turnos'}
+            {canEdit ? 'Asigna T1/T2/T3 o descanso · rotación 15/2' : 'Tu calendario de turnos'}
           </span>
         </div>
         <span className="pill live"><span className="dot" /> En vivo</span>
@@ -136,9 +136,9 @@ export default function ShiftSchedule({ orgId, userId, role }) {
       {/* Controles superiores */}
       <div className="admin-section-head" style={{ marginTop: 8, flexWrap: 'wrap', gap: 8 }}>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-          <button className="chip ghost" onClick={() => move(-DAYS)}>â€¹ Anterior</button>
+          <button className="chip ghost" onClick={() => move(-DAYS)}>‹ Anterior</button>
           <input type="date" value={start} onChange={(e) => shiftDays(e.target.value)} />
-          <button className="chip ghost" onClick={() => move(DAYS)}>Siguiente â€º</button>
+          <button className="chip ghost" onClick={() => move(DAYS)}>Siguiente ›</button>
         </span>
         {plants.length > 1 && (
           <select value={plantId} onChange={(e) => setPlantId(e.target.value)}>
@@ -168,7 +168,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
               <tr key={op.id}>
                 <td className="sched-name">
                   {canEdit && (
-                    <input type="checkbox" checked={selected.has(op.id)} onChange={() => toggleSel(op.id)} title="Seleccionar para rotaciÃ³n" />
+                    <input type="checkbox" checked={selected.has(op.id)} onChange={() => toggleSel(op.id)} title="Seleccionar para rotación" />
                   )}
                   <span title={op.name}>{firstName(op.name)}</span>
                 </td>
@@ -180,7 +180,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
                     return (
                       <td key={date} className={`sched-cell v-${v || 'none'}`}>
                         <select value={v} onChange={(e) => onCell(op.id, date, e)} aria-label={`Turno ${firstName(op.name)} ${date}`}>
-                          <option value="">â€”</option>
+                          <option value="">—</option>
                           <option value="1">T1</option>
                           <option value="2">T2</option>
                           <option value="3">T3</option>
@@ -191,7 +191,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
                   }
                   return (
                     <td key={date} className={`sched-cell v-${v || 'none'}`}>
-                      <span>{a?.is_rest ? 'D' : a?.shift_number ? SHIFT_LABEL[a.shift_number] : 'â€”'}</span>
+                      <span>{a?.is_rest ? 'D' : a?.shift_number ? SHIFT_LABEL[a.shift_number] : '—'}</span>
                     </td>
                   )
                 })}
@@ -202,19 +202,19 @@ export default function ShiftSchedule({ orgId, userId, role }) {
       </div>
 
       <p className="hint" style={{ marginTop: 8 }}>
-        <span className="pill status ok" style={{ marginRight: 6 }}>T1</span> 06â€“14 Â·
-        <span className="pill status" style={{ margin: '0 6px' }}>T2</span> 14â€“22 Â·
-        <span className="pill status warn" style={{ margin: '0 6px' }}>T3</span> 22â€“06 Â·
+        <span className="pill status ok" style={{ marginRight: 6 }}>T1</span> 06–14 ·
+        <span className="pill status" style={{ margin: '0 6px' }}>T2</span> 14–22 ·
+        <span className="pill status warn" style={{ margin: '0 6px' }}>T3</span> 22–06 ·
         <span className="pill status idle" style={{ marginLeft: 6 }}>D</span> descanso
       </p>
 
-      {/* Generador de rotaciÃ³n 15/2 */}
+      {/* Generador de rotación 15/2 */}
       {canEdit && (
         <>
-          <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Generar rotaciÃ³n 15/2</h3>
+          <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Generar rotación 15/2</h3>
           <div className="inline-form compact">
             <p className="hint" style={{ margin: 0 }}>
-              Marca los operarios en la tabla, elige el turno y la fecha de inicio: se crean 15 dÃ­as de turno + 2 de descanso.
+              Marca los operarios en la tabla, elige el turno y la fecha de inicio: se crean 15 días de turno + 2 de descanso.
             </p>
             <div className="two-col">
               <label>
@@ -232,7 +232,7 @@ export default function ShiftSchedule({ orgId, userId, role }) {
             </div>
             <div className="actions row">
               <button className="primary" onClick={generate} disabled={busy || selected.size === 0}>
-                {busy ? 'Generandoâ€¦' : `Generar para ${selected.size} operario${selected.size === 1 ? '' : 's'}`}
+                {busy ? 'Generando…' : `Generar para ${selected.size} operario${selected.size === 1 ? '' : 's'}`}
               </button>
             </div>
           </div>
@@ -241,4 +241,3 @@ export default function ShiftSchedule({ orgId, userId, role }) {
     </div>
   )
 }
-

@@ -1,36 +1,36 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/ReceptionPanel.jsx
- * PROPÃ“SITO: Componente UI Â«ReceptionPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «ReceptionPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useEggReports } from '../features/production/hooks/useEggReports'
-import { useIncubationLots, lotTotals } from '../features/production/hooks/useIncubationLots'
+import { useEggReports } from '../hooks/useEggReports'
+import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
 import { compressImage } from '../lib/image'
 import ColdRoomPanel from './ColdRoomPanel'
 
 /**
- * RecepciÃ³n del huevo en planta (Fase 4). El operario de recepciÃ³n ve los
+ * Recepción del huevo en planta (Fase 4). El operario de recepción ve los
  * reportes ya verificados por la granja, cuenta/ajusta las cantidades y
- * certifica el envÃ­o â†’ el lote queda cargado al cuarto frÃ­o (almacenamiento
+ * certifica el envío → el lote queda cargado al cuarto frío (almacenamiento
  * de huevo), listo para el mapa de cargue del coordinador de planta.
  */
 
 const today = () => new Date().toLocaleDateString('sv-SE')
 const fmtDate = (v) =>
-  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'
+  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
 const num1 = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO', { maximumFractionDigits: 1 })
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 
-/* â•â• Formulario de certificaciÃ³n (conteo recibido) â•â•â•â•â•â•â•â•â•â• */
+/* ══ Formulario de certificación (conteo recibido) ══════════ */
 function CertifyForm({ report, categories, onCertify, onCancel }) {
   const [counts, setCounts] = useState(() => {
     const c = {}
@@ -52,7 +52,7 @@ function CertifyForm({ report, categories, onCertify, onCancel }) {
   return (
     <div className="inline-form compact">
       <p className="hint" style={{ margin: 0 }}>
-        Cuenta y confirma las cantidades recibidas. Al certificar, el lote queda cargado al cuarto frÃ­o.
+        Cuenta y confirma las cantidades recibidas. Al certificar, el lote queda cargado al cuarto frío.
       </p>
       <div className="two-col">
         {categories.map((cat) => (
@@ -64,14 +64,14 @@ function CertifyForm({ report, categories, onCertify, onCancel }) {
       </div>
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Certificandoâ€¦' : 'âœ“ Certificar recepciÃ³n'}</button>
+        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Certificando…' : '✓ Certificar recepción'}</button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
     </div>
   )
 }
 
-/* â•â• Panel principal (sub-pestaÃ±as) â•â• */
+/* ══ Panel principal (sub-pestañas) ══ */
 export default function ReceptionPanel({
   orgId,
   userId,
@@ -85,10 +85,10 @@ export default function ReceptionPanel({
 
   return (
     <>
-      <nav className="subtabs-rail" aria-label="RecepciÃ³n de huevo" style={{ marginBottom: 12 }}>
+      <nav className="subtabs-rail" aria-label="Recepción de huevo" style={{ marginBottom: 12 }}>
         <div className="subtabs-rail-head">
-          <p className="subtabs-rail-label">RecepciÃ³n</p>
-          <p className="subtabs-rail-hint">Llegada Â· certificaciÃ³n Â· cuarto frÃ­o</p>
+          <p className="subtabs-rail-label">Recepción</p>
+          <p className="subtabs-rail-hint">Llegada · certificación · cuarto frío</p>
         </div>
         <div className="tabs subtabs" role="tablist">
           {showReception && (
@@ -97,7 +97,7 @@ export default function ReceptionPanel({
               className={subTab === 'recepcion' ? 'tab active' : 'tab'}
               onClick={() => setSubTab('recepcion')}
             >
-              ðŸ“¥ Certificar envÃ­os
+              📥 Certificar envíos
             </button>
           )}
           {showReception && (
@@ -106,7 +106,7 @@ export default function ReceptionPanel({
               className={subTab === 'llegada' ? 'tab active' : 'tab'}
               onClick={() => setSubTab('llegada')}
             >
-              ðŸš› Llegada a planta
+              🚛 Llegada a planta
             </button>
           )}
           {showColdRoom && (
@@ -115,7 +115,7 @@ export default function ReceptionPanel({
               className={subTab === 'cuartofrio' ? 'tab active' : 'tab'}
               onClick={() => setSubTab('cuartofrio')}
             >
-              â„ï¸ Cuarto frÃ­o
+              ❄️ Cuarto frío
             </button>
           )}
         </div>
@@ -132,7 +132,7 @@ export default function ReceptionPanel({
   )
 }
 
-/* â•â• Llegada de huevo a planta: foto + sello â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Llegada de huevo a planta: foto + sello ═════════════════ */
 function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
   const er = useEggReports(orgId, userId)
   const canReport = [
@@ -196,7 +196,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
     }
     setMsg({
       kind: 'ok',
-      text: `Llegada registrada Â· sello ${res.seal || seal}`,
+      text: `Llegada registrada · sello ${res.seal || seal}`,
     })
     setSeal('')
     setPlate('')
@@ -212,8 +212,8 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
         <div>
           <h2>Reporte de llegada del huevo a planta</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} Â· tome foto y
-            anote el nÃºmero del sello
+            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · tome foto y
+            anote el número del sello
           </span>
         </div>
         <span className="pill live">
@@ -222,16 +222,16 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
       </div>
 
       <p className="hint" style={{ marginTop: 10 }}>
-        Al llegar el huevo a planta se registra el <strong>nÃºmero de sello</strong> del precinto y
-        una <strong>foto</strong> como evidencia. Luego se certifica el envÃ­o de granja en la pestaÃ±a
-        Â«Certificar envÃ­osÂ».
+        Al llegar el huevo a planta se registra el <strong>número de sello</strong> del precinto y
+        una <strong>foto</strong> como evidencia. Luego se certifica el envío de granja en la pestaña
+        «Certificar envíos».
       </p>
 
       {canReport && (
         <div className="inline-form" style={{ marginTop: 12 }}>
           <div className="two-col">
             <label>
-              NÃºmero del sello *
+              Número del sello *
               <input
                 type="text"
                 value={seal}
@@ -241,7 +241,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
               />
             </label>
             <label>
-              Placa del vehÃ­culo (opcional)
+              Placa del vehículo (opcional)
               <input
                 type="text"
                 value={plate}
@@ -256,7 +256,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
               type="text"
               value={farmHint}
               onChange={(e) => setFarmHint(e.target.value)}
-              placeholder="Ej. Granja Norte Â· lote 12"
+              placeholder="Ej. Granja Norte · lote 12"
             />
           </label>
           <div className="photo-field">
@@ -273,7 +273,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
             />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
               <button type="button" className={file ? 'chip' : 'primary'} onClick={() => inputRef.current?.click()}>
-                {file ? 'ðŸ“· Cambiar foto' : 'ðŸ“· Tomar foto'}
+                {file ? '📷 Cambiar foto' : '📷 Tomar foto'}
               </button>
               {file && (
                 <button type="button" className="ghost" onClick={() => setFile(null)}>
@@ -307,23 +307,23 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
               disabled={busy || !seal.trim() || !file}
               onClick={submit}
             >
-              {busy ? 'Guardandoâ€¦' : 'âœ“ Registrar llegada'}
+              {busy ? 'Guardando…' : '✓ Registrar llegada'}
             </button>
           </div>
         </div>
       )}
 
       {/* Cantidades de huevo por fecha de postura del lote recibido (la fecha de
-          llegada es automÃ¡tica; el operario ingresa cuÃ¡nto llegÃ³ por fecha). */}
+          llegada es automática; el operario ingresa cuánto llegó por fecha). */}
       {canReport && <LotArrivalCapture orgId={orgId} userId={userId} />}
 
       <h3 className="section-title" style={{ margin: '18px 0 8px' }}>
         Llegadas recientes (sello + foto)
       </h3>
       {er.loading && !er.arrivals.length ? (
-        <p className="hint">Cargandoâ€¦</p>
+        <p className="hint">Cargando…</p>
       ) : er.arrivals.length === 0 ? (
-        <p className="hint">AÃºn no hay reportes de llegada.</p>
+        <p className="hint">Aún no hay reportes de llegada.</p>
       ) : (
         <div className="admin-list">
           {er.arrivals.map((a) => (
@@ -335,7 +335,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
   )
 }
 
-/* â•â• Cantidades recibidas por lote y fecha de postura â•â•â•â•â•â•â•â• */
+/* ══ Cantidades recibidas por lote y fecha de postura ════════ */
 function LotArrivalCapture({ orgId, userId }) {
   const api = useIncubationLots(orgId, userId)
   const [lotId, setLotId] = useState('')
@@ -345,14 +345,14 @@ function LotArrivalCapture({ orgId, userId }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
 
-  // Lotes esperados (los que gerencia dejÃ³ planeados o ya llegando)
+  // Lotes esperados (los que gerencia dejó planeados o ya llegando)
   const expected = useMemo(
     () => api.lots.filter((l) => ['planned', 'arrived', 'classifying'].includes(l.status)),
     [api.lots]
   )
   const selected = expected.find((l) => l.id === lotId) || api.lots.find((l) => l.id === lotId)
 
-  // Al elegir lote, prellenar con las fechas de postura planeadas (cantidades vacÃ­as)
+  // Al elegir lote, prellenar con las fechas de postura planeadas (cantidades vacías)
   const pickLot = (id) => {
     setLotId(id)
     const lot = api.lots.find((l) => l.id === id)
@@ -384,7 +384,7 @@ function LotArrivalCapture({ orgId, userId }) {
       setMsg({ kind: 'error', text: res.error })
       return
     }
-    setMsg({ kind: 'ok', text: `Llegada registrada Â· ${num(totalEggs)} huevos` })
+    setMsg({ kind: 'ok', text: `Llegada registrada · ${num(totalEggs)} huevos` })
     setLotId('')
     setRows([{ productionDate: '', eggs: '' }])
     setSeal('')
@@ -397,7 +397,7 @@ function LotArrivalCapture({ orgId, userId }) {
         <div>
           <h3 style={{ margin: 0 }}>Cantidades recibidas por lote y fecha</h3>
           <span className="hint" style={{ margin: 0 }}>
-            La fecha de llegada es automÃ¡tica (hoy). Ingresa los huevos recibidos por fecha de postura.
+            La fecha de llegada es automática (hoy). Ingresa los huevos recibidos por fecha de postura.
           </span>
         </div>
       </div>
@@ -405,7 +405,7 @@ function LotArrivalCapture({ orgId, userId }) {
       <label>
         Lote recibido
         <select value={lotId} onChange={(e) => pickLot(e.target.value)}>
-          <option value="">â€” Selecciona el lote â€”</option>
+          <option value="">— Selecciona el lote —</option>
           {expected.map((l) => (
             <option key={l.id} value={l.id}>
               {l.code} ({num(lotTotals(l.postures).eggs)} huevos planeados)
@@ -416,7 +416,7 @@ function LotArrivalCapture({ orgId, userId }) {
 
       {expected.length === 0 && (
         <p className="hint" style={{ marginTop: 6 }}>
-          No hay lotes esperados. Gerencia los registra en el mÃ³dulo Â«DatosÂ».
+          No hay lotes esperados. Gerencia los registra en el módulo «Datos».
         </p>
       )}
 
@@ -442,7 +442,7 @@ function LotArrivalCapture({ orgId, userId }) {
                 placeholder="0"
               />
               <button type="button" className="ghost small" onClick={() => removeRow(i)} title="Quitar" style={{ flex: '0 0 auto' }}>
-                âœ•
+                ✕
               </button>
             </div>
           </label>
@@ -465,33 +465,33 @@ function LotArrivalCapture({ orgId, userId }) {
 
       {totalEggs > 0 && (
         <p className="hint" style={{ margin: '6px 0 0', color: 'var(--accent)' }}>
-          Total recibido: <strong>{num(totalEggs)}</strong> huevos Â·{' '}
-          {num1(totalEggs / api.eggsPerTray)} bandejas Â· {Math.ceil(totalEggs / api.eggsPerCart)} carros
+          Total recibido: <strong>{num(totalEggs)}</strong> huevos ·{' '}
+          {num1(totalEggs / api.eggsPerTray)} bandejas · {Math.ceil(totalEggs / api.eggsPerCart)} carros
         </p>
       )}
       {msg && <p className={`msg ${msg.kind === 'ok' ? 'ok' : 'error'}`} style={{ marginTop: 6 }}>{msg.text}</p>}
       {api.error && <p className="msg error" style={{ marginTop: 6 }}>{api.error}</p>}
       <div className="actions row" style={{ marginTop: 8 }}>
         <button type="button" className="primary" disabled={busy || totalEggs <= 0} onClick={submit}>
-          {busy ? 'Guardandoâ€¦' : 'âœ“ Registrar cantidades'}
+          {busy ? 'Guardando…' : '✓ Registrar cantidades'}
         </button>
       </div>
 
       {api.arrivals.length > 0 && (
         <>
-          <h4 className="section-title" style={{ margin: '16px 0 6px' }}>Ãšltimas cantidades recibidas</h4>
+          <h4 className="section-title" style={{ margin: '16px 0 6px' }}>Últimas cantidades recibidas</h4>
           <div className="admin-list">
             {api.arrivals.slice(0, 8).map((a) => {
               const eggs = (a.received_postures || []).reduce((s, p) => s + (Number(p.eggs) || 0), 0)
               return (
                 <div key={a.id} className="admin-row compact" style={{ margin: 0 }}>
-                  <span>ðŸ“¦</span>
+                  <span>📦</span>
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>{a.lot_code || 'Lote'} Â· {num(eggs)} huevos</strong>
+                    <strong>{a.lot_code || 'Lote'} · {num(eggs)} huevos</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {a.arrived_at ? new Date(a.arrived_at).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'â€”'}
-                      {' Â· '}
-                      {(a.received_postures || []).map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`).join('  Â·  ')}
+                      {a.arrived_at ? new Date(a.arrived_at).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {' · '}
+                      {(a.received_postures || []).map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`).join('  ·  ')}
                     </span>
                   </div>
                 </div>
@@ -536,7 +536,7 @@ function ArrivalRow({ arrival, getUrl }) {
               placeItems: 'center',
             }}
           >
-            ðŸ“·
+            📷
           </div>
         )}
         <div className="admin-row-main" style={{ flex: 1 }}>
@@ -549,10 +549,10 @@ function ArrivalRow({ arrival, getUrl }) {
                   hour: '2-digit',
                   minute: '2-digit',
                 })
-              : 'â€”'}
-            {arrival.vehicle_plate ? ` Â· ${arrival.vehicle_plate}` : ''}
-            {arrival.farm_hint ? ` Â· ${arrival.farm_hint}` : ''}
-            {arrival.notes ? ` Â· ${arrival.notes}` : ''}
+              : '—'}
+            {arrival.vehicle_plate ? ` · ${arrival.vehicle_plate}` : ''}
+            {arrival.farm_hint ? ` · ${arrival.farm_hint}` : ''}
+            {arrival.notes ? ` · ${arrival.notes}` : ''}
           </span>
         </div>
         <span className="pill status ok">Llegada</span>
@@ -561,7 +561,7 @@ function ArrivalRow({ arrival, getUrl }) {
   )
 }
 
-/* â•â• Bandeja de recepciÃ³n (envÃ­os de las granjas) â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Bandeja de recepción (envíos de las granjas) ════════════ */
 function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
   const canCertify = ['owner', 'admin', 'supervisor', 'coordinator', 'reception_operator'].includes(role)
   const er = useEggReports(orgId, userId)
@@ -580,17 +580,17 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
       setRooms(r.data ?? [])
       setFarms(p.data ?? [])
       const map = {}
-      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || 'â€”'
+      for (const row of t.data ?? []) map[row.user_id] = row.profiles?.full_name || row.profiles?.email || '—'
       setPeople(map)
     })
   }, [orgId])
 
   const roomName = (id) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? `${r.name} (${r.code})` : 'GalpÃ³n'
+    return r ? `${r.name} (${r.code})` : 'Galpón'
   }
   const farmName = (id) => farms.find((f) => f.id === id)?.name ?? 'Granja'
-  const nameOf = (id) => (id ? people[id] ?? 'â€”' : 'â€”')
+  const nameOf = (id) => (id ? people[id] ?? '—' : '—')
 
   const kindTotals = (counts) => {
     let inc = 0
@@ -618,9 +618,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
     <div className="card wide">
       <div className="card-head">
         <div>
-          <h2>RecepciÃ³n de huevo</h2>
+          <h2>Recepción de huevo</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} Â· verifica y certifica los envÃ­os de las granjas
+            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · verifica y certifica los envíos de las granjas
           </span>
         </div>
         {kpis.pending > 0 && <span className="pill status warn">{kpis.pending} por recibir</span>}
@@ -647,9 +647,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
         Por recibir {pending.length > 0 ? `(${pending.length})` : ''}
       </h3>
       {er.loading ? (
-        <p className="hint">Cargandoâ€¦</p>
+        <p className="hint">Cargando…</p>
       ) : pending.length === 0 ? (
-        <p className="hint">No hay envÃ­os verificados pendientes de recibir. âœ…</p>
+        <p className="hint">No hay envíos verificados pendientes de recibir. ✅</p>
       ) : (
         <div className="admin-list">
           {pending.map((r) => {
@@ -658,10 +658,10 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
               <div key={r.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>{roomName(r.room_id)} Â· {fmtDate(r.report_date)}</strong>
+                    <strong>{roomName(r.room_id)} · {fmtDate(r.report_date)}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      Reportado: Incubable {num(t.inc)} Â· Comercial {num(t.com)} Â· {farmName(r.farm_id)}
-                      {r.verified_by ? ` Â· VerificÃ³ ${nameOf(r.verified_by)}` : ''}
+                      Reportado: Incubable {num(t.inc)} · Comercial {num(t.com)} · {farmName(r.farm_id)}
+                      {r.verified_by ? ` · Verificó ${nameOf(r.verified_by)}` : ''}
                     </span>
                   </div>
                   <span className="pill status ok">Verificado</span>
@@ -688,22 +688,22 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
       )}
 
       <h3 className="section-title" style={{ margin: '18px 0 8px' }}>
-        En cuarto frÃ­o {received.length > 0 ? `(${received.length})` : ''}
+        En cuarto frío {received.length > 0 ? `(${received.length})` : ''}
       </h3>
       {received.length === 0 ? (
-        <p className="hint">AÃºn no hay huevo certificado en el cuarto frÃ­o.</p>
+        <p className="hint">Aún no hay huevo certificado en el cuarto frío.</p>
       ) : (
         <div className="admin-list">
           {received.slice(0, 30).map((r) => {
             const t = kindTotals(r.received_counts ?? r.counts)
             return (
               <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
-                <span>â„ï¸</span>
+                <span>❄️</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
-                  <strong>{roomName(r.room_id)} Â· {fmtDate(r.report_date)}</strong>
+                  <strong>{roomName(r.room_id)} · {fmtDate(r.report_date)}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    Recibido: Incubable {num(t.inc)} Â· Comercial {num(t.com)} Â· {farmName(r.farm_id)}
-                    {r.received_by ? ` Â· ${nameOf(r.received_by)}` : ''}
+                    Recibido: Incubable {num(t.inc)} · Comercial {num(t.com)} · {farmName(r.farm_id)}
+                    {r.received_by ? ` · ${nameOf(r.received_by)}` : ''}
                   </span>
                 </div>
                 <span className="pill status">Recibido</span>
@@ -715,4 +715,3 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
     </div>
   )
 }
-

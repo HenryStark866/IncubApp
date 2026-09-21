@@ -1,16 +1,16 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/AdminDashboard.jsx
- * PROPÃ“SITO: Componente UI Â«AdminDashboardÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «AdminDashboard»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useState } from 'react'
-import { useAdmin } from '../features/platform/hooks/useAdmin'
+import { useAdmin } from '../hooks/useAdmin'
 import ListControls, { useListControls } from './ListControls'
 import DataFixPanel from './DataFixPanel'
 import {
@@ -57,12 +57,12 @@ function AreaSelect({ value, onChange, title }) {
     <select
       value={value || 'plant'}
       onChange={onChange}
-      title={title || 'Ãrea del lÃ­der â€” define menÃº y herramientas (como LogÃ­stica)'}
+      title={title || 'Área del líder — define menú y herramientas (como Logística)'}
       style={{ minWidth: 160 }}
     >
       {WORK_AREAS.map((a) => (
         <option key={a.value} value={a.value}>
-          Ãrea: {a.label}
+          Área: {a.label}
         </option>
       ))}
     </select>
@@ -75,22 +75,22 @@ const PLANT_STATUS = [
 ]
 
 const SENSOR_KIND_LABEL = {
-  temperature: 'ðŸŒ¡ï¸ Temperatura',
-  humidity: 'ðŸ’§ Humedad',
-  co2: 'â˜ï¸ COâ‚‚',
-  turning: 'ðŸ”„ Volteo',
-  power: 'âš¡ EnergÃ­a',
-  door: 'ðŸšª Puerta',
-  pressure: 'ðŸŽšï¸ PresiÃ³n',
+  temperature: '🌡️ Temperatura',
+  humidity: '💧 Humedad',
+  co2: '☁️ CO₂',
+  turning: '🔄 Volteo',
+  power: '⚡ Energía',
+  door: '🚪 Puerta',
+  pressure: '🎚️ Presión',
 }
 
 const ROOM_TYPE_LABEL = {
-  incubation: 'IncubaciÃ³n',
+  incubation: 'Incubación',
   hatching: 'Nacedora',
   egg_storage: 'Bodega de huevo',
   chick_processing: 'Proceso de pollito',
   washing: 'Lavado',
-  technical: 'Cuarto tÃ©cnico',
+  technical: 'Cuarto técnico',
   office: 'Oficina',
   other: 'Otro',
 }
@@ -108,7 +108,7 @@ const slugify = (s) =>
   s
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[Ì€-Í¯]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
@@ -118,7 +118,7 @@ const outOfRange = (value, s) =>
   ((s.min_threshold != null && value < Number(s.min_threshold)) ||
     (s.max_threshold != null && value > Number(s.max_threshold)))
 
-/* â•â• Resumen â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Resumen ════════════════════════════════════════════════ */
 
 function OverviewSection({ admin }) {
   const pendientes = admin.users.filter((u) => !u.is_approved).length
@@ -159,9 +159,9 @@ function OverviewSection({ admin }) {
   ]
 
   const siteKpis = [
-    { label: 'Plantas', value: realPlants.length, sub: 'incubaciÃ³n / proceso' },
-    { label: 'Granjas', value: realFarms.length, sub: 'producciÃ³n de huevo' },
-    { label: 'Salas / mÃ³dulos', value: admin.rooms.length },
+    { label: 'Plantas', value: realPlants.length, sub: 'incubación / proceso' },
+    { label: 'Granjas', value: realFarms.length, sub: 'producción de huevo' },
+    { label: 'Salas / módulos', value: admin.rooms.length },
     { label: 'Equipos', value: admin.machines.length },
   ]
 
@@ -175,23 +175,23 @@ function OverviewSection({ admin }) {
     {
       label: 'OT activas',
       value: activeWO.length,
-      sub: criticalWO > 0 ? `${criticalWO} prioritaria(s)` : 'mantenimiento al dÃ­a',
+      sub: criticalWO > 0 ? `${criticalWO} prioritaria(s)` : 'mantenimiento al día',
       warn: criticalWO > 0,
     },
     {
       label: 'Alarmas',
       value: alarms.length,
-      sub: alarms.length === 0 ? 'todo en rango' : 'requieren atenciÃ³n',
+      sub: alarms.length === 0 ? 'todo en rango' : 'requieren atención',
       tone: alarms.length > 0 ? 'danger' : 'ok',
     },
   ]
 
   const alarmItems = alarms.map(({ sensor, reading, machine, plant, org }) => ({
     id: sensor.id,
-    title: `${SENSOR_KIND_LABEL[sensor.kind] ?? sensor.kind} Â· ${sensor.code}`,
+    title: `${SENSOR_KIND_LABEL[sensor.kind] ?? sensor.kind} · ${sensor.code}`,
     meta: [org?.name, plant?.name, machine ? `${machine.name} (${machine.code})` : null]
       .filter(Boolean)
-      .join(' Â· '),
+      .join(' · '),
     tone: 'alarm',
     side: (
       <>
@@ -199,7 +199,7 @@ function OverviewSection({ admin }) {
           <strong>{reading.value}</strong> {sensor.unit}
         </span>
         <span className="sensor-range">
-          {sensor.min_threshold ?? 'âˆ’âˆž'} â€“ {sensor.max_threshold ?? '+âˆž'} {sensor.unit}
+          {sensor.min_threshold ?? '−∞'} – {sensor.max_threshold ?? '+∞'} {sensor.unit}
         </span>
         <span className="pill status off">Fuera de rango</span>
       </>
@@ -211,7 +211,7 @@ function OverviewSection({ admin }) {
     attentionItems.push({
       id: 'pending-users',
       title: `${pendientes} usuario${pendientes === 1 ? '' : 's'} por aprobar`,
-      meta: 'Revisar en la pestaÃ±a Usuarios',
+      meta: 'Revisar en la pestaña Usuarios',
       warn: true,
     })
   }
@@ -219,7 +219,7 @@ function OverviewSection({ admin }) {
     attentionItems.push({
       id: 'critical-wo',
       title: `${criticalWO} OT prioritaria${criticalWO === 1 ? '' : 's'} abiertas`,
-      meta: `${activeWO.length} Ã³rdenes activas en total`,
+      meta: `${activeWO.length} órdenes activas en total`,
       warn: true,
     })
   }
@@ -227,7 +227,7 @@ function OverviewSection({ admin }) {
   return (
     <div className="exec-board">
       <ExecHero
-        kicker={`IncubApp Â· ${BRAND.slogan}`}
+        kicker={`IncubApp · ${BRAND.slogan}`}
         title="Resumen ejecutivo"
         subtitle="Panorama ordenado de usuarios, sedes y salud operativa en todas las empresas."
         status={<ExecStatus tone={tone}>{healthLabel(health)}</ExecStatus>}
@@ -240,7 +240,7 @@ function OverviewSection({ admin }) {
         <ExecGroup title="Instalaciones" hint="Cobertura multi-empresa">
           <ExecKpiGrid items={siteKpis} />
         </ExecGroup>
-        <ExecGroup title="OperaciÃ³n y salud" hint="Monitoreo y mantenimiento">
+        <ExecGroup title="Operación y salud" hint="Monitoreo y mantenimiento">
           <ExecKpiGrid items={opsKpis} />
         </ExecGroup>
       </div>
@@ -248,14 +248,14 @@ function OverviewSection({ admin }) {
       <div className="exec-split">
         <ExecPanel title="Alarmas de sensores">
           {alarms.length === 0 ? (
-            <ExecEmpty ok>NingÃºn sensor fuera de rango. El sistema opera con normalidad.</ExecEmpty>
+            <ExecEmpty ok>Ningún sensor fuera de rango. El sistema opera con normalidad.</ExecEmpty>
           ) : (
             <ExecList items={alarmItems} />
           )}
         </ExecPanel>
-        <ExecPanel title="Requiere atenciÃ³n">
+        <ExecPanel title="Requiere atención">
           {attentionItems.length === 0 && alarms.length === 0 ? (
-            <ExecEmpty ok>Sin pendientes de administraciÃ³n.</ExecEmpty>
+            <ExecEmpty ok>Sin pendientes de administración.</ExecEmpty>
           ) : attentionItems.length === 0 ? (
             <ExecEmpty>Revise las alarmas de sensores a la izquierda.</ExecEmpty>
           ) : (
@@ -267,7 +267,7 @@ function OverviewSection({ admin }) {
   )
 }
 
-/* â•â• Usuarios â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Usuarios ═══════════════════════════════════════════════ */
 
 function NewUserForm({ onCreate, onCancel }) {
   const [form, setForm] = useState({ email: '', password: '', fullName: '', approved: true })
@@ -299,8 +299,8 @@ function NewUserForm({ onCreate, onCancel }) {
       </div>
       <div className="two-col">
         <label>
-          ContraseÃ±a temporal
-          <input type="text" value={form.password} onChange={set('password')} placeholder="MÃ­nimo 6 caracteres" />
+          Contraseña temporal
+          <input type="text" value={form.password} onChange={set('password')} placeholder="Mínimo 6 caracteres" />
         </label>
         <label className="check-label">
           <input type="checkbox" checked={form.approved} onChange={set('approved')} />
@@ -310,7 +310,7 @@ function NewUserForm({ onCreate, onCancel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !form.email || form.password.length < 6}>
-          {busy ? 'Creandoâ€¦' : 'Crear usuario'}
+          {busy ? 'Creando…' : 'Crear usuario'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -340,13 +340,13 @@ function EditUserForm({ user, onSave, onCancel }) {
           <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
         </label>
         <label>
-          TelÃ©fono
+          Teléfono
           <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+57 300 000 0000" />
         </label>
       </div>
       <div className="actions row">
         <button className="primary small" onClick={submit} disabled={busy}>
-          {busy ? 'Guardandoâ€¦' : 'Guardar'}
+          {busy ? 'Guardando…' : 'Guardar'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -356,7 +356,7 @@ function EditUserForm({ user, onSave, onCancel }) {
   )
 }
 
-/* AsignaciÃ³n de empresa y rol por usuario: esto define sus permisos y funcionalidades */
+/* Asignación de empresa y rol por usuario: esto define sus permisos y funcionalidades */
 function UserRoleAssign({ user, admin }) {
   const memberships = admin.members.filter(
     (m) => m.user_id === user.id && m.role !== 'developer'
@@ -395,7 +395,7 @@ function UserRoleAssign({ user, admin }) {
       </p>
       {memberships.length === 0 && (
         <p className="hint" style={{ margin: '0 0 4px' }}>
-          Sin empresa ni rol â€” este usuario no puede operar.
+          Sin empresa ni rol — este usuario no puede operar.
         </p>
       )}
       {memberships.map((m) => (
@@ -412,7 +412,7 @@ function UserRoleAssign({ user, admin }) {
         <div className="admin-row compact add-member" style={{ margin: 0, flexWrap: 'wrap', gap: 6 }}>
           {!admin.tenantMode && (
             <select value={pickOrg} onChange={(e) => setPickOrg(e.target.value)}>
-              <option value="">Asignar a empresaâ€¦</option>
+              <option value="">Asignar a empresa…</option>
               {available.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.name}
@@ -433,7 +433,7 @@ function UserRoleAssign({ user, admin }) {
             }
             onClick={assign}
           >
-            {busy ? 'Guardandoâ€¦' : admin.tenantMode ? 'Asignar a la empresa' : 'Asignar y guardar'}
+            {busy ? 'Guardando…' : admin.tenantMode ? 'Asignar a la empresa' : 'Asignar y guardar'}
           </button>
         </div>
       )}
@@ -451,8 +451,8 @@ function UsersSection({ admin, myId }) {
 
   const onDelete = async (u) => {
     const msg = admin.tenantMode
-      ? `Â¿Quitar a "${u.email}" de la empresa? No se borra la cuenta global.`
-      : `Â¿Eliminar la cuenta de "${u.email}"? Se borrarÃ¡n sus membresÃ­as. Esta acciÃ³n no se puede deshacer.`
+      ? `¿Quitar a "${u.email}" de la empresa? No se borra la cuenta global.`
+      : `¿Eliminar la cuenta de "${u.email}"? Se borrarán sus membresías. Esta acción no se puede deshacer.`
     if (!window.confirm(msg)) return
     await admin.deleteUser(u.id)
   }
@@ -471,7 +471,7 @@ function UsersSection({ admin, myId }) {
         )}
       </div>
       {showForm && <NewUserForm onCreate={admin.createUser} onCancel={() => setShowForm(false)} />}
-      <ListControls lc={lc} placeholder="Buscar por nombre, correo o telÃ©fonoâ€¦" />
+      <ListControls lc={lc} placeholder="Buscar por nombre, correo o teléfono…" />
 
       <div className="admin-list">
         {lc.visible.map((u) => {
@@ -481,16 +481,16 @@ function UsersSection({ admin, myId }) {
           )
           const roleLabels = memberships
             .map((m) => {
-              const orgN = admin.orgs.find((o) => o.id === m.org_id)?.name ?? 'â€”'
+              const orgN = admin.orgs.find((o) => o.id === m.org_id)?.name ?? '—'
               const areaN =
                 m.role === 'coordinator' && m.area
                   ? WORK_AREAS.find((a) => a.value === m.area)?.label || m.area
                   : null
               return admin.tenantMode
-                ? `${roleLabel(m.role)}${areaN ? ` Â· ${areaN}` : ''}`
-                : `${orgN}: ${roleLabel(m.role)}${areaN ? ` Â· ${areaN}` : ''}`
+                ? `${roleLabel(m.role)}${areaN ? ` · ${areaN}` : ''}`
+                : `${orgN}: ${roleLabel(m.role)}${areaN ? ` · ${areaN}` : ''}`
             })
-            .join(' Â· ')
+            .join(' · ')
           const needsRole = u.is_approved && memberships.length === 0 && u.platform_role !== 'admin'
           const roleOpen = roleId === u.id || needsRole
           return (
@@ -499,8 +499,8 @@ function UsersSection({ admin, myId }) {
                 <div className="admin-row-main">
                   <strong>{u.full_name || '(sin nombre)'}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {u.email}{u.phone ? ` Â· ${u.phone}` : ''}
-                    {roleLabels ? ` Â· ðŸ·ï¸ ${roleLabels}` : ''}
+                    {u.email}{u.phone ? ` · ${u.phone}` : ''}
+                    {roleLabels ? ` · 🏷️ ${roleLabels}` : ''}
                   </span>
                 </div>
                 {!admin.tenantMode && u.platform_role === 'admin' && (
@@ -516,7 +516,7 @@ function UsersSection({ admin, myId }) {
                 <span className="admin-row-actions">
                   {!needsRole && (
                     <button className="ghost" onClick={() => setRoleId(roleId === u.id ? null : u.id)}>
-                      {roleId === u.id ? 'â–¾' : 'â–¸'} Rol
+                      {roleId === u.id ? '▾' : '▸'} Rol
                     </button>
                   )}
                   <button className="ghost" onClick={() => setEditId(editId === u.id ? null : u.id)}>
@@ -538,7 +538,7 @@ function UsersSection({ admin, myId }) {
                       </button>
                     </>
                   )}
-                  {isMe && <span className="hint" style={{ margin: 0 }}>(tÃº)</span>}
+                  {isMe && <span className="hint" style={{ margin: 0 }}>(tú)</span>}
                 </span>
               </div>
               {roleOpen && <UserRoleAssign user={u} admin={admin} />}
@@ -553,7 +553,7 @@ function UsersSection({ admin, myId }) {
   )
 }
 
-/* â•â• Empresas â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Empresas ═══════════════════════════════════════════════ */
 
 function OrgForm({ initial, onSubmit, onCancel, submitLabel }) {
   const [name, setName] = useState(initial?.name ?? '')
@@ -598,14 +598,14 @@ function OrgForm({ initial, onSubmit, onCancel, submitLabel }) {
       </label>
       {!isEdit && (
         <p className="hint" style={{ margin: '0 0 8px' }}>
-          Se aplicarÃ¡ la <strong>estructura base</strong> del producto (menÃº, mÃ³dulos y roles
-          sugeridos). Luego elija la compaÃ±Ã­a en la barra superior para construirla o editarla.
+          Se aplicará la <strong>estructura base</strong> del producto (menú, módulos y roles
+          sugeridos). Luego elija la compañía en la barra superior para construirla o editarla.
         </p>
       )}
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || name.trim().length < 2}>
-          {busy ? 'Guardandoâ€¦' : submitLabel}
+          {busy ? 'Guardando…' : submitLabel}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -615,7 +615,7 @@ function OrgForm({ initial, onSubmit, onCancel, submitLabel }) {
   )
 }
 
-/** Fila de miembro con borrador local + Â«Guardar cambiosÂ» (rol + Ã¡rea logistics, etc.) */
+/** Fila de miembro con borrador local + «Guardar cambios» (rol + área logistics, etc.) */
 function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
   const [role, setRole] = useState(member.role)
   const [area, setArea] = useState(member.area || 'plant')
@@ -664,7 +664,7 @@ function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
         <span className="hint" style={{ margin: 0 }}>
           {sub}
           {member.role === 'coordinator' && member.area
-            ? ` Â· actual: ${WORK_AREAS.find((a) => a.value === member.area)?.label || member.area}`
+            ? ` · actual: ${WORK_AREAS.find((a) => a.value === member.area)?.label || member.area}`
             : ''}
         </span>
       </div>
@@ -691,9 +691,9 @@ function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
         className="primary small"
         disabled={!dirty || busy || (needsArea && !area)}
         onClick={save}
-        title="Guarda rol y Ã¡rea juntos (incluye LogÃ­stica)"
+        title="Guarda rol y área juntos (incluye Logística)"
       >
-        {busy ? 'Guardandoâ€¦' : 'Guardar cambios'}
+        {busy ? 'Guardando…' : 'Guardar cambios'}
       </button>
       <button
         type="button"
@@ -702,7 +702,7 @@ function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
         onClick={() => {
           if (
             window.confirm(
-              `Â¿Quitar a ${user?.full_name || user?.email} de esta empresa?`
+              `¿Quitar a ${user?.full_name || user?.email} de esta empresa?`
             )
           ) {
             admin.removeMember(orgId, member.user_id)
@@ -750,13 +750,13 @@ function OrgMembers({ org, admin }) {
   return (
     <div className="org-members">
       <p className="hint" style={{ margin: '0 10px 10px' }}>
-        Elige rol y Ã¡rea (ej. <strong>LÃ­der de Ã¡rea Â· LogÃ­stica</strong>) y pulsa{' '}
-        <strong>Guardar cambios</strong>. No se aplica hasta guardar. Requiere migraciÃ³n SQL{' '}
+        Elige rol y área (ej. <strong>Líder de área · Logística</strong>) y pulsa{' '}
+        <strong>Guardar cambios</strong>. No se aplica hasta guardar. Requiere migración SQL{' '}
         <code>work_area</code> si el servidor rechaza &quot;logistics&quot;.
       </p>
       {leaders.length > 0 && (
         <div className="tool-card" style={{ margin: '0 10px 12px', padding: 10 }}>
-          <strong style={{ fontSize: 13 }}>LÃ­deres de Ã¡rea en esta empresa</strong>
+          <strong style={{ fontSize: 13 }}>Líderes de área en esta empresa</strong>
           <ul className="hint" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
             {leaders.map((m) => {
               const u = userOf(m.user_id)
@@ -764,10 +764,10 @@ function OrgMembers({ org, admin }) {
               return (
                 <li key={m.user_id}>
                   {u?.full_name || u?.email || m.user_id}
-                  {' Â· '}
-                  <strong>{a?.label || m.area || 'sin Ã¡rea'}</strong>
+                  {' · '}
+                  <strong>{a?.label || m.area || 'sin área'}</strong>
                   {!m.area && (
-                    <span style={{ color: 'var(--danger)' }}> â€” asigna Ã¡rea y guarda</span>
+                    <span style={{ color: 'var(--danger)' }}> — asigna área y guarda</span>
                   )}
                 </li>
               )
@@ -788,7 +788,7 @@ function OrgMembers({ org, admin }) {
       {available.length > 0 && (
         <div className="admin-row compact add-member" style={{ flexWrap: 'wrap', gap: 6 }}>
           <select value={pick} onChange={(e) => setPick(e.target.value)}>
-            <option value="">Agregar usuarioâ€¦</option>
+            <option value="">Agregar usuario…</option>
             {available.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.full_name || u.email}
@@ -810,7 +810,7 @@ function OrgMembers({ org, admin }) {
             disabled={!pick || busyAdd || (roleNeedsArea(role) && !area)}
             onClick={add}
           >
-            {busyAdd ? 'Guardandoâ€¦' : 'Agregar y guardar'}
+            {busyAdd ? 'Guardando…' : 'Agregar y guardar'}
           </button>
           {addErr && <p className="msg error" style={{ width: '100%' }}>{addErr}</p>}
         </div>
@@ -829,7 +829,7 @@ function OrgsSection({ admin }) {
 
   const onDelete = async (o) => {
     const nPlants = admin.plants.filter((p) => p.org_id === o.id).length
-    if (!window.confirm(`Â¿Eliminar la empresa "${o.name}"? Se borrarÃ¡n sus ${nPlants} planta(s) y todos sus datos. Irreversible.`)) return
+    if (!window.confirm(`¿Eliminar la empresa "${o.name}"? Se borrarán sus ${nPlants} planta(s) y todos sus datos. Irreversible.`)) return
     await admin.deleteOrg(o.id)
   }
 
@@ -848,7 +848,7 @@ function OrgsSection({ admin }) {
       {showForm && (
         <OrgForm onSubmit={admin.createOrg} onCancel={() => setShowForm(false)} submitLabel="Crear empresa" />
       )}
-      <ListControls lc={lc} placeholder="Buscar por nombre, identificador o NITâ€¦" />
+      <ListControls lc={lc} placeholder="Buscar por nombre, identificador o NIT…" />
 
       <div className="admin-list">
         {lc.visible.map((o) => {
@@ -861,7 +861,7 @@ function OrgsSection({ admin }) {
                 <div className="admin-row-main">
                   <strong>{o.name}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {o.slug}{o.nit ? ` Â· NIT ${o.nit}` : ''} Â· {nMembers} miembro(s) Â· {nPlants} planta(s)
+                    {o.slug}{o.nit ? ` · NIT ${o.nit}` : ''} · {nMembers} miembro(s) · {nPlants} planta(s)
                   </span>
                 </div>
                 <span className="admin-row-actions">
@@ -869,7 +869,7 @@ function OrgsSection({ admin }) {
                     Editar
                   </button>
                   <button className="ghost" onClick={() => setOpenId(open ? null : o.id)}>
-                    {open ? 'â–¾ Miembros' : 'â–¸ Miembros'}
+                    {open ? '▾ Miembros' : '▸ Miembros'}
                   </button>
                   <button className="ghost danger" onClick={() => onDelete(o)}>
                     Eliminar
@@ -893,7 +893,7 @@ function OrgsSection({ admin }) {
   )
 }
 
-/* â•â• Plantas y componentes â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Plantas y componentes ══════════════════════════════════ */
 
 function PlantForm({ orgs, initial, onSubmit, onCancel, submitLabel }) {
   const [form, setForm] = useState({
@@ -935,7 +935,7 @@ function PlantForm({ orgs, initial, onSubmit, onCancel, submitLabel }) {
       </div>
       <div className="two-col">
         <label>
-          CÃ³digo
+          Código
           <input type="text" value={form.code} onChange={set('code')} placeholder="Ej. PLN" />
         </label>
         <label>
@@ -956,7 +956,7 @@ function PlantForm({ orgs, initial, onSubmit, onCancel, submitLabel }) {
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
         <button className="primary" onClick={submit} disabled={busy || !form.orgId || form.name.trim().length < 2}>
-          {busy ? 'Guardandoâ€¦' : submitLabel}
+          {busy ? 'Guardando…' : submitLabel}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -987,7 +987,7 @@ function EditRoomInline({ room, onSave, onCancel }) {
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
         <label>
-          CÃ³digo
+          Código
           <input type="text" value={code} onChange={(e) => setCode(e.target.value)} />
         </label>
       </div>
@@ -1001,7 +1001,7 @@ function EditRoomInline({ room, onSave, onCancel }) {
       </label>
       <div className="actions row">
         <button className="primary small" onClick={submit} disabled={busy || name.trim().length < 2}>
-          {busy ? 'Guardandoâ€¦' : 'Guardar'}
+          {busy ? 'Guardando…' : 'Guardar'}
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>
           Cancelar
@@ -1018,11 +1018,11 @@ function PlantComponents({ plant, admin }) {
   const [editRoomId, setEditRoomId] = useState(null)
 
   const delRoom = async (r) => {
-    if (!window.confirm(`Â¿Eliminar la sala "${r.name}"?`)) return
+    if (!window.confirm(`¿Eliminar la sala "${r.name}"?`)) return
     await admin.deleteRoom(r.id)
   }
   const delMachine = async (m) => {
-    if (!window.confirm(`Â¿Eliminar la mÃ¡quina "${m.name}" (${m.code})?`)) return
+    if (!window.confirm(`¿Eliminar la máquina "${m.name}" (${m.code})?`)) return
     await admin.deleteMachine(m.id)
   }
 
@@ -1036,7 +1036,7 @@ function PlantComponents({ plant, admin }) {
             <div className="admin-row-main">
               <strong>{r.name}</strong>
               <span className="hint" style={{ margin: 0 }}>
-                {r.code} Â· {ROOM_TYPE_LABEL[r.type] ?? r.type}
+                {r.code} · {ROOM_TYPE_LABEL[r.type] ?? r.type}
               </span>
             </div>
             <button className="ghost" onClick={() => setEditRoomId(editRoomId === r.id ? null : r.id)}>
@@ -1052,14 +1052,14 @@ function PlantComponents({ plant, admin }) {
         </div>
       ))}
 
-      <p className="component-title">MÃ¡quinas ({machines.length})</p>
-      {machines.length === 0 && <p className="hint" style={{ margin: '0 10px 8px' }}>Sin mÃ¡quinas.</p>}
+      <p className="component-title">Máquinas ({machines.length})</p>
+      {machines.length === 0 && <p className="hint" style={{ margin: '0 10px 8px' }}>Sin máquinas.</p>}
       {machines.map((m) => (
         <div key={m.id} className="admin-row compact">
           <div className="admin-row-main">
             <strong>{m.name}</strong>
             <span className="hint" style={{ margin: 0 }}>
-              {m.code} Â· {MACHINE_TYPE_LABEL[m.type] ?? m.type} Â· {roomName(m.room_id)}
+              {m.code} · {MACHINE_TYPE_LABEL[m.type] ?? m.type} · {roomName(m.room_id)}
             </span>
           </div>
           <button className="ghost danger" onClick={() => delMachine(m)}>
@@ -1068,7 +1068,7 @@ function PlantComponents({ plant, admin }) {
         </div>
       ))}
       <p className="hint" style={{ margin: '4px 10px 8px' }}>
-        Para crear salas, mÃ¡quinas y sensores usa la pestaÃ±a <strong>Plantas</strong> del workspace.
+        Para crear salas, máquinas y sensores usa la pestaña <strong>Plantas</strong> del workspace.
       </p>
     </div>
   )
@@ -1078,7 +1078,7 @@ function PlantsSection({ admin }) {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [openId, setOpenId] = useState(null)
-  const orgName = (id) => admin.orgs.find((o) => o.id === id)?.name ?? 'â€”'
+  const orgName = (id) => admin.orgs.find((o) => o.id === id)?.name ?? '—'
   
   const realPlants = admin.plants.filter((p) => !(p.code?.startsWith('G') || p.name?.startsWith('G-')))
   const lc = useListControls(realPlants, (p, q) =>
@@ -1086,7 +1086,7 @@ function PlantsSection({ admin }) {
   )
 
   const onDelete = async (p) => {
-    if (!window.confirm(`Â¿Eliminar la planta "${p.name}"? Se borrarÃ¡n sus salas, mÃ¡quinas y sensores. Irreversible.`)) return
+    if (!window.confirm(`¿Eliminar la planta "${p.name}"? Se borrarán sus salas, máquinas y sensores. Irreversible.`)) return
     await admin.deletePlant(p.id)
   }
 
@@ -1105,7 +1105,7 @@ function PlantsSection({ admin }) {
       {showForm && (
         <PlantForm orgs={admin.orgs} onSubmit={admin.createPlant} onCancel={() => setShowForm(false)} submitLabel="Crear planta" />
       )}
-      <ListControls lc={lc} placeholder="Buscar por planta, cÃ³digo, ciudad o empresaâ€¦" />
+      <ListControls lc={lc} placeholder="Buscar por planta, código, ciudad o empresa…" />
 
       <div className="admin-list">
         {lc.visible.map((p) => {
@@ -1118,7 +1118,7 @@ function PlantsSection({ admin }) {
                 <div className="admin-row-main">
                   <strong>{p.name}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {p.code} Â· {orgName(p.org_id)}{p.city ? ` Â· ${p.city}` : ''} Â· {nRooms} sala(s) Â· {nMachines} mÃ¡quina(s)
+                    {p.code} · {orgName(p.org_id)}{p.city ? ` · ${p.city}` : ''} · {nRooms} sala(s) · {nMachines} máquina(s)
                   </span>
                 </div>
                 {p.status !== 'active' && <span className="pill status idle">Inactiva</span>}
@@ -1127,7 +1127,7 @@ function PlantsSection({ admin }) {
                     Editar
                   </button>
                   <button className="ghost" onClick={() => setOpenId(open ? null : p.id)}>
-                    {open ? 'â–¾ Componentes' : 'â–¸ Componentes'}
+                    {open ? '▾ Componentes' : '▸ Componentes'}
                   </button>
                   <button className="ghost danger" onClick={() => onDelete(p)}>
                     Eliminar
@@ -1163,7 +1163,7 @@ function FarmsSection({ admin }) {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [openId, setOpenId] = useState(null)
-  const orgName = (id) => admin.orgs.find((o) => o.id === id)?.name ?? 'â€”'
+  const orgName = (id) => admin.orgs.find((o) => o.id === id)?.name ?? '—'
   
   const realFarms = admin.plants.filter((p) => p.code?.startsWith('G') || p.name?.startsWith('G-'))
   const lc = useListControls(realFarms, (p, q) =>
@@ -1171,7 +1171,7 @@ function FarmsSection({ admin }) {
   )
 
   const onDelete = async (p) => {
-    if (!window.confirm(`Â¿Eliminar la granja "${p.name}"? Se borrarÃ¡n sus mÃ³dulos y galpones. Irreversible.`)) return
+    if (!window.confirm(`¿Eliminar la granja "${p.name}"? Se borrarán sus módulos y galpones. Irreversible.`)) return
     await admin.deletePlant(p.id)
   }
 
@@ -1195,7 +1195,7 @@ function FarmsSection({ admin }) {
       {showForm && (
         <PlantForm orgs={admin.orgs} onSubmit={createFarm} onCancel={() => setShowForm(false)} submitLabel="Crear granja" />
       )}
-      <ListControls lc={lc} placeholder="Buscar por granja, cÃ³digo, ciudad o empresaâ€¦" />
+      <ListControls lc={lc} placeholder="Buscar por granja, código, ciudad o empresa…" />
 
       <div className="admin-list">
         {lc.visible.map((p) => {
@@ -1208,7 +1208,7 @@ function FarmsSection({ admin }) {
                 <div className="admin-row-main">
                   <strong>{p.name}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    {p.code} Â· {orgName(p.org_id)}{p.city ? ` Â· ${p.city}` : ''} Â· {nRooms} mÃ³dulo(s) Â· {nMachines} galpÃ³n/equipo(s)
+                    {p.code} · {orgName(p.org_id)}{p.city ? ` · ${p.city}` : ''} · {nRooms} módulo(s) · {nMachines} galpón/equipo(s)
                   </span>
                 </div>
                 {p.status !== 'active' && <span className="pill status idle">Inactiva</span>}
@@ -1217,7 +1217,7 @@ function FarmsSection({ admin }) {
                     Editar
                   </button>
                   <button className="ghost" onClick={() => setOpenId(open ? null : p.id)}>
-                    {open ? 'â–¾ Componentes' : 'â–¸ Componentes'}
+                    {open ? '▾ Componentes' : '▸ Componentes'}
                   </button>
                   <button className="ghost danger" onClick={() => onDelete(p)}>
                     Eliminar
@@ -1249,7 +1249,7 @@ function FarmsSection({ admin }) {
   )
 }
 
-/* â•â• Panel principal â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Panel principal ════════════════════════════════════════ */
 
 /**
  * @param {{ myId: string, orgId?: string|null, orgName?: string, mode?: 'platform'|'tenant' }} props
@@ -1261,7 +1261,7 @@ export default function AdminDashboard({ myId, orgId = null, orgName = null, mod
   const [section, setSection] = useState('resumen')
   const pendientes = admin.users.filter((u) => !u.is_approved).length
 
-  // Si en tenant alguien quedÃ³ en pestaÃ±a oculta, volver a resumen
+  // Si en tenant alguien quedó en pestaña oculta, volver a resumen
   useEffect(() => {
     if (!tenantMode) return
     if (['empresas', 'datos'].includes(section)) setSection('resumen')
@@ -1273,13 +1273,13 @@ export default function AdminDashboard({ myId, orgId = null, orgName = null, mod
         <div style={{ flex: 1, minWidth: 200 }}>
           <h2 style={{ margin: 0 }}>
             {tenantMode
-              ? `AdministraciÃ³n Â· ${orgName || admin.orgs[0]?.name || 'Empresa'}`
-              : 'AdministraciÃ³n CDH Maker'}
+              ? `Administración · ${orgName || admin.orgs[0]?.name || 'Empresa'}`
+              : 'Administración CDH Maker'}
           </h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
             {tenantMode
-              ? 'AdministraciÃ³n de la licencia en su empresa: usuarios, plantas, granjas y operaciÃ³n. Sin herramientas de desarrollo ni otras empresas.'
-              : 'Plataforma multi-empresa Â· usuarios, sedes y salud operativa'}
+              ? 'Administración de la licencia en su empresa: usuarios, plantas, granjas y operación. Sin herramientas de desarrollo ni otras empresas.'
+              : 'Plataforma multi-empresa · usuarios, sedes y salud operativa'}
           </p>
         </div>
         {pendientes > 0 && <span className="pill status warn">{pendientes} por aprobar</span>}
@@ -1305,14 +1305,14 @@ export default function AdminDashboard({ myId, orgId = null, orgName = null, mod
         </button>
         {!tenantMode && (
           <button className={section === 'datos' ? 'tab active' : 'tab'} onClick={() => setSection('datos')}>
-            ðŸ›  Datos
+            🛠 Datos
           </button>
         )}
       </div>
 
       {admin.error && <p className="msg error">{admin.error}</p>}
       {admin.loading ? (
-        <p className="hint">Cargandoâ€¦</p>
+        <p className="hint">Cargando…</p>
       ) : section === 'resumen' ? (
         <OverviewSection admin={admin} />
       ) : section === 'usuarios' ? (
@@ -1329,4 +1329,3 @@ export default function AdminDashboard({ myId, orgId = null, orgName = null, mod
     </div>
   )
 }
-

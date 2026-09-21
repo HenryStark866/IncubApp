@@ -1,49 +1,49 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/CoordinatorDashboard.jsx
- * PROPÃ“SITO: Componente UI Â«CoordinatorDashboardÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «CoordinatorDashboard»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useMachineChecks, currentSlot } from '../features/maintenance/hooks/useMachineChecks'
+import { useMachineChecks, currentSlot } from '../hooks/useMachineChecks'
 import { useWorkOrders } from '../hooks/useWorkOrders'
-import { useBatches } from '../features/production/hooks/useBatches'
+import { useBatches } from '../hooks/useBatches'
 import CoordEngineeringBoard from './CoordEngineeringBoard'
 import { conditionOf } from '../lib/machineCondition'
 
 /**
- * Panel del coordinador â€” tablero personalizado segÃºn el ÃREA de trabajo.
- * Un mismo rol `coordinator` puede tener distintas Ã¡reas (planta, granja,
+ * Panel del coordinador — tablero personalizado según el ÁREA de trabajo.
+ * Un mismo rol `coordinator` puede tener distintas áreas (planta, granja,
  * mantenimiento, calidad, RR. HH.); cada una renderiza su propio dashboard.
- * PLANTA usa el board IE completo; calidad/general usan panel de accesos rÃ¡pidos.
- * Ãreas corporativas se redirigen a su pestaÃ±a de mÃ³dulo.
+ * PLANTA usa el board IE completo; calidad/general usan panel de accesos rápidos.
+ * Áreas corporativas se redirigen a su pestaña de módulo.
  */
 
 const AREA_LABEL = {
-  plant: 'CoordinaciÃ³n de planta',
-  farm: 'CoordinaciÃ³n de granja (veterinario)',
-  maintenance: 'CoordinaciÃ³n de mantenimiento',
-  quality: 'CoordinaciÃ³n de calidad y producciÃ³n',
-  hr: 'CoordinaciÃ³n de recursos humanos',
+  plant: 'Coordinación de planta',
+  farm: 'Coordinación de granja (veterinario)',
+  maintenance: 'Coordinación de mantenimiento',
+  quality: 'Coordinación de calidad y producción',
+  hr: 'Coordinación de recursos humanos',
   management: 'Gerencia',
-  accounting: 'CoordinaciÃ³n de contabilidad',
-  sales: 'CoordinaciÃ³n de ventas',
-  logistics: 'CoordinaciÃ³n de logÃ­stica',
-  sales_logistics: 'CoordinaciÃ³n ventas/logÃ­stica (legacy)',
-  sst: 'CoordinaciÃ³n SST (seguridad y salud)',
-  environmental: 'CoordinaciÃ³n de gestiÃ³n ambiental',
-  veterinary: 'CoordinaciÃ³n de sanidad veterinaria',
-  hse: 'CoordinaciÃ³n SST (legacy)',
-  general: 'Panel de coordinaciÃ³n',
+  accounting: 'Coordinación de contabilidad',
+  sales: 'Coordinación de ventas',
+  logistics: 'Coordinación de logística',
+  sales_logistics: 'Coordinación ventas/logística (legacy)',
+  sst: 'Coordinación SST (seguridad y salud)',
+  environmental: 'Coordinación de gestión ambiental',
+  veterinary: 'Coordinación de sanidad veterinaria',
+  hse: 'Coordinación SST (legacy)',
+  general: 'Panel de coordinación',
 }
 
-// Ãreas corporativas: el App las abre en DepartmentModule; aquÃ­ redirigimos si llegan al Panel
+// Áreas corporativas: el App las abre en DepartmentModule; aquí redirigimos si llegan al Panel
 const CORPORATE_AREAS = new Set([
   'management',
   'hr',
@@ -59,17 +59,17 @@ const CORPORATE_AREAS = new Set([
   'farm',
 ])
 
-const SHIFT_LABEL = { 1: 'T1 (06â€“14)', 2: 'T2 (14â€“22)', 3: 'T3 (22â€“06)' }
-const PRIORITY_LABEL = { low: 'Baja', medium: 'Media', high: 'Alta', critical: 'CrÃ­tica' }
-const STATUS_LABEL = { open: 'Abierta', in_progress: 'En ejecuciÃ³n', completed: 'Completada', cancelled: 'Cancelada' }
+const SHIFT_LABEL = { 1: 'T1 (06–14)', 2: 'T2 (14–22)', 3: 'T3 (22–06)' }
+const PRIORITY_LABEL = { low: 'Baja', medium: 'Media', high: 'Alta', critical: 'Crítica' }
+const STATUS_LABEL = { open: 'Abierta', in_progress: 'En ejecución', completed: 'Completada', cancelled: 'Cancelada' }
 
 const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : 'â€”'
+  iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—'
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 
-/* â•â• Router por Ã¡rea â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Router por área ═════════════════════════════════════════ */
 export default function CoordinatorDashboard({ orgId, userId, area, coordinatorName, onNavigate }) {
-  // MÃ³dulos corporativos tienen pestaÃ±a propia; si el usuario cae aquÃ­, lo guiamos
+  // Módulos corporativos tienen pestaña propia; si el usuario cae aquí, lo guiamos
   if (CORPORATE_AREAS.has(area)) {
     const tabByArea = {
       management: 'gerencia',
@@ -88,10 +88,10 @@ export default function CoordinatorDashboard({ orgId, userId, area, coordinatorN
     return (
       <div className="card wide">
         <div className="card-head">
-          <h2>{AREA_LABEL[area] ?? 'CoordinaciÃ³n'}</h2>
+          <h2>{AREA_LABEL[area] ?? 'Coordinación'}</h2>
         </div>
         <p className="hint">
-          Tu mÃ³dulo de Ã¡rea estÃ¡ disponible en la pestaÃ±a dedicada de la barra superior.
+          Tu módulo de área está disponible en la pestaña dedicada de la barra superior.
         </p>
         <div className="actions row" style={{ marginTop: 10, flexWrap: 'wrap' }}>
           <button className="primary" onClick={() => onNavigate?.(tabByArea[area])}>
@@ -99,7 +99,7 @@ export default function CoordinatorDashboard({ orgId, userId, area, coordinatorN
           </button>
           {area === 'maintenance' && (
             <button className="chip ghost" onClick={() => onNavigate?.('mantenimiento')}>
-              Ã“rdenes de trabajo
+              Órdenes de trabajo
             </button>
           )}
         </div>
@@ -129,7 +129,7 @@ export default function CoordinatorDashboard({ orgId, userId, area, coordinatorN
   return <AreaPlaceholder area={area} name={coordinatorName} onNavigate={onNavigate} />
 }
 
-/* â•â• Dashboard: Coordinador de PLANTA (todas las sedes) â•â•â•â•â•â• */
+/* ══ Dashboard: Coordinador de PLANTA (todas las sedes) ══════ */
 function PlantCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }) {
   const mc = useMachineChecks(orgId, userId, { canSupervise: true })
   const wo = useWorkOrders(orgId, userId)
@@ -181,7 +181,7 @@ function PlantCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate 
     [machines, plantId]
   )
 
-  // Ãšltima condiciÃ³n conocida de cada mÃ¡quina (mc.checks viene desc por taken_at)
+  // Última condición conocida de cada máquina (mc.checks viene desc por taken_at)
   const latestByMachine = useMemo(() => {
     const map = new Map()
     for (const c of mc.checks) if (!map.has(c.machine_id)) map.set(c.machine_id, c)
@@ -217,7 +217,7 @@ function PlantCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate 
     return s
   }, [plantMachines, latestByMachine])
 
-  // MÃ¡quinas con novedad (falla primero, luego alerta) para actuar
+  // Máquinas con novedad (falla primero, luego alerta) para actuar
   const alertMachines = useMemo(() => {
     const rank = { fault: 0, warning: 1 }
     return plantMachines
@@ -236,7 +236,7 @@ function PlantCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate 
 
   const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? null
   const machineName = (id) => machines.find((m) => m.id === id)?.name ?? 'Instalaciones'
-  const nameOf = (id) => people[id]?.name ?? 'â€”'
+  const nameOf = (id) => people[id]?.name ?? '—'
   const op = activeOperatorId ? people[activeOperatorId] : null
   const novedades = summary.warning + summary.fault
 
@@ -278,7 +278,7 @@ function PlantCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate 
   )
 }
 
-/* â•â• Dashboard: Coordinador de GRANJA (ciclo de aves) â•â•â•â•â•â•â• */
+/* ══ Dashboard: Coordinador de GRANJA (ciclo de aves) ═══════ */
 function FarmCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }) {
   const bt = useBatches(orgId, userId)
   const [farms, setFarms] = useState([])
@@ -302,10 +302,10 @@ function FarmCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }
     <div className="card wide">
       <div className="card-head">
         <div>
-          <h2>Panel de coordinaciÃ³n de granja</h2>
+          <h2>Panel de coordinación de granja</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} Â· levantes y
-            producciÃ³n (post-grading)
+            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · levantes y
+            producción (post-grading)
           </span>
         </div>
         {counts.received > 0 && <span className="pill status warn">{counts.received} por aprobar</span>}
@@ -317,7 +317,7 @@ function FarmCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }
           <span className="kpi-label">Lotes por aprobar</span>
         </div>
         <div className="kpi-card"><span className="kpi-value">{counts.levante}</span><span className="kpi-label">Lotes en levante</span></div>
-        <div className="kpi-card"><span className="kpi-value">{counts.production}</span><span className="kpi-label">En producciÃ³n</span></div>
+        <div className="kpi-card"><span className="kpi-value">{counts.production}</span><span className="kpi-label">En producción</span></div>
         <div className="kpi-card"><span className="kpi-value">{bt.batches.length}</span><span className="kpi-label">Lotes totales</span></div>
       </div>
 
@@ -327,17 +327,17 @@ function FarmCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }
         Lotes por aprobar {pending.length > 0 ? `(${pending.length})` : ''}
       </h3>
       {pending.length === 0 ? (
-        <p className="hint">No hay lotes pendientes de aprobaciÃ³n. âœ…</p>
+        <p className="hint">No hay lotes pendientes de aprobación. ✅</p>
       ) : (
         <div className="admin-list">
           {pending.map((b) => (
             <div key={b.id} className="admin-row compact" style={{ margin: 0 }}>
-              <span>ðŸ”</span>
+              <span>🐔</span>
               <div className="admin-row-main" style={{ flex: 1 }}>
-                <strong>{b.code} Â· {farmName(b.farm_id)}</strong>
+                <strong>{b.code} · {farmName(b.farm_id)}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  {(b.hens_received ?? 0).toLocaleString('es-CO')} gallinas Â· {(b.roosters_received ?? 0).toLocaleString('es-CO')} gallos
-                  {b.arrival_date ? ` Â· Llegada ${new Date(b.arrival_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}` : ''}
+                  {(b.hens_received ?? 0).toLocaleString('es-CO')} gallinas · {(b.roosters_received ?? 0).toLocaleString('es-CO')} gallos
+                  {b.arrival_date ? ` · Llegada ${new Date(b.arrival_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}` : ''}
                 </span>
               </div>
               <button className="primary small" onClick={() => onNavigate?.('produccion')}>Revisar</button>
@@ -346,38 +346,38 @@ function FarmCoordinatorDashboard({ orgId, userId, coordinatorName, onNavigate }
         </div>
       )}
 
-      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Accesos rÃ¡pidos</h3>
+      <h3 className="section-title" style={{ margin: '18px 0 8px' }}>Accesos rápidos</h3>
       <div className="actions row" style={{ flexWrap: 'wrap' }}>
         <button className="chip ghost" onClick={() => onNavigate?.('produccion')}>
           Levantes / lotes
         </button>
-        <button className="chip ghost" onClick={() => onNavigate?.('granjas')}>ðŸ—ºï¸ Planos de granjas</button>
-        <button className="chip ghost" onClick={() => onNavigate?.('supervision')}>ðŸ‘ï¸ SupervisiÃ³n</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('granjas')}>🗺️ Planos de granjas</button>
+        <button className="chip ghost" onClick={() => onNavigate?.('supervision')}>👁️ Supervisión</button>
       </div>
     </div>
   )
 }
 
-/* â•â• Panel genÃ©rico de coordinaciÃ³n (calidad / general / otras) â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ Panel genérico de coordinación (calidad / general / otras) ═════════════ */
 function AreaPlaceholder({ area, name, onNavigate }) {
   const first = firstName(name)
   const links = [
-    { tab: 'supervision', label: 'SupervisiÃ³n', hint: 'Actividades y seguimiento del turno' },
-    { tab: 'mantenimiento', label: 'Ã“rdenes de trabajo', hint: 'OT abiertas y crÃ­ticas' },
-    { tab: 'reportes', label: 'Reportes / documentos', hint: 'Enviar informes a gerencia o mÃ³dulos' },
+    { tab: 'supervision', label: 'Supervisión', hint: 'Actividades y seguimiento del turno' },
+    { tab: 'mantenimiento', label: 'Órdenes de trabajo', hint: 'OT abiertas y críticas' },
+    { tab: 'reportes', label: 'Reportes / documentos', hint: 'Enviar informes a gerencia o módulos' },
     { tab: 'asistencia', label: 'Asistencia', hint: 'Ingreso y salida con foto' },
-    { tab: 'plantas', label: 'Plantas y planos', hint: 'Layout y mÃ¡quinas' },
+    { tab: 'plantas', label: 'Plantas y planos', hint: 'Layout y máquinas' },
     { tab: 'granjas', label: 'Granjas', hint: 'Sedes de campo' },
     { tab: 'iot', label: 'IoT y bioseguridad', hint: 'Checklists por sede' },
-    { tab: 'accesos', label: 'Accesos', hint: 'Permisos temporales entre mÃ³dulos' },
+    { tab: 'accesos', label: 'Accesos', hint: 'Permisos temporales entre módulos' },
   ]
   return (
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <h2 style={{ margin: 0 }}>{AREA_LABEL[area] ?? 'Panel de coordinaciÃ³n'}</h2>
+          <h2 style={{ margin: 0 }}>{AREA_LABEL[area] ?? 'Panel de coordinación'}</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
-            Hola{first ? `, ${first}` : ''}. Centro de control de tu Ã¡rea con accesos a los mÃ³dulos
+            Hola{first ? `, ${first}` : ''}. Centro de control de tu área con accesos a los módulos
             operativos.
           </p>
         </div>
@@ -388,15 +388,15 @@ function AreaPlaceholder({ area, name, onNavigate }) {
           <span className="exec-kpi-value" style={{ fontSize: 16 }}>
             {AREA_LABEL[area]?.split(' ')[0] || 'Coord'}
           </span>
-          <span className="exec-kpi-label">Ãrea</span>
+          <span className="exec-kpi-label">Área</span>
         </div>
         <div className="exec-kpi ok">
-          <span className="exec-kpi-value">â—</span>
-          <span className="exec-kpi-label">SesiÃ³n activa</span>
+          <span className="exec-kpi-value">●</span>
+          <span className="exec-kpi-label">Sesión activa</span>
         </div>
       </div>
       <h3 className="section-title" style={{ margin: '18px 0 8px' }}>
-        Accesos rÃ¡pidos
+        Accesos rápidos
       </h3>
       <div className="admin-list">
         {links.map((l) => (
@@ -420,4 +420,3 @@ function AreaPlaceholder({ area, name, onNavigate }) {
     </div>
   )
 }
-

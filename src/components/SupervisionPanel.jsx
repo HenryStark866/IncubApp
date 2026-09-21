@@ -1,21 +1,21 @@
-﻿/**
+/**
  * =============================================================================
  * ARCHIVO: src/components/SupervisionPanel.jsx
- * PROPÃ“SITO: Componente UI Â«SupervisionPanelÂ»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de mÃ³dulo o pestaÃ±a correspondiente.
- * CÃ“MO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegaciÃ³n hacia otros mÃ³dulos.
- * Cada bloque relevante de este archivo estÃ¡ orientado a la operaciÃ³n multi-mÃ³dulo
- * de incubaciÃ³n / granja / gerencia en IncubApp.
+ * PROPÓSITO: Componente UI «SupervisionPanel»: pantalla o widget de la interfaz operativa de IncubApp. Se renderiza cuando el usuario tiene permiso de módulo o pestaña correspondiente.
+ * CÓMO FUNCIONA: Recibe props (orgId, userId, role, etc.), usa hooks y renderiza JSX. Los eventos del usuario llaman a mutaciones o navegación hacia otros módulos.
+ * Cada bloque relevante de este archivo está orientado a la operación multi-módulo
+ * de incubación / granja / gerencia en IncubApp.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useMachineChecks, currentSlot } from '../features/maintenance/hooks/useMachineChecks'
-import { useLoads } from '../features/production/hooks/useLoads'
+import { useMachineChecks, currentSlot } from '../hooks/useMachineChecks'
+import { useLoads } from '../hooks/useLoads'
 import { useHatches } from '../hooks/useHatches'
-import { useEggReports } from '../features/production/hooks/useEggReports'
-import { useNotifications } from '../shared/hooks/useNotifications'
+import { useEggReports } from '../hooks/useEggReports'
+import { useNotifications } from '../hooks/useNotifications'
 import ListControls, { useListControls } from './ListControls'
 import { IncidentReportView, WorkOrdersView, ShiftActivitiesView, MerchandiseView } from './ShiftOpsPanels'
 import { conditionOf } from '../lib/machineCondition'
@@ -29,27 +29,27 @@ import {
 
 // Incubadoras (cargue)
 const SETTER_TYPES = ['setter', 'combo']
-// Transferencia y nacimiento operan por SALÃ“N de nacedoras (rooms.type = hatching)
+// Transferencia y nacimiento operan por SALÓN de nacedoras (rooms.type = hatching)
 const HATCHING_ROOM_TYPE = 'hatching'
 // Estimado de pollitos a nacer sobre el huevo incubable (ajustable)
 const HATCH_RATE = 0.82
-// DÃ­a 21 del ciclo (504 h): listo para nacimiento
+// Día 21 del ciclo (504 h): listo para nacimiento
 const HATCH_READY_HOURS = 504
-// MÃ­nimo de dÃ­as de incubaciÃ³n para habilitar la transferencia de una mÃ¡quina
-// (evita transferir por error una incubadora reciÃ©n cargada)
+// Mínimo de días de incubación para habilitar la transferencia de una máquina
+// (evita transferir por error una incubadora recién cargada)
 const MIN_TRANSFER_DAYS = 10
-const MODE_LABEL = { single: 'Sencilla (1 salÃ³n)', double: 'Doble (2 salones)' }
+const MODE_LABEL = { single: 'Sencilla (1 salón)', double: 'Doble (2 salones)' }
 
 function hatchBadge(ageHours) {
   if (ageHours == null) return null
-  if (ageHours >= HATCH_READY_HOURS) return { text: 'âœ… Listo para nacimiento', cls: 'pill status ok' }
+  if (ageHours >= HATCH_READY_HOURS) return { text: '✅ Listo para nacimiento', cls: 'pill status ok' }
   const daysLeft = Math.max(0, Math.ceil((HATCH_READY_HOURS - ageHours) / 24))
-  return { text: `â³ Faltan ~${daysLeft} d para el dÃ­a 21`, cls: 'pill status idle' }
+  return { text: `⏳ Faltan ~${daysLeft} d para el día 21`, cls: 'pill status idle' }
 }
 
-// CronÃ³metro: "Xh YYm" transcurridos entre dos instantes (o hasta ahora)
+// Cronómetro: "Xh YYm" transcurridos entre dos instantes (o hasta ahora)
 function elapsedLabel(fromIso, toMs) {
-  if (!fromIso) return 'â€”'
+  if (!fromIso) return '—'
   const ms = (toMs ?? Date.now()) - new Date(fromIso).getTime()
   const totalMin = Math.max(0, Math.floor(ms / 60000))
   const h = Math.floor(totalMin / 60)
@@ -63,9 +63,9 @@ const nowLocalInput = () => {
   return d.toISOString().slice(0, 16)
 }
 const fmtDateTimeFull = (iso) =>
-  iso ? new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”'
+  iso ? new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
-/* â”€â”€ Hitos de ciclo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hitos de ciclo ────────────────────────────────────────── */
 function cycleAge(cycleStartAt) {
   if (!cycleStartAt) return null
   const diffMs = Date.now() - new Date(cycleStartAt).getTime()
@@ -77,8 +77,8 @@ function cycleAge(cycleStartAt) {
 }
 function milestoneBadge(ageHours) {
   if (ageHours == null) return null
-  if (ageHours >= 432) return { text: 'âœ… Listo para transferencia', cls: 'pill status ok' }
-  if (ageHours >= 36 && ageHours < 60) return { text: 'âš ï¸ CalibraciÃ³n obligatoria', cls: 'pill status warn' }
+  if (ageHours >= 432) return { text: '✅ Listo para transferencia', cls: 'pill status ok' }
+  if (ageHours >= 36 && ageHours < 60) return { text: '⚠️ Calibración obligatoria', cls: 'pill status warn' }
   return null
 }
 
@@ -92,25 +92,25 @@ const MACHINE_TYPE_LABEL = {
 }
 
 const ALARM_TYPES = [
-  'ðŸŒ¡ï¸ Temperatura fuera de rango',
-  'ðŸ’§ Humedad fuera de rango',
-  'ðŸ”„ Falla de volteo',
-  'âš¡ Falla elÃ©ctrica',
-  'ðŸ”Š Ruido anormal',
-  'ðŸšª Puerta / sello',
-  'â„ï¸ RefrigeraciÃ³n',
-  'âš ï¸ Otra novedad',
+  '🌡️ Temperatura fuera de rango',
+  '💧 Humedad fuera de rango',
+  '🔄 Falla de volteo',
+  '⚡ Falla eléctrica',
+  '🔊 Ruido anormal',
+  '🚪 Puerta / sello',
+  '❄️ Refrigeración',
+  '⚠️ Otra novedad',
 ]
 
-const SHIFT_LABEL = { 1: 'T1 (06â€“14)', 2: 'T2 (14â€“22)', 3: 'T3 (22â€“06)' }
+const SHIFT_LABEL = { 1: 'T1 (06–14)', 2: 'T2 (14–22)', 3: 'T3 (22–06)' }
 
-// La ronda del turno solo cubre salas de incubadoras, nacedoras y cuartos tÃ©cnicos
+// La ronda del turno solo cubre salas de incubadoras, nacedoras y cuartos técnicos
 const ROUND_ROOM_TYPES = ['incubation', 'hatching', 'technical']
 
 const fmtTime = (iso) =>
   new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 
-/* â”€â”€ Miniatura con URL firmada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Miniatura con URL firmada ─────────────────────────────── */
 function PhotoThumb({ path, getPhotoUrl }) {
   const [url, setUrl] = useState(null)
   useEffect(() => {
@@ -122,8 +122,8 @@ function PhotoThumb({ path, getPhotoUrl }) {
     }
   }, [path, getPhotoUrl])
 
-  if (!path) return <div className="check-thumb placeholder">ðŸ”Œ</div>
-  if (!url) return <div className="check-thumb placeholder">ðŸ“·</div>
+  if (!path) return <div className="check-thumb placeholder">🔌</div>
+  if (!url) return <div className="check-thumb placeholder">📷</div>
   return (
     <a href={url} target="_blank" rel="noreferrer" title="Ver foto completa">
       <img className="check-thumb" src={url} alt="Foto de la interfaz" loading="lazy" />
@@ -131,7 +131,7 @@ function PhotoThumb({ path, getPhotoUrl }) {
   )
 }
 
-/* â”€â”€ Captura directa: cÃ¡mara â†’ foto â†’ âœ“ / âœ— â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Captura directa: cámara → foto → ✓ / ✗ ────────────────── */
 function MachineCapture({ machine, mc, onDone }) {
   const inputRef = useRef(null)
   const [file, setFile] = useState(null)
@@ -145,9 +145,9 @@ function MachineCapture({ machine, mc, onDone }) {
   const [statusMsg, setStatusMsg] = useState(null)
   const openedRef = useRef(false)
 
-  /* â”€â”€ Lecturas de pantalla del FORMATO CONTROL DIARIO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   * Opcionales: la ronda vale con la foto sola. Vienen prellenadas con la Ãºltima
-   * toma de esa misma mÃ¡quina para que el turnero solo corrija lo que se moviÃ³.
+  /* ── Lecturas de pantalla del FORMATO CONTROL DIARIO ──────────
+   * Opcionales: la ronda vale con la foto sola. Vienen prellenadas con la última
+   * toma de esa misma máquina para que el turnero solo corrija lo que se movió.
    */
   const campos = readingFieldsFor(machine.type)
   const ultima = useMemo(
@@ -160,7 +160,7 @@ function MachineCapture({ machine, mc, onDone }) {
   const [readings, setReadings] = useState(() => readingsFromCheck(ultima))
   const setReading = (key, value) => setReadings((prev) => ({ ...prev, [key]: value }))
 
-  // Abrir la cÃ¡mara al montar (reintento corto si el input aÃºn no estÃ¡ listo)
+  // Abrir la cámara al montar (reintento corto si el input aún no está listo)
   useEffect(() => {
     const t = setTimeout(() => {
       if (!openedRef.current) {
@@ -203,13 +203,13 @@ function MachineCapture({ machine, mc, onDone }) {
   const onFile = async (e) => {
     const f = e.target.files?.[0] ?? null
     if (!f) {
-      // CancelÃ³ la cÃ¡mara: no cerrar de golpe â€” ofrecer reintentar
+      // Canceló la cámara: no cerrar de golpe — ofrecer reintentar
       setErr(null)
-      setStatusMsg('No se tomÃ³ foto. Pulsa Â«Tomar fotoÂ» para abrir la cÃ¡mara.')
+      setStatusMsg('No se tomó foto. Pulsa «Tomar foto» para abrir la cámara.')
       return
     }
     if (!f.size) {
-      setErr('La cÃ¡mara entregÃ³ un archivo vacÃ­o. Intenta de nuevo.')
+      setErr('La cámara entregó un archivo vacío. Intenta de nuevo.')
       return
     }
     setCompressing(true)
@@ -224,7 +224,7 @@ function MachineCapture({ machine, mc, onDone }) {
       }
       setFile(compressed)
     } catch {
-      // Usar original si falla compresiÃ³n
+      // Usar original si falla compresión
       setFile(f)
     }
     setCompressing(false)
@@ -232,12 +232,12 @@ function MachineCapture({ machine, mc, onDone }) {
 
   const save = async (condition, notes) => {
     if (!file || file.size === 0) {
-      setErr('Falta la foto. TÃ³mala de nuevo antes de confirmar.')
+      setErr('Falta la foto. Tómala de nuevo antes de confirmar.')
       return
     }
     setBusy(true)
     setErr(null)
-    setStatusMsg('Guardando fotoâ€¦')
+    setStatusMsg('Guardando foto…')
     try {
       const { error, offline } = await mc.createCheck({
         plantId: machine.plant_id,
@@ -254,7 +254,7 @@ function MachineCapture({ machine, mc, onDone }) {
         return
       }
       if (offline) {
-        setStatusMsg('Guardado en el dispositivo Â· se subirÃ¡ al sincronizar')
+        setStatusMsg('Guardado en el dispositivo · se subirá al sincronizar')
         // breve feedback y cerrar
         setTimeout(() => onDone(true), 450)
       } else {
@@ -271,7 +271,7 @@ function MachineCapture({ machine, mc, onDone }) {
 
   const confirmAlarm = () => {
     if (!alarmType) return
-    save('fault', `${alarmType}${alarmNote.trim() ? ` â€” ${alarmNote.trim()}` : ''}`)
+    save('fault', `${alarmType}${alarmNote.trim() ? ` — ${alarmNote.trim()}` : ''}`)
   }
 
   return (
@@ -288,7 +288,7 @@ function MachineCapture({ machine, mc, onDone }) {
       {!file && !compressing && (
         <div style={{ display: 'grid', gap: 8 }}>
           <p className="hint" style={{ margin: 0 }}>
-            {statusMsg || 'Abriendo la cÃ¡maraâ€¦'}
+            {statusMsg || 'Abriendo la cámara…'}
           </p>
           <button type="button" className="primary" onClick={retake}>
             Tomar foto
@@ -298,7 +298,7 @@ function MachineCapture({ machine, mc, onDone }) {
           </button>
         </div>
       )}
-      {compressing && <p className="hint" style={{ margin: 0 }}>Comprimiendo imagenâ€¦</p>}
+      {compressing && <p className="hint" style={{ margin: 0 }}>Comprimiendo imagen…</p>}
 
       {preview && !askAlarm && (
         <>
@@ -306,7 +306,7 @@ function MachineCapture({ machine, mc, onDone }) {
           {campos.length > 0 && (
             <div className="capture-readings">
               <p className="hint" style={{ margin: '6px 0 4px' }}>
-                Lecturas de la pantalla <span style={{ opacity: 0.7 }}>(opcional â€” llenan el formato de control diario)</span>
+                Lecturas de la pantalla <span style={{ opacity: 0.7 }}>(opcional — llenan el formato de control diario)</span>
               </p>
               <div className="readings-grid">
                 {campos.map((c) => (
@@ -329,14 +329,14 @@ function MachineCapture({ machine, mc, onDone }) {
             </div>
           )}
           <p className="hint" style={{ margin: '4px 0 0', textAlign: 'center' }}>
-            Â¿La mÃ¡quina estÃ¡ bien?
+            ¿La máquina está bien?
           </p>
           <div className="capture-actions">
             <button className="capture-btn ok" onClick={confirmOk} disabled={busy} title="Sin novedad">
-              âœ“
+              ✓
             </button>
             <button className="capture-btn bad" onClick={() => setAskAlarm(true)} disabled={busy} title="Reportar alarma">
-              âœ—
+              ✗
             </button>
           </div>
           <button type="button" className="ghost" onClick={retake} disabled={busy} style={{ marginTop: 6 }}>
@@ -344,7 +344,7 @@ function MachineCapture({ machine, mc, onDone }) {
           </button>
           {(busy || statusMsg) && (
             <p className="hint" style={{ textAlign: 'center' }}>
-              {statusMsg || 'Guardandoâ€¦'}
+              {statusMsg || 'Guardando…'}
             </p>
           )}
         </>
@@ -353,7 +353,7 @@ function MachineCapture({ machine, mc, onDone }) {
       {preview && askAlarm && (
         <>
           <img className="capture-preview small" src={preview} alt="Vista previa" />
-          <p className="hint" style={{ margin: '4px 0 2px' }}>Â¿QuÃ© tipo de alarma registras?</p>
+          <p className="hint" style={{ margin: '4px 0 2px' }}>¿Qué tipo de alarma registras?</p>
           <div className="alarm-grid">
             {ALARM_TYPES.map((t) => (
               <button
@@ -374,7 +374,7 @@ function MachineCapture({ machine, mc, onDone }) {
           />
           <div className="actions row">
             <button className="primary" onClick={confirmAlarm} disabled={busy || !alarmType}>
-              {busy ? 'Guardandoâ€¦' : 'ðŸš¨ Registrar alarma'}
+              {busy ? 'Guardando…' : '🚨 Registrar alarma'}
             </button>
             <button className="ghost" onClick={() => setAskAlarm(false)} disabled={busy}>
               Volver
@@ -393,10 +393,10 @@ function MachineCapture({ machine, mc, onDone }) {
   )
 }
 
-/* â”€â”€ Vista de ronda del turno actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Vista de ronda del turno actual ───────────────────────── */
 function RoundView({ mc, plants, rooms, machines }) {
   const { hour, shift, shiftDate } = currentSlot()
-  // Recordar dÃ³nde iba la ronda (misma hora/turno) si el operario sale de la app un momento
+  // Recordar dónde iba la ronda (misma hora/turno) si el operario sale de la app un momento
   const saved = (() => {
     try {
       const s = JSON.parse(localStorage.getItem('round_ui_state') || 'null')
@@ -416,13 +416,13 @@ function RoundView({ mc, plants, rooms, machines }) {
     if (!plantId && plants.length > 0) setPlantId(plants[0].id)
   }, [plants, plantId])
 
-  // La ronda solo cubre salas de incubadoras/nacedoras/cuartos tÃ©cnicos QUE tengan
-  // mÃ¡quinas que revisar; asÃ­ los cuartos vacÃ­os (bodegas, pasillos, sexajeâ€¦) no aparecen.
+  // La ronda solo cubre salas de incubadoras/nacedoras/cuartos técnicos QUE tengan
+  // máquinas que revisar; así los cuartos vacíos (bodegas, pasillos, sexaje…) no aparecen.
   //
-  // La sala de la RONDA no es siempre donde estÃ¡ montado el equipo: los chillers
-  // viven en la plataforma exterior pero sus tableros â€”donde se hace la lectura y
-  // la fotoâ€” estÃ¡n en la sala tÃ©cnica. Para eso estÃ¡ `panel_room_id`; sin Ã©l la
-  // sala se quedaba sin equipos y desaparecÃ­a de la lista del operario.
+  // La sala de la RONDA no es siempre donde está montado el equipo: los chillers
+  // viven en la plataforma exterior pero sus tableros —donde se hace la lectura y
+  // la foto— están en la sala técnica. Para eso está `panel_room_id`; sin él la
+  // sala se quedaba sin equipos y desaparecía de la lista del operario.
   const roundRoomOf = (m) => m.panel_room_id || m.room_id
   const eligibleMachines = machines.filter(
     (m) => m.plant_id === plantId && m.status !== 'decommissioned' && roundRoomOf(m)
@@ -448,8 +448,8 @@ function RoundView({ mc, plants, rooms, machines }) {
     const n = pendingPlant.length
     const ok = window.confirm(
       n === 0
-        ? 'Â¿Terminar la ronda? Todas las mÃ¡quinas fueron reportadas.'
-        : `Â¿Terminar la ronda?\n\n${n} mÃ¡quina(s) NO fueron reportadas y quedarÃ¡n registradas como APAGADAS en el reporte de esta ronda.`
+        ? '¿Terminar la ronda? Todas las máquinas fueron reportadas.'
+        : `¿Terminar la ronda?\n\n${n} máquina(s) NO fueron reportadas y quedarán registradas como APAGADAS en el reporte de esta ronda.`
     )
     if (!ok) return
     setClosing(true)
@@ -462,14 +462,14 @@ function RoundView({ mc, plants, rooms, machines }) {
     <>
       <div className="round-banner">
         <span>
-          Turno <strong>{SHIFT_LABEL[shift]}</strong> Â· Hora <strong>{String(hour).padStart(2, '0')}:00</strong>
+          Turno <strong>{SHIFT_LABEL[shift]}</strong> · Hora <strong>{String(hour).padStart(2, '0')}:00</strong>
         </span>
         <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <span className={pendingPlant.length === 0 ? 'pill status ok' : 'pill status warn'}>
             {pendingPlant.length === 0 ? 'Ronda completa' : `${pendingPlant.length} pendiente(s)`}
           </span>
           <button className="chip ghost" onClick={finishRound} disabled={closing || plantMachines.length === 0}>
-            {closing ? 'Cerrandoâ€¦' : 'ðŸ Terminar ronda'}
+            {closing ? 'Cerrando…' : '🏁 Terminar ronda'}
           </button>
         </span>
       </div>
@@ -488,9 +488,9 @@ function RoundView({ mc, plants, rooms, machines }) {
         </div>
       )}
 
-      {/* SelecciÃ³n de sala */}
+      {/* Selección de sala */}
       <p className="hint" style={{ margin: '10px 0 6px' }}>
-        {roomId ? 'Sala actual â€” toca otra para cambiar:' : 'Selecciona la sala a la que vas a entrar:'}
+        {roomId ? 'Sala actual — toca otra para cambiar:' : 'Selecciona la sala a la que vas a entrar:'}
       </p>
       <div className="room-grid">
         {plantRooms.map((r) => {
@@ -504,19 +504,19 @@ function RoundView({ mc, plants, rooms, machines }) {
               onClick={() => { setRoomId(r.id); setCaptureId(null) }}
             >
               <strong>{r.name}</strong>
-              <span>{complete ? 'âœ“ Completa' : `${done}/${total} registradas`}</span>
+              <span>{complete ? '✓ Completa' : `${done}/${total} registradas`}</span>
             </button>
           )
         })}
         {plantRooms.length === 0 && (
-          <p className="hint">No hay salas de incubadoras, nacedoras o cuartos tÃ©cnicos en esta planta.</p>
+          <p className="hint">No hay salas de incubadoras, nacedoras o cuartos técnicos en esta planta.</p>
         )}
       </div>
 
-      {/* MÃ¡quinas de la sala seleccionada */}
+      {/* Máquinas de la sala seleccionada */}
       {roomId && (
         <div className="admin-list" style={{ marginTop: 12 }}>
-          {roomMachines.length === 0 && <p className="hint">Esta sala no tiene mÃ¡quinas.</p>}
+          {roomMachines.length === 0 && <p className="hint">Esta sala no tiene máquinas.</p>}
           {roomMachines.map((m) => {
             const check = checkOf(m.id)
             const cond = check ? conditionOf(check.condition) : null
@@ -526,8 +526,8 @@ function RoundView({ mc, plants, rooms, machines }) {
                   <div className="admin-row-main">
                     <strong>{m.name}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {m.code} Â· {MACHINE_TYPE_LABEL[m.type] ?? m.type}
-                      {check?.notes ? ` Â· ${check.notes}` : ''}
+                      {m.code} · {MACHINE_TYPE_LABEL[m.type] ?? m.type}
+                      {check?.notes ? ` · ${check.notes}` : ''}
                     </span>
                   </div>
                   {check ? (
@@ -536,22 +536,22 @@ function RoundView({ mc, plants, rooms, machines }) {
                       title={
                         check.offline
                           ? check.has_local_photo
-                            ? 'Foto guardada en este telÃ©fono â€” se sube sola al sincronizar'
-                            : 'Guardado en el telÃ©fono â€” se sube al volver la seÃ±al'
+                            ? 'Foto guardada en este teléfono — se sube sola al sincronizar'
+                            : 'Guardado en el teléfono — se sube al volver la señal'
                           : undefined
                       }
                     >
                       {cond.label}
                       {check.offline
                         ? check.has_local_photo
-                          ? ' Â· ðŸ“· en cola'
-                          : ' Â· â³ por subir'
+                          ? ' · 📷 en cola'
+                          : ' · ⏳ por subir'
                         : ''}
                     </span>
                   ) : (
                     captureId !== m.id && (
                       <button className="primary" onClick={() => setCaptureId(m.id)}>
-                        ðŸ“· Registrar
+                        📷 Registrar
                       </button>
                     )
                   )}
@@ -572,17 +572,17 @@ function RoundView({ mc, plants, rooms, machines }) {
   )
 }
 
-/* â”€â”€ Historial (supervisor / coordinador / admin) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Historial (supervisor / coordinador / admin) ──────────── */
 function HistoryView({ mc, machines, team, canDelete }) {
   const [fMachine, setFMachine] = useState('')
   const [fDate, setFDate] = useState('')
   const [fShift, setFShift] = useState('')
 
   const machineOf = (id) => machines.find((m) => m.id === id)
-  const nameOf = (id) => team.find((t) => t.id === id)?.name ?? 'â€”'
+  const nameOf = (id) => team.find((t) => t.id === id)?.name ?? '—'
 
-  /* Los filtros van al servidor: en memoria solo estÃ¡n las Ãºltimas 400 rondas,
-   * asÃ­ que buscar por una fecha vieja no devolvÃ­a nada aunque el registro
+  /* Los filtros van al servidor: en memoria solo están las últimas 400 rondas,
+   * así que buscar por una fecha vieja no devolvía nada aunque el registro
    * existiera. Al limpiar los filtros se vuelve a la vista por defecto. */
   const { loadChecks } = mc
   useEffect(() => {
@@ -608,7 +608,7 @@ function HistoryView({ mc, machines, team, canDelete }) {
   const groups = useMemo(() => {
     const g = new Map()
     for (const c of lc.visible) {
-      const key = `${c.shift_date} Â· ${SHIFT_LABEL[c.shift_number]}`
+      const key = `${c.shift_date} · ${SHIFT_LABEL[c.shift_number]}`
       if (!g.has(key)) g.set(key, [])
       g.get(key).push(c)
     }
@@ -616,7 +616,7 @@ function HistoryView({ mc, machines, team, canDelete }) {
   }, [lc.visible])
 
   const onDelete = async (c) => {
-    if (!window.confirm('Â¿Eliminar este registro y su foto? Esta acciÃ³n no se puede deshacer.')) return
+    if (!window.confirm('¿Eliminar este registro y su foto? Esta acción no se puede deshacer.')) return
     await mc.deleteCheck(c)
   }
 
@@ -624,7 +624,7 @@ function HistoryView({ mc, machines, team, canDelete }) {
     <>
       <div className="check-filters">
         <select value={fMachine} onChange={(e) => setFMachine(e.target.value)}>
-          <option value="">Todas las mÃ¡quinas</option>
+          <option value="">Todas las máquinas</option>
           {machines.map((m) => (
             <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
           ))}
@@ -637,7 +637,7 @@ function HistoryView({ mc, machines, team, canDelete }) {
           ))}
         </select>
       </div>
-      <ListControls lc={lc} placeholder="Buscar por mÃ¡quina, operario u observaciÃ³nâ€¦" />
+      <ListControls lc={lc} placeholder="Buscar por máquina, operario u observación…" />
 
       {lc.visible.length === 0 ? (
         <p className="hint">No hay registros con esos filtros.</p>
@@ -653,9 +653,9 @@ function HistoryView({ mc, machines, team, canDelete }) {
                   <div key={c.id} className={`check-card cond-${c.condition}`}>
                     <PhotoThumb path={c.photo_path} getPhotoUrl={mc.getPhotoUrl} />
                     <div className="check-info">
-                      <strong>{m ? `${m.name} (${m.code})` : 'MÃ¡quina eliminada'}</strong>
+                      <strong>{m ? `${m.name} (${m.code})` : 'Máquina eliminada'}</strong>
                       <span className="hint" style={{ margin: 0 }}>
-                        {String(c.hour_slot).padStart(2, '0')}:00 Â· {fmtTime(c.taken_at)} Â· ðŸ‘¤ {nameOf(c.taken_by)}
+                        {String(c.hour_slot).padStart(2, '0')}:00 · {fmtTime(c.taken_at)} · 👤 {nameOf(c.taken_by)}
                       </span>
                       {c.notes && <span className="check-notes">{c.notes}</span>}
                       <span className="check-foot">
@@ -678,7 +678,7 @@ function HistoryView({ mc, machines, team, canDelete }) {
   )
 }
 
-/* Captura de foto (pantalla de la mÃ¡quina) reutilizable en cargue y transferencia */
+/* Captura de foto (pantalla de la máquina) reutilizable en cargue y transferencia */
 function PhotoCapture({ file, setFile }) {
   const inputRef = useRef(null)
   const [preview, setPreview] = useState(null)
@@ -704,7 +704,7 @@ function PhotoCapture({ file, setFile }) {
 
   return (
     <div className="photo-field">
-      <span className="hint" style={{ margin: 0 }}>Foto de la pantalla de la mÃ¡quina</span>
+      <span className="hint" style={{ margin: 0 }}>Foto de la pantalla de la máquina</span>
       <input
         ref={inputRef}
         type="file"
@@ -717,12 +717,12 @@ function PhotoCapture({ file, setFile }) {
         <div className="photo-thumb-wrap">
           <img className="photo-thumb" src={preview} alt="Foto de la pantalla" />
           <button type="button" className="ghost small" onClick={() => inputRef.current?.click()} disabled={compressing}>
-            {compressing ? 'âŒ› Comprimiendo...' : 'Repetir foto'}
+            {compressing ? '⌛ Comprimiendo...' : 'Repetir foto'}
           </button>
         </div>
       ) : (
         <button type="button" className="chip ghost" onClick={() => inputRef.current?.click()} disabled={compressing}>
-          {compressing ? 'âŒ› Comprimiendo...' : 'ðŸ“· Tomar foto de la pantalla'}
+          {compressing ? '⌛ Comprimiendo...' : '📷 Tomar foto de la pantalla'}
         </button>
       )}
     </div>
@@ -735,10 +735,10 @@ function PhotoLink({ path, getPhotoUrl }) {
     const url = await getPhotoUrl(path)
     if (url) window.open(url, '_blank', 'noopener')
   }
-  return <button type="button" className="ghost small" onClick={open}>ðŸ“· Ver foto</button>
+  return <button type="button" className="ghost small" onClick={open}>📷 Ver foto</button>
 }
 
-/* â”€â”€ Reporte de cargue de incubadora â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Reporte de cargue de incubadora ───────────────────────── */
 function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) {
   const [plantId, setPlantId] = useState(null)
   const [machineId, setMachineId] = useState('')
@@ -758,9 +758,9 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
   )
   const machineLabel = (id) => {
     const m = machines.find((x) => x.id === id)
-    return m ? `${m.name} (${m.code})` : 'â€”'
+    return m ? `${m.name} (${m.code})` : '—'
   }
-  const opName = (id) => team.find((t) => t.id === id)?.name ?? 'â€”'
+  const opName = (id) => team.find((t) => t.id === id)?.name ?? '—'
 
   const submit = async () => {
     setBusy(true)
@@ -815,7 +815,7 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
           <label>
             Incubadora
             <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-              <option value="">Seleccionaâ€¦</option>
+              <option value="">Selecciona…</option>
               {setters.map((m) => (
                 <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
               ))}
@@ -823,7 +823,7 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
           </label>
         </div>
         <label>
-          Pre-incubaciÃ³n (horas antes del inicio del ciclo)
+          Pre-incubación (horas antes del inicio del ciclo)
           <input
             type="number" min="0" max="72" step="0.5"
             value={preIncubHours}
@@ -833,20 +833,20 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
         </label>
         {parseFloat(preIncubHours) > 0 && (
           <p className="hint" style={{ margin: '2px 0 4px', color: 'var(--accent)' }}>
-            â„¹ï¸ Inicio de ciclo calculado: <strong>
+            ℹ️ Inicio de ciclo calculado: <strong>
               {fmtDateTimeFull(new Date(Date.now() + parseFloat(preIncubHours) * 3_600_000).toISOString())}
             </strong>
           </p>
         )}
         <PhotoCapture file={file} setFile={setFile} />
         <p className="hint" style={{ margin: '2px 0 0' }}>
-          ðŸ•’ La fecha y hora de cargue y tu nombre se registran automÃ¡ticamente al guardar.
+          🕒 La fecha y hora de cargue y tu nombre se registran automáticamente al guardar.
         </p>
         {err && <p className="msg error">{err}</p>}
         {ok && <p className="msg ok">Cargue registrado.</p>}
         <div className="actions row">
           <button className="primary" onClick={submit} disabled={busy || !machineId || lote.trim().length < 1 || !file}>
-            {busy ? 'Registrandoâ€¦' : 'Registrar cargue'}
+            {busy ? 'Registrando…' : 'Registrar cargue'}
           </button>
         </div>
       </div>
@@ -854,7 +854,7 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
       <p className="component-title" style={{ margin: '16px 0 6px' }}>Cargues recientes</p>
       {setters.length === 0 && <p className="hint">Esta planta no tiene incubadoras registradas.</p>}
       {recent.length === 0 ? (
-        <p className="hint">AÃºn no hay cargues registrados en esta planta.</p>
+        <p className="hint">Aún no hay cargues registrados en esta planta.</p>
       ) : (
         <div className="report-list">
         {recent.map((l) => {
@@ -865,15 +865,15 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
                 <div className="report-main">
                   <strong>Lote {l.lote}</strong>
                   <span className="hint" style={{ margin: 0 }}>
-                    ðŸ¥š {machineLabel(l.machine_id)} Â· Cargue: {fmtDateTimeFull(l.loaded_at)}
-                    {l.cycle_start_at ? ` Â· Inicio ciclo: ${fmtDateTimeFull(l.cycle_start_at)}` : ''}
-                    {age ? ` Â· Edad: ${age.label}` : ''}
+                    🥚 {machineLabel(l.machine_id)} · Cargue: {fmtDateTimeFull(l.loaded_at)}
+                    {l.cycle_start_at ? ` · Inicio ciclo: ${fmtDateTimeFull(l.cycle_start_at)}` : ''}
+                    {age ? ` · Edad: ${age.label}` : ''}
                   </span>
                   {badge && <span className={badge.cls} style={{ marginTop: 4 }}>{badge.text}</span>}
                 </div>
                 <span className="report-side">
                   <PhotoLink path={l.photo_path} getPhotoUrl={getPhotoUrl} />
-                  <span className="hint" style={{ margin: 0 }}>ðŸ‘¤ {opName(l.created_by)}</span>
+                  <span className="hint" style={{ margin: 0 }}>👤 {opName(l.created_by)}</span>
                 </span>
               </div>
             )
@@ -884,7 +884,7 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
   )
 }
 
-/* â”€â”€ Reporte de transferencia (lote â†’ salÃ³n de nacedoras) â”€â”€â”€â”€ */
+/* ── Reporte de transferencia (lote → salón de nacedoras) ──── */
 function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhotoUrl }) {
   const [lote, setLote] = useState('')
   const [mode, setMode] = useState('single')
@@ -895,11 +895,11 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
   const [err, setErr] = useState(null)
   const [ok, setOk] = useState(false)
 
-  const opName = (id) => team.find((t) => t.id === id)?.name ?? 'â€”'
+  const opName = (id) => team.find((t) => t.id === id)?.name ?? '—'
   const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sala'
   const expected = mode === 'double' ? 2 : 1
 
-  // Lotes con cargue activo que aÃºn no se han transferido (agregado por lote)
+  // Lotes con cargue activo que aún no se han transferido (agregado por lote)
   const pendingLotes = useMemo(() => {
     const transferred = new Set(transfers.map((t) => t.lote))
     const map = new Map()
@@ -915,8 +915,8 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
     return [...map.values()]
   }, [loads, transfers])
 
-  // Solo se habilitan para transferencia las mÃ¡quinas con â‰¥ MIN_TRANSFER_DAYS dÃ­as
-  // de incubaciÃ³n (evita transferir una incubadora reciÃ©n cargada por error).
+  // Solo se habilitan para transferencia las máquinas con ≥ MIN_TRANSFER_DAYS días
+  // de incubación (evita transferir una incubadora recién cargada por error).
   const incubationDays = (x) => {
     const start = x.cycleStart || x.loadedAt
     if (!start) return null
@@ -945,11 +945,11 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
   const toggleRoom = (id) => {
     setRoomIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id)
-      if (prev.length >= expected) return [...prev.slice(1), id] // reemplaza el mÃ¡s antiguo
+      if (prev.length >= expected) return [...prev.slice(1), id] // reemplaza el más antiguo
       return [...prev, id]
     })
   }
-  // Al cambiar de modo recorta la selecciÃ³n de salas
+  // Al cambiar de modo recorta la selección de salas
   useEffect(() => { setRoomIds((prev) => prev.slice(0, mode === 'double' ? 2 : 1)) }, [mode])
 
   const pickLote = (v) => { setLote(v); setRoomIds([]) }
@@ -979,12 +979,12 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
         <label>
           Lote a transferir
           <select value={lote} onChange={(e) => pickLote(e.target.value)}>
-            <option value="">Selecciona un lote cargadoâ€¦</option>
+            <option value="">Selecciona un lote cargado…</option>
             {eligibleLotes.map((x) => {
               const d = incubationDays(x)
               return (
                 <option key={x.lote} value={x.lote}>
-                  Lote {x.lote} â€” {x.loads} cargue{x.loads === 1 ? '' : 's'}{d != null ? ` Â· ${d.toFixed(1)} dÃ­as` : ''}
+                  Lote {x.lote} — {x.loads} cargue{x.loads === 1 ? '' : 's'}{d != null ? ` · ${d.toFixed(1)} días` : ''}
                 </option>
               )
             })}
@@ -993,18 +993,18 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
         {pendingLotes.length === 0 && <p className="hint" style={{ margin: '2px 0 0' }}>No hay lotes pendientes de transferir.</p>}
         {blockedCount > 0 && (
           <p className="hint" style={{ margin: '2px 0 0' }}>
-            ðŸ”’ {blockedCount} lote{blockedCount === 1 ? '' : 's'} cargado{blockedCount === 1 ? '' : 's'} no aparece{blockedCount === 1 ? '' : 'n'} aÃºn:
-            se habilitan al cumplir {MIN_TRANSFER_DAYS} dÃ­as de incubaciÃ³n.
+            🔒 {blockedCount} lote{blockedCount === 1 ? '' : 's'} cargado{blockedCount === 1 ? '' : 's'} no aparece{blockedCount === 1 ? '' : 'n'} aún:
+            se habilitan al cumplir {MIN_TRANSFER_DAYS} días de incubación.
           </p>
         )}
 
         {selected && (
           <div className="report-prefill">
-            <span className="hint" style={{ margin: 0 }}>Datos del lote (automÃ¡ticos):</span>
-            <div><strong>Lote {selected.lote}</strong> Â· {selected.loads} cargue{selected.loads === 1 ? '' : 's'}</div>
+            <span className="hint" style={{ margin: 0 }}>Datos del lote (automáticos):</span>
+            <div><strong>Lote {selected.lote}</strong> · {selected.loads} cargue{selected.loads === 1 ? '' : 's'}</div>
             <span className="hint" style={{ margin: 0 }}>
               {selected.cycleStart ? `Inicio ciclo: ${fmtDateTimeFull(selected.cycleStart)}` : 'Sin inicio de ciclo'}
-              {age ? ` Â· Edad: ${age.label}` : ''}
+              {age ? ` · Edad: ${age.label}` : ''}
             </span>
             {transferBadge && <span className={transferBadge.cls} style={{ marginTop: 4 }}>{transferBadge.text}</span>}
           </div>
@@ -1027,7 +1027,7 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
         </label>
 
         <label>
-          Sala(s) de nacedoras â€” elige {expected} ({roomIds.length}/{expected})
+          Sala(s) de nacedoras — elige {expected} ({roomIds.length}/{expected})
           <div className="room-grid" style={{ marginTop: 4 }}>
             {hatchingRooms.map((r) => {
               const on = roomIds.includes(r.id)
@@ -1041,7 +1041,7 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
                   disabled={!selected}
                 >
                   <strong>{r.name}</strong>
-                  <span>{on ? 'âœ“ Seleccionada' : busyRoom ? 'â— Ocupada' : 'Libre'}</span>
+                  <span>{on ? '✓ Seleccionada' : busyRoom ? '● Ocupada' : 'Libre'}</span>
                 </button>
               )
             })}
@@ -1056,20 +1056,20 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
 
         {selected && <PhotoCapture file={file} setFile={setFile} />}
         <p className="hint" style={{ margin: '2px 0 0' }}>
-          ðŸ•’ La fecha y hora de transferencia y tu nombre se registran automÃ¡ticamente al guardar.
+          🕒 La fecha y hora de transferencia y tu nombre se registran automáticamente al guardar.
         </p>
         {err && <p className="msg error">{err}</p>}
         {ok && <p className="msg ok">Transferencia registrada.</p>}
         <div className="actions row">
           <button className="primary" onClick={submit} disabled={busy || !selected || roomIds.length !== expected || !file}>
-            {busy ? 'Registrandoâ€¦' : 'Registrar transferencia'}
+            {busy ? 'Registrando…' : 'Registrar transferencia'}
           </button>
         </div>
       </div>
 
       <p className="component-title" style={{ margin: '16px 0 6px' }}>Transferencias recientes</p>
       {recent.length === 0 ? (
-        <p className="hint">AÃºn no hay transferencias registradas.</p>
+        <p className="hint">Aún no hay transferencias registradas.</p>
       ) : (
         <div className="report-list">
           {recent.map((t) => (
@@ -1077,13 +1077,13 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
               <div className="report-main">
                 <strong>Lote {t.lote}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  âž¡ï¸ {(t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} Â· {MODE_LABEL[t.mode] ?? t.mode} Â· {fmtDateTimeFull(t.transferred_at)}
-                  {t.weight_diff != null ? ` Â· Î” peso: ${t.weight_diff}%` : ''}
+                  ➡️ {(t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} · {MODE_LABEL[t.mode] ?? t.mode} · {fmtDateTimeFull(t.transferred_at)}
+                  {t.weight_diff != null ? ` · Δ peso: ${t.weight_diff}%` : ''}
                 </span>
               </div>
               <span className="report-side">
                 <PhotoLink path={t.photo_path} getPhotoUrl={getPhotoUrl} />
-                <span className="hint" style={{ margin: 0 }}>ðŸ‘¤ {opName(t.created_by)}</span>
+                <span className="hint" style={{ margin: 0 }}>👤 {opName(t.created_by)}</span>
               </span>
             </div>
           ))}
@@ -1093,7 +1093,7 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
   )
 }
 
-/* â”€â”€ Formulario: iniciar nacimiento (dotaciÃ³n de la jornada) â”€â”€ */
+/* ── Formulario: iniciar nacimiento (dotación de la jornada) ── */
 function StartHatchForm({ lote, mode, roomsLabel, incubable, estimated, onStart, onCancel }) {
   const [sexing, setSexing] = useState('')
   const [vacc, setVacc] = useState('')
@@ -1113,32 +1113,32 @@ function StartHatchForm({ lote, mode, roomsLabel, incubable, estimated, onStart,
   return (
     <div className="inline-form compact">
       <div className="report-prefill">
-        <span className="hint" style={{ margin: 0 }}>El sistema pone en proceso (automÃ¡tico):</span>
-        <div><strong>Lote {lote}</strong> Â· {MODE_LABEL[mode] ?? mode}</div>
-        <span className="hint" style={{ margin: 0 }}>ðŸ­ SalÃ³n(es): {roomsLabel}</span>
+        <span className="hint" style={{ margin: 0 }}>El sistema pone en proceso (automático):</span>
+        <div><strong>Lote {lote}</strong> · {MODE_LABEL[mode] ?? mode}</div>
+        <span className="hint" style={{ margin: 0 }}>🏭 Salón(es): {roomsLabel}</span>
         <span className="hint" style={{ margin: 0 }}>
-          ðŸ¥š Incubable: {incubable == null ? 'â€”' : incubable.toLocaleString('es-CO')}
-          {' Â· '}ðŸ¤ Estimado a nacer: {estimated == null ? 'â€”' : `${estimated.toLocaleString('es-CO')} (${Math.round(HATCH_RATE * 100)}%)`}
+          🥚 Incubable: {incubable == null ? '—' : incubable.toLocaleString('es-CO')}
+          {' · '}🐤 Estimado a nacer: {estimated == null ? '—' : `${estimated.toLocaleString('es-CO')} (${Math.round(HATCH_RATE * 100)}%)`}
         </span>
       </div>
-      <p className="hint" style={{ margin: 0 }}>DotaciÃ³n de la jornada:</p>
+      <p className="hint" style={{ margin: 0 }}>Dotación de la jornada:</p>
       <div className="two-col">
         <label>Operarios en sexaje<input type="number" min="0" value={sexing} onChange={(e) => setSexing(e.target.value)} placeholder="0" /></label>
         <label>Operarios en vacunadoras<input type="number" min="0" value={vacc} onChange={(e) => setVacc(e.target.value)} placeholder="0" /></label>
       </div>
       <label>Operarios adicionales<input type="number" min="0" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="0" /></label>
       <PhotoCapture file={file} setFile={setFile} />
-      <p className="hint" style={{ margin: '2px 0 0' }}>ðŸ•’ Al iniciar arranca el cronÃ³metro de la jornada.</p>
+      <p className="hint" style={{ margin: '2px 0 0' }}>🕒 Al iniciar arranca el cronómetro de la jornada.</p>
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary" onClick={submit} disabled={busy}>{busy ? 'Iniciandoâ€¦' : 'â–¶ï¸ Iniciar nacimiento'}</button>
+        <button className="primary" onClick={submit} disabled={busy}>{busy ? 'Iniciando…' : '▶️ Iniciar nacimiento'}</button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
     </div>
   )
 }
 
-/* â”€â”€ Formulario: programar la hora del nacimiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Formulario: programar la hora del nacimiento ──────────── */
 function ScheduleHatchForm({ onSchedule, onCancel }) {
   const [when, setWhen] = useState(nowLocalInput())
   const [busy, setBusy] = useState(false)
@@ -1153,17 +1153,17 @@ function ScheduleHatchForm({ onSchedule, onCancel }) {
   return (
     <div className="inline-form compact">
       <label>Fecha y hora del nacimiento<input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} /></label>
-      <p className="hint" style={{ margin: 0 }}>Se enviarÃ¡ una notificaciÃ³n a todos los usuarios.</p>
+      <p className="hint" style={{ margin: 0 }}>Se enviará una notificación a todos los usuarios.</p>
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy || !when}>{busy ? 'Programandoâ€¦' : 'ðŸ“£ Programar y notificar'}</button>
+        <button className="primary small" onClick={submit} disabled={busy || !when}>{busy ? 'Programando…' : '📣 Programar y notificar'}</button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
     </div>
   )
 }
 
-/* â”€â”€ Formulario: cerrar jornada con pollitos por sexo â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Formulario: cerrar jornada con pollitos por sexo ──────── */
 function CloseHatchForm({ hatch, onClose, onCancel }) {
   const [females, setFemales] = useState('')
   const [males, setMales] = useState('')
@@ -1193,14 +1193,14 @@ function CloseHatchForm({ hatch, onClose, onCancel }) {
       <PhotoCapture file={file} setFile={setFile} />
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary" onClick={submit} disabled={busy || (females === '' && males === '')}>{busy ? 'Cerrandoâ€¦' : 'ðŸ Cerrar jornada'}</button>
+        <button className="primary" onClick={submit} disabled={busy || (females === '' && males === '')}>{busy ? 'Cerrando…' : '🏁 Cerrar jornada'}</button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
       </div>
     </div>
   )
 }
 
-/* â”€â”€ Nacimiento (dÃ­a 21): lo programa e inicia el supervisor â”€â”€ */
+/* ── Nacimiento (día 21): lo programa e inicia el supervisor ── */
 function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
   const er = useEggReports(orgId, userId)
   const nt = useNotifications(orgId, userId)
@@ -1211,7 +1211,7 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
 
   const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sala'
   const roomsLabel = (ids) => (ids ?? []).map(roomName).join(' + ') || 'Sin sala'
-  const opName = (id) => team.find((t) => t.id === id)?.name ?? 'â€”'
+  const opName = (id) => team.find((t) => t.id === id)?.name ?? '—'
 
   const inProgress = hatch.hatches.filter((h) => h.status === 'in_progress')
   const planned = hatch.hatches.filter((h) => h.status === 'planned')
@@ -1225,7 +1225,7 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
     return () => clearInterval(id)
   }, [inProgress.length])
 
-  // Huevo incubable certificado del lote (cuarto frÃ­o) â†’ base del estimado
+  // Huevo incubable certificado del lote (cuarto frío) → base del estimado
   const incubableForBatch = (batchId) => {
     if (!batchId) return null
     let inc = 0
@@ -1245,8 +1245,8 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
     const { error } = await hatch.scheduleHatch({ transfer: t, scheduledAt: scheduledAtIso, incubableEggs: inc, estimatedChicks: est })
     if (error) return { error }
     await nt.notify({
-      title: `Nacimiento programado Â· Lote ${t.lote}`,
-      body: `SalÃ³n(es): ${roomsLabel(t.room_ids)} Â· ${fmtDateTimeFull(scheduledAtIso)}`,
+      title: `Nacimiento programado · Lote ${t.lote}`,
+      body: `Salón(es): ${roomsLabel(t.room_ids)} · ${fmtDateTimeFull(scheduledAtIso)}`,
       kind: 'hatch_scheduled',
     })
     return { error: null }
@@ -1256,7 +1256,7 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
     <>
       {(hatch.error || nt.error) && <p className="msg error">{hatch.error || nt.error}</p>}
 
-      {/* Jornadas en curso (cronÃ³metro) */}
+      {/* Jornadas en curso (cronómetro) */}
       {inProgress.length > 0 && (
         <>
           <p className="component-title" style={{ margin: '4px 0 6px' }}>Nacimientos en curso</p>
@@ -1265,13 +1265,13 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
               <div key={h.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>Lote {h.lote} Â· {MODE_LABEL[h.mode] ?? h.mode}</strong>
+                    <strong>Lote {h.lote} · {MODE_LABEL[h.mode] ?? h.mode}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ­ {roomsLabel(h.room_ids)} Â· â±ï¸ {elapsedLabel(h.started_at, now)}
-                      {' Â· '}ðŸ‘¥ sexaje {h.sexing_ops ?? 0} Â· vacuna {h.vaccination_ops ?? 0} Â· extra {h.extra_ops ?? 0}
+                      🏭 {roomsLabel(h.room_ids)} · ⏱️ {elapsedLabel(h.started_at, now)}
+                      {' · '}👥 sexaje {h.sexing_ops ?? 0} · vacuna {h.vaccination_ops ?? 0} · extra {h.extra_ops ?? 0}
                     </span>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ¤ Estimado: {h.estimated_chicks == null ? 'â€”' : h.estimated_chicks.toLocaleString('es-CO')} Â· IniciÃ³ {opName(h.started_by)}
+                      🐤 Estimado: {h.estimated_chicks == null ? '—' : h.estimated_chicks.toLocaleString('es-CO')} · Inició {opName(h.started_by)}
                     </span>
                   </div>
                   <span className="pill live"><span className="dot" /> En curso</span>
@@ -1290,7 +1290,7 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
         </>
       )}
 
-      {/* Programados (planned) â†’ iniciar con dotaciÃ³n */}
+      {/* Programados (planned) → iniciar con dotación */}
       {planned.length > 0 && (
         <>
           <p className="component-title" style={{ margin: '16px 0 6px' }}>Programados</p>
@@ -1299,19 +1299,19 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
               <div key={h.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>Lote {h.lote} Â· {MODE_LABEL[h.mode] ?? h.mode}</strong>
+                    <strong>Lote {h.lote} · {MODE_LABEL[h.mode] ?? h.mode}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ­ {roomsLabel(h.room_ids)} Â· ðŸ“£ Programado {fmtDateTimeFull(h.scheduled_at)}
+                      🏭 {roomsLabel(h.room_ids)} · 📣 Programado {fmtDateTimeFull(h.scheduled_at)}
                     </span>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ¤ Estimado: {h.estimated_chicks == null ? 'â€”' : h.estimated_chicks.toLocaleString('es-CO')}
+                      🐤 Estimado: {h.estimated_chicks == null ? '—' : h.estimated_chicks.toLocaleString('es-CO')}
                     </span>
                   </div>
                   <span className="pill status warn">Programado</span>
                   {startingId !== `h-${h.id}` && (
                     <span className="admin-row-actions">
                       <button className="primary small" onClick={() => setStartingId(`h-${h.id}`)}>Iniciar</button>
-                      <button className="ghost danger" onClick={() => { if (window.confirm('Â¿Cancelar la programaciÃ³n?')) hatch.cancelHatch(h.id) }}>âœ•</button>
+                      <button className="ghost danger" onClick={() => { if (window.confirm('¿Cancelar la programación?')) hatch.cancelHatch(h.id) }}>✕</button>
                     </span>
                   )}
                 </div>
@@ -1332,10 +1332,10 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
         </>
       )}
 
-      {/* Transferencias listas â†’ programar o iniciar directo */}
+      {/* Transferencias listas → programar o iniciar directo */}
       <p className="component-title" style={{ margin: '16px 0 6px' }}>Listas para nacimiento</p>
       {pending.length === 0 ? (
-        <p className="hint">No hay transferencias pendientes de nacimiento. Aparecen aquÃ­ al registrar una transferencia.</p>
+        <p className="hint">No hay transferencias pendientes de nacimiento. Aparecen aquí al registrar una transferencia.</p>
       ) : (
         <div className="admin-list">
           {pending.map((t) => {
@@ -1349,19 +1349,19 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
               <div key={t.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>Lote {t.lote} Â· {MODE_LABEL[t.mode] ?? t.mode}</strong>
+                    <strong>Lote {t.lote} · {MODE_LABEL[t.mode] ?? t.mode}</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ­ {roomsLabel(t.room_ids)} Â· Transferido {fmtDateTimeFull(t.transferred_at)}
-                      {age ? ` Â· Edad: ${age.label}` : ''}
+                      🏭 {roomsLabel(t.room_ids)} · Transferido {fmtDateTimeFull(t.transferred_at)}
+                      {age ? ` · Edad: ${age.label}` : ''}
                     </span>
                     <span className="hint" style={{ margin: 0 }}>
-                      ðŸ¥š Incubable: {inc == null ? 'â€”' : inc.toLocaleString('es-CO')} Â· ðŸ¤ Estimado: {est == null ? 'â€”' : est.toLocaleString('es-CO')}
+                      🥚 Incubable: {inc == null ? '—' : inc.toLocaleString('es-CO')} · 🐤 Estimado: {est == null ? '—' : est.toLocaleString('es-CO')}
                     </span>
                   </div>
                   {badge && <span className={badge.cls}>{badge.text}</span>}
                   {!openStart && !openSched && (
                     <span className="admin-row-actions">
-                      <button className="chip ghost" onClick={() => { setSchedulingId(t.id); setStartingId(null) }}>ðŸ“£ Programar</button>
+                      <button className="chip ghost" onClick={() => { setSchedulingId(t.id); setStartingId(null) }}>📣 Programar</button>
                       <button className="primary small" onClick={() => { setStartingId(`t-${t.id}`); setSchedulingId(null) }}>Iniciar</button>
                     </span>
                   )}
@@ -1398,13 +1398,13 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
               const pct = h.incubable_eggs && h.actual_chicks != null ? Math.round((h.actual_chicks / h.incubable_eggs) * 100) : null
               return (
                 <div key={h.id} className="admin-row compact" style={{ margin: 0 }}>
-                  <span>ðŸ¤</span>
+                  <span>🐤</span>
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>Lote {h.lote} Â· {h.actual_chicks == null ? 'â€”' : h.actual_chicks.toLocaleString('es-CO')} pollitos</strong>
+                    <strong>Lote {h.lote} · {h.actual_chicks == null ? '—' : h.actual_chicks.toLocaleString('es-CO')} pollitos</strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      â™€ {h.females_count == null ? 'â€”' : h.females_count.toLocaleString('es-CO')} hembras Â· â™‚ {h.males_count == null ? 'â€”' : h.males_count.toLocaleString('es-CO')} machos
-                      {' Â· '}{roomsLabel(h.room_ids)} Â· DuraciÃ³n {elapsedLabel(h.started_at, h.ended_at ? new Date(h.ended_at).getTime() : null)}
-                      {pct != null ? ` Â· Nacimiento ${pct}%` : ''} Â· CerrÃ³ {opName(h.closed_by)}
+                      ♀ {h.females_count == null ? '—' : h.females_count.toLocaleString('es-CO')} hembras · ♂ {h.males_count == null ? '—' : h.males_count.toLocaleString('es-CO')} machos
+                      {' · '}{roomsLabel(h.room_ids)} · Duración {elapsedLabel(h.started_at, h.ended_at ? new Date(h.ended_at).getTime() : null)}
+                      {pct != null ? ` · Nacimiento ${pct}%` : ''} · Cerró {opName(h.closed_by)}
                     </span>
                   </div>
                   {pct != null && <span className={`pill status ${pct >= 80 ? 'ok' : pct >= 65 ? 'warn' : 'off'}`}>{pct}%</span>}
@@ -1418,13 +1418,13 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
   )
 }
 
-/* â”€â”€ Panel principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Panel principal ────────────────────────────────────────── */
 export default function SupervisionPanel({ orgId, userId, role, area }) {
   // Gerencia + coordinador de planta + supervisor (+ plataforma): potestad completa
   const canSupervise = canSupervisePlant(role, area)
   const canOperate = canOperatePlantRounds(role, area)
-  // Los auxiliares (de turno y de producciÃ³n) SOLO cumplen las actividades que
-  // les asignan â†’ ven Ãºnicamente esa sub-pestaÃ±a.
+  // Los auxiliares (de turno y de producción) SOLO cumplen las actividades que
+  // les asignan → ven únicamente esa sub-pestaña.
   const isShiftAux = role === 'auxiliary' || role === 'auxiliary_production'
   const mc = useMachineChecks(orgId, userId, { canSupervise })
   const flow = useLoads(orgId, userId)
@@ -1462,9 +1462,9 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
     return (
       <div className="card wide">
         <div className="card-head">
-          <h2>SupervisiÃ³n y monitoreo</h2>
+          <h2>Supervisión y monitoreo</h2>
         </div>
-        <p className="hint">Tu rol de observador no tiene acceso a este mÃ³dulo.</p>
+        <p className="hint">Tu rol de observador no tiene acceso a este módulo.</p>
       </div>
     )
   }
@@ -1474,16 +1474,16 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
   return (
     <div className="card wide">
       <div className="card-head">
-        <h2>{isShiftOperator ? 'Mis actividades' : 'SupervisiÃ³n y monitoreo'}</h2>
+        <h2>{isShiftOperator ? 'Mis actividades' : 'Supervisión y monitoreo'}</h2>
       </div>
 
-      <nav className="subtabs-rail" aria-label={isShiftOperator ? 'Herramientas del turno' : 'Secciones de supervisiÃ³n'}>
+      <nav className="subtabs-rail" aria-label={isShiftOperator ? 'Herramientas del turno' : 'Secciones de supervisión'}>
         <div className="subtabs-rail-head">
           <p className="subtabs-rail-label">
             {isShiftOperator ? 'Herramientas del turno' : 'Secciones'}
           </p>
           <p className="subtabs-rail-hint">
-            {isShiftOperator ? 'Elija la tarea a realizar' : 'Navegue entre mÃ³dulos'}
+            {isShiftOperator ? 'Elija la tarea a realizar' : 'Navegue entre módulos'}
           </p>
         </div>
         <div className="tabs subtabs" role="tablist">
@@ -1517,7 +1517,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
           {!isShiftAux && (
             <>
               <button type="button" className={view === 'mercancia' ? 'tab active' : 'tab'} onClick={() => setView('mercancia')}>
-                MercancÃ­a recibida
+                Mercancía recibida
               </button>
               {canSupervise && (
                 <button type="button" className={view === 'historial' ? 'tab active' : 'tab'} onClick={() => setView('historial')}>
@@ -1546,7 +1546,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
       ) : view === 'mercancia' ? (
         <MerchandiseView orgId={orgId} userId={userId} plants={plants} rooms={rooms} />
       ) : mc.loading && mc.checks.length === 0 ? (
-        <p className="hint">Cargandoâ€¦</p>
+        <p className="hint">Cargando…</p>
       ) : view === 'ronda' ? (
         <RoundView mc={mc} plants={plants} rooms={rooms} machines={machines} />
       ) : (
@@ -1555,4 +1555,3 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
     </div>
   )
 }
-
