@@ -359,8 +359,8 @@ export default function LeaderDashboard({
       </div>
 
 
-      <section className="ldr-assets-section" style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }} aria-label="Gestión de Activos SIG">
-        <h2 className="ldr-section-title" style={{ marginBottom: '1rem' }}>
+      <section className="ldr-assets-section" aria-label="Gestión de Activos SIG">
+        <h2 className="ldr-section-title">
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
         <div className="ldr-assets-frame">

@@ -671,9 +671,24 @@ body {
 }
 
 .ldr-assets-frame {
-  height: clamp(480px, 64vh, 720px);
+  height: clamp(560px, 72vh, 820px);
   overflow: hidden;
   border-radius: 8px;
+}
+
+.ldr-assets-section {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 18px;
+  border: 1px solid rgba(53, 214, 232, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(8, 19, 36, 0.96), rgba(13, 31, 60, 0.88));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ldr-assets-section>.ldr-section-title {
+  margin-bottom: 14px;
+  color: #e8f0ff;
 }
 
 /* ── Login admin plataforma (inmersivo) ── */
@@ -10761,9 +10776,9 @@ a.plant3d-link:hover {
 .leader-dash {
   position: relative;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 24px 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -10991,7 +11006,9 @@ a.plant3d-link:hover {
   font-size: 0.72rem;
   color: #a78bfa;
   font-style: italic;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -11049,9 +11066,11 @@ a.plant3d-link:hover {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
   width: 100%;
   transition: color 0.2s ease;
 }
@@ -11299,5 +11318,10 @@ a.plant3d-link:hover {
   .ldr-assets-frame {
     height: 62vh;
     min-height: 420px;
+  }
+
+  .ldr-assets-section {
+    padding: 12px;
+    border-radius: 12px;
   }
 }

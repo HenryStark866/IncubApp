@@ -92,6 +92,15 @@ export function resolveSelectedEvidence({ section, selectedDocumentId, allEviden
   return source.find((file) => file.id === selectedDocumentId) || source[0] || null;
 }
 
+function isManualRecord(file = {}) {
+  if (file.file_type !== 'document') return false;
+  const text = [file.file_name, file.note, file.workOrderTitle, file.sourcePath, file.source]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return file.source === 'mantum' || file.source === 'sig' || /manual|instructiv|procedimiento|poe|formato|registro/.test(text);
+}
+
 const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
@@ -105,6 +114,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [allEvidence, setAllEvidence] = useState([]);
   const [allEvidenceLoading, setAllEvidenceLoading] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState('');
+  const [manualFilter, setManualFilter] = useState('');
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
@@ -145,6 +155,21 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       file.source,
     ].some((value) => String(value || '').toLowerCase().includes(query)));
   }, [allEvidence, evidenceFilter]);
+
+  const manuals = useMemo(() => allEvidence.filter(isManualRecord), [allEvidence]);
+  const filteredManuals = useMemo(() => {
+    const query = manualFilter.trim().toLowerCase();
+    if (!query) return manuals;
+    return manuals.filter((file) => [
+      file.file_name,
+      file.note,
+      file.workOrderTitle,
+      file.workOrderCode,
+      file.machineCode,
+      file.sourcePath,
+      file.source,
+    ].some((value) => String(value || '').toLowerCase().includes(query)));
+  }, [manualFilter, manuals]);
 
   const loadDocuments = useCallback(async () => {
     if (!orgId || !selectedMachine?.machine_id) {
@@ -197,6 +222,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           file_name: file.file_name,
           file_type: file.file_type,
           file_path: file.file_path,
+          sourcePath: file.metadata?.source_path || file.file_path,
+          metadata: file.metadata || {},
           note: file.title,
           workOrderTitle: file.title,
           formatCode: file.format_code || 'EVIDENCIA SIG',
@@ -502,6 +529,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{allEvidence.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
           {showNewAsset && (
@@ -562,6 +590,27 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
               </div>
             </div>
           )}
+          {section === 'manuals' && (
+            <div className="sig-asset-section-panel">
+              <input
+                className="sig-asset-doc-search"
+                type="search"
+                placeholder="Buscar manual, instructivo o máquina..."
+                value={manualFilter}
+                onChange={(e) => setManualFilter(e.target.value)}
+                aria-label="Buscar manuales e instructivos"
+              />
+              <div className="sig-manual-list">
+                {allEvidenceLoading ? <p className="sig-empty-tab">Cargando manuales...</p> : !filteredManuals.length ? <p className="sig-empty-tab">No hay manuales registrados todavía.</p> : filteredManuals.map((file) => (
+                  <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}>
+                    <strong>{file.source === 'mantum' ? 'MANTUM' : 'SIG'}</strong>
+                    <span>{file.file_name}</span>
+                    <small>{file.machineCode || file.workOrderCode || 'Documento general'} · {file.formatCode || 'Manual / instructivo'}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {section === 'assets' && <>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-slate-400" aria-hidden="true">?</span>
@@ -616,7 +665,26 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       </div >
 
       <div className="sig-asset-detail">
-        {section === 'evidence' ? (
+        {section === 'manuals' ? (
+          <div className="sig-format-detail sig-manual-detail">
+            <span className="sig-detail-kicker">Biblioteca documental SIG / Mantum</span>
+            <h1>Manuales e instructivos</h1>
+            <p className="sig-format-description">Documentos técnicos, instructivos, procedimientos y formatos asociados al mantenimiento y a los equipos.</p>
+            {(() => {
+              const selectedManual = filteredManuals.find((file) => file.id === selectedDocumentId) || filteredManuals[0];
+              return selectedManual ? (
+                <div className="sig-manual-preview">
+                  <div>
+                    <b>{selectedManual.source === 'mantum' ? 'MANTUM' : 'SIG'}</b>
+                    <strong>{selectedManual.file_name}</strong>
+                    <small>{selectedManual.machineCode || selectedManual.workOrderCode || 'Documento general'} · {selectedManual.sourcePath || selectedManual.file_name}</small>
+                  </div>
+                  {selectedManual.url ? <a href={selectedManual.url} target="_blank" rel="noopener noreferrer" className="sig-asset-primary">Abrir documento</a> : <p className="sig-empty-tab">Este registro no tiene archivo disponible.</p>}
+                </div>
+              ) : <p className="sig-empty-tab">No hay manuales disponibles.</p>;
+            })()}
+          </div>
+        ) : section === 'evidence' ? (
           <div className="sig-format-detail sig-global-evidence-detail">
             <span className="sig-detail-kicker">Repositorio general SIG</span>
             <h1>Evidencias de la organización</h1>
