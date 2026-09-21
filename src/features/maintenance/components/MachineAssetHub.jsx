@@ -2,7 +2,7 @@
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, MANTUM_PLANS } from '../../../data/mantumCatalog';
+import { MANTUM_EQUIPOS, MANTUM_INVENTORY, getMantumDataForMachine } from '../../../data/mantumCatalog';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
@@ -11,6 +11,22 @@ const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
 function formatCodeForEvidence(file = {}) {
   const text = `${file.file_name || ''} ${file.note || ''} ${file.workOrderCode || ''}`.toUpperCase();
   return Object.keys(SIG_FORMATS).find((code) => text.includes(code)) || 'EVIDENCIA SIG';
+}
+
+function mantumInventoryEvidence() {
+  return Object.values(MANTUM_INVENTORY).map((image) => ({
+    id: `mantum-image-${image.code}`,
+    file_name: image.archivo || `${image.code}.jpg`,
+    file_type: 'image',
+    file_path: image.url,
+    url: image.url,
+    formatCode: 'INVENTARIO MANTUM',
+    workOrderCode: image.code,
+    workOrderTitle: image.nombre,
+    note: image.tipo_imagen || 'Imagen del inventario Mantum',
+    created_at: null,
+    source: 'mantum',
+  }));
 }
 
 function catalogMachines() {
@@ -69,12 +85,15 @@ const MachineAssetHub = ({ orgId }) => {
 
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
+    const mantum = getMantumDataForMachine(selectedMachine);
     return {
-      summary: selectedMachine,
-      history: MANTUM_HISTORICAL_OTS[selectedMachine.catalogKey] || [],
+      summary: { ...selectedMachine, ...(mantum.equipo || {}), location: mantum.equipo?.ubicacion_proceso || '' },
+      history: mantum.historicalOTs || [],
       calibrations: [],
-      maintenancePlan: MANTUM_PLANS[selectedMachine.catalogKey] || [],
-      imageUrl: MANTUM_INVENTORY[selectedMachine.catalogKey]?.url || null,
+      maintenancePlan: mantum.maintenancePlan || [],
+      components: mantum.components || [],
+      imageUrl: mantum.imageUrl || null,
+      mantum,
     };
   }, [selectedMachine]);
 
@@ -149,11 +168,12 @@ const MachineAssetHub = ({ orgId }) => {
         const order = orderMap[file.work_order_id] || {};
         return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
       }));
-      setAllEvidence(resolved);
-      setSelectedDocumentId((current) => current && resolved.some((file) => file.id === current) ? current : resolved[0]?.id || null);
+      const inventoryEvidence = mantumInventoryEvidence();
+      setAllEvidence([...resolved, ...inventoryEvidence]);
+      setSelectedDocumentId((current) => current && [...resolved, ...inventoryEvidence].some((file) => file.id === current) ? current : resolved[0]?.id || inventoryEvidence[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
-      setAllEvidence([]);
+      setAllEvidence(mantumInventoryEvidence());
     } finally {
       setAllEvidenceLoading(false);
     }
@@ -405,7 +425,7 @@ const MachineAssetHub = ({ orgId }) => {
             </div>
             <div className="sig-dossier-panel">
               <div className="sig-dossier-tabs" role="tablist">
-                {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`], ["documents", `Diligenciados (${documents.length})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}
+                {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`], ["components", `Componentes (${dossier.components?.length || 0})`], ["documents", `Diligenciados (${documents.length})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}
               </div>
               <div className="sig-dossier-content">
                 {detailTab === 'documents' && (
@@ -438,6 +458,9 @@ const MachineAssetHub = ({ orgId }) => {
                 )}
                 {detailTab === 'plan' && (
                   dossier.maintenancePlan?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Actividad</th><th>Frecuencia</th><th>Especialidad</th></tr></thead><tbody>{dossier.maintenancePlan.map((task, index) => <tr key={task.plan_code || index}><td>{task.activity || task.title || 'Actividad preventiva'}</td><td>{task.frequency || 'Programada'}</td><td>{task.specialty || 'Mantenimiento'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay tareas de mantenimiento programadas para este activo.</p>
+                )}
+                {detailTab === 'components' && (
+                  dossier.components?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Componente</th><th>Especificación</th><th>Estado</th><th>Vida útil</th></tr></thead><tbody>{dossier.components.map((component, index) => <tr key={component.code || index}><td>{component.name || 'Componente'}</td><td>{component.component_spec || component.reference || 'Según ficha Mantum'}</td><td>{component.status || 'Registrado'}</td><td>{component.useful_life_pct != null ? `${component.useful_life_pct}%` : 'S/D'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay componentes registrados para este activo.</p>
                 )}
               </div>
             </div>
