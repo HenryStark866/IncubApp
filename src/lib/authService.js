@@ -71,10 +71,11 @@ export async function updatePassword(newPassword) {
 export async function signInWithGoogle() {
   try {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: origin,
+        skipBrowserRedirect: true,
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account',
@@ -82,7 +83,23 @@ export async function signInWithGoogle() {
       },
     })
     if (error) return { success: false, error: error.message }
-    return { success: true }
+
+    if (data?.url) {
+      // Verificar si el proveedor está habilitado en Supabase antes de redirigir al usuario
+      const checkRes = await fetch(data.url, { method: 'GET', redirect: 'manual' }).catch(() => null)
+      if (checkRes && checkRes.status === 400) {
+        const json = await checkRes.json().catch(() => null)
+        if (json?.error_code === 'validation_failed' || json?.msg?.includes('provider is not enabled')) {
+          return {
+            success: false,
+            error: 'El acceso con Google no está activado en este servidor de Supabase. Por favor ingresa con tu correo y contraseña.',
+          }
+        }
+      }
+      window.location.href = data.url
+      return { success: true }
+    }
+    return { success: false, error: 'No se obtuvo URL de inicio de sesión.' }
   } catch (err) {
     return { success: false, error: err.message || 'Error al conectar con Google.' }
   }

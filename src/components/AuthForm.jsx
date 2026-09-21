@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { signInWithGoogle } from '../lib/authService'
 import { IncubAppProductLogo, CdhSignature } from './Brand'
 
 export default function AuthForm() {
@@ -99,19 +100,9 @@ export default function AuthForm() {
       } catch {}
     }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
-
-    if (error) {
-      setMessage({ kind: 'error', text: error.message })
+    const res = await signInWithGoogle()
+    if (!res.success) {
+      setMessage({ kind: 'error', text: res.error })
       setBusy(false)
     }
   }

@@ -1,4 +1,4 @@
-# Logs
+﻿# Logs
 logs
 *.log
 npm-debug.log*
@@ -12,11 +12,10 @@ dist
 dist-ssr
 *.local
 
-# Variables de entorno y secretos (NUNCA versionar: claves, tokens, cadenas de conexión)
-.env
-.env.*
+# Variables de entorno y secretos (NUNCA versionar: claves, tokens, cadenas de conexiÃ³n)
+.env`n.env.*
 !.env.example
-!.env.planta3d.example
+
 
 # Credenciales de servicio (nunca versionar)
 serviceAccount*.json
@@ -50,8 +49,9 @@ public/planta3d/config.js
 # Estado local de `supabase link` (ref del proyecto, versiones, URL del pooler)
 supabase/.temp
 
-# Material de trabajo, no código del producto (se queda fuera del repo)
+# Material de trabajo, no cÃ³digo del producto (se queda fuera del repo)
 MANTENIMIENTO/
 PLANTA 3D INCUBANT/
 PRODUCCION Y PROYECCION INCUBANT/
 layaut/
+
