@@ -52,7 +52,6 @@ const MachineAssetHub = () => {
   const [showNewAsset, setShowNewAsset] = useState(false);
   const [newAsset, setNewAsset] = useState({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
 
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
@@ -72,7 +71,6 @@ const MachineAssetHub = () => {
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
   const loadMachines = useCallback(async () => {
-    setLoadError('');
     setLoading(true);
     try {
       const catalog = [...catalogMachines(), ...readCustomAssets()];
@@ -83,9 +81,8 @@ const MachineAssetHub = () => {
       const remote = (data || []).map((machine) => ({ ...machine, source: 'remote' }));
       setMachines(mergeMachines(remote, catalog));
     } catch (error) {
-      setLoadError('No se pudo consultar la vista de activos. Se muestra el catálogo local.');
       setMachines(mergeMachines([], [...catalogMachines(), ...readCustomAssets()]));
-      console.error('Error cargando el Centro SIG:', error);
+      console.warn('Centro SIG: se usa el catálogo local mientras la vista remota no está disponible.', error);
     } finally {
       setLoading(false);
     }
@@ -165,7 +162,6 @@ const MachineAssetHub = () => {
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
-          {loadError && <div className="sig-asset-notice" role="status">{loadError}<button type="button" onClick={loadMachines}>Reintentar</button></div>}
           {showNewAsset && (
             <form onSubmit={saveAsset} className="space-y-2 rounded border p-3 bg-slate-50">
               <input required className="w-full border rounded p-2 text-sm" placeholder="Código SIG / Mantum" value={newAsset.code} onChange={(e) => setNewAsset({ ...newAsset, code: e.target.value })} />
@@ -254,6 +250,13 @@ const MachineAssetHub = () => {
             <h1>{selectedFormat.code} · {selectedFormat.name}</h1>
             <p className="sig-format-description">{selectedFormat.process}</p>
             <div className="sig-format-meta"><span>Versión <b>{selectedFormat.version}</b></span><span>Fecha <b>{selectedFormat.date}</b></span></div>
+            <div className="sig-format-preview" aria-label={`Vista previa de ${selectedFormat.code}`}>
+              <div className="sig-preview-head"><strong>ANTIOQUEÑA DE INCUBACIÓN S.A.S.</strong><span>SISTEMA INTEGRADO DE GESTIÓN</span></div>
+              <div className="sig-preview-title"><b>{selectedFormat.code}</b><span>{selectedFormat.name}</span></div>
+              <div className="sig-preview-grid"><span>PROCESO</span><b>{selectedFormat.process}</b><span>VERSIÓN</span><b>{selectedFormat.version}</b><span>FECHA</span><b>{selectedFormat.date}</b></div>
+              <div className="sig-preview-lines"><i /><i /><i /><i /></div>
+              <small>Documento controlado · Vista previa para exportación</small>
+            </div>
             <div className="sig-format-actions"><button type="button" className="sig-asset-primary" onClick={() => handleFormatExport('excel')}>Exportar Excel</button><button type="button" onClick={() => handleFormatExport('pdf')}>Exportar PDF</button></div>
           </div>
         ) : !selectedMachineId ? (
