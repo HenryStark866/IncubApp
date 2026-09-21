@@ -23,7 +23,6 @@ export const DEFAULT_CLIENT_TEMPLATE = {
    */
   menu: [
     { id: 'hoy', label: 'Hoy', group: 'Inicio', always: true },
-    { id: 'accesos', label: 'Accesos', group: 'Dirección', always: true },
     {
       id: 'admin',
       label: 'Administración',

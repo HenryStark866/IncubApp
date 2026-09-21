@@ -119,7 +119,6 @@ async function buildBoard({
       actions: [
         { tab: 'sst', label: 'Módulo SST' },
         { tab: 'inventarios', label: 'Dotación / EPP' },
-        { tab: 'accesos', label: 'Accesos herméticos' },
       ],
       lines: [],
     }
@@ -135,7 +134,6 @@ async function buildBoard({
       alerts: [],
       actions: [
         { tab: 'ambiental', label: 'Gestión ambiental' },
-        { tab: 'accesos', label: 'Accesos herméticos' },
       ],
       lines: [],
     }
@@ -151,7 +149,6 @@ async function buildBoard({
       alerts: [],
       actions: [
         { tab: 'veterinaria', label: 'Sanidad veterinaria' },
-        { tab: 'accesos', label: 'Accesos herméticos' },
       ],
       lines: [],
     }
@@ -267,14 +264,12 @@ async function boardManagement({ orgId, roleName, privacy = {}, role = null }) {
       ],
       alerts: [
         {
-          text: 'Los módulos de planta, granja y mantenimiento están sellados. Solicita acceso en Accesos.',
-          tab: 'accesos',
+          text: 'Los módulos de planta, granja y mantenimiento están sellados. Solicita autorización al responsable del módulo.',
           warn: true,
         },
       ],
       actions: [
         { tab: 'gerencia', label: 'Gerencia' },
-        { tab: 'accesos', label: 'Solicitar accesos' },
         { tab: 'perfil', label: 'Perfil' },
       ],
       lines: [],
@@ -367,7 +362,6 @@ async function boardManagement({ orgId, roleName, privacy = {}, role = null }) {
     alerts,
     actions: [
       { tab: 'gerencia', label: 'Gerencia' },
-      { tab: 'accesos', label: 'Accesos' },
       { tab: 'panel', label: 'Panel planta' },
       { tab: 'mantenimiento', label: 'Órdenes OT' },
     ],
@@ -555,12 +549,12 @@ async function boardDriver({ orgId, userId, roleName }) {
     ],
     alerts: !todayRep.length
       ? [
-          {
-            text: 'Realice la inspección preoperacional antes de usar el vehículo (los 5 minutos de vida).',
-            tab: 'preoperacional',
-            warn: true,
-          },
-        ]
+        {
+          text: 'Realice la inspección preoperacional antes de usar el vehículo (los 5 minutos de vida).',
+          tab: 'preoperacional',
+          warn: true,
+        },
+      ]
       : [],
     actions: [
       { tab: 'preoperacional', label: 'Preoperacional FOSST22' },
@@ -691,9 +685,8 @@ async function boardSales({ orgId, role, roleName, family }) {
         : 'Hoy · Ventas'
   return {
     title,
-    subtitle: `${roleName}${local ? ' · datos en este dispositivo' : ''}${
-      isLogistics ? ' · área separada de ventas' : ' · área separada de logística'
-    }`,
+    subtitle: `${roleName}${local ? ' · datos en este dispositivo' : ''}${isLogistics ? ' · área separada de ventas' : ' · área separada de logística'
+      }`,
     kpis: [
       { label: 'Clientes verificados', value: verified },
       {
@@ -707,37 +700,37 @@ async function boardSales({ orgId, role, roleName, family }) {
     alerts: [
       ...(!isLogistics
         ? requested.slice(0, 2).map(() => ({
-            text: 'Pedido pendiente de confirmación (ventas)',
-            tab: 'ventas',
-            warn: true,
-          }))
+          text: 'Pedido pendiente de confirmación (ventas)',
+          tab: 'ventas',
+          warn: true,
+        }))
         : []),
       ...(readyRemit > 0
         ? [
-            {
-              text: `${readyRemit} pedido(s) listos para remisión`,
-              tab: isLogistics ? 'logistica' : 'ventas',
-              warn: true,
-            },
-          ]
+          {
+            text: `${readyRemit} pedido(s) listos para remisión`,
+            tab: isLogistics ? 'logistica' : 'ventas',
+            warn: true,
+          },
+        ]
         : []),
     ],
     actions: isLogistics
       ? [
-          { tab: 'logistica', label: 'Remisiones / despacho' },
-          { tab: 'ventas', label: 'Ver pedidos (ventas)' },
-          { tab: 'inventarios', label: 'Mi inventario' },
-          { tab: 'cargue', label: 'Cargue' },
-        ]
+        { tab: 'logistica', label: 'Remisiones / despacho' },
+        { tab: 'ventas', label: 'Ver pedidos (ventas)' },
+        { tab: 'inventarios', label: 'Mi inventario' },
+        { tab: 'cargue', label: 'Cargue' },
+      ]
       : [
-          {
-            tab: isAccounting ? 'contabilidad' : 'ventas',
-            label: isAccounting ? 'Siesa / contabilidad' : 'Pedidos y clientes',
-          },
-          { tab: 'ventas', label: isAccounting ? 'Cruce ventas' : 'Ventas' },
-          { tab: 'logistica', label: 'Logística' },
-          { tab: 'inventarios', label: 'Inventarios' },
-        ],
+        {
+          tab: isAccounting ? 'contabilidad' : 'ventas',
+          label: isAccounting ? 'Siesa / contabilidad' : 'Pedidos y clientes',
+        },
+        { tab: 'ventas', label: isAccounting ? 'Cruce ventas' : 'Ventas' },
+        { tab: 'logistica', label: 'Logística' },
+        { tab: 'inventarios', label: 'Inventarios' },
+      ],
     lines: openOrders.slice(0, 5).map((o) => ({
       title: o.customers?.name || `Pedido ${o.code || ''}`.trim() || 'Pedido',
       meta: o.status,

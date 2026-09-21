@@ -49,7 +49,6 @@ import {
   TodayBoard,
   LeaderDashboard,
   LeaderOpsMap,
-  AccessVaultPanel,
   SiloReportsPanel,
   AttendancePanel,
   PerformancePanel,
@@ -414,7 +413,7 @@ function Workspace({
       if (isPlatformAdmin && !PLATFORM_TAB_IDS.has(tab)) setTab('platform-business')
       return
     }
-    if (['hoy', 'accesos', 'reportes', 'asistencia', 'cumplimiento'].includes(tab)) return
+    if (['hoy', 'reportes', 'asistencia', 'cumplimiento'].includes(tab)) return
     if (String(tab).startsWith('cm-') && visibleModules.some((m) => `cm-${m.id}` === tab)) return
     if (!can(tab) && !(isPlatformAdmin && PLATFORM_TAB_IDS.has(tab))) {
       setTab(isPlatformAdmin && !developerMode ? 'platform-business' : 'hoy')
@@ -460,11 +459,7 @@ function Workspace({
     } else if (org) {
       const clientItems = buildClientNavItems({ can, role })
       for (const it of clientItems) {
-        if (it.id === 'accesos' && access.pendingCount > 0) {
-          items.push({ ...it, label: `Accesos (${access.pendingCount})` })
-        } else {
-          items.push(it)
-        }
+        items.push(it)
       }
       for (const m of corpModules) {
         if (items.some((n) => n.id === m.tab)) continue
@@ -490,7 +485,6 @@ function Workspace({
     can,
     role,
     visibleModules,
-    access.pendingCount,
     corpModules,
   ])
 
@@ -653,8 +647,8 @@ function Workspace({
               orgName={org.name}
               onNavigate={(t) => {
                 if (t === 'mapa-planta' || t === 'mapa-3d') { setTab(t); return }
-                if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
-                else setTab('accesos')
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
               }}
               presence={presence}
               can={can}
@@ -671,8 +665,8 @@ function Workspace({
               initialVista={tab === 'mapa-3d' ? '3d' : '2d'}
               onNavigate={(t) => {
                 if (t === 'hoy') { setTab('hoy'); return }
-                if (can(t) || t === 'accesos' || t === 'perfil') setTab(t)
-                else setTab('accesos')
+                if (can(t) || t === 'perfil') setTab(t)
+                else setTab('hoy')
               }}
               presence={presence}
               can={can}
@@ -686,20 +680,12 @@ function Workspace({
               userName={profileApi.profile?.full_name ?? session.user.email}
               orgName={org.name}
               onNavigate={(t) => {
-                if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
-                else setTab('accesos')
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
               }}
               presence={presence}
               grantedScopeIds={access.grantedScopeIds}
               isOmniscient={isOmniscient}
-            />
-          ) : tab === 'accesos' && org ? (
-            <AccessVaultPanel
-              access={access}
-              role={role}
-              area={area}
-              isOmniscient={isOmniscient}
-              userName={profileApi.profile?.full_name ?? session.user.email}
             />
           ) : tab === 'reportes' && org ? (
             <SiloReportsPanel

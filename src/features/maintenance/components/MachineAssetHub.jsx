@@ -2,7 +2,7 @@
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_INVENTORY, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
@@ -27,6 +27,33 @@ function mantumInventoryEvidence() {
     created_at: null,
     source: 'mantum',
   }));
+}
+
+function mantumHistoricalEvidence() {
+  return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+    (orders || []).map((order) => ({
+      id: `mantum-ot-${machineCode}-${order.code}`,
+      file_name: `OT Mantum ${order.code}`,
+      file_type: 'record',
+      formatCode: 'FOMAT01',
+      workOrderCode: order.code,
+      workOrderTitle: order.activity || 'Orden histórica Mantum',
+      machineCode,
+      note: order.feedback || order.description || order.activity || 'OT histórica Mantum',
+      created_at: order.completed_at || order.started_at || order.created_at || null,
+      source: 'mantum',
+      kind: 'mantum-order',
+      url: null,
+    }))
+  );
+}
+
+function sortEvidence(items) {
+  return items.sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bTime - aTime;
+  });
 }
 
 function catalogMachines() {
@@ -81,7 +108,7 @@ const MachineAssetHub = ({ orgId }) => {
 
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
-  const { dossier: remoteDossier, loading: dossierLoading } = useMachineDossier(remoteMachineId);
+  const { dossier: remoteDossier, loading: dossierLoading } = useMachineDossier(remoteMachineId, orgId);
 
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
@@ -100,39 +127,68 @@ const MachineAssetHub = ({ orgId }) => {
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
   const loadDocuments = useCallback(async () => {
-    if (!orgId || selectedMachine?.source !== 'remote' || !selectedMachine?.machine_id) {
+    if (!orgId || !selectedMachine?.machine_id) {
       setDocuments([]);
       return;
     }
     setDocumentsLoading(true);
     try {
-      const { data: orders, error: ordersError } = await supabase
-        .from('work_orders')
-        .select('id, code, title, machine_id, created_at')
-        .eq('org_id', orgId)
-        .eq('machine_id', selectedMachine.machine_id)
-        .order('created_at', { ascending: false });
+      const ordersResult = selectedMachine.source === 'remote'
+        ? await supabase
+          .from('work_orders')
+          .select('id, code, title, machine_id, created_at')
+          .eq('org_id', orgId)
+          .eq('machine_id', selectedMachine.machine_id)
+          .order('created_at', { ascending: false })
+        : { data: [], error: null };
+      const { data: orders, error: ordersError } = ordersResult;
       if (ordersError) throw ordersError;
       const orderIds = (orders || []).map((order) => order.id);
-      if (!orderIds.length) {
-        setDocuments([]);
-        return;
+      const evidenceResult = orderIds.length
+        ? await supabase
+          .from('wo_evidence')
+          .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+          .eq('org_id', orgId)
+          .in('work_order_id', orderIds)
+          .order('created_at', { ascending: false })
+        : { data: [], error: null };
+      if (evidenceResult.error) throw evidenceResult.error;
+      let registryQuery = supabase
+        .from('sig_evidence')
+        .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
+        .eq('org_id', orgId);
+      if (selectedMachine.source === 'remote') {
+        registryQuery = registryQuery.or(`machine_id.eq.${selectedMachine.machine_id},machine_code.eq.${selectedMachine.code}`);
+      } else {
+        registryQuery = registryQuery.eq('machine_code', selectedMachine.code);
       }
-      const { data: evidence, error: evidenceError } = await supabase
-        .from('wo_evidence')
-        .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
-        .eq('org_id', orgId)
-        .in('work_order_id', orderIds)
-        .order('created_at', { ascending: false });
-      if (evidenceError) throw evidenceError;
+      const registryResult = await registryQuery.order('recorded_at', { ascending: false });
+      const registry = registryResult.error ? [] : (registryResult.data || []);
       const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
-      const resolved = await Promise.all((evidence || []).map(async (file) => {
+      const resolved = await Promise.all((evidenceResult.data || []).map(async (file) => {
         const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
         const order = orderMap[file.work_order_id] || {};
         return { ...file, workOrderCode: order.code, workOrderTitle: order.title, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
       }));
-      setDocuments(resolved);
-      setSelectedDocumentId((current) => current && resolved.some((file) => file.id === current) ? current : resolved[0]?.id || null);
+      const resolvedRegistry = await Promise.all(registry.map(async (file) => {
+        const { data: signed } = await supabase.storage.from('sig-evidence').createSignedUrl(file.file_path, 3600);
+        return {
+          id: `sig-${file.id}`,
+          file_name: file.file_name,
+          file_type: file.file_type,
+          file_path: file.file_path,
+          note: file.title,
+          workOrderTitle: file.title,
+          formatCode: file.format_code || 'EVIDENCIA SIG',
+          created_at: file.recorded_at,
+          url: signed?.signedUrl || null,
+          source: file.source,
+          kind: 'sig-registry',
+        };
+      }));
+      const combined = sortEvidence([...resolved, ...resolvedRegistry]);
+      setDocuments(combined);
+      setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar las evidencias del activo.', error);
       setDocuments([]);
@@ -149,31 +205,165 @@ const MachineAssetHub = ({ orgId }) => {
     try {
       const { data: orders, error: ordersError } = await supabase
         .from('work_orders')
-        .select('id, code, title, machine_id, created_at')
+        .select('id, code, title, machine_id, created_at, completed_at')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false });
       if (ordersError) throw ordersError;
       const orderIds = (orders || []).map((order) => order.id);
-      if (!orderIds.length) { setAllEvidence([]); return; }
-      const { data: evidence, error: evidenceError } = await supabase
-        .from('wo_evidence')
-        .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
-        .eq('org_id', orgId)
-        .in('work_order_id', orderIds)
-        .order('created_at', { ascending: false });
-      if (evidenceError) throw evidenceError;
+      const [evidenceResult, checksResult, calibrationsResult, reportsResult, machinesResult, registryResult] = await Promise.all([
+        orderIds.length
+          ? supabase
+            .from('wo_evidence')
+            .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+            .eq('org_id', orgId)
+            .in('work_order_id', orderIds)
+            .order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        supabase
+          .from('machine_checks')
+          .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
+          .eq('org_id', orgId)
+          .order('taken_at', { ascending: false })
+          .limit(2000),
+        supabase
+          .from('machine_calibrations')
+          .select('id, machine_id, work_order_id, performed_by, calibrated_at, scope, notes, photo_calibrator_path, photo_screen_path')
+          .eq('org_id', orgId)
+          .order('calibrated_at', { ascending: false })
+          .limit(500),
+        supabase
+          .from('round_reports')
+          .select('id, user_id, shift_date, shift_code, title, body, created_at')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(1000),
+        supabase.from('machines').select('id, code, name').eq('org_id', orgId),
+        supabase
+          .from('sig_evidence')
+          .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
+          .eq('org_id', orgId)
+          .order('recorded_at', { ascending: false })
+          .limit(5000),
+      ]);
+      if (evidenceResult.error) throw evidenceResult.error;
+      if (checksResult.error) throw checksResult.error;
+      if (calibrationsResult.error) throw calibrationsResult.error;
+      if (reportsResult.error) throw reportsResult.error;
+      if (machinesResult.error) throw machinesResult.error;
+      const evidence = evidenceResult.data || [];
       const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
       const resolved = await Promise.all((evidence || []).map(async (file) => {
         const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
         const order = orderMap[file.work_order_id] || {};
-        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
+        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }), source: 'incubapp', kind: 'work-order' };
       }));
-      const inventoryEvidence = mantumInventoryEvidence();
-      setAllEvidence([...resolved, ...inventoryEvidence]);
-      setSelectedDocumentId((current) => current && [...resolved, ...inventoryEvidence].some((file) => file.id === current) ? current : resolved[0]?.id || inventoryEvidence[0]?.id || null);
+      const resolvedRegistry = await Promise.all((registryResult.error ? [] : (registryResult.data || [])).map(async (file) => {
+        const { data: signed } = await supabase.storage.from('sig-evidence').createSignedUrl(file.file_path, 3600);
+        return {
+          id: `sig-${file.id}`,
+          file_name: file.file_name,
+          file_type: file.file_type,
+          file_path: file.file_path,
+          workOrderCode: file.machine_code,
+          workOrderTitle: file.title,
+          note: file.title,
+          created_at: file.recorded_at,
+          source: file.source,
+          kind: 'sig-registry',
+          formatCode: file.format_code || 'EVIDENCIA SIG',
+          url: signed?.signedUrl || null,
+        };
+      }));
+      const machineMap = Object.fromEntries((machinesResult.data || []).map((machine) => [machine.id, machine]));
+      const checksByRound = new Map();
+      for (const check of checksResult.data || []) {
+        const rawShift = check.shift_number || 'T?';
+        const shiftCode = String(rawShift).startsWith('T') ? rawShift : `T${rawShift}`;
+        const key = `${check.shift_date || 'sin-fecha'}|${shiftCode}|${check.hour_slot || 'H?'}`;
+        checksByRound.set(key, [...(checksByRound.get(key) || []), check]);
+      }
+      const reportsByRound = new Map();
+      for (const report of reportsResult.data || []) {
+        const key = `${report.shift_date || 'sin-fecha'}|${report.shift_code || 'T?'}`;
+        reportsByRound.set(key, [...(reportsByRound.get(key) || []), report]);
+      }
+      const rounds = await Promise.all(Array.from(checksByRound.entries()).map(async ([key, checks]) => {
+        const [shiftDate, shiftNumber, hourSlot] = key.split('|');
+        const items = await Promise.all(checks.map(async (check) => {
+          if (!check.photo_path) return { ...check, url: null, machine: machineMap[check.machine_id] || null };
+          const { data: signed } = await supabase.storage.from('machine-checks').createSignedUrl(check.photo_path, 3600);
+          return { ...check, url: signed?.signedUrl || null, machine: machineMap[check.machine_id] || null };
+        }));
+        const latest = checks.reduce((date, check) => check.taken_at > date ? check.taken_at : date, checks[0]?.taken_at || null);
+        return {
+          id: `round-${key}`,
+          file_name: `Ronda ${shiftDate} · ${shiftNumber} · ${hourSlot}`,
+          file_type: 'round',
+          formatCode: 'FOMAT04',
+          workOrderTitle: 'Ronda de inspección',
+          note: `${checks.length} máquinas reportadas en una sola ronda`,
+          created_at: latest,
+          source: 'incubapp',
+          kind: 'round',
+          items,
+          reports: reportsByRound.get(`${shiftDate}|${shiftNumber}`) || [],
+          url: items.find((item) => item.url)?.url || null,
+        };
+      }));
+      for (const [key, reports] of reportsByRound.entries()) {
+        if (Array.from(checksByRound.keys()).some((checkKey) => checkKey.startsWith(`${key}|`))) continue;
+        const [shiftDate, shiftNumber] = key.split('|');
+        rounds.push({
+          id: `round-report-${key}`,
+          file_name: `Ronda ${shiftDate} · ${shiftNumber}`,
+          file_type: 'round',
+          formatCode: 'FOMAT04',
+          workOrderTitle: 'Reporte de ronda',
+          note: `${reports.length} reporte(s) de ronda`,
+          created_at: reports[0]?.created_at || null,
+          source: 'incubapp',
+          kind: 'round',
+          items: [],
+          reports,
+          url: null,
+        });
+      }
+      const calibrations = await Promise.all((calibrationsResult.data || []).map(async (calibration) => {
+        const paths = [calibration.photo_calibrator_path, calibration.photo_screen_path].filter(Boolean);
+        const urls = await Promise.all(paths.map(async (path) => {
+          const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(path, 3600);
+          if (signed?.signedUrl) return signed.signedUrl;
+          const { data: fallback } = await supabase.storage.from('machine-checks').createSignedUrl(path, 3600);
+          return fallback?.signedUrl || null;
+        }));
+        const machine = machineMap[calibration.machine_id] || {};
+        return {
+          id: `calibration-${calibration.id}`,
+          file_name: `Calibración ${machine.code || 'de máquina'}`,
+          file_type: 'calibration',
+          formatCode: 'FOMAT08',
+          workOrderTitle: machine.name || 'Calibración de máquina',
+          note: calibration.notes || `${calibration.scope || 'both'} · evidencia de calibración`,
+          created_at: calibration.calibrated_at,
+          source: 'incubapp',
+          kind: 'calibration',
+          items: urls.filter(Boolean).map((url, index) => ({ url, file_name: index === 0 ? 'Foto del calibrador' : 'Foto de pantalla' })),
+          url: urls.find(Boolean) || null,
+        };
+      }));
+      const combined = sortEvidence([
+        ...resolved,
+        ...resolvedRegistry,
+        ...rounds,
+        ...calibrations,
+        ...mantumInventoryEvidence(),
+        ...mantumHistoricalEvidence(),
+      ]);
+      setAllEvidence(combined);
+      setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
-      setAllEvidence(mantumInventoryEvidence());
+      setAllEvidence(sortEvidence([...mantumInventoryEvidence(), ...mantumHistoricalEvidence()]));
     } finally {
       setAllEvidenceLoading(false);
     }
@@ -306,7 +496,7 @@ const MachineAssetHub = ({ orgId }) => {
           )}
           {section === 'evidence' && (
             <div className="sig-evidence-global-list">
-              {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !allEvidence.length ? <p className="sig-empty-tab">No hay evidencias registradas todavía.</p> : allEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
+              {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !allEvidence.length ? <p className="sig-empty-tab">No hay evidencias registradas todavía.</p> : allEvidence.map((file) => <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small></button>)}
             </div>
           )}
           {section === 'assets' && <>
@@ -368,7 +558,7 @@ const MachineAssetHub = ({ orgId }) => {
             <span className="sig-detail-kicker">Repositorio general SIG</span>
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Todas las fotos y documentos cargados desde órdenes de trabajo, calibraciones y procesos de mantenimiento.</p>
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleDateString('es-CO') : 'Sin fecha'}</small></div><a href={selectedDocument.url || '#'} target="_blank" rel="noopener noreferrer">Abrir archivo</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} target="_blank" rel="noopener noreferrer">Abrir archivo</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : selectedDocument.note ? <p>{selectedDocument.note}</p> : null}{selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : null}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">

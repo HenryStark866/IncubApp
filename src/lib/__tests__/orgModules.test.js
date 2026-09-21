@@ -19,9 +19,8 @@ import {
 import { DEFAULT_CLIENT_TEMPLATE } from '../clientMenuTemplate'
 
 describe('núcleo no desactivable', () => {
-  it('incluye las pestañas always de la plantilla, perfil y admin', () => {
+  it('incluye las pestañas activas de la plantilla, perfil y admin', () => {
     expect(isCoreModule('hoy')).toBe(true)
-    expect(isCoreModule('accesos')).toBe(true)
     expect(isCoreModule('misionales')).toBe(true)
     expect(isCoreModule('perfil')).toBe(true)
     expect(isCoreModule('admin')).toBe(true)

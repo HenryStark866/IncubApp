@@ -170,10 +170,10 @@ export default function ManagementCockpit({
 
   const updatedMeta = stats.updatedAt
     ? `Actualizado ${new Date(stats.updatedAt).toLocaleTimeString('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      })}`
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })}`
     : null
 
   return (
@@ -213,15 +213,7 @@ export default function ManagementCockpit({
         {(sealed || stats.privacyNote) && (
           <p className="msg warn" style={{ margin: 0 }}>
             {stats.privacyNote ||
-              'Módulos operativos sellados. Solicita acceso temporal en la pestaña Accesos; el responsable del módulo debe aprobar.'}
-            {onNavigate && (
-              <>
-                {' '}
-                <button type="button" className="ghost small" onClick={() => onNavigate('accesos')}>
-                  Ir a Accesos
-                </button>
-              </>
-            )}
+              'Módulos operativos sellados. Solicita autorización al responsable del módulo.'}
           </p>
         )}
 
@@ -294,11 +286,10 @@ export default function ManagementCockpit({
                   <ExecEmpty ok>
                     {safeStats.loading
                       ? 'Cargando…'
-                      : `Sin alertas reales hoy.${
-                          safeStats.health?.checksOff
-                            ? ` (${safeStats.health.checksOff} apagada(s) no cuentan como alerta)`
-                            : ''
-                        }`}
+                      : `Sin alertas reales hoy.${safeStats.health?.checksOff
+                        ? ` (${safeStats.health.checksOff} apagada(s) no cuentan como alerta)`
+                        : ''
+                      }`}
                   </ExecEmpty>
                 ) : (
                   <ExecList items={lists.machineAlerts} />

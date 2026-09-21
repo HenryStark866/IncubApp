@@ -39,7 +39,6 @@ Documentación de negocio y avance:
 - **ExecBoard** — KPI y paneles del tablero ejecutivo.  
 
 ### Dirección, gerencia y cumplimiento
-- **AccessVaultPanel** — Acceso temporal entre **módulos herméticos**.  
 - **AdminDashboard** — Admin de plataforma.  
 - **DepartmentModule** — Paneles corporativos (gerencia, RRHH, etc.).  
 - **ManagementCockpit** — Cockpit: torre, **bandeja gerencial**, asesor, scorecard IE.  

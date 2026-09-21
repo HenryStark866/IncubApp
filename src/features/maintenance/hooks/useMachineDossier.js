@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 
-export const useMachineDossier = (machineId) => {
+export const useMachineDossier = (machineId, orgId) => {
   const [dossier, setDossier] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,6 +16,7 @@ export const useMachineDossier = (machineId) => {
         .from('machine_sig_summary')
         .select('*')
         .eq('machine_id', machineId)
+        .eq('org_id', orgId)
         .single();
 
       if (sumErr) throw sumErr;
@@ -24,6 +25,7 @@ export const useMachineDossier = (machineId) => {
         .from('work_orders')
         .select('*, profiles(full_name)')
         .eq('machine_id', machineId)
+        .eq('org_id', orgId)
         .order('created_at', { ascending: false });
 
       if (otErr) throw otErr;
@@ -32,6 +34,7 @@ export const useMachineDossier = (machineId) => {
         .from('machine_calibrations')
         .select('*, profiles(full_name)')
         .eq('machine_id', machineId)
+        .eq('org_id', orgId)
         .order('calibrated_at', { ascending: false });
 
       if (calErr) throw calErr;
@@ -51,7 +54,7 @@ export const useMachineDossier = (machineId) => {
 
   useEffect(() => {
     fetchFullDossier();
-  }, [machineId]);
+  }, [machineId, orgId]);
 
   return { dossier, loading, error, refresh: fetchFullDossier };
 };

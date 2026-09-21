@@ -8,6 +8,8 @@
     "build": "node scripts/planta3d-config.mjs && vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "backfill:mantum": "node scripts/backfill_mantum_work_orders.mjs",
+    "import:sig-evidence": "node scripts/import_sig_evidence.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
     "planta3d:fotos": "node scripts/planta3d-fotos.mjs"

@@ -29,6 +29,7 @@ export function useMachineDossier(machineId, orgId) {
   const [workOrders, setWorkOrders] = useState([])
   const [checks, setChecks] = useState([])
   const [usersMap, setUsersMap] = useState({})
+  const [assetEvidence, setAssetEvidence] = useState([])
 
   const loadDossier = useCallback(async () => {
     if (!machineId) {
@@ -47,6 +48,7 @@ export function useMachineDossier(machineId, orgId) {
         .from('machines')
         .select('*')
         .eq('id', machineId)
+        .eq('org_id', orgId)
         .maybeSingle()
 
       if (fullQuery.error) {
@@ -55,6 +57,7 @@ export function useMachineDossier(machineId, orgId) {
           .from('machines')
           .select('id, code, name, type, brand, model, capacity_eggs, status, installed_at, room_id, plant_id')
           .eq('id', machineId)
+          .eq('org_id', orgId)
           .maybeSingle()
         if (safeQuery.error) throw safeQuery.error
         mData = safeQuery.data
@@ -88,6 +91,7 @@ export function useMachineDossier(machineId, orgId) {
           .from('machine_calibrations')
           .select('*')
           .eq('machine_id', machineId)
+          .eq('org_id', orgId)
           .order('calibrated_at', { ascending: false })
           .limit(50),
         // Órdenes de trabajo FOMAT01
@@ -95,6 +99,7 @@ export function useMachineDossier(machineId, orgId) {
           .from('work_orders')
           .select('*')
           .eq('machine_id', machineId)
+          .eq('org_id', orgId)
           .order('created_at', { ascending: false })
           .limit(50),
         // Chequeos de ronda FOMAT04
@@ -102,23 +107,53 @@ export function useMachineDossier(machineId, orgId) {
           .from('machine_checks')
           .select('*')
           .eq('machine_id', machineId)
+          .eq('org_id', orgId)
           .order('taken_at', { ascending: false })
           .limit(60),
         // Miembros de la organización para mapear IDs a nombres
         orgId
           ? supabase
-              .from('organization_members')
-              .select('user_id, role, profiles ( id, full_name, email )')
-              .eq('org_id', orgId)
+            .from('organization_members')
+            .select('user_id, role, profiles ( id, full_name, email )')
+            .eq('org_id', orgId)
           : Promise.resolve({ data: [] }),
       ])
 
       setRoom(rRes?.data || null)
       setPlant(pRes?.data || null)
       setOpsState(opsRes?.data || null)
-      setCalibrations(calRes?.data || [])
+      const signedCalibration = async (record) => {
+        const sign = async (bucket, filePath) => {
+          if (!filePath) return null
+          const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 3600)
+          return data?.signedUrl || null
+        }
+        return {
+          ...record,
+          photo_screen_url: await sign('wo-evidence', record.photo_screen_path),
+          photo_calibrator_url: await sign('wo-evidence', record.photo_calibrator_path),
+        }
+      }
+      const signedChecks = await Promise.all((chkRes?.data || []).map(async (check) => {
+        if (!check.photo_path) return check
+        const { data } = await supabase.storage.from('machine-checks').createSignedUrl(check.photo_path, 3600)
+        return { ...check, photo_url: data?.signedUrl || null }
+      }))
+      setCalibrations(await Promise.all((calRes?.data || []).map(signedCalibration)))
       setWorkOrders(woRes?.data || [])
-      setChecks(chkRes?.data || [])
+      setChecks(signedChecks)
+
+      const { data: registry } = await supabase
+        .from('sig_evidence')
+        .select('id, source, format_code, title, file_name, file_path, file_type, recorded_at')
+        .eq('org_id', orgId)
+        .or(`machine_id.eq.${machineId},machine_code.eq.${mData.code}`)
+        .order('recorded_at', { ascending: false })
+      const signedEvidence = await Promise.all((registry || []).map(async (file) => {
+        const { data: signed } = await supabase.storage.from('sig-evidence').createSignedUrl(file.file_path, 3600)
+        return { ...file, url: signed?.signedUrl || null }
+      }))
+      setAssetEvidence(signedEvidence)
 
       // Mapeo de usuarios
       const uMap = {}
@@ -269,6 +304,7 @@ export function useMachineDossier(machineId, orgId) {
     workOrders,
     checks,
     usersMap,
+    assetEvidence,
     mantum,
     stats,
     createAutoWorkOrder,

@@ -369,7 +369,6 @@ function AreaPlaceholder({ area, name, onNavigate }) {
     { tab: 'plantas', label: 'Plantas y planos', hint: 'Layout y máquinas' },
     { tab: 'granjas', label: 'Granjas', hint: 'Sedes de campo' },
     { tab: 'iot', label: 'IoT y bioseguridad', hint: 'Checklists por sede' },
-    { tab: 'accesos', label: 'Accesos', hint: 'Permisos temporales entre módulos' },
   ]
   return (
     <div className="card wide">

@@ -99,6 +99,7 @@ export default function MachineDossier({
     workOrders,
     checks,
     usersMap,
+    assetEvidence,
     mantum,
     stats,
     createAutoWorkOrder,
@@ -135,6 +136,7 @@ export default function MachineDossier({
       workOrders,
       mantum,
       stats,
+      assetEvidence,
     })
   }
 
@@ -456,11 +458,11 @@ export default function MachineDossier({
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Marca / Fabricante:</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.brand || 'Petersime'}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.brand || mantum?.equipo?.brand || 'No registrado en FOMAT02/Mantum'}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Modelo:</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.model || 'BioStreamer 24S / Convencional'}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>{machine.model || mantum?.equipo?.model || 'No registrado en FOMAT02/Mantum'}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Número de Serie:</div>
@@ -477,7 +479,7 @@ export default function MachineDossier({
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Fecha de Instalación:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
-                    {machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : '2019-05-10'}
+                    {machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : 'No registrada en FOMAT02/Mantum'}
                   </div>
                 </div>
                 <div>
@@ -489,7 +491,15 @@ export default function MachineDossier({
                 <div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>Manual Técnico OEM:</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#10b981' }}>
-                    Disponible en Repositorio SIG (Digitalizado Mantum)
+                    {assetEvidence.some((file) => file.file_type === 'document') ? 'Disponible en Repositorio SIG' : 'No registrado en el repositorio documental'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Proveedor / Adquisición:</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
+                    {machine.supplier || 'Proveedor no registrado en las fuentes disponibles'}
+                    {' · '}
+                    {machine.acquisition_date ? new Date(machine.acquisition_date).toLocaleDateString('es-CO') : 'Fecha de adquisición no registrada'}
                   </div>
                 </div>
                 <div>
@@ -499,6 +509,31 @@ export default function MachineDossier({
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: 20 }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#60a5fa' }}>🖼️ Imágenes y documentos relacionados</h3>
+              {assetEvidence.length === 0 ? (
+                <p className="hint">No hay archivos documentales asociados a este código en el repositorio SIG/Mantum.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                    {assetEvidence.filter((file) => file.file_type === 'image' && file.url).map((file) => (
+                      <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+                        <img src={file.url} alt={file.file_name} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 6 }} />
+                        <small>{file.file_name}</small>
+                      </a>
+                    ))}
+                  </div>
+                  <div style={{ display: 'grid', gap: 6, marginTop: 14 }}>
+                    {assetEvidence.filter((file) => file.file_type !== 'image').map((file) => (
+                      <a key={file.id} href={file.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: '#93c5fd' }}>
+                        {file.format_code || 'Documento'} · {file.file_name}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Asignación y gestión rápida para Líder */}
@@ -861,7 +896,7 @@ export default function MachineDossier({
                               {c.photo_screen_path && (
                                 <button
                                   className="chip ghost small"
-                                  onClick={() => setSelectedPhoto({ title: 'Evidencia Pantalla', path: c.photo_screen_path })}
+                                  onClick={() => setSelectedPhoto({ title: 'Evidencia Pantalla', path: c.photo_screen_url || c.photo_screen_path })}
                                   style={{ fontSize: 10, padding: '2px 6px' }}
                                 >
                                   📷 Pantalla
@@ -870,7 +905,7 @@ export default function MachineDossier({
                               {c.photo_calibrator_path && (
                                 <button
                                   className="chip ghost small"
-                                  onClick={() => setSelectedPhoto({ title: 'Evidencia Patrón', path: c.photo_calibrator_path })}
+                                  onClick={() => setSelectedPhoto({ title: 'Evidencia Patrón', path: c.photo_calibrator_url || c.photo_calibrator_path })}
                                   style={{ fontSize: 10, padding: '2px 6px' }}
                                 >
                                   📷 Patrón
@@ -920,6 +955,7 @@ export default function MachineDossier({
                       <th style={{ padding: '8px 12px' }}>Turno / Franja</th>
                       <th style={{ padding: '8px 12px' }}>Condición</th>
                       <th style={{ padding: '8px 12px' }}>Observaciones</th>
+                      <th style={{ padding: '8px 12px' }}>Foto</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -940,6 +976,9 @@ export default function MachineDossier({
                           </span>
                         </td>
                         <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{chk.notes || 'Operación conforme'}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          {chk.photo_url ? <a href={chk.photo_url} target="_blank" rel="noopener noreferrer"><img src={chk.photo_url} alt="Evidencia de ronda" style={{ width: 72, height: 48, objectFit: 'cover', borderRadius: 4 }} /></a> : 'Sin foto'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -7,7 +7,7 @@
 import * as XLSX from 'xlsx'
 import { excelLetterheadRows, excelFooterRows, CORP_SLOGAN } from './corporateBrand'
 
-export function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {} }) {
+export function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {}, assetEvidence = [] }) {
   if (!machine) return
 
   const wb = XLSX.utils.book_new()
@@ -25,11 +25,11 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
     ['Código Interno:', machine.code || 'S/C', 'Nombre del Activo:', machine.name || 'S/N'],
     ['Código Mantum:', machine.mantum_code || mantum?.equipo?.mantum_code || 'S/C', 'Criticidad SIG:', machine.criticidad || mantum?.equipo?.criticidad || 'Media'],
     ['Sede / Planta:', plant?.name || 'Incubant Hispania', 'Ubicación / Sala:', room ? `${room.name} (${room.code})` : 'Planta General'],
-    ['Marca:', machine.brand || 'Petersime', 'Modelo:', machine.model || 'BioStreamer / Convencional'],
-    ['Número de Serie:', machine.serial_number || mantum?.equipo?.serial_number || 'D0757-D1585', 'Fabricante / Proveedor:', machine.supplier || 'Petersime NV / Somar'],
-    ['Fecha Instalación:', machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : '2019-05-10', 'Vida Útil Estimada:', `${machine.useful_life_years || 10} años`],
-    ['Capacidad Nominal:', machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'Estándar', 'Estado Operativo:', machine.status || 'Activa'],
-    ['Manual OEM Disponible:', mantum?.inventory ? 'Sí (Digitalizado Mantum)' : 'Sí (Archivo Técnico)', 'Fotografía del Activo:', mantum?.isOwnPhoto ? 'Foto real propia del activo' : 'Foto referencial'],
+    ['Marca:', machine.brand || mantum?.equipo?.brand || 'No registrado en FOMAT02/Mantum', 'Modelo:', machine.model || mantum?.equipo?.model || 'No registrado en FOMAT02/Mantum'],
+    ['Número de Serie:', machine.serial_number || mantum?.equipo?.serial_number || 'No registrado en FOMAT02/Mantum', 'Fabricante / Proveedor:', machine.supplier || 'Proveedor no registrado en las fuentes disponibles'],
+    ['Fecha Instalación:', machine.installed_at ? new Date(machine.installed_at).toLocaleDateString('es-CO') : 'No registrada en FOMAT02/Mantum', 'Vida Útil Estimada:', `${machine.useful_life_years || 10} años`],
+    ['Capacidad Nominal:', machine.capacity_eggs ? `${Number(machine.capacity_eggs).toLocaleString('es-CO')} huevos` : 'No registrada en FOMAT02/Mantum', 'Estado Operativo:', machine.status || 'Estado no registrado'],
+    ['Manual OEM Disponible:', assetEvidence.some((file) => file.file_type === 'document') ? 'Sí' : 'No registrado en el repositorio documental', 'Fotografía del Activo:', mantum?.isOwnPhoto ? 'Foto real propia del activo' : 'Foto referencial Mantum'],
     [],
     ['2. COMPONENTES Y REPUESTOS CRÍTICOS (VIDA ÚTIL)'],
     ['Código Componente', 'Nombre Componente', 'Especificación Técnica', 'Referencia OEM', 'Estado / Vida Útil'],
@@ -69,17 +69,17 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
     })
   })
 
-  ;(mantum?.historicalOTs || []).forEach((h) => {
-    combinedWOs.push({
-      fecha: h.created_at || h.started_at || '',
-      codigo: h.code || 'HIST-MANTUM',
-      tipo: h.type || 'Sistemática',
-      actividad: h.activity || h.description || 'Mantenimiento Preventivo Mantum',
-      tecnico: h.technician || 'Personal Técnico Mantum',
-      aprobador: h.approver || 'Líder Registrador',
-      resultado: `Cerrada ($${h.cost || '0'})`,
+    ; (mantum?.historicalOTs || []).forEach((h) => {
+      combinedWOs.push({
+        fecha: h.created_at || h.started_at || '',
+        codigo: h.code || 'HIST-MANTUM',
+        tipo: h.type || 'Sistemática',
+        actividad: h.activity || h.description || 'Mantenimiento Preventivo Mantum',
+        tecnico: h.technician || 'Personal Técnico Mantum',
+        aprobador: h.approver || 'Líder Registrador',
+        resultado: `Cerrada ($${h.cost || '0'})`,
+      })
     })
-  })
 
   if (combinedWOs.length > 0) {
     combinedWOs.slice(0, 30).forEach((w) => {
