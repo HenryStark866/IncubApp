@@ -136,6 +136,7 @@ export default function LeaderDashboard({
   orgId,
   userId,
   role,
+  developerMode = false,
   area,
   userName,
   orgName,
@@ -290,34 +291,46 @@ export default function LeaderDashboard({
         )}
       </section>
 
-      <div className="ldr-main-split">
-        <section className="ldr-map-section" aria-label="Plano de planta en vivo">
-          <h2 className="ldr-section-title">
-            <span aria-hidden="true">Plano</span> Plano en vivo
-            {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
-          </h2>
-          <div className="ldr-map-frame">
-            {roomsApi.loading ? (
-              <div className="ldr-map-placeholder">Cargando plano…</div>
-            ) : roomsApi.rooms.length === 0 ? (
-              <div className="ldr-map-placeholder">Planta sin plano dibujado aún.</div>
-            ) : (
-              <FloorMap
-                canManage={false}
-                canExpand={false}
-                roomsApi={roomsApi}
-                machines={machines}
-                updateMachine={() => { }}
-                moveRoom={roomsApi.moveRoom}
-                selectedMachineId={null}
-                onSelectMachine={() => { }}
-                livePeople={[]}
-                conditionByMachine={conditionByMachine}
-                highlightRoomIds={null}
-              />
-            )}
-          </div>
-        </section>
+      <div className={`ldr-main-split${developerMode ? '' : ' ldr-main-split-3d'}`}>
+        {developerMode ? (
+          <section className="ldr-map-section" aria-label="Plano de planta en vivo">
+            <h2 className="ldr-section-title">
+              <span aria-hidden="true">Plano</span> Plano en vivo
+              {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
+            </h2>
+            <div className="ldr-map-frame">
+              {roomsApi.loading ? (
+                <div className="ldr-map-placeholder">Cargando plano…</div>
+              ) : roomsApi.rooms.length === 0 ? (
+                <div className="ldr-map-placeholder">Planta sin plano dibujado aún.</div>
+              ) : (
+                <FloorMap
+                  canManage={false}
+                  canExpand={false}
+                  roomsApi={roomsApi}
+                  machines={machines}
+                  updateMachine={() => { }}
+                  moveRoom={roomsApi.moveRoom}
+                  selectedMachineId={null}
+                  onSelectMachine={() => { }}
+                  livePeople={[]}
+                  conditionByMachine={conditionByMachine}
+                  highlightRoomIds={null}
+                />
+              )}
+            </div>
+          </section>
+        ) : puede3D ? (
+          <section className="ldr-map-section ldr-map-section-3d" aria-label="Planta 3D holográfica">
+            <h2 className="ldr-section-title">
+              <span aria-hidden="true">3D</span> Planta holográfica en vivo
+              {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
+            </h2>
+            <div className="ldr-map-frame ldr-map-frame-3d">
+              <iframe className="ldr-tour-3d" src={PLANT_3D_TOUR_URL} title="Planta 3D holográfica" allow="fullscreen" />
+            </div>
+          </section>
+        ) : null}
 
         <section className="ldr-feed-section" aria-label="Actividad reciente">
           <h2 className="ldr-section-title"><span aria-hidden="true">📋</span> Actividad del turno</h2>
@@ -338,7 +351,7 @@ export default function LeaderDashboard({
         <h2 className="ldr-section-title" style={{ marginBottom: '1rem' }}>
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
-        <div style={{ height: '600px', overflow: 'hidden', borderRadius: '0.5rem' }}>
+        <div className="ldr-assets-frame">
           <MachineAssetHub />
         </div>
       </section>

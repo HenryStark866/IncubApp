@@ -45,8 +45,8 @@
 
   // ── Opciones (se declara ya, porque el primer armado del mundo la necesita) ─
   const opciones = {
-    etiquetas: true, equipos: true, techos: false, cotas: true,
-    sombras: true, atravesar: false, volar: false, giro: false, sonido: true,
+    etiquetas: true, equipos: true, techos: true, cotas: true,
+    sombras: true, atravesar: false, volar: false, giro: true, holograma: true, sonido: true,
     sensor: false,
     // 'ambos' arma la planta completa con sus dos niveles, tal como está
     // construida; 1 o 2 aísla ese nivel (ver el toggle #grupoNivel).
@@ -289,16 +289,16 @@
     const esTunelInc = /^T[UÚ]NEL\s+INCUBADORAS/i.test(sala.name || '')
     const cotaSala = Number(sala.nivel) !== 2 ? 0
       : (esMaquinas || esTunelInc) ? ENTREPISO - 1
-      : ENTREPISO
+        : ENTREPISO
     const cargaEntrepiso = ENTREPISO > 0 && !sala.exterior &&
       (D.meta.entrepisoSalas || []).indexOf(sala.code) >= 0
     const cieloPropio = (D.meta.techoPropio || {})[sala.code]
     const alto = !cat.muro ? 0.4
       : esMaquinas ? 1
-      : sala.altura ? sala.altura
-      : cieloPropio ? cieloPropio
-      : cargaEntrepiso ? ENTREPISO
-      : (cat.altura || D.meta.alturaMuro)
+        : sala.altura ? sala.altura
+          : cieloPropio ? cieloPropio
+            : cargaEntrepiso ? ENTREPISO
+              : (cat.altura || D.meta.alturaMuro)
     // Una sala en L es UNA sala: el área y el volumen son los del conjunto, no
     // los del rectángulo principal.
     const areaTotal = round2(sala._area + piezas.reduce((a, p) => a + p._area, 0))
@@ -323,9 +323,9 @@
       fila('Ubicación en el plano', `x ${sala.x} m · y ${sala.y} m`) +
       (equipos.length
         ? `<div style="margin-top:12px;font-size:11px;letter-spacing:.07em;color:var(--tenue);text-transform:uppercase">Equipos de esta sala</div>` +
-          equipos.map((m) =>
-            `<button class="filaSala" data-equipo="${m.id}"><span>${m.code} · ${m.name}</span><small style="color:${m._est.color}">${m._est.label}</small></button>`
-          ).join('')
+        equipos.map((m) =>
+          `<button class="filaSala" data-equipo="${m.id}"><span>${m.code} · ${m.name}</span><small style="color:${m._est.color}">${m._est.label}</small></button>`
+        ).join('')
         : '') +
       `<div class="accionesInfo">
          <button data-ir="${sala.id}">🚶 Caminar aquí</button>
@@ -592,6 +592,33 @@
     mundo.grupos.etiquetas.visible = opciones.etiquetas && !dentro
     mundo.grupos.equipos.visible = opciones.equipos
     mundo.grupos.techos.visible = opciones.techos
+    escena.traverse((obj) => {
+      if (!obj.isMesh || !obj.material) return
+      if (!obj.userData.hologramaOriginal) {
+        obj.userData.hologramaOriginal = obj.material
+      }
+      if (opciones.holograma) {
+        if (!obj.userData.hologramaMaterial) {
+          const transformar = (material) => {
+            const holo = material.clone()
+            if (holo.color) holo.color.set(0x35d6e8)
+            if (holo.emissive) holo.emissive.set(0x0b8fa3)
+            if (holo.emissiveIntensity != null) holo.emissiveIntensity = 0.8
+            holo.transparent = true
+            holo.opacity = Math.min(material.opacity == null ? 1 : material.opacity, 0.72)
+            holo.blending = THREE.AdditiveBlending
+            holo.depthWrite = false
+            return holo
+          }
+          obj.userData.hologramaMaterial = Array.isArray(obj.material)
+            ? obj.material.map(transformar)
+            : transformar(obj.material)
+        }
+        obj.material = obj.userData.hologramaMaterial
+      } else if (obj.material === obj.userData.hologramaMaterial) {
+        obj.material = obj.userData.hologramaOriginal
+      }
+    })
     // El cielo raso es opaco: desde arriba taparía la planta entera, así que
     // solo se ve estando dentro.
     if (mundo.grupos.cielos) mundo.grupos.cielos.visible = vista === 'fps' || vista === 'tour'
@@ -714,21 +741,29 @@
       const der = barrido(26)
 
       // 1) Descenso sobre la sala
-      k.push({ titulo: p.titulo, sala: s, dur: 1.9,
+      k.push({
+        titulo: p.titulo, sala: s, dur: 1.9,
         p0: arriba.clone(), p1: pos.clone(),
-        l0: new THREE.Vector3(p.x, 0.2, p.z), l1: izq.clone() })
+        l0: new THREE.Vector3(p.x, 0.2, p.z), l1: izq.clone()
+      })
       // 2) Barrido de la sala, girando sobre el punto de parada
-      k.push({ titulo: p.titulo, sala: s, dur: 3.6,
-        p0: pos.clone(), p1: pos.clone(), l0: izq.clone(), l1: der.clone() })
+      k.push({
+        titulo: p.titulo, sala: s, dur: 3.6,
+        p0: pos.clone(), p1: pos.clone(), l0: izq.clone(), l1: der.clone()
+      })
       // 3) Ascenso
-      k.push({ titulo: p.titulo, sala: s, dur: 1.4,
+      k.push({
+        titulo: p.titulo, sala: s, dur: 1.4,
         p0: pos.clone(), p1: arriba.clone(),
-        l0: der.clone(), l1: new THREE.Vector3(sig.x, 2, sig.z) })
+        l0: der.clone(), l1: new THREE.Vector3(sig.x, 2, sig.z)
+      })
       // 4) Vuelo hasta la siguiente parada
       const dist = Math.hypot(sig.x - p.x, sig.z - p.z)
-      k.push({ titulo: sig.titulo, sala: sig.sala, dur: Math.max(1.6, dist / 16),
+      k.push({
+        titulo: sig.titulo, sala: sig.sala, dur: Math.max(1.6, dist / 16),
         p0: arriba.clone(), p1: new THREE.Vector3(sig.x, ALTO_VUELO, sig.z),
-        l0: new THREE.Vector3(sig.x, 2, sig.z), l1: new THREE.Vector3(sig.x, 0.6, sig.z) })
+        l0: new THREE.Vector3(sig.x, 2, sig.z), l1: new THREE.Vector3(sig.x, 0.6, sig.z)
+      })
     })
     tour.pasos = k
   }
@@ -1148,8 +1183,8 @@
     mundo = Mundo.construirPlanta(D, opciones)
     escena.add(mundo.raiz)
     fps.colisiones = mundo.colisiones
-  fps.losa = mundo.losa
-  fps.rampas = mundo.rampas
+    fps.losa = mundo.losa
+    fps.rampas = mundo.rampas
     recogerRotulos()
     aplicarOpciones()
 

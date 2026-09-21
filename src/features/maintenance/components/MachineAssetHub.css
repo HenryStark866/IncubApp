@@ -1,0 +1,89 @@
+.sig-asset-hub {
+    min-height: 560px;
+    height: min(680px, 76vh);
+    overflow: hidden;
+    color: #182235;
+    background: #f3f6fa;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+.sig-asset-sidebar {
+    width: 34%;
+    min-width: 290px;
+    border-color: #dce4ee;
+    background: #ffffff;
+}
+
+.sig-asset-sidebar>div:first-child {
+    padding: 18px;
+    border-color: #dce4ee;
+}
+
+.sig-asset-sidebar h2 {
+    margin: 0;
+    color: #0b1428;
+    font-size: 1.05rem;
+    letter-spacing: 0;
+}
+
+.sig-asset-hub button {
+    cursor: pointer;
+    border: 1px solid #cbd6e2;
+    background: #ffffff;
+    color: #35445a;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.sig-asset-hub button:hover {
+    border-color: #e0740a;
+    color: #9a4d05;
+    background: #fffaf4;
+}
+
+.sig-asset-hub input {
+    min-height: 38px;
+    border-color: #cbd6e2;
+    color: #182235;
+    background: #ffffff;
+}
+
+.sig-asset-hub input:focus {
+    border-color: #e0740a;
+    outline: 2px solid rgb(224 116 10 / 18%);
+}
+
+.sig-asset-detail {
+    min-width: 0;
+    padding: 28px;
+    background: #f3f6fa;
+}
+
+.sig-asset-detail h1 {
+    margin: 0;
+    color: #0b1428;
+    font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.sig-asset-detail table {
+    border-collapse: collapse;
+}
+
+@media (max-width: 860px) {
+    .sig-asset-hub {
+        height: auto;
+        min-height: 720px;
+        flex-direction: column;
+        overflow: auto;
+    }
+
+    .sig-asset-sidebar {
+        width: 100%;
+        min-width: 0;
+        max-height: 360px;
+    }
+
+    .sig-asset-detail {
+        min-height: 420px;
+        padding: 18px;
+    }
+}

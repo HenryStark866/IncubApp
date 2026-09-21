@@ -612,373 +612,374 @@ function Workspace({
         onSync={() => syncOfflineQueue()}
       />
       <ModuleBoundary key={`${tab}-${role}-${area || ''}-${developerMode ? 'dev' : 'x'}`} name={tab}>
-      <LazyPanel label={tab}>
-      {tab === 'platform-business' && isPlatformAdmin ? (
-        <BusinessModule orgCount={platformOrgs.length} onNavigate={setTab} />
-      ) : tab === 'platform-home' && isPlatformAdmin ? (
-        <PlatformHub
-          orgCount={platformOrgs.length}
-          onNavigate={setTab}
-          onSelectTemplate={() => setTab('platform-templates')}
-        />
-      ) : tab === 'platform-templates' && isPlatformAdmin ? (
-        <PlatformTemplatesPanel />
-      ) : tab === 'platform-modules' && isPlatformAdmin && !previewing ? (
-        <PlatformOrgModulesPanel
-          orgs={platformOrgs}
-          defaultOrgId={platformOrg?.id || null}
-          userId={session.user.id}
-        />
-      ) : tab === 'platform-product' && isPlatformAdmin ? (
-        <PlatformProductPanel />
-      ) : tab === 'platform-dev' && isPlatformAdmin ? (
-        <PlatformDevTools
-          online={online}
-          pendingOffline={pendingOffline}
-          onSync={() => syncOfflineQueue()}
-          activeTenantName={developerMode ? org?.name : null}
-        />
-      ) : tab === 'platform-access' && isPlatformAdmin && !previewing ? (
-        <AccessRegistryPanel />
-      ) : tab === 'hoy' && org && role === 'coordinator' ? (
-        // Líder de área: panel de control completo (dashboard KPIs + acceso rápido + mini-mapa + feed)
-        // El LeaderOpsMap queda accesible con los botones de acción del dashboard.
-        <LeaderDashboard
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-          onNavigate={(t) => {
-            if (t === 'mapa-planta' || t === 'mapa-3d') { setTab(t); return }
-            if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
-            else setTab('accesos')
-          }}
-          presence={presence}
-          can={can}
-        />
-      ) : (tab === 'mapa-planta' || tab === 'mapa-3d') && org && role === 'coordinator' ? (
-        // Vista de mapa de planta completo (accesible desde el dashboard del líder)
-        <LeaderOpsMap
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-          initialVista={tab === 'mapa-3d' ? '3d' : '2d'}
-          onNavigate={(t) => {
-            if (t === 'hoy') { setTab('hoy'); return }
-            if (can(t) || t === 'accesos' || t === 'perfil') setTab(t)
-            else setTab('accesos')
-          }}
-          presence={presence}
-          can={can}
-        />
-      ) : tab === 'hoy' && org ? (
-        <TodayBoard
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-          onNavigate={(t) => {
-            if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
-            else setTab('accesos')
-          }}
-          presence={presence}
-          grantedScopeIds={access.grantedScopeIds}
-          isOmniscient={isOmniscient}
-        />
-      ) : tab === 'accesos' && org ? (
-        <AccessVaultPanel
-          access={access}
-          role={role}
-          area={area}
-          isOmniscient={isOmniscient}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'reportes' && org ? (
-        <SiloReportsPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          location={liveLocation}
-          isOmniscient={isOmniscient}
-          mode="channel"
-          orgName={org.name}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'informes' && org && can('informes') ? (
-        <SiloReportsPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          location={liveLocation}
-          isOmniscient={isOmniscient}
-          mode="reports"
-          orgName={org.name}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'asistencia' && org ? (
-        <AttendancePanel
-          orgId={org.id}
-          userId={session.user.id}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          location={liveLocation}
-          locationReady={locationReady}
-        />
-      ) : tab === 'cumplimiento' && org ? (
-        <PerformancePanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-          location={liveLocation}
-          isOmniscient={isOmniscient}
-        />
-      ) : tab === 'preoperacional' && org && can('preoperacional') ? (
-        <VehiclePreopPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-          isOmniscient={isOmniscient}
-        />
-      ) : tab === 'historial' && org && can('historial') ? (
-        <OperatorHistoryPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          can={can}
-          onNavigate={setTab}
-        />
-      ) : tab === 'admin' && isPlatformAdmin && developerMode && org ? (
-        <>
-          <AdminDashboard
-            myId={session.user.id}
-            mode="tenant"
-            orgId={org.id}
-            orgName={org.name}
-          />
-          <OnlinePresencePanel
-            presence={presence}
-            currentUserId={session.user.id}
-            orgId={org.id}
-            asCard
-          />
-        </>
-      ) : tab === 'admin' && isPlatformAdmin ? (
-        <>
-          <AdminDashboard myId={session.user.id} mode="platform" />
-        </>
-      ) : tab === 'admin' && org && canManageOrgUsers(role) && can('admin') ? (
-        <>
-          <AdminDashboard
-            myId={session.user.id}
-            mode="tenant"
-            orgId={org.id}
-            orgName={org.name}
-          />
-          <OnlinePresencePanel
-            presence={presence}
-            currentUserId={session.user.id}
-            orgId={org.id}
-            asCard
-          />
-        </>
-      ) : tab === 'panel' && org && can('panel') && isSupervisor ? (
-        <SupervisorDashboard
-          orgId={org.id}
-          userId={session.user.id}
-          coordinatorName={profileApi.profile?.full_name ?? session.user.email}
-          onNavigate={setTab}
-        />
-      ) : tab === 'panel' && org && can('panel') ? (
-        <>
-          <CoordinatorDashboard
-            orgId={org.id}
-            userId={session.user.id}
-            role={role}
-            area={
-              isCoordinator
-                ? area
-                : // Acceso temporal de otro perfil → vista de planta
-                  'plant'
-            }
-            coordinatorName={profileApi.profile?.full_name ?? session.user.email}
-            onNavigate={setTab}
-          />
-          {/* Ventana de usuarios en línea con sede/ubicación (coordinador) */}
-          <OnlinePresencePanel
-            presence={presence}
-            currentUserId={session.user.id}
-            orgId={org.id}
-            asCard
-          />
-        </>
-      ) : tab === 'ventas' && org && can('ventas') && isCustomer ? (
-        <ClientPortal
-          orgId={org.id}
-          userId={session.user.id}
-          profile={profileApi.profile}
-        />
-      ) : tab === 'ventas' && org && can('ventas') ? (
-        <SalesModule
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          forceProfile={isOmniscient ? 'full' : 'sales'}
-        />
-      ) : tab === 'logistica' && org && can('logistica') ? (
-        <LogisticsPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          presence={presence}
-        />
-      ) : org &&
-        can(tab) &&
-        tab !== 'ventas' &&
-        tab !== 'logistica' &&
-        DEPARTMENT_MODULES.some((m) => m.tab === tab && corpModules.some((c) => c.id === m.id)) ? (
-        <DepartmentModule
-          module={DEPARTMENT_MODULES.find((m) => m.tab === tab)}
-          orgId={org.id}
-          role={role}
-          area={area}
-          userId={session.user.id}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          onNavigate={setTab}
-          grantedScopeIds={access.grantedScopeIds}
-          isOmniscient={isOmniscient}
-          location={liveLocation}
-        />
-      ) : tab === 'mantenimiento' && org && can('mantenimiento') ? (
-        <MaintenancePanel orgId={org.id} userId={session.user.id} role={role} />
-      ) : tab === 'calibracion' && org && can('calibracion') ? (
-        <MachineCalibrationPanel orgId={org.id} userId={session.user.id} role={role} />
-      ) : tab === 'supervision' && org && can('supervision') ? (
-        <SupervisionPanel orgId={org.id} userId={session.user.id} role={role} area={area} />
-      ) : tab === 'horarios' && org && can('horarios') ? (
-        <ShiftSchedule orgId={org.id} userId={session.user.id} role={role} />
-      ) : tab === 'monitoreo' && org && can('monitoreo') ? (
-        <MonitorMode orgId={org.id} userId={session.user.id} role={role} />
-      ) : tab === 'plantas' && org && can('plantas') ? (
-        <PlantManager
-          orgId={org.id}
-          role={role}
-          presence={presence}
-          currentUserId={session.user.id}
-          isPlatformStaff={!!isPlatformAdmin}
-        />
-      ) : tab === 'granjas' && org && can('granjas') ? (
-        <FarmManager
-          orgId={org.id}
-          role={role}
-          presence={presence}
-          currentUserId={session.user.id}
-          isPlatformStaff={!!isPlatformAdmin}
-        />
-      ) : tab === 'inventarios' && org && can('inventarios') ? (
-        <InventoryModule
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'iot' && org && can('iot') ? (
-        <IotBiosecurityHub
-          orgId={org.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'veterinaria' && org && can('veterinaria') ? (
-        <VeterinaryModule
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'produccion' && org && can('produccion') ? (
-        <FarmBatchesPanel orgId={org.id} userId={session.user.id} role={role} area={area} />
-      ) : tab === 'huevos' && org && can('huevos') ? (
-        <EggReportPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          coordinatorName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'recepcion' && org && can('recepcion') ? (
-        <ReceptionPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          showReception
-          showColdRoom
-          coordinatorName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'cargue' && org && can('cargue') ? (
-        <ColdStorageLoadPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          coordinatorName={profileApi.profile?.full_name ?? session.user.email}
-        />
-      ) : tab === 'datos-op' && org && can('datos-op') ? (
-        <OperationsDataCenter
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          area={area}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          onNavigate={setTab}
-        />
-      ) : tab === 'misionales' && org && can('misionales') ? (
-        <MisionalesPanel
-          orgId={org.id}
-          userId={session.user.id}
-          role={role}
-          userName={profileApi.profile?.full_name ?? session.user.email}
-          orgName={org.name}
-        />
-      ) : tab === 'diseno' && isPlatformAdmin && !previewing ? (
-        <DevStudio orgId={org?.id} userId={session.user.id} role={role} />
-      ) : tab === 'datos' && isPlatformAdmin && !previewing && org ? (
-        <div className="card wide">
-          <div className="card-head">
-            <h2>Datos operativos · CDH Maker</h2>
-          </div>
-          <p className="hint" style={{ marginTop: 4 }}>
-            Solo administración de plataforma. Edite datos del tenant activo (aislados por org_id).
-            No mezclar empresas.
-          </p>
-          <DataFixPanel orgId={org.id} canDelete={isPlatformAdmin} />
-        </div>
-      ) : tab.startsWith('cm-') && org && visibleModules.some((m) => `cm-${m.id}` === tab) ? (
-        <CustomModuleView module={visibleModules.find((m) => `cm-${m.id}` === tab)} />
-      ) : (
-        <ProfileCard session={session} org={org} role={role} profileApi={profileApi} />
-      )}
-      </LazyPanel>
+        <LazyPanel label={tab}>
+          {tab === 'platform-business' && isPlatformAdmin ? (
+            <BusinessModule orgCount={platformOrgs.length} onNavigate={setTab} />
+          ) : tab === 'platform-home' && isPlatformAdmin ? (
+            <PlatformHub
+              orgCount={platformOrgs.length}
+              onNavigate={setTab}
+              onSelectTemplate={() => setTab('platform-templates')}
+            />
+          ) : tab === 'platform-templates' && isPlatformAdmin ? (
+            <PlatformTemplatesPanel />
+          ) : tab === 'platform-modules' && isPlatformAdmin && !previewing ? (
+            <PlatformOrgModulesPanel
+              orgs={platformOrgs}
+              defaultOrgId={platformOrg?.id || null}
+              userId={session.user.id}
+            />
+          ) : tab === 'platform-product' && isPlatformAdmin ? (
+            <PlatformProductPanel />
+          ) : tab === 'platform-dev' && isPlatformAdmin ? (
+            <PlatformDevTools
+              online={online}
+              pendingOffline={pendingOffline}
+              onSync={() => syncOfflineQueue()}
+              activeTenantName={developerMode ? org?.name : null}
+            />
+          ) : tab === 'platform-access' && isPlatformAdmin && !previewing ? (
+            <AccessRegistryPanel />
+          ) : tab === 'hoy' && org && role === 'coordinator' ? (
+            // Líder de área: panel de control completo (dashboard KPIs + acceso rápido + mini-mapa + feed)
+            // El LeaderOpsMap queda accesible con los botones de acción del dashboard.
+            <LeaderDashboard
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              developerMode={developerMode}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              onNavigate={(t) => {
+                if (t === 'mapa-planta' || t === 'mapa-3d') { setTab(t); return }
+                if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('accesos')
+              }}
+              presence={presence}
+              can={can}
+            />
+          ) : (tab === 'mapa-planta' || tab === 'mapa-3d') && org && role === 'coordinator' ? (
+            // Vista de mapa de planta completo (accesible desde el dashboard del líder)
+            <LeaderOpsMap
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              initialVista={tab === 'mapa-3d' ? '3d' : '2d'}
+              onNavigate={(t) => {
+                if (t === 'hoy') { setTab('hoy'); return }
+                if (can(t) || t === 'accesos' || t === 'perfil') setTab(t)
+                else setTab('accesos')
+              }}
+              presence={presence}
+              can={can}
+            />
+          ) : tab === 'hoy' && org ? (
+            <TodayBoard
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              onNavigate={(t) => {
+                if (can(t) || t === 'accesos' || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('accesos')
+              }}
+              presence={presence}
+              grantedScopeIds={access.grantedScopeIds}
+              isOmniscient={isOmniscient}
+            />
+          ) : tab === 'accesos' && org ? (
+            <AccessVaultPanel
+              access={access}
+              role={role}
+              area={area}
+              isOmniscient={isOmniscient}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'reportes' && org ? (
+            <SiloReportsPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              location={liveLocation}
+              isOmniscient={isOmniscient}
+              mode="channel"
+              orgName={org.name}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'informes' && org && can('informes') ? (
+            <SiloReportsPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              location={liveLocation}
+              isOmniscient={isOmniscient}
+              mode="reports"
+              orgName={org.name}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'asistencia' && org ? (
+            <AttendancePanel
+              orgId={org.id}
+              userId={session.user.id}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              location={liveLocation}
+              locationReady={locationReady}
+            />
+          ) : tab === 'cumplimiento' && org ? (
+            <PerformancePanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              location={liveLocation}
+              isOmniscient={isOmniscient}
+            />
+          ) : tab === 'preoperacional' && org && can('preoperacional') ? (
+            <VehiclePreopPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              isOmniscient={isOmniscient}
+            />
+          ) : tab === 'historial' && org && can('historial') ? (
+            <OperatorHistoryPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              can={can}
+              onNavigate={setTab}
+            />
+          ) : tab === 'admin' && isPlatformAdmin && developerMode && org ? (
+            <>
+              <AdminDashboard
+                myId={session.user.id}
+                mode="tenant"
+                orgId={org.id}
+                orgName={org.name}
+              />
+              <OnlinePresencePanel
+                presence={presence}
+                currentUserId={session.user.id}
+                orgId={org.id}
+                asCard
+              />
+            </>
+          ) : tab === 'admin' && isPlatformAdmin ? (
+            <>
+              <AdminDashboard myId={session.user.id} mode="platform" />
+            </>
+          ) : tab === 'admin' && org && canManageOrgUsers(role) && can('admin') ? (
+            <>
+              <AdminDashboard
+                myId={session.user.id}
+                mode="tenant"
+                orgId={org.id}
+                orgName={org.name}
+              />
+              <OnlinePresencePanel
+                presence={presence}
+                currentUserId={session.user.id}
+                orgId={org.id}
+                asCard
+              />
+            </>
+          ) : tab === 'panel' && org && can('panel') && isSupervisor ? (
+            <SupervisorDashboard
+              orgId={org.id}
+              userId={session.user.id}
+              coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={setTab}
+            />
+          ) : tab === 'panel' && org && can('panel') ? (
+            <>
+              <CoordinatorDashboard
+                orgId={org.id}
+                userId={session.user.id}
+                role={role}
+                area={
+                  isCoordinator
+                    ? area
+                    : // Acceso temporal de otro perfil → vista de planta
+                    'plant'
+                }
+                coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+                onNavigate={setTab}
+              />
+              {/* Ventana de usuarios en línea con sede/ubicación (coordinador) */}
+              <OnlinePresencePanel
+                presence={presence}
+                currentUserId={session.user.id}
+                orgId={org.id}
+                asCard
+              />
+            </>
+          ) : tab === 'ventas' && org && can('ventas') && isCustomer ? (
+            <ClientPortal
+              orgId={org.id}
+              userId={session.user.id}
+              profile={profileApi.profile}
+            />
+          ) : tab === 'ventas' && org && can('ventas') ? (
+            <SalesModule
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              forceProfile={isOmniscient ? 'full' : 'sales'}
+            />
+          ) : tab === 'logistica' && org && can('logistica') ? (
+            <LogisticsPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              presence={presence}
+            />
+          ) : org &&
+            can(tab) &&
+            tab !== 'ventas' &&
+            tab !== 'logistica' &&
+            DEPARTMENT_MODULES.some((m) => m.tab === tab && corpModules.some((c) => c.id === m.id)) ? (
+            <DepartmentModule
+              module={DEPARTMENT_MODULES.find((m) => m.tab === tab)}
+              orgId={org.id}
+              role={role}
+              area={area}
+              userId={session.user.id}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={setTab}
+              grantedScopeIds={access.grantedScopeIds}
+              isOmniscient={isOmniscient}
+              location={liveLocation}
+            />
+          ) : tab === 'mantenimiento' && org && can('mantenimiento') ? (
+            <MaintenancePanel orgId={org.id} userId={session.user.id} role={role} />
+          ) : tab === 'calibracion' && org && can('calibracion') ? (
+            <MachineCalibrationPanel orgId={org.id} userId={session.user.id} role={role} />
+          ) : tab === 'supervision' && org && can('supervision') ? (
+            <SupervisionPanel orgId={org.id} userId={session.user.id} role={role} area={area} />
+          ) : tab === 'horarios' && org && can('horarios') ? (
+            <ShiftSchedule orgId={org.id} userId={session.user.id} role={role} />
+          ) : tab === 'monitoreo' && org && can('monitoreo') ? (
+            <MonitorMode orgId={org.id} userId={session.user.id} role={role} />
+          ) : tab === 'plantas' && org && can('plantas') ? (
+            <PlantManager
+              orgId={org.id}
+              role={role}
+              presence={presence}
+              currentUserId={session.user.id}
+              isPlatformStaff={!!isPlatformAdmin}
+            />
+          ) : tab === 'granjas' && org && can('granjas') ? (
+            <FarmManager
+              orgId={org.id}
+              role={role}
+              presence={presence}
+              currentUserId={session.user.id}
+              isPlatformStaff={!!isPlatformAdmin}
+            />
+          ) : tab === 'inventarios' && org && can('inventarios') ? (
+            <InventoryModule
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'iot' && org && can('iot') ? (
+            <IotBiosecurityHub
+              orgId={org.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'veterinaria' && org && can('veterinaria') ? (
+            <VeterinaryModule
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'produccion' && org && can('produccion') ? (
+            <FarmBatchesPanel orgId={org.id} userId={session.user.id} role={role} area={area} />
+          ) : tab === 'huevos' && org && can('huevos') ? (
+            <EggReportPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'recepcion' && org && can('recepcion') ? (
+            <ReceptionPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              showReception
+              showColdRoom
+              coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'cargue' && org && can('cargue') ? (
+            <ColdStorageLoadPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+            />
+          ) : tab === 'datos-op' && org && can('datos-op') ? (
+            <OperationsDataCenter
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={setTab}
+            />
+          ) : tab === 'misionales' && org && can('misionales') ? (
+            <MisionalesPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+            />
+          ) : tab === 'diseno' && isPlatformAdmin && !previewing ? (
+            <DevStudio orgId={org?.id} userId={session.user.id} role={role} />
+          ) : tab === 'datos' && isPlatformAdmin && !previewing && org ? (
+            <div className="card wide">
+              <div className="card-head">
+                <h2>Datos operativos · CDH Maker</h2>
+              </div>
+              <p className="hint" style={{ marginTop: 4 }}>
+                Solo administración de plataforma. Edite datos del tenant activo (aislados por org_id).
+                No mezclar empresas.
+              </p>
+              <DataFixPanel orgId={org.id} canDelete={isPlatformAdmin} />
+            </div>
+          ) : tab.startsWith('cm-') && org && visibleModules.some((m) => `cm-${m.id}` === tab) ? (
+            <CustomModuleView module={visibleModules.find((m) => `cm-${m.id}` === tab)} />
+          ) : (
+            <ProfileCard session={session} org={org} role={role} profileApi={profileApi} />
+          )}
+        </LazyPanel>
       </ModuleBoundary>
       {org && (
         <LazyPanel quiet>
@@ -1011,7 +1012,7 @@ function Workspace({
 // SECCION: App raíz — ciclo de vida de sesión, perfil, org y splash/login.
 // Decide qué pantalla mostrar antes del Workspace. Henry Stark Desarrollador
 // ---------------------------------------------------------------------------
-export default function App({ onBackToLanding }) {
+export default function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
   const [isRecoveryMode, setIsRecoveryMode] = useState(
@@ -1135,7 +1136,7 @@ export default function App({ onBackToLanding }) {
         if (current === null) {
           localStorage.setItem('incubapp_share_location', '1')
         }
-      } catch {}
+      } catch { }
     }
   }, [legal.loading, legal.accepted, userId])
 
@@ -1145,14 +1146,14 @@ export default function App({ onBackToLanding }) {
     if (res && !res.error) {
       try {
         localStorage.setItem('incubapp_share_location', '1')
-      } catch {}
+      } catch { }
       // Solicitar el GPS y notificaciones inmediatamente después de la aceptación (bajo interacción del usuario)
       await requestOperationalDevicePermissions({
         camera: false,
         notifications: true,
         contacts: false,
         geo: true
-      }).catch(() => {})
+      }).catch(() => { })
     }
     setLegalBusy(false)
     return res
@@ -1259,25 +1260,7 @@ export default function App({ onBackToLanding }) {
     content = <ResetPasswordForm onCompleted={() => setIsRecoveryMode(false)} />
   } else if (!session) {
     content = (
-      <>
-        {typeof onBackToLanding === 'function' && (
-          <button
-            type="button"
-            onClick={onBackToLanding}
-            style={{
-              position: 'fixed', top: 18, left: 18, zIndex: 200,
-              background: 'rgba(13,31,60,0.85)', border: '1px solid rgba(53,214,232,0.25)',
-              borderRadius: 10, color: '#e8f0ff', padding: '8px 16px',
-              cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6,
-            }}
-            aria-label="Volver a la página de inicio"
-          >
-            ← Volver
-          </button>
-        )}
-        <AuthForm />
-      </>
+      <AuthForm />
     )
   } else if ((profileLoading || orgLoading) && bootWait) {
     content = (
@@ -1319,14 +1302,12 @@ export default function App({ onBackToLanding }) {
 
   return (
     <main
-      className={`shell${showClientBg ? ' brand-client' : ' brand-platform'}${
-        isPlatformAdmin ? ' shell-platform' : ''
-      }`}
+      className={`shell${showClientBg ? ' brand-client' : ' brand-platform'}${isPlatformAdmin ? ' shell-platform' : ''
+        }`}
     >
       <div
-        className={`app-bg${showClientBg ? ' client-bg' : ' platform-bg'}${
-          isPlatformAdmin ? ' platform-immersive' : ''
-        }`}
+        className={`app-bg${showClientBg ? ' client-bg' : ' platform-bg'}${isPlatformAdmin ? ' platform-immersive' : ''
+          }`}
         aria-hidden="true"
       />
       <SplashScreen />

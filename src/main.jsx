@@ -1,15 +1,13 @@
 /**
  * Arranque IncubApp — registra SW para offline (ya no se desregistra).
- * AppRoot controla landing pública vs aplicación autenticada.
+ * AppRoot monta directamente el workspace; la autenticación se resuelve en App.
  * Henry Stark Desarrollador · CDH Maker
  */
-import { StrictMode, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './incubant-theme.css'
-import './landing.css'
 import App from './App.jsx'
-import LandingPage from './components/LandingPage.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { initTheme } from './lib/theme'
 import { registerServiceWorker, warmOfflineCache } from './lib/registerSw'
@@ -47,17 +45,10 @@ try {
 }
 
 /**
- * AppRoot — puerta de entrada: landing pública vs workspace autenticado.
- * Definido al nivel del módulo: cero violaciones de reglas de Hooks.
+ * AppRoot — puerta de entrada directa al workspace autenticado.
  */
 function AppRoot() {
-  const [showApp, setShowApp] = useState(false)
-
-  if (!showApp) {
-    return <LandingPage onLogin={() => setShowApp(true)} />
-  }
-
-  return <App onBackToLanding={() => setShowApp(false)} />
+  return <App />
 }
 
 const el = document.getElementById('root')

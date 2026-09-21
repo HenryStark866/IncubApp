@@ -4,6 +4,7 @@ import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS } from '../../../data/mantumCatalog';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
+import './MachineAssetHub.css';
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
 
@@ -114,15 +115,15 @@ const MachineAssetHub = () => {
   if (loading) return <div className="flex justify-center p-10"><span aria-hidden="true">...</span> Cargando Activos...</div>;
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
-      <div className="w-1/3 border-r bg-white flex flex-col">
+    <div className="sig-asset-hub flex h-screen bg-slate-50 font-sans text-slate-900">
+      <div className="sig-asset-sidebar w-1/3 border-r bg-white flex flex-col">
         <div className="p-4 border-b space-y-3">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <span className="text-blue-600" aria-hidden="true">[+]</span> Centro SIG
           </h2>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setSection('assets')} className="px-3 py-1 text-xs rounded border">Activos ({machines.length})</button>
-            <button type="button" onClick={() => setSection('documents')} className="px-3 py-1 text-xs rounded border">Formatos ({Object.keys(SIG_FORMATS).length})</button>
+            <button type="button" onClick={() => { setSection('assets'); setSelectedMachineId(null); }} className="px-3 py-1 text-xs rounded border">Activos ({machines.length})</button>
+            <button type="button" onClick={() => { setSection('documents'); setSelectedMachineId(null); }} className="px-3 py-1 text-xs rounded border">Formatos ({Object.keys(SIG_FORMATS).length})</button>
             <button type="button" onClick={() => setShowNewAsset(true)} className="px-3 py-1 text-xs rounded border">Nuevo activo</button>
           </div>
           {showNewAsset && (
@@ -197,7 +198,7 @@ const MachineAssetHub = () => {
         </div >}
       </div >
 
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="sig-asset-detail flex-1 overflow-y-auto p-8">
         {!selectedMachineId ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
             <span className="mb-4 opacity-20" aria-hidden="true">[doc]</span>
