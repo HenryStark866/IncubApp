@@ -87,6 +87,11 @@ function readCustomAssets() {
   }
 }
 
+export function resolveSelectedEvidence({ section, selectedDocumentId, allEvidence = [], documents = [] }) {
+  const source = section === 'evidence' ? allEvidence : documents;
+  return source.find((file) => file.id === selectedDocumentId) || source[0] || null;
+}
+
 const MachineAssetHub = ({ orgId }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
@@ -421,7 +426,23 @@ const MachineAssetHub = ({ orgId }) => {
   }), [documentFilter]);
 
   const selectedFormat = SIG_FORMATS[selectedFormatCode] || SIG_FORMATS.FOMAT03;
-  const selectedDocument = documents.find((file) => file.id === selectedDocumentId) || null;
+  const selectedDocument = resolveSelectedEvidence({
+    section,
+    selectedDocumentId,
+    allEvidence,
+    documents,
+  });
+
+  useEffect(() => {
+    if (section !== 'evidence') return;
+    if (!allEvidence.length) {
+      setSelectedDocumentId(null);
+      return;
+    }
+    if (!selectedDocumentId || !allEvidence.some((file) => file.id === selectedDocumentId)) {
+      setSelectedDocumentId(allEvidence[0].id);
+    }
+  }, [section, allEvidence, selectedDocumentId]);
 
   const saveAsset = (event) => {
     event.preventDefault();
