@@ -352,7 +352,7 @@ export default function LeaderDashboard({
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
         <div className="ldr-assets-frame">
-          <MachineAssetHub />
+          <MachineAssetHub orgId={orgId} />
         </div>
       </section>
       <footer className="ldr-actions">

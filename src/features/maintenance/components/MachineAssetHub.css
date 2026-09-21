@@ -1,6 +1,7 @@
 .sig-asset-hub {
     min-height: 560px;
-    height: min(680px, 76vh);
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
     color: #182235;
     background: #f3f6fa;
@@ -37,6 +38,7 @@
     min-width: 290px;
     border-color: #dce4ee;
     background: #ffffff;
+    min-height: 0;
 }
 
 .sig-asset-sidebar>div:first-child {
@@ -169,6 +171,7 @@
 
 .sig-asset-detail {
     min-width: 0;
+    min-height: 0;
     padding: 28px;
     background: #f3f6fa;
 }
@@ -454,8 +457,8 @@
 
 @media (max-width: 860px) {
     .sig-asset-hub {
-        height: auto;
-        min-height: 720px;
+        height: 100%;
+        min-height: 0;
         flex-direction: column;
         overflow: auto;
     }
@@ -463,12 +466,16 @@
     .sig-asset-sidebar {
         width: 100%;
         min-width: 0;
-        max-height: 360px;
+        max-height: 42%;
+        flex: 0 0 auto;
+        overflow-y: auto;
     }
 
     .sig-asset-detail {
-        min-height: 420px;
+        min-height: 0;
+        flex: 1 1 auto;
         padding: 18px;
+        overflow-y: auto;
     }
 
     .sig-asset-loading {
@@ -526,4 +533,117 @@
     .sig-dossier {
         animation: none;
     }
+}
+
+.sig-evidence-browser {
+    display: grid;
+    gap: 14px;
+}
+
+.sig-evidence-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+
+.sig-evidence-list button {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 9px;
+    text-align: left;
+}
+
+.sig-evidence-list button.is-active {
+    border-color: #e0740a;
+    background: #fff4e8;
+}
+
+.sig-evidence-list strong {
+    color: #9a4d05;
+    font-size: 10px;
+}
+
+.sig-evidence-list span {
+    overflow: hidden;
+    color: #182235;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sig-evidence-list small {
+    color: #66758b;
+    font-size: 10px;
+}
+
+.sig-evidence-preview {
+    overflow: hidden;
+    border: 1px solid #dce4ee;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.sig-evidence-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #dce4ee;
+    background: #fff;
+}
+
+.sig-evidence-preview-head div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sig-evidence-preview-head b {
+    color: #9a4d05;
+    font-size: 10px;
+}
+
+.sig-evidence-preview-head span {
+    overflow: hidden;
+    color: #182235;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sig-evidence-preview-head a {
+    flex: 0 0 auto;
+    color: #9a4d05;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.sig-evidence-preview img {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    background: #eef2f6;
+}
+
+.sig-evidence-preview iframe {
+    display: block;
+    width: 100%;
+    height: 420px;
+    border: 0;
+    background: #fff;
+}
+
+.sig-evidence-preview p {
+    margin: 0;
+    padding: 24px;
+    color: #66758b;
+    font-size: 12px;
+    text-align: center;
 }

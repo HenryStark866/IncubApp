@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback } from 'react';
+﻿import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
@@ -7,6 +7,11 @@ import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
+
+function formatCodeForEvidence(file = {}) {
+  const text = `${file.file_name || ''} ${file.note || ''} ${file.workOrderCode || ''}`.toUpperCase();
+  return Object.keys(SIG_FORMATS).find((code) => text.includes(code)) || 'EVIDENCIA SIG';
+}
 
 function catalogMachines() {
   return Object.entries(MANTUM_EQUIPOS).map(([key, item]) => ({
@@ -39,13 +44,16 @@ function readCustomAssets() {
   }
 }
 
-const MachineAssetHub = () => {
+const MachineAssetHub = ({ orgId }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
   const [selectedMachineId, setSelectedMachineId] = useState(null);
   const [filterText, setFilterText] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
   const [detailTab, setDetailTab] = useState('history');
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
@@ -69,6 +77,50 @@ const MachineAssetHub = () => {
   }, [selectedMachine]);
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
+
+  const loadDocuments = useCallback(async () => {
+    if (!orgId || selectedMachine?.source !== 'remote' || !selectedMachine?.machine_id) {
+      setDocuments([]);
+      return;
+    }
+    setDocumentsLoading(true);
+    try {
+      const { data: orders, error: ordersError } = await supabase
+        .from('work_orders')
+        .select('id, code, title, machine_id, created_at')
+        .eq('org_id', orgId)
+        .eq('machine_id', selectedMachine.machine_id)
+        .order('created_at', { ascending: false });
+      if (ordersError) throw ordersError;
+      const orderIds = (orders || []).map((order) => order.id);
+      if (!orderIds.length) {
+        setDocuments([]);
+        return;
+      }
+      const { data: evidence, error: evidenceError } = await supabase
+        .from('wo_evidence')
+        .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+        .eq('org_id', orgId)
+        .in('work_order_id', orderIds)
+        .order('created_at', { ascending: false });
+      if (evidenceError) throw evidenceError;
+      const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
+      const resolved = await Promise.all((evidence || []).map(async (file) => {
+        const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
+        const order = orderMap[file.work_order_id] || {};
+        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
+      }));
+      setDocuments(resolved);
+      setSelectedDocumentId((current) => current && resolved.some((file) => file.id === current) ? current : resolved[0]?.id || null);
+    } catch (error) {
+      console.warn('Centro SIG: no se pudieron cargar las evidencias del activo.', error);
+      setDocuments([]);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }, [orgId, selectedMachine]);
+
+  useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
   const loadMachines = useCallback(async () => {
     setLoading(true);
@@ -105,6 +157,7 @@ const MachineAssetHub = () => {
   }), [documentFilter]);
 
   const selectedFormat = SIG_FORMATS[selectedFormatCode] || SIG_FORMATS.FOMAT03;
+  const selectedDocument = documents.find((file) => file.id === selectedDocumentId) || null;
 
   const saveAsset = (event) => {
     event.preventDefault();
@@ -299,9 +352,19 @@ const MachineAssetHub = () => {
             </div>
             <div className="sig-dossier-panel">
               <div className="sig-dossier-tabs" role="tablist">
-                {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}
+                {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`], ["documents", `Diligenciados (${documents.length})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}
               </div>
               <div className="sig-dossier-content">
+                {detailTab === 'documents' && (
+                  <div className="sig-evidence-browser">
+                    {documentsLoading ? <p className="sig-empty-tab">Cargando formatos diligenciados...</p> : !documents.length ? <p className="sig-empty-tab">Este activo todavía no tiene formatos o evidencias diligenciadas.</p> : <>
+                      <div className="sig-evidence-list">
+                        {documents.map((file) => <button type="button" key={file.id} className={file.id === selectedDocumentId ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
+                      </div>
+                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#'} target="_blank" rel="noopener noreferrer">Abrir archivo</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
+                    </>}
+                  </div>
+                )}
                 {detailTab === 'history' && (
                   <div className="sig-table-wrap">
                     <table><thead><tr><th>Fecha</th><th>Actividad/OT</th><th>Técnico</th><th>Estado</th></tr></thead>
