@@ -48,7 +48,11 @@
 }
 
 .sig-asset-sidebar>div:first-child {
-    flex: 0 0 auto;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
     padding: 18px;
     border-color: #dce4ee;
 }
@@ -543,12 +547,21 @@
         overflow: auto;
     }
 
+    .sig-asset-hub-evidence {
+        min-height: 640px;
+    }
+
     .sig-asset-sidebar {
         width: 100%;
         min-width: 0;
         max-height: 42%;
         flex: 0 0 auto;
         overflow-y: auto;
+    }
+
+    .sig-asset-hub-evidence .sig-asset-sidebar {
+        max-height: 56%;
+        overflow: hidden;
     }
 
     .sig-asset-detail {

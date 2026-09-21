@@ -489,7 +489,7 @@ const MachineAssetHub = ({ orgId }) => {
   if (loading) return <div className="sig-asset-loading"><span className="sig-asset-spinner" aria-hidden="true" /> Cargando Centro SIG...</div>;
 
   return (
-    <div className="sig-asset-hub">
+    <div className={`sig-asset-hub sig-asset-hub-${section}`}>
       <div className="sig-asset-sidebar">
         <div className="p-4 border-b space-y-3">
           <h2 className="sig-asset-title">
