@@ -16,6 +16,177 @@ import './MachineAssetHub.css';
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
 const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
 
+// Supabase responde «Bad Request» cuando la URL pasa de unos pocos KB, y un `.in()` con todos los
+// IDs de OT de la empresa la desbordaba: ese error tumbaba la carga entera y Evidencias quedaba en
+// 0 (22-09-2026). Por eso los filtros por lista van en tandas cortas.
+const ID_CHUNK = 80
+const SIGN_CHUNK = 100
+const HATCH_MODE_LABEL = { single: 'sencilla', double: 'doble' }
+
+// Cada fuente del repositorio se lee por separado: si una tabla falla, las demás se siguen
+// mostrando y el aviso dice cuál fue, en vez de dejar la sección vacía sin explicación.
+export async function safeRows(label, query) {
+  try {
+    const { data, error } = await query
+    if (error) {
+      console.warn(`Centro SIG: no se pudo leer ${label}.`, error)
+      return { rows: [], failed: label }
+    }
+    return { rows: data || [], failed: null }
+  } catch (error) {
+    console.warn(`Centro SIG: no se pudo leer ${label}.`, error)
+    return { rows: [], failed: label }
+  }
+}
+
+export function chunkList(list = [], size = ID_CHUNK) {
+  const chunks = []
+  for (let index = 0; index < list.length; index += size) chunks.push(list.slice(index, index + size))
+  return chunks
+}
+
+async function selectByIds(label, ids, runChunk) {
+  const unique = Array.from(new Set((ids || []).filter(Boolean)))
+  const rows = []
+  let failed = null
+  for (const chunk of chunkList(unique, ID_CHUNK)) {
+    const result = await safeRows(label, runChunk(chunk))
+    if (result.failed) failed = result.failed
+    rows.push(...result.rows)
+  }
+  return { rows, failed }
+}
+
+// Firmar una a una 2.000 fotos de ronda eran 2.000 peticiones; createSignedUrls firma cien por
+// llamada. Devuelve un Map ruta → URL firmada con las que salieron bien.
+async function signStoragePaths(bucket, paths = []) {
+  const signed = new Map()
+  const unique = Array.from(new Set((paths || []).filter(Boolean)))
+  for (const chunk of chunkList(unique, SIGN_CHUNK)) {
+    try {
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrls(chunk, 3600)
+      if (error) {
+        console.warn(`Centro SIG: no se pudieron firmar archivos de ${bucket}.`, error)
+        continue
+      }
+      for (const row of data || []) {
+        if (row?.path && row.signedUrl && !row.error) signed.set(row.path, row.signedUrl)
+      }
+    } catch (error) {
+      console.warn(`Centro SIG: no se pudieron firmar archivos de ${bucket}.`, error)
+    }
+  }
+  return signed
+}
+
+function formatDateTime(value) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleString('es-CO')
+}
+
+// Los registros de producción ya guardan quién, cuándo, qué lote y la foto de la pantalla de la
+// máquina: son la evidencia de que el cargue, la transferencia o el nacimiento ocurrieron. Se
+// muestran tal cual están en la base; si falta la foto se dice, no se rellena.
+export function buildProductionEvidence({ loads = [], transfers = [], hatches = [], machines = {}, people = {}, photoUrls = new Map(), now = new Date() } = {}) {
+  const nowTime = now.getTime()
+  const happened = (value) => {
+    if (!value) return false
+    const time = new Date(value).getTime()
+    return Number.isFinite(time) && time <= nowTime
+  }
+  const personName = (userId) => people[userId] || 'No registrado'
+  const photoOf = (path) => (path ? photoUrls.get(path) || null : null)
+  const photoItem = (id, path, label) => {
+    const url = photoOf(path)
+    return { id, file_name: label, url, notes: url ? '' : path ? 'La foto no se pudo abrir' : 'Registro sin foto adjunta' }
+  }
+  const records = []
+
+  for (const load of loads) {
+    const when = load.loaded_at || load.created_at
+    // Un cargue planeado para más adelante todavía no es evidencia de nada.
+    if (!happened(when)) continue
+    const machine = machines[load.machine_id] || {}
+    const machineLabel = machine.code || machine.name || 'Incubadora'
+    const lot = load.lote || 'sin lote'
+    const tape = load.tape_color_name || load.tape_color
+    const detail = [`Lote ${lot}`, machineLabel, tape ? `Cinta ${tape}` : null, `Registró: ${personName(load.created_by)}`].filter(Boolean).join(' · ')
+    const cycleStart = formatDateTime(load.cycle_start_at)
+    records.push({
+      id: `production-load-${load.id}`,
+      file_name: `Cargue ${machineLabel} · Lote ${lot}`,
+      file_type: 'production',
+      formatCode: 'PRODUCCIÓN · CARGUE',
+      workOrderTitle: 'Registro de cargue de incubadora',
+      machineCode: machine.code || null,
+      note: detail,
+      created_at: when,
+      source: 'incubapp',
+      kind: 'production',
+      uploaded_by: load.created_by || null,
+      items: [photoItem(`${load.id}-photo`, load.photo_path, 'Foto de la pantalla')],
+      reports: [{ id: `${load.id}-detail`, title: 'Detalle del cargue', body: cycleStart ? `${detail} · Inicio de ciclo ${cycleStart}` : detail }],
+      url: photoOf(load.photo_path),
+    })
+  }
+
+  for (const transfer of transfers) {
+    const when = transfer.transferred_at || transfer.created_at
+    if (!happened(when)) continue
+    const lot = transfer.lote || 'sin lote'
+    const mode = HATCH_MODE_LABEL[transfer.mode]
+    const detail = [`Lote ${lot}`, mode ? `Transferencia ${mode}` : null, transfer.weight_diff != null ? `Diferencia de peso ${transfer.weight_diff}` : null, `Registró: ${personName(transfer.created_by)}`].filter(Boolean).join(' · ')
+    records.push({
+      id: `production-transfer-${transfer.id}`,
+      file_name: `Transferencia a nacedora · Lote ${lot}`,
+      file_type: 'production',
+      formatCode: 'PRODUCCIÓN · TRANSFERENCIA',
+      workOrderTitle: 'Registro de transferencia incubadora → nacedora',
+      note: detail,
+      created_at: when,
+      source: 'incubapp',
+      kind: 'production',
+      uploaded_by: transfer.created_by || null,
+      items: [photoItem(`${transfer.id}-photo`, transfer.photo_path, 'Foto de la transferencia')],
+      reports: [{ id: `${transfer.id}-detail`, title: 'Detalle de la transferencia', body: detail }],
+      url: photoOf(transfer.photo_path),
+    })
+  }
+
+  for (const hatch of hatches) {
+    const when = hatch.ended_at || hatch.started_at || hatch.created_at
+    if (!happened(when)) continue
+    const lot = hatch.lote || 'sin lote'
+    const closed = hatch.status === 'completed'
+    const responsible = closed ? hatch.closed_by || hatch.started_by : hatch.started_by
+    const detail = [
+      `Lote ${lot}`,
+      closed ? 'Nacimiento completado' : 'Nacimiento en curso',
+      hatch.actual_chicks != null ? `${Number(hatch.actual_chicks).toLocaleString('es-CO')} pollitos nacidos` : null,
+      hatch.estimated_chicks != null ? `${Number(hatch.estimated_chicks).toLocaleString('es-CO')} estimados` : null,
+      `${closed ? 'Cerró' : 'Inició'}: ${personName(responsible)}`,
+    ].filter(Boolean).join(' · ')
+    records.push({
+      id: `production-hatch-${hatch.id}`,
+      file_name: `Nacimiento · Lote ${lot}`,
+      file_type: 'production',
+      formatCode: 'PRODUCCIÓN · NACIMIENTO',
+      workOrderTitle: 'Registro de nacimiento',
+      note: detail,
+      created_at: when,
+      source: 'incubapp',
+      kind: 'production',
+      uploaded_by: responsible || null,
+      items: [photoItem(`${hatch.id}-photo`, hatch.photo_path, 'Foto del nacimiento')],
+      reports: [{ id: `${hatch.id}-detail`, title: 'Detalle del nacimiento', body: detail }],
+      url: photoOf(hatch.photo_path),
+    })
+  }
+
+  return records
+}
+
 function formatCodeForEvidence(file = {}) {
   const text = `${file.file_name || ''} ${file.note || ''} ${file.workOrderCode || ''}`.toUpperCase();
   return Object.keys(SIG_FORMATS).find((code) => text.includes(code)) || 'EVIDENCIA SIG';
@@ -324,7 +495,7 @@ function loadMapDocumentUrl(load) {
 }
 
 async function backfillLoadMapImages(orgId, maps) {
-  const pending = maps.filter((map) => !map.imagePath && !map.imageDataUrl && map.slots?.length);
+  const pending = maps.filter((map) => !map.imagePath && !map.image_path && !map.imageDataUrl && map.slots?.length);
   if (!pending.length) return maps;
 
   const updated = await Promise.all(pending.map(async (map) => {
@@ -349,7 +520,17 @@ async function backfillLoadMapImages(orgId, maps) {
         console.warn('Centro SIG: no se pudo registrar imagen de mapa', error.message);
         return map;
       }
-      return { ...map, imagePath, payload };
+      const { data: signed } = await supabase.storage.from('machine-checks').createSignedUrl(imagePath, 3600);
+      if (!signed?.signedUrl) return { ...map, imagePath, image_path: imagePath, payload };
+      return {
+        ...map,
+        imagePath,
+        image_path: imagePath,
+        payload,
+        url: signed.signedUrl,
+        file_type: 'image',
+        downloadName: String(map.downloadName || `mapa-cargue-${map.rawId || map.id}.html`).replace(/\.html$/, '.png'),
+      };
     } catch (error) {
       console.warn('Centro SIG: no se pudo generar imagen de mapa', error);
       return map;
@@ -555,6 +736,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [allEvidence, setAllEvidence] = useState([]);
   const [allEvidenceLoading, setAllEvidenceLoading] = useState(false);
+  const [evidenceWarnings, setEvidenceWarnings] = useState([]);
   const [evidenceFilter, setEvidenceFilter] = useState('');
   const [manualFilter, setManualFilter] = useState('');
   const [loadMapFilter, setLoadMapFilter] = useState('');
@@ -664,20 +846,26 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     const loadAllMaps = async () => {
       try {
         const [mapsResult, membersResult, shiftsResult] = await Promise.all([
-          supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at, loaded_at, loaded_by').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
-          supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
-          supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true }),
+          // Se piden todas las columnas a propósito. Si una sola de las pedidas por nombre falta en
+          // la base, PostgREST rechaza la consulta entera, y aquí ese error se tragaba en silencio:
+          // el 22-09-2026 el Consolidado (BI) contaba 90 mapas y esta sección mostraba 0.
+          safeRows('los mapas de cargue', supabase.from('load_maps').select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400)),
+          safeRows('el personal', supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId)),
+          safeRows('los turnos', supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true })),
         ])
 
-        const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
-        const shiftAssignments = shiftsResult.data || []
-        const remoteMaps = mapsResult.error ? [] : await Promise.all((mapsResult.data || []).map(async (map) => {
-          const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
-          const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
-          const previewImageUrl = signed.data?.signedUrl || payload.imageDataUrl || payload.imageDataURL || payload.imagePath || payload.image_path || null
-          const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
+        const people = Object.fromEntries(membersResult.rows.map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
+        const shiftAssignments = shiftsResult.rows
+        const payloadOf = (map) => (map.payload && typeof map.payload === 'object' ? map.payload : {})
+        const storedImagePath = (map) => map.image_path || payloadOf(map).imagePath || payloadOf(map).image_path || null
+        const imageUrls = await signStoragePaths('machine-checks', mapsResult.rows.map(storedImagePath))
+        const remoteMaps = mapsResult.rows.map((map) => {
+          const payload = payloadOf(map)
+          const imagePath = storedImagePath(map)
+          const previewImageUrl = (imagePath && imageUrls.get(imagePath)) || payload.imageDataUrl || payload.imageDataURL || null
+          const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || payload.lote || 'Sin lote'
           const loadedBy = resolveLoadedByName({
-            loadedAt: map.loaded_at || payload.loaded_at || payload.loadedBy,
+            loadedAt: map.loaded_at || payload.loaded_at || payload.loadedAt,
             loadedBy: payload.loaded_by || map.loaded_by || payload.loadedBy,
             people,
             shiftAssignments,
@@ -687,8 +875,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             ...payload,
             id: `load-map-${map.id}`,
             rawId: map.id,
+            image_path: imagePath,
+            lote: payload.lote || firstLot,
+            machineName: map.machine_name || payload.machineName || null,
             file_name: `Mapa de cargue · ${firstLot}`,
-            file_type: previewImageUrl && /^data:image\//i.test(previewImageUrl) || previewImageUrl && /^blob:/i.test(previewImageUrl) ? 'image' : previewImageUrl ? 'image' : 'document',
+            file_type: previewImageUrl ? 'image' : 'document',
             url: previewImageUrl || loadMapDocumentUrl({ ...map, ...payload, lote: firstLot, machine_id: map.machine_name || map.machine_id }),
             downloadName: `mapa-cargue-${firstLot || map.id}.${previewImageUrl ? 'png' : 'html'}`,
             formatCode: 'MAPA DE CARGUE',
@@ -702,12 +893,13 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             approvedAt: map.approved_at,
             orderedAt: map.ordered_at,
           }
-        }))
+        })
 
         const localMaps = readLocalLoadMapsForOrg(orgId)
         const mergedMap = new Map()
-        
-        // Agregar primero los remotos, luego locales sin duplicar por ID canónico
+
+        // Primero los de la base y luego los locales, sin duplicar por ID canónico. La base manda
+        // (estado, aprobación, responsables); la copia local solo aporta la imagen si arriba falta.
         for (const entry of [...remoteMaps, ...localMaps]) {
           if (!entry) continue
           const cleanId = String(entry.rawId || entry.id || '').replace(/^(?:load-map-|local-load-map-)/, '')
@@ -715,21 +907,28 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           if (!mergedMap.has(key)) {
             mergedMap.set(key, entry)
           } else {
-            // Si ya existe, combinar metadatos para preservar aprobación e imágenes
             const existing = mergedMap.get(key)
-            mergedMap.set(key, { ...existing, ...entry, url: entry.url || existing.url })
+            const useLocalImage = existing.file_type !== 'image' && entry.url
+            mergedMap.set(key, { ...entry, ...existing, ...(useLocalImage ? { url: entry.url, file_type: 'image' } : {}) })
           }
         }
 
-        const nextMaps = await backfillLoadMapImages(orgId, Array.from(mergedMap.values()))
-        if (active) {
-          setLoadMaps(nextMaps)
-          setSelectedLoadMapId((current) => current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id || null)
-        }
+        const mergedMaps = Array.from(mergedMap.values())
+        if (!active) return
+        setLoadMaps(mergedMaps)
+        setSelectedLoadMapId((current) => current && mergedMaps.some((map) => map.id === current) ? current : mergedMaps[0]?.id || null)
 
-        if ((!mapsResult.error && remoteMaps.length === 0 && localMaps.length > 0) || (mapsResult.error && localMaps.length > 0)) {
+        // Lo local solo se sube cuando la lectura remota salió bien y la base no tiene ningún mapa:
+        // con la lectura caída no se sabe qué hay arriba, y un upsert a ciegas podría devolver un
+        // mapa ya aprobado a su estado anterior.
+        if (!mapsResult.failed && remoteMaps.length === 0 && localMaps.length > 0) {
           await syncLocalLoadMapsToRemote(orgId, localMaps)
         }
+
+        // Las imágenes que falten se generan después de pintar la lista. Antes se esperaba a
+        // renderizarlas y subirlas todas, y con decenas de mapas la sección seguía en 0 mientras tanto.
+        const withImages = await backfillLoadMapImages(orgId, mergedMaps)
+        if (active && withImages !== mergedMaps) setLoadMaps(withImages)
       } catch (err) {
         console.warn('Centro SIG: Error al cargar mapas de cargue', err)
       }
@@ -805,9 +1004,16 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const localAssetEvidence = useMemo(() => [...LOCAL_ASSET_EVIDENCE], []);
 
+  // Lo que se cuenta, lo que se lista y lo que se abre salen de la misma colección: antes el
+  // contador miraba solo lo remoto y marcaba 0 con la lista llena.
+  const evidenceLibrary = useMemo(
+    () => dedupeEvidence([...allEvidence, ...localAssetEvidence, ...LOCAL_DOCUMENT_LIBRARY]),
+    [allEvidence, localAssetEvidence]
+  );
+
   const filteredEvidence = useMemo(() => {
     const query = evidenceFilter.trim().toLowerCase();
-    const base = dedupeEvidence([...allEvidence, ...localAssetEvidence, ...LOCAL_DOCUMENT_LIBRARY]);
+    const base = evidenceLibrary;
     if (!query) return base;
     return base.filter((file) => [
       file.file_name,
@@ -818,7 +1024,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       file.note,
       file.source,
     ].some((value) => String(value || '').toLowerCase().includes(query)));
-  }, [allEvidence, evidenceFilter, localAssetEvidence]);
+  }, [evidenceFilter, evidenceLibrary]);
 
   const manuals = useMemo(
     () => [...allEvidence, ...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES].filter(isManualRecord),
@@ -856,15 +1062,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       const { data: orders, error: ordersError } = ordersResult;
       if (ordersError) throw ordersError;
       const orderIds = (orders || []).map((order) => order.id);
-      const evidenceResult = orderIds.length
-        ? await supabase
-          .from('wo_evidence')
-          .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
-          .eq('org_id', orgId)
-          .in('work_order_id', orderIds)
-          .order('created_at', { ascending: false })
-        : { data: [], error: null };
-      if (evidenceResult.error) throw evidenceResult.error;
+      // En tandas: un activo con cientos de OT históricas también desbordaba la URL del `.in()`.
+      const evidenceResult = await selectByIds('las evidencias del activo', orderIds, (ids) => supabase
+        .from('wo_evidence')
+        .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+        .eq('org_id', orgId)
+        .in('work_order_id', ids));
       let registryQuery = supabase
         .from('sig_evidence')
         .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
@@ -877,7 +1080,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       const registryResult = await registryQuery.order('recorded_at', { ascending: false });
       const registry = registryResult.error ? [] : (registryResult.data || []);
       const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
-      const resolved = await Promise.all((evidenceResult.data || []).map(async (file) => {
+      const resolved = await Promise.all(evidenceResult.rows.map(async (file) => {
         const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
         const order = orderMap[file.work_order_id] || {};
         return { ...file, workOrderCode: order.code, workOrderTitle: order.title, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }) };
@@ -918,97 +1121,132 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     if (!orgId) return;
     setAllEvidenceLoading(true);
     try {
-      const { data: orders, error: ordersError } = await supabase
-        .from('work_orders')
-        .select('id, code, title, machine_id, created_at, completed_at')
-        .eq('org_id', orgId)
-        .order('created_at', { ascending: false });
-      if (ordersError) throw ordersError;
-      const orderIds = (orders || []).map((order) => order.id);
-      const [evidenceResult, checksResult, calibrationsResult, reportsResult, machinesResult, registryResult] = await Promise.all([
-        orderIds.length
-          ? supabase
-            .from('wo_evidence')
-            .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
-            .eq('org_id', orgId)
-            .in('work_order_id', orderIds)
-            .order('created_at', { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
-        supabase
+      const [
+        evidenceResult,
+        checksResult,
+        calibrationsResult,
+        reportsResult,
+        machinesResult,
+        registryResult,
+        loadsResult,
+        transfersResult,
+        hatchesResult,
+        membersResult,
+      ] = await Promise.all([
+        // Por org_id y no con `.in()` sobre todas las OT: esa lista desbordaba la URL, Supabase
+        // respondía «Bad Request» y Evidencias quedaba en 0.
+        safeRows('las evidencias de OT', supabase
+          .from('wo_evidence')
+          .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(1000)),
+        safeRows('las rondas', supabase
           .from('machine_checks')
           .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
           .eq('org_id', orgId)
           .order('taken_at', { ascending: false })
-          .limit(2000),
-        supabase
+          .limit(2000)),
+        safeRows('las calibraciones', supabase
           .from('machine_calibrations')
           .select('id, machine_id, work_order_id, performed_by, calibrated_at, scope, notes, photo_calibrator_path, photo_screen_path')
           .eq('org_id', orgId)
           .order('calibrated_at', { ascending: false })
-          .limit(500),
-        supabase
+          .limit(500)),
+        safeRows('los reportes de ronda', supabase
           .from('round_reports')
           .select('id, user_id, shift_date, shift_code, title, body, created_at')
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
-          .limit(1000),
-        supabase.from('machines').select('id, code, name').eq('org_id', orgId),
-        supabase
+          .limit(1000)),
+        // Sin filtro de org, como en el resto de la app: la RLS ya limita las máquinas visibles.
+        safeRows('las máquinas', supabase.from('machines').select('id, code, name')),
+        safeRows('el registro SIG', supabase
           .from('sig_evidence')
           .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
           .eq('org_id', orgId)
           .order('recorded_at', { ascending: false })
-          .limit(5000),
+          .limit(5000)),
+        safeRows('los cargues', supabase
+          .from('setter_loads')
+          .select('id, plant_id, machine_id, lote, loaded_at, cycle_start_at, tape_color, tape_color_name, photo_path, created_by, created_at')
+          .eq('org_id', orgId)
+          .order('loaded_at', { ascending: false })
+          .limit(500)),
+        safeRows('las transferencias', supabase
+          .from('transfers')
+          .select('id, plant_id, lote, mode, weight_diff, transferred_at, photo_path, created_by, created_at')
+          .eq('org_id', orgId)
+          .order('transferred_at', { ascending: false })
+          .limit(400)),
+        safeRows('los nacimientos', supabase
+          .from('hatch_events')
+          .select('id, lote, mode, status, estimated_chicks, actual_chicks, started_at, ended_at, started_by, closed_by, photo_path, created_at')
+          .eq('org_id', orgId)
+          .order('started_at', { ascending: false })
+          .limit(400)),
+        safeRows('el personal', supabase
+          .from('organization_members')
+          .select('user_id, profiles(full_name, email)')
+          .eq('org_id', orgId)),
       ]);
-      if (evidenceResult.error) throw evidenceResult.error;
-      if (checksResult.error) throw checksResult.error;
-      if (calibrationsResult.error) throw calibrationsResult.error;
-      if (reportsResult.error) throw reportsResult.error;
-      if (machinesResult.error) throw machinesResult.error;
-      const evidence = evidenceResult.data || [];
-      const orderMap = Object.fromEntries((orders || []).map((order) => [order.id, order]));
-      const resolved = await Promise.all((evidence || []).map(async (file) => {
-        const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(file.file_path, 3600);
+
+      const ordersResult = await selectByIds('las órdenes de trabajo', evidenceResult.rows.map((file) => file.work_order_id), (ids) => supabase
+        .from('work_orders')
+        .select('id, code, title, machine_id')
+        .in('id', ids));
+      const failedSources = [evidenceResult, checksResult, calibrationsResult, reportsResult, machinesResult, registryResult, loadsResult, transfersResult, hatchesResult, ordersResult]
+        .map((result) => result.failed)
+        .filter(Boolean);
+
+      const orderMap = Object.fromEntries(ordersResult.rows.map((order) => [order.id, order]));
+      const machineMap = Object.fromEntries(machinesResult.rows.map((machine) => [machine.id, machine]));
+      const people = Object.fromEntries(membersResult.rows.map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || 'Operario registrado']));
+      const calibrationPaths = calibrationsResult.rows.flatMap((calibration) => [calibration.photo_calibrator_path, calibration.photo_screen_path]);
+      const [woUrls, registryUrls, checkUrls, calibrationUrls, productionUrls] = await Promise.all([
+        signStoragePaths('wo-evidence', evidenceResult.rows.map((file) => file.file_path)),
+        signStoragePaths('sig-evidence', registryResult.rows.map((file) => file.file_path)),
+        signStoragePaths('machine-checks', checksResult.rows.map((check) => check.photo_path)),
+        signStoragePaths('wo-evidence', calibrationPaths),
+        signStoragePaths('machine-checks', [...loadsResult.rows, ...transfersResult.rows, ...hatchesResult.rows].map((row) => row.photo_path)),
+      ]);
+      // Las fotos de calibración quedaron en wo-evidence o en machine-checks según la versión que las subió.
+      const calibrationFallbackUrls = await signStoragePaths('machine-checks', calibrationPaths.filter((path) => path && !calibrationUrls.has(path)));
+      const calibrationUrl = (path) => (path ? calibrationUrls.get(path) || calibrationFallbackUrls.get(path) || null : null);
+
+      const resolved = evidenceResult.rows.map((file) => {
         const order = orderMap[file.work_order_id] || {};
-        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: signed?.signedUrl || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }), source: 'incubapp', kind: 'work-order' };
+        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: woUrls.get(file.file_path) || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }), source: 'incubapp', kind: 'work-order' };
+      });
+      const resolvedRegistry = registryResult.rows.map((file) => ({
+        id: `sig-${file.id}`,
+        file_name: file.file_name,
+        file_type: file.file_type,
+        file_path: file.file_path,
+        workOrderCode: file.machine_code,
+        workOrderTitle: file.title,
+        note: file.title,
+        created_at: file.recorded_at,
+        source: file.source,
+        kind: 'sig-registry',
+        formatCode: file.format_code || 'EVIDENCIA SIG',
+        url: registryUrls.get(file.file_path) || null,
       }));
-      const resolvedRegistry = await Promise.all((registryResult.error ? [] : (registryResult.data || [])).map(async (file) => {
-        const { data: signed } = await supabase.storage.from('sig-evidence').createSignedUrl(file.file_path, 3600);
-        return {
-          id: `sig-${file.id}`,
-          file_name: file.file_name,
-          file_type: file.file_type,
-          file_path: file.file_path,
-          workOrderCode: file.machine_code,
-          workOrderTitle: file.title,
-          note: file.title,
-          created_at: file.recorded_at,
-          source: file.source,
-          kind: 'sig-registry',
-          formatCode: file.format_code || 'EVIDENCIA SIG',
-          url: signed?.signedUrl || null,
-        };
-      }));
-      const machineMap = Object.fromEntries((machinesResult.data || []).map((machine) => [machine.id, machine]));
       const checksByRound = new Map();
-      for (const check of checksResult.data || []) {
+      for (const check of checksResult.rows) {
         const rawShift = check.shift_number || 'T?';
         const shiftCode = String(rawShift).startsWith('T') ? rawShift : `T${rawShift}`;
         const key = `${check.shift_date || 'sin-fecha'}|${shiftCode}|${check.hour_slot || 'H?'}`;
         checksByRound.set(key, [...(checksByRound.get(key) || []), check]);
       }
       const reportsByRound = new Map();
-      for (const report of reportsResult.data || []) {
+      for (const report of reportsResult.rows) {
         const key = `${report.shift_date || 'sin-fecha'}|${report.shift_code || 'T?'}`;
         reportsByRound.set(key, [...(reportsByRound.get(key) || []), report]);
       }
-      const rounds = await Promise.all(Array.from(checksByRound.entries()).map(async ([key, checks]) => {
+      const rounds = Array.from(checksByRound.entries()).map(([key, checks]) => {
         const [shiftDate, shiftNumber, hourSlot] = key.split('|');
-        const items = await Promise.all(checks.map(async (check) => {
-          if (!check.photo_path) return { ...check, url: null, machine: machineMap[check.machine_id] || null };
-          const { data: signed } = await supabase.storage.from('machine-checks').createSignedUrl(check.photo_path, 3600);
-          return { ...check, url: signed?.signedUrl || null, machine: machineMap[check.machine_id] || null };
-        }));
+        const items = checks.map((check) => ({ ...check, url: check.photo_path ? checkUrls.get(check.photo_path) || null : null, machine: machineMap[check.machine_id] || null }));
         const latest = checks.reduce((date, check) => check.taken_at > date ? check.taken_at : date, checks[0]?.taken_at || null);
         return {
           id: `round-${key}`,
@@ -1024,7 +1262,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           reports: reportsByRound.get(`${shiftDate}|${shiftNumber}`) || [],
           url: items.find((item) => item.url)?.url || null,
         };
-      }));
+      });
       for (const [key, reports] of reportsByRound.entries()) {
         if (Array.from(checksByRound.keys()).some((checkKey) => checkKey.startsWith(`${key}|`))) continue;
         const [shiftDate, shiftNumber] = key.split('|');
@@ -1043,14 +1281,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           url: null,
         });
       }
-      const calibrations = await Promise.all((calibrationsResult.data || []).map(async (calibration) => {
-        const paths = [calibration.photo_calibrator_path, calibration.photo_screen_path].filter(Boolean);
-        const urls = await Promise.all(paths.map(async (path) => {
-          const { data: signed } = await supabase.storage.from('wo-evidence').createSignedUrl(path, 3600);
-          if (signed?.signedUrl) return signed.signedUrl;
-          const { data: fallback } = await supabase.storage.from('machine-checks').createSignedUrl(path, 3600);
-          return fallback?.signedUrl || null;
-        }));
+      const calibrations = calibrationsResult.rows.map((calibration) => {
+        const photos = [
+          { path: calibration.photo_calibrator_path, file_name: 'Foto del calibrador' },
+          { path: calibration.photo_screen_path, file_name: 'Foto de pantalla' },
+        ].map((photo) => ({ url: calibrationUrl(photo.path), file_name: photo.file_name })).filter((photo) => photo.url);
         const machine = machineMap[calibration.machine_id] || {};
         return {
           id: `calibration-${calibration.id}`,
@@ -1062,20 +1297,31 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           created_at: calibration.calibrated_at,
           source: 'incubapp',
           kind: 'calibration',
-          items: urls.filter(Boolean).map((url, index) => ({ url, file_name: index === 0 ? 'Foto del calibrador' : 'Foto de pantalla' })),
-          url: urls.find(Boolean) || null,
+          uploaded_by: calibration.performed_by,
+          items: photos,
+          url: photos[0]?.url || null,
         };
-      }));
+      });
+      const production = buildProductionEvidence({
+        loads: loadsResult.rows,
+        transfers: transfersResult.rows,
+        hatches: hatchesResult.rows,
+        machines: machineMap,
+        people,
+        photoUrls: productionUrls,
+      });
       const combined = sortEvidence([
         ...resolved,
         ...resolvedRegistry,
         ...rounds,
         ...calibrations,
+        ...production,
         ...mantumHistoricalEvidence(),
         ...LOCAL_DOCUMENT_LIBRARY,
       ]);
       const currentYearEvidence = combined.filter(isCurrentYearEvidence);
       setAllEvidence(currentYearEvidence);
+      setEvidenceWarnings(failedSources);
       onEvidenceLoaded?.(currentYearEvidence);
       setSelectedDocumentId((current) => current && currentYearEvidence.some((file) => file.id === current) ? current : currentYearEvidence[0]?.id || null);
     } catch (error) {
@@ -1085,6 +1331,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...LOCAL_DOCUMENT_LIBRARY,
       ]).filter(isCurrentYearEvidence);
       setAllEvidence(fallbackEvidence);
+      setEvidenceWarnings(['las evidencias remotas']);
       onEvidenceLoaded?.(fallbackEvidence);
     } finally {
       setAllEvidenceLoading(false);
@@ -1131,20 +1378,20 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const selectedDocument = resolveSelectedEvidence({
     section,
     selectedDocumentId,
-    allEvidence,
+    allEvidence: evidenceLibrary,
     documents,
   });
 
   useEffect(() => {
     if (section !== 'evidence') return;
-    if (!allEvidence.length) {
+    if (!evidenceLibrary.length) {
       setSelectedDocumentId(null);
       return;
     }
-    if (!selectedDocumentId || !allEvidence.some((file) => file.id === selectedDocumentId)) {
-      setSelectedDocumentId(allEvidence[0].id);
+    if (!selectedDocumentId || !evidenceLibrary.some((file) => file.id === selectedDocumentId)) {
+      setSelectedDocumentId(evidenceLibrary[0].id);
     }
-  }, [section, allEvidence, selectedDocumentId]);
+  }, [section, evidenceLibrary, selectedDocumentId]);
 
   const saveAsset = (event) => {
     event.preventDefault();
@@ -1201,7 +1448,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'annualPlan'} className={section === 'annualPlan' ? 'is-active' : ''} onClick={() => { setSection('annualPlan'); setSelectedMachineId(null); }}>Plan Anual <b>{annualPlanData.tasks?.length || 288}</b></button>
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{allEvidence.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{evidenceLibrary.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'loadMaps'} className={section === 'loadMaps' ? 'is-active' : ''} onClick={() => { setSection('loadMaps'); setSelectedMachineId(null); }}>Mapas de cargue <b>{loadMaps.length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
@@ -1690,8 +1937,9 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           <div className="sig-format-detail sig-global-evidence-detail">
             <span className="sig-detail-kicker">Repositorio general SIG</span>
             <h1>Evidencias de la organización</h1>
-            <p className="sig-format-description">Todas las fotos y documentos cargados desde órdenes de trabajo, calibraciones y procesos de mantenimiento.</p>
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            <p className="sig-format-description">Fotos y registros de órdenes de trabajo, rondas, calibraciones y producción (cargues, transferencias y nacimientos), tal como están en la base.</p>
+            {evidenceWarnings.length > 0 && <p className="sig-empty-tab" role="status">No se pudo leer {evidenceWarnings.join(', ')}. El resto de las evidencias sí está al día.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">
@@ -1811,7 +2059,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                                 <span>{ot.description || ot.activity || 'OT Operativa'}</span>
                               )}
                             </td>
-                            <td>{ot.technician || ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
+                            <td>{ot.sin_registro ? 'Sin registro' : ot.technician || ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
                             <td>{ot.status || 'Registrada'}</td>
                           </tr>
                         );

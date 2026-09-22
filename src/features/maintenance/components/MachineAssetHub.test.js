@@ -10,6 +10,9 @@ import {
     resolveSigFormatCatalog,
     mantumHistoricalEvidenceForMachine,
     readLocalLoadMapsForOrg,
+    buildProductionEvidence,
+    chunkList,
+    safeRows,
 } from './MachineAssetHub';
 
 describe('load map local persistence', () => {
@@ -171,5 +174,83 @@ describe('resolveSelectedEvidence', () => {
         expect(taskCodes.has('005.4-P-001')).toBe(true);
         expect(taskCodes.has('005.4-S-006')).toBe(true);
         expect(taskCodes.size).toBeGreaterThan(1);
+    });
+});
+
+describe('lectura del repositorio de evidencias', () => {
+    it('parte las listas de IDs en tandas para no desbordar la URL del filtro in()', () => {
+        const ids = Array.from({ length: 205 }, (_, index) => `id-${index}`);
+        const chunks = chunkList(ids, 80);
+
+        expect(chunks.map((chunk) => chunk.length)).toEqual([80, 80, 45]);
+        expect(chunks.flat()).toEqual(ids);
+    });
+
+    it('una fuente que falla devuelve filas vacías y su nombre, sin tumbar las demás', async () => {
+        const failed = await safeRows('las evidencias de OT', Promise.resolve({ data: null, error: { message: 'Bad Request' } }));
+        const ok = await safeRows('las rondas', Promise.resolve({ data: [{ id: 1 }], error: null }));
+        const thrown = await safeRows('los cargues', Promise.reject(new Error('sin red')));
+
+        expect(failed).toEqual({ rows: [], failed: 'las evidencias de OT' });
+        expect(ok).toEqual({ rows: [{ id: 1 }], failed: null });
+        expect(thrown).toEqual({ rows: [], failed: 'los cargues' });
+    });
+});
+
+describe('evidencia de producción', () => {
+    const now = new Date('2026-09-22T15:00:00-05:00');
+    const machines = { m1: { id: 'm1', code: 'INC-05', name: 'Incubadora 5' } };
+    const people = { u1: 'Ferney Tabares', u2: 'Ana Supervisora' };
+    const photoUrls = new Map([['org/loads/foto.jpg', 'https://firmada.test/foto.jpg']]);
+
+    it('convierte cargues, transferencias y nacimientos reales en evidencias con su responsable', () => {
+        const records = buildProductionEvidence({
+            now,
+            machines,
+            people,
+            photoUrls,
+            loads: [{ id: 'l1', machine_id: 'm1', lote: '46', loaded_at: '2026-09-21T08:00:00-05:00', tape_color_name: 'Roja', photo_path: 'org/loads/foto.jpg', created_by: 'u1' }],
+            transfers: [{ id: 't1', lote: '45', mode: 'double', transferred_at: '2026-09-20T10:00:00-05:00', created_by: 'u2' }],
+            hatches: [{ id: 'h1', lote: '44', status: 'completed', actual_chicks: 102915, started_at: '2026-09-19T05:00:00-05:00', ended_at: '2026-09-19T11:00:00-05:00', started_by: 'u1', closed_by: 'u2' }],
+        });
+
+        expect(records.map((record) => record.formatCode)).toEqual(['PRODUCCIÓN · CARGUE', 'PRODUCCIÓN · TRANSFERENCIA', 'PRODUCCIÓN · NACIMIENTO']);
+        expect(records.every((record) => record.kind === 'production')).toBe(true);
+
+        const [load, transfer, hatch] = records;
+        expect(load.file_name).toBe('Cargue INC-05 · Lote 46');
+        expect(load.url).toBe('https://firmada.test/foto.jpg');
+        expect(load.note).toContain('Registró: Ferney Tabares');
+        expect(load.note).toContain('Cinta Roja');
+        expect(transfer.note).toContain('Transferencia doble');
+        expect(transfer.items[0].url).toBeNull();
+        expect(transfer.items[0].notes).toBe('Registro sin foto adjunta');
+        expect(hatch.note).toContain('Cerró: Ana Supervisora');
+        expect(hatch.created_at).toBe('2026-09-19T11:00:00-05:00');
+    });
+
+    it('no cuenta como evidencia un cargue planeado que todavía no ocurre', () => {
+        const records = buildProductionEvidence({
+            now,
+            machines,
+            people,
+            loads: [
+                { id: 'futuro', machine_id: 'm1', lote: '47', loaded_at: '2026-09-25T08:00:00-05:00', created_by: 'u1' },
+                { id: 'hecho', machine_id: 'm1', lote: '46', loaded_at: '2026-09-22T08:00:00-05:00', created_by: 'u1' },
+            ],
+        });
+
+        expect(records.map((record) => record.id)).toEqual(['production-load-hecho']);
+    });
+
+    it('dice cuando la foto existe pero no se pudo firmar, en vez de inventar una', () => {
+        const [record] = buildProductionEvidence({
+            now,
+            loads: [{ id: 'l2', lote: '46', loaded_at: '2026-09-22T08:00:00-05:00', photo_path: 'org/loads/otra.jpg' }],
+        });
+
+        expect(record.url).toBeNull();
+        expect(record.items[0].notes).toBe('La foto no se pudo abrir');
+        expect(record.note).toContain('Registró: No registrado');
     });
 });
