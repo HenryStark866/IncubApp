@@ -623,16 +623,37 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const filteredAnnualRegistros = useMemo(() => {
     const query = planSearchText.trim().toLowerCase();
-    return (annualPlanData.registrosFiles || []).filter((f) => {
-      const matchesQuery = !query || [
-        f.name,
-        f.formatCode,
-        f.machineCode,
-        f.relPath
-      ].some((val) => String(val || '').toLowerCase().includes(query));
+    // Aplanar todas las OTs de Mantum en un mapa por código para hacer lookup rápido
+    const mantumFlat = Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+      (orders || []).map((ot) => ({ ...ot, machineCode }))
+    );
+    const mantumByCode = Object.fromEntries(mantumFlat.map((ot) => [String(ot.code || '').toUpperCase(), ot]));
 
-      return matchesQuery;
-    });
+    return (annualPlanData.registrosFiles || [])
+      .filter((f) => {
+        const matchesQuery = !query || [
+          f.name,
+          f.formatCode,
+          f.machineCode,
+          f.relPath
+        ].some((val) => String(val || '').toLowerCase().includes(query));
+        return matchesQuery;
+      })
+      .map((f) => {
+        // Buscar la OT en Mantum por el código del archivo (e.g. "OT-00001")
+        const fileKey = String(f.machineCode || f.name || '').replace(/\.docx$/i, '').toUpperCase();
+        const ot = mantumByCode[fileKey];
+        const generatedUrl = maintenanceRecordUrl({
+          machineCode: ot?.machineCode || f.machineCode || 'No registrado',
+          activity: ot?.activity || ot?.description || 'Mantenimiento preventivo',
+          description: ot?.description || ot?.activity || 'Registro histórico Mantum',
+          feedback: ot?.feedback || `Actividad ejecutada por ${MAINTENANCE_RESPONSIBLE}`,
+          date: ot?.completed_at || ot?.created_at || ot?.started_at || null,
+          code: f.machineCode || fileKey,
+          status: ot?.status || 'Registrada',
+        });
+        return { ...f, url: generatedUrl, mantumOt: ot || null };
+      });
   }, [planSearchText]);
 
 
@@ -1576,26 +1597,56 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             {annualPlanSubTab === 'registros' && (
               <div className="sig-table-wrap bg-white rounded-lg border p-2">
                 <p className="text-xs text-slate-500 mb-2">
-                  Archivos auditables de la subcarpeta REGISTROS (FOMAT01 a FOMAT08 e INMAT01) indexados por formato y código de equipo.
+                  Haz clic en cualquier fila para abrir el formato original diligenciado. Se generan dinámicamente desde los datos Mantum.
                 </p>
                 <table>
                   <thead>
                     <tr>
                       <th>Formato</th>
-                      <th>Archivo</th>
-                      <th>Equipo Vinculado</th>
-                      <th>Ruta / Extensión</th>
+                      <th>Archivo / OT</th>
+                      <th>Equipo</th>
+                      <th>Actividad</th>
+                      <th>Fecha</th>
+                      <th>Abrir</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAnnualRegistros.map((f, idx) => (
-                      <tr key={`${f.relPath}-${idx}`}>
-                        <td className="font-bold text-xs text-blue-600">{f.formatCode}</td>
-                        <td className="text-xs font-medium text-slate-800">{f.name}</td>
-                        <td className="text-xs font-mono">{f.machineCode || 'Documento general'}</td>
-                        <td className="text-xs text-slate-500 truncate max-w-[300px]" title={f.relPath}>{f.relPath}</td>
-                      </tr>
-                    ))}
+                    {filteredAnnualRegistros.map((f, idx) => {
+                      const ot = f.mantumOt;
+                      const fecha = ot?.completed_at || ot?.created_at || ot?.started_at;
+                      const fechaStr = fecha ? new Date(fecha).toLocaleDateString('es-CO') : 'Histórico';
+                      return (
+                        <tr
+                          key={`${f.relPath}-${idx}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => f.url && window.open(f.url, '_blank', 'noopener,noreferrer')}
+                          title="Clic para abrir el formato diligenciado"
+                          className="hover:bg-blue-50 transition-colors"
+                        >
+                          <td className="font-bold text-xs text-blue-600">{f.formatCode}</td>
+                          <td className="text-xs font-medium text-slate-800">
+                            <span className="text-blue-600 underline">{f.name}</span>
+                          </td>
+                          <td className="text-xs font-mono">{ot?.machineCode || f.machineCode || 'General'}</td>
+                          <td className="text-xs text-slate-700 max-w-[220px] truncate" title={ot?.activity || ot?.description}>
+                            {ot?.activity || ot?.description || 'Mantenimiento preventivo'}
+                          </td>
+                          <td className="text-xs text-slate-500 whitespace-nowrap">{fechaStr}</td>
+                          <td className="text-xs">
+                            <a
+                              href={f.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline font-semibold"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Abrir formato FOMAT01 diligenciado"
+                            >
+                              Ver ↗
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
