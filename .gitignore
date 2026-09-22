@@ -13,7 +13,8 @@ dist-ssr
 *.local
 
 # Variables de entorno y secretos (NUNCA versionar: claves, tokens, cadenas de conexiÃ³n)
-.env`n.env.*
+.env
+.env.*
 !.env.example
 
 

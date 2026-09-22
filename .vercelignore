@@ -8,6 +8,9 @@ Petersime/
 .respaldo/
 .git/
 .claude/
+# dist/ lo regenera Vercel al compilar; subir la copia local (213 MB el 22-09-2026, con
+# REGISTROS del SIG adentro) es justo el tamaño de subida que abortaba los despliegues.
+dist/
 
 # Documentacion interna: contratos, presupuestos y manuales no tienen por que
 # viajar al servidor de compilacion.
