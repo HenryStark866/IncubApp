@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   calibrationRecordHtml,
@@ -82,29 +83,51 @@ describe('formatos SIG diligenciados con los registros de IncubApp', () => {
     expect(evidenceHasRecordDocument({ kind: 'round', items: [] })).toBe(true)
   })
 
-  it('abre el documento como Blob, porque Chrome bloquea navegar a una URL data: desde un enlace', () => {
+  it('muestra el formato dentro de la app, cargado como Blob, y se cierra con Escape', () => {
     vi.useFakeTimers()
-    const opened = {}
-    const open = vi.fn(() => opened)
-    vi.stubGlobal('window', { open })
-    const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:prueba')
-    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const create = vi.fn(() => 'blob:prueba')
+    const revoke = vi.fn()
+    URL.createObjectURL = create
+    URL.revokeObjectURL = revoke
 
-    expect(openRecordDocument({ url: 'data:text/html;charset=utf-8,%3Cp%3Ehola%3C%2Fp%3E' })).toBe(true)
-    expect(open).toHaveBeenCalledWith('blob:prueba', '_blank')
-    expect(opened.opener).toBeNull()
+    expect(openRecordDocument({ html: '<p>FOMAT04</p>', title: 'FOMAT04 · Ronda' })).toBe(true)
+    const viewer = document.getElementById('sig-record-viewer')
+    expect(viewer).not.toBeNull()
+    expect(viewer.querySelector('iframe').getAttribute('src')).toBe('blob:prueba')
+    expect(viewer.textContent).toContain('FOMAT04 · Ronda')
+    expect(viewer.querySelector('a[target="_blank"]').getAttribute('href')).toBe('blob:prueba')
+    expect(viewer.querySelector('a[download]').getAttribute('download')).toBe('FOMAT04-Ronda.html')
     expect(create.mock.calls[0][0].type).toContain('text/html')
 
-    vi.advanceTimersByTime(120000)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(document.getElementById('sig-record-viewer')).toBeNull()
+    vi.advanceTimersByTime(60000)
     expect(revoke).toHaveBeenCalledWith('blob:prueba')
   })
 
-  it('una URL normal se abre tal cual', () => {
-    const open = vi.fn(() => ({}))
-    vi.stubGlobal('window', { open })
+  it('una URL data: también se ve en el visor, porque Chrome no deja navegar a ella desde un enlace', () => {
+    URL.createObjectURL = vi.fn(() => 'blob:data')
+    URL.revokeObjectURL = vi.fn()
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
 
-    expect(openRecordDocument({ url: 'https://firmada.test/archivo.pdf' })).toBe(true)
-    expect(open).toHaveBeenCalledWith('https://firmada.test/archivo.pdf', '_blank')
+    expect(openRecordDocument({ url: 'data:text/html;charset=utf-8,%3Cp%3Ehola%3C%2Fp%3E' })).toBe(true)
+    expect(document.querySelector('#sig-record-viewer iframe').getAttribute('src')).toBe('blob:data')
+    expect(open).not.toHaveBeenCalled()
+    document.getElementById('sig-record-viewer').dispatchEvent(new Event('sig-close'))
+  })
+
+  it('Word y Excel se abren aparte; si el navegador bloquea la ventana, se descargan', () => {
+    const opened = {}
+    const open = vi.spyOn(window, 'open').mockReturnValueOnce(opened).mockReturnValueOnce(null)
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    expect(openRecordDocument({ url: 'https://firmada.test/OT-00001.docx?token=1' })).toBe(true)
+    expect(open).toHaveBeenCalledWith('https://firmada.test/OT-00001.docx?token=1', '_blank')
+    expect(opened.opener).toBeNull()
+    expect(document.getElementById('sig-record-viewer')).toBeNull()
+
+    expect(openRecordDocument({ url: 'https://firmada.test/FOMAT04.xlsx' })).toBe(true)
+    expect(click).toHaveBeenCalledTimes(1)
     expect(openRecordDocument({})).toBe(false)
   })
 })

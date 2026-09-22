@@ -808,8 +808,9 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   }, []);
   const closePlanTask = useCallback(() => setInstructionTask(null), []);
   const openRegistro = useCallback((file) => {
-    if (file?.fileUrl) openRecordDocument({ url: file.fileUrl });
-    else if (file?.recordHtml) openRecordDocument({ html: file.recordHtml });
+    const title = [file?.formatCode, file?.name].filter(Boolean).join(' · ');
+    if (file?.fileUrl) openRecordDocument({ url: file.fileUrl, title });
+    else if (file?.recordHtml) openRecordDocument({ html: file.recordHtml, title });
   }, []);
 
 
@@ -2014,7 +2015,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline font-semibold"
-                                onClick={(e) => { e.stopPropagation(); if (!f.fileUrl) { e.preventDefault(); openRegistro(f); } }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); openRegistro(f); }}
                                 title="Abrir el formato diligenciado"
                               >
                                 Ver ↗
@@ -2197,6 +2198,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                                   onClick={(event) => {
                                     event.preventDefault();
                                     openRecordDocument({
+                                      title: `FOMAT01 · ${ot.code || 'OT'}`,
                                       html: buildMaintenanceRecordHtml({
                                         machineCode: selectedMachine?.code,
                                         activity: ot.activity || ot.title,

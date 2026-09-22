@@ -11400,3 +11400,99 @@ a.plant3d-link:hover {
     border-radius: 12px;
   }
 }
+
+/* Visor de formatos diligenciados del SIG (src/lib/sigRecordDocuments.js). Vive en <body>
+   para servir igual en el Centro SIG y en el tablero del líder. */
+.sig-record-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(11, 20, 40, 0.6);
+}
+
+.sig-record-viewer__panel {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  height: min(92vh, 1100px);
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(11, 20, 40, 0.35);
+}
+
+.sig-record-viewer__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #dce4ee;
+  color: #0b1428;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+.sig-record-viewer__head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sig-record-viewer__head nav {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.sig-record-viewer__head a,
+.sig-record-viewer__head button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9a4d05;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sig-record-viewer__head a:hover,
+.sig-record-viewer__head button:hover {
+  text-decoration: underline;
+}
+
+.sig-record-viewer__head [data-action="close"] {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  color: #182235;
+  font-size: 18px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.sig-record-viewer iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .sig-record-viewer {
+    padding: 0;
+  }
+
+  .sig-record-viewer__panel {
+    height: 100vh;
+    border-radius: 0;
+  }
+}

@@ -8,9 +8,10 @@
  *   - Cada documento se llena solo con datos de la base. Si un campo no se
  *     registró, dice «No registrado»: un formato con datos supuestos sería una
  *     evidencia falsa en una auditoría del SIG.
- *   - Se abren como Blob y no como URL data:. Chrome no deja que un enlace navegue
- *     a data: en una pestaña (queda en blanco): por eso los «Ver ↗» de Evidencias
- *     en Registros no abrían nada hasta el 22-09-2026.
+ *   - Se muestran en un visor dentro de la app, cargados como Blob y no como URL
+ *     data:: Chrome no deja que un enlace navegue a data: en una pestaña (queda en
+ *     blanco), que es por lo que los «Ver ↗» de Evidencias en Registros no abrían
+ *     nada hasta el 22-09-2026.
  * Documentado y mantenido por: Henry Stark Desarrollador
  * =============================================================================
  */
@@ -185,28 +186,86 @@ function dataUrlToBlob(url) {
   return new Blob([decodeURIComponent(payload)], { type: /charset/i.test(meta) ? `${type};charset=utf-8` : type })
 }
 
-export function openRecordDocument({ html, url } = {}) {
-  if (typeof window === 'undefined') return false
-  let target = null
-  let temporary = false
-  if (html) {
-    target = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
-    temporary = true
-  } else if (url && String(url).startsWith('data:')) {
-    target = URL.createObjectURL(dataUrlToBlob(String(url)))
-    temporary = true
-  } else if (url) {
-    target = url
+const VIEWER_ID = 'sig-record-viewer'
+const VIEWABLE = /\.(pdf|png|jpe?g|webp|gif|html?)($|[?#])/i
+
+function fileNameFor(title) {
+  const base = String(title || 'formato-diligenciado').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return `${base || 'formato-diligenciado'}.html`
+}
+
+// El formato se muestra dentro de la app. Depender de una ventana nueva no sirve: el
+// panel de navegador de Claude, varias apps instaladas (PWA) y algunos celulares las
+// bloquean, y el clic parecía no hacer nada (22-09-2026). Desde el visor se puede abrir
+// en otra pestaña, imprimir o descargar.
+function showRecordViewer({ source, temporary, printable, title = 'Formato diligenciado' }) {
+  document.getElementById(VIEWER_ID)?.dispatchEvent(new Event('sig-close'))
+  const overlay = document.createElement('div')
+  overlay.id = VIEWER_ID
+  overlay.className = 'sig-record-viewer'
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
+  overlay.setAttribute('aria-label', title)
+  const safeTitle = escapeHtml(title)
+  const safeSource = escapeHtml(source)
+  overlay.innerHTML = `<div class="sig-record-viewer__panel">`
+    + `<header class="sig-record-viewer__head"><strong title="${safeTitle}">${safeTitle}</strong><nav>`
+    + `<a href="${safeSource}" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>`
+    + (printable ? '<button type="button" data-action="print">Imprimir</button>' : '')
+    + (temporary ? `<a href="${safeSource}" download="${escapeHtml(fileNameFor(title))}">Descargar</a>` : '')
+    + '<button type="button" data-action="close" aria-label="Cerrar formato">×</button>'
+    + `</nav></header><iframe title="${safeTitle}" src="${safeSource}"></iframe></div>`
+
+  const onKey = (event) => { if (event.key === 'Escape') close() }
+  function close() {
+    overlay.remove()
+    document.removeEventListener('keydown', onKey)
+    if (temporary) setTimeout(() => URL.revokeObjectURL(source), 60000)
   }
-  if (!target) return false
+  overlay.addEventListener('sig-close', close)
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) return close()
+    const action = event.target.closest?.('[data-action]')?.getAttribute('data-action')
+    if (action === 'close') close()
+    if (action === 'print') overlay.querySelector('iframe')?.contentWindow?.print()
+  })
+  document.addEventListener('keydown', onKey)
+  document.body.appendChild(overlay)
+  overlay.querySelector('[data-action="close"]')?.focus()
+  return true
+}
+
+export function openRecordDocument({ html, url, title } = {}) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false
+  if (html) {
+    const source = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+    return showRecordViewer({ source, temporary: true, printable: true, title })
+  }
+  if (!url) return false
+  const target = String(url)
+  if (target.startsWith('data:')) {
+    const blob = dataUrlToBlob(target)
+    return showRecordViewer({ source: URL.createObjectURL(blob), temporary: true, printable: /html/i.test(blob.type), title })
+  }
+  if (VIEWABLE.test(target)) return showRecordViewer({ source: target, temporary: false, printable: false, title })
+  // Word, Excel y demás no se ven en un navegador: se abren aparte y el navegador los descarga.
   const opened = window.open(target, '_blank')
-  if (opened) opened.opener = null
-  // Se libera cuando la pestaña nueva ya cargó el documento.
-  if (temporary) setTimeout(() => URL.revokeObjectURL(target), 120000)
+  if (opened) {
+    opened.opener = null
+    return true
+  }
+  const link = document.createElement('a')
+  link.href = target
+  link.rel = 'noopener'
+  link.download = ''
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
   return true
 }
 
 export function openEvidenceFormat(item) {
+  const title = [item?.formatCode, item?.file_name].filter(Boolean).join(' · ') || 'Formato diligenciado'
   const html = evidenceRecordHtml(item)
-  return html ? openRecordDocument({ html }) : openRecordDocument({ url: item?.formatUrl || item?.url })
+  return html ? openRecordDocument({ html, title }) : openRecordDocument({ url: item?.formatUrl || item?.url, title })
 }
