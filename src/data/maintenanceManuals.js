@@ -4,6 +4,12 @@ const localFiles = import.meta.glob('../assets/manuales/**/*', {
     query: '?url',
 })
 
+const sigEvidenceFiles = import.meta.glob('../../MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS/2026/**/*.{pdf,doc,docx,docm,xls,xlsx,csv,zip,jpg,jpeg,png,webp,svg,html,htm}', {
+    eager: true,
+    import: 'default',
+    query: '?url',
+})
+
 const localAssetFiles = import.meta.glob('../../public/assets/equipos/**/*.{jpg,jpeg,png,webp,svg}', {
     eager: true,
     import: 'default',
@@ -94,4 +100,23 @@ export const LOCAL_ASSET_EVIDENCE = Object.entries(localAssetFiles).map(([source
     }
 })
 
-export const LOCAL_DOCUMENT_LIBRARY = [...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES, ...LOCAL_ASSET_EVIDENCE]
+export const LOCAL_SIG_2026_EVIDENCE = Object.entries(sigEvidenceFiles).map(([sourcePath, url]) => {
+    const name = basename(sourcePath)
+    const machineCode = assetCode(name)
+    return {
+        id: `sig-2026-${name}-${sourcePath}`,
+        file_name: name,
+        file_type: fileType(name),
+        formatCode: 'EVIDENCIA SIG 2026',
+        workOrderTitle: titleFromName(name),
+        machineCode,
+        source: 'sig-2026',
+        sourcePath,
+        url,
+        created_at: null,
+        kind: 'sig-evidence-2026',
+        note: 'Formato o registro perteneciente a la carpeta de evidencias del SIG del año 2026',
+    }
+})
+
+export const LOCAL_DOCUMENT_LIBRARY = LOCAL_SIG_2026_EVIDENCE

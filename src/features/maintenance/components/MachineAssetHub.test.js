@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { LOCAL_DOCUMENT_LIBRARY } from '../../../data/maintenanceManuals';
 import {
     resolveSelectedEvidence,
     isPdfCandidate,
@@ -83,6 +84,11 @@ describe('resolveSelectedEvidence', () => {
         ]);
 
         expect(ordered.map((item) => item.id)).toEqual(['new', 'mid', 'old']);
+    });
+
+    it('usa la carpeta de registros 2026 como fuente de evidencia del SIG', () => {
+        expect(LOCAL_DOCUMENT_LIBRARY.length).toBeGreaterThan(0);
+        expect(LOCAL_DOCUMENT_LIBRARY.every((file) => String(file.sourcePath || '').includes('MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS/2026'))).toBe(true);
     });
 
     it('asocia cada formato SIG con el archivo original del proyecto', () => {
