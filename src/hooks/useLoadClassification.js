@@ -504,8 +504,9 @@ export function useLoadClassification(orgId, userId) {
   )
 
   /**
-   * Payload liviano para BD / localStorage (sin dataURL de imagen).
-   * La imagen base64 hincha el JSON y rompe insert / cuota local.
+   * Payload liviano para BD / localStorage.
+   * Se conserva la imagen para que el centro de activos pueda renderizar la
+   * vista previa desde el fallback local incluso cuando la tabla remota está vacía.
    */
   const slimMapForStorage = useCallback((map) => {
     if (!map) return map
@@ -541,7 +542,7 @@ export function useLoadClassification(orgId, userId) {
       }
     })
     const { imageDataUrl: _img, ...rest } = map
-    return { ...rest, slots, imageDataUrl: null }
+    return { ...rest, slots, imageDataUrl: map.imageDataUrl || null, imagePath: map.imagePath || null }
   }, [])
 
   /**

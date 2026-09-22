@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, supabaseConfigError } from './lib/supabase.js'
+import { checkIsRecoveryUrl, readPendingSignupContext, clearPendingSignupContext } from './lib/authService.js'
 // Shell ligero (eager): auth, nav, chrome. Paneles pesados → lazyPanels (code-split).
 import AuthForm from './components/AuthForm.jsx'
 import ResetPasswordForm from './components/ResetPasswordForm.jsx'
@@ -1001,12 +1002,7 @@ function Workspace({
 export default function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
-  const [isRecoveryMode, setIsRecoveryMode] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      (window.location.hash.includes('type=recovery') ||
-        (window.location.hash.includes('access_token') && window.location.hash.includes('recovery')))
-  )
+  const [isRecoveryMode, setIsRecoveryMode] = useState(() => checkIsRecoveryUrl())
 
   useEffect(() => {
     let alive = true
@@ -1083,13 +1079,14 @@ export default function App() {
   // Auto-vincular usuarios nuevos (Google OAuth o registro) a su organización y aprobarlos
   useEffect(() => {
     if (!userId || orgLoading || memberships.length > 0) return
-    const pendingOrg = localStorage.getItem('incubapp_pending_org_id') || 'd54fca1e-1878-4967-aee5-330aa2e631cc'
-    const pendingName = localStorage.getItem('incubapp_pending_full_name') || session?.user?.user_metadata?.full_name || ''
+
+    const pending = readPendingSignupContext()
+    const pendingOrg = pending.orgId || 'd54fca1e-1878-4967-aee5-330aa2e631cc'
+    const pendingName = pending.fullName || session?.user?.user_metadata?.full_name || ''
 
     async function ensureUserMembership() {
       try {
-        localStorage.removeItem('incubapp_pending_org_id')
-        localStorage.removeItem('incubapp_pending_full_name')
+        clearPendingSignupContext()
 
         // Asegurar que su perfil esté aprobado y tenga nombre
         const updates = { is_approved: true }

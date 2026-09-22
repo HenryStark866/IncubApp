@@ -9,18 +9,54 @@
 
 import { supabase } from './supabase'
 
+export function buildAuthRedirectUrl(mode = 'recovery') {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
+  const target = mode === 'recovery' ? 'type=recovery' : 'type=confirm'
+  return `${origin}/#${target}`
+}
+
+export function persistPendingSignupContext(orgId, fullName) {
+  if (typeof window === 'undefined') return
+
+  if (orgId) {
+    window.localStorage.setItem('incubapp_pending_org_id', String(orgId))
+  } else {
+    window.localStorage.removeItem('incubapp_pending_org_id')
+  }
+
+  const safeName = typeof fullName === 'string' ? fullName.trim() : ''
+  if (safeName) {
+    window.localStorage.setItem('incubapp_pending_full_name', safeName)
+  } else {
+    window.localStorage.removeItem('incubapp_pending_full_name')
+  }
+}
+
+export function readPendingSignupContext() {
+  if (typeof window === 'undefined') return { orgId: null, fullName: null }
+  return {
+    orgId: window.localStorage.getItem('incubapp_pending_org_id') || null,
+    fullName: window.localStorage.getItem('incubapp_pending_full_name') || null,
+  }
+}
+
+export function clearPendingSignupContext() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem('incubapp_pending_org_id')
+  window.localStorage.removeItem('incubapp_pending_full_name')
+}
+
 /**
  * Solicita el restablecimiento de contraseña enviando un correo con enlace seguro.
  * @param {string} email 
- * @returns {Promise<{ success: boolean, error?: string }>}
+ * @returns {Promise<{ success: boolean, error?: string }>} 
  */
 export async function resetPasswordForEmail(email) {
   if (!email || !email.trim()) {
     return { success: false, error: 'Ingresa un correo electrónico válido.' }
   }
   try {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const redirectTo = `${origin}/#type=recovery`
+    const redirectTo = buildAuthRedirectUrl('recovery')
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,
@@ -38,7 +74,7 @@ export async function resetPasswordForEmail(email) {
 /**
  * Actualiza la contraseña del usuario actualmente autenticado (en flujo de recuperación o sesión activa).
  * @param {string} newPassword 
- * @returns {Promise<{ success: boolean, error?: string }>}
+ * @returns {Promise<{ success: boolean, error?: string }>} 
  */
 export async function updatePassword(newPassword) {
   if (!newPassword || newPassword.length < 6) {
@@ -66,7 +102,7 @@ export async function updatePassword(newPassword) {
 
 /**
  * Inicia sesión mediante OAuth de Google.
- * @returns {Promise<{ success: boolean, error?: string }>}
+ * @returns {Promise<{ success: boolean, error?: string }>} 
  */
 export async function signInWithGoogle() {
   try {
@@ -111,8 +147,8 @@ export async function signInWithGoogle() {
  */
 export function checkIsRecoveryUrl() {
   if (typeof window === 'undefined') return false
-  const hash = window.location.hash || ''
-  return hash.includes('type=recovery') || (hash.includes('access_token=') && hash.includes('type=recovery'))
+  const combined = `${window.location.hash || ''}${window.location.search || ''}`
+  return combined.includes('type=recovery') || (combined.includes('access_token') && combined.includes('recovery'))
 }
 
 /**

@@ -8,7 +8,8 @@ const KEY_M = 'incubapp_load_maps_v1'
 
 function read(key) {
   try {
-    const raw = localStorage.getItem(key)
+    const storage = globalThis.localStorage
+    const raw = storage ? storage.getItem(key) : null
     if (!raw) return {}
     const p = JSON.parse(raw)
     return p && typeof p === 'object' ? p : {}
@@ -19,7 +20,10 @@ function read(key) {
 
 function write(key, val) {
   try {
-    localStorage.setItem(key, JSON.stringify(val))
+    const storage = globalThis.localStorage
+    if (storage) {
+      storage.setItem(key, JSON.stringify(val))
+    }
   } catch {
     /* */
   }

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
@@ -7,7 +7,10 @@ import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
+import { localListMaps } from '../../../lib/loadClassificationLocalStore';
+import annualPlanData from '../../../data/annualMaintenancePlanData.json';
 import './MachineAssetHub.css';
+
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
 const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
@@ -196,6 +199,78 @@ function readCustomAssets() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   } catch {
     return [];
+  }
+}
+
+function normalizeStoredLoadMap(map = {}) {
+  const payload = map.payload && typeof map.payload === 'object' ? map.payload : {};
+  const merged = { ...map, ...payload, id: map.id || payload.id || `local-load-map-${Date.now()}-${Math.random().toString(16).slice(2)}` };
+  const previewUrl = resolveLoadMapPreviewUrl(merged) || merged.url || merged.file_path || merged.filePath || null;
+  return {
+    ...merged,
+    id: String(merged.id),
+    kind: 'load-map',
+    source: 'local',
+    file_name: merged.file_name || merged.fileName || `Mapa de cargue · ${merged.lote || merged.machineName || 'Sin lote'}`,
+    file_type: merged.file_type || (previewUrl && /^data:image\//i.test(previewUrl) ? 'image' : 'image'),
+    url: previewUrl,
+    imageDataUrl: merged.imageDataUrl || payload.imageDataUrl || null,
+    image_path: merged.image_path || merged.imagePath || payload.image_path || payload.imagePath || null,
+    mapStatus: merged.mapStatus || merged.status || 'approved',
+    status: merged.status || merged.mapStatus || 'approved',
+    generatedBy: merged.generatedBy || merged.created_by || 'No registrado',
+    approvedBy: merged.approvedBy || merged.approved_by || 'Sin aprobación',
+    loadedBy: merged.loadedBy || merged.loaded_by || 'Sin carga',
+    createdAt: merged.createdAt || merged.created_at || null,
+    machineName: merged.machineName || merged.machine_name || merged.machine_id || null,
+    lote: merged.lote || payload.lote || null,
+    machine_id: merged.machine_id || payload.machine_id || null,
+  };
+}
+
+export function readLocalLoadMapsForOrg(orgId) {
+  if (!orgId || typeof globalThis === 'undefined' || !globalThis.localStorage) return [];
+  try {
+    return (localListMaps(orgId) || []).map(normalizeStoredLoadMap).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function syncLocalLoadMapsToRemote(orgId, localMaps = []) {
+  if (!orgId || !Array.isArray(localMaps) || !localMaps.length) return;
+  const rows = localMaps
+    .filter((map) => map && (map.status === 'approved' || map.status === 'ordered' || map.status === 'completed' || map.status === 'pending_approval' || map.status === 'draft'))
+    .map((map) => ({
+      id: map.id,
+      org_id: orgId,
+      machine_id: map.machineId || map.machine_id || null,
+      machine_name: map.machineName || map.machine_name || null,
+      plant_id: map.plantId || map.plant_id || null,
+      status: map.status || 'draft',
+      payload: {
+        ...map,
+        file_name: map.file_name || map.fileName || 'Mapa de cargue',
+        imageDataUrl: map.imageDataUrl || null,
+      },
+      image_path: map.image_path || map.imagePath || null,
+      created_by: map.createdBy || map.created_by || null,
+      created_at: map.createdAt || map.created_at || new Date().toISOString(),
+      approved_at: map.approvedAt || null,
+      approved_by: map.approvedBy || null,
+      ordered_at: map.orderedAt || null,
+      ordered_by: map.orderedBy || null,
+      loaded_at: map.loadedAt || null,
+      loaded_by: map.loadedBy || null,
+      rejected_reason: map.rejectedReason || null,
+    }));
+
+  if (!rows.length) return;
+
+  try {
+    await supabase.from('load_maps').upsert(rows, { onConflict: 'id' });
+  } catch {
+    // Fall back silencioso: el centro de activos ya puede pintar desde localStorage.
   }
 }
 
@@ -404,6 +479,18 @@ function isManualRecord(file = {}) {
   return /procedimientos|manual|instructiv|procedimiento/.test(path)
 }
 
+function getWeekOfYear(date = new Date()) {
+  const target = new Date(date.valueOf());
+  const dayNumber = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNumber + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
+  }
+  return 1 + Math.round((firstThursday - target) / 604800000);
+}
+
 const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
@@ -428,6 +515,75 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [newAsset, setNewAsset] = useState({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
   const [loading, setLoading] = useState(true);
 
+  // Estados del Plan Anual de Mantenimiento (PRGMAT01)
+  const [annualPlanSubTab, setAnnualPlanSubTab] = useState('preventive'); // 'preventive', 'cronograma', 'corrective', 'registros'
+  const [planSedeFilter, setPlanSedeFilter] = useState('all');
+  const [planSystemFilter, setPlanSystemFilter] = useState('all');
+  const [planTypeFilter, setPlanTypeFilter] = useState('all');
+  const [planSearchText, setPlanSearchText] = useState('');
+  const [selectedTaskCode, setSelectedTaskCode] = useState(null);
+  const [selectedRegistroFileId, setSelectedRegistroFileId] = useState(null);
+
+
+  // Memos de filtrado para el Plan Anual
+  const filteredAnnualTasks = useMemo(() => {
+    const query = planSearchText.trim().toLowerCase();
+    return (annualPlanData.tasks || []).filter((task) => {
+      const matchesSede = planSedeFilter === 'all' || task.sede === planSedeFilter;
+      const matchesSystem = planSystemFilter === 'all' || task.system === planSystemFilter;
+      const matchesType = planTypeFilter === 'all'
+        ? true
+        : planTypeFilter === 'critical'
+          ? task.isCriticalSecurity
+          : planTypeFilter === 'biosecurity'
+            ? task.isBiosecurity
+            : task.type === planTypeFilter;
+      const matchesQuery = !query || [
+        task.code,
+        task.system,
+        task.equipmentClass,
+        task.applyingEquipment,
+        task.description,
+        task.responsible,
+        task.evidenceFormat
+      ].some((val) => String(val || '').toLowerCase().includes(query));
+
+      return matchesSede && matchesSystem && matchesType && matchesQuery;
+    });
+  }, [planSedeFilter, planSystemFilter, planTypeFilter, planSearchText]);
+
+  const filteredAnnualCorrectives = useMemo(() => {
+    const query = planSearchText.trim().toLowerCase();
+    return (annualPlanData.correctives || []).filter((c) => {
+      const matchesSystem = planSystemFilter === 'all' || c.system === planSystemFilter;
+      const matchesQuery = !query || [
+        c.taskCode,
+        c.activity,
+        c.equipmentCode,
+        c.equipmentName,
+        c.system,
+        c.specialty
+      ].some((val) => String(val || '').toLowerCase().includes(query));
+
+      return matchesSystem && matchesQuery;
+    });
+  }, [planSystemFilter, planSearchText]);
+
+  const filteredAnnualRegistros = useMemo(() => {
+    const query = planSearchText.trim().toLowerCase();
+    return (annualPlanData.registrosFiles || []).filter((f) => {
+      const matchesQuery = !query || [
+        f.name,
+        f.formatCode,
+        f.machineCode,
+        f.relPath
+      ].some((val) => String(val || '').toLowerCase().includes(query));
+
+      return matchesQuery;
+    });
+  }, [planSearchText]);
+
+
   useEffect(() => {
     if (!orgId) return undefined
     let active = true
@@ -436,16 +592,15 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
       supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true }),
     ]).then(async ([mapsResult, membersResult, shiftsResult]) => {
-      if (mapsResult.error || !active) return
       const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
       const shiftAssignments = shiftsResult.data || []
-      const maps = await Promise.all((mapsResult.data || []).map(async (map) => {
+      const remoteMaps = mapsResult.error ? [] : await Promise.all((mapsResult.data || []).map(async (map) => {
         const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
         const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
         const previewImageUrl = signed.data?.signedUrl || payload.imageDataUrl || payload.imageDataURL || payload.imagePath || payload.image_path || null
         const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
         const loadedBy = resolveLoadedByName({
-          loadedAt: map.loaded_at || payload.loaded_at || payload.loadedAt,
+          loadedAt: map.loaded_at || payload.loaded_at || payload.loadedBy,
           loadedBy: payload.loaded_by || map.loaded_by || payload.loadedBy,
           people,
           shiftAssignments,
@@ -470,9 +625,25 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           orderedAt: map.ordered_at,
         }
       }))
+
+      const localMaps = readLocalLoadMapsForOrg(orgId)
+      const mergedMaps = [...remoteMaps, ...localMaps]
+        .filter(Boolean)
+        .reduce((acc, entry) => {
+          const key = String(entry.id || `${entry.machine_id || 'map'}-${entry.createdAt || entry.created_at || entry.file_name || Math.random()}`)
+          if (acc.has(key)) return acc
+          acc.set(key, entry)
+          return acc
+        }, new Map())
+        .values()
+      const nextMaps = Array.from(mergedMaps)
       if (active) {
-        setLoadMaps(maps)
-        setSelectedLoadMapId((current) => current && maps.some((map) => map.id === current) ? current : maps[0]?.id || null)
+        setLoadMaps(nextMaps)
+        setSelectedLoadMapId((current) => current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id || null)
+      }
+
+      if ((!mapsResult.error && remoteMaps.length === 0 && localMaps.length > 0) || (mapsResult.error && localMaps.length > 0)) {
+        await syncLocalLoadMapsToRemote(orgId, localMaps)
       }
     })
     return () => { active = false }
@@ -491,11 +662,25 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
     const mantum = getMantumDataForMachine(selectedMachine);
+    const code = String(selectedMachine.code || selectedMachine.mantum_code || '').trim().toUpperCase();
+    const name = String(selectedMachine.name || '').trim().toUpperCase();
+    const matchedOfficialPlan = (annualPlanData.tasks || []).filter((task) => {
+      const applying = String(task.applyingEquipment || '').toUpperCase();
+      const eqClass = String(task.equipmentClass || '').toUpperCase();
+      const sys = String(task.system || '').toUpperCase();
+
+      if (code && applying.includes(code)) return true;
+      if (code && eqClass.includes(code)) return true;
+      if (name && eqClass.includes(name)) return true;
+      if (name && sys.length > 3 && name.includes(sys)) return true;
+      return false;
+    });
+
     return {
       summary: { ...selectedMachine, ...(mantum.equipo || {}), location: mantum.equipo?.ubicacion_proceso || '' },
       history: mantum.historicalOTs || [],
       calibrations: [],
-      maintenancePlan: mantum.maintenancePlan || [],
+      maintenancePlan: matchedOfficialPlan.length > 0 ? matchedOfficialPlan : (mantum.maintenancePlan || []),
       components: mantum.components || [],
       imageUrl: mantum.imageUrl || null,
       images: mantum.images || [],
@@ -900,6 +1085,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           </h2>
           <div className="sig-asset-nav" role="tablist" aria-label="Secciones del Centro SIG">
             <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'annualPlan'} className={section === 'annualPlan' ? 'is-active' : ''} onClick={() => { setSection('annualPlan'); setSelectedMachineId(null); }}>Plan Anual <b>{annualPlanData.tasks?.length || 288}</b></button>
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{allEvidence.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
@@ -920,6 +1106,39 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 <div className="sig-asset-form-actions"><button type="submit" className="sig-asset-primary">Guardar activo</button><button type="button" onClick={() => setShowNewAsset(false)}>Cancelar</button></div>
               </div>
             </form>
+          )}
+          {section === 'annualPlan' && (
+            <div className="sig-asset-section-panel space-y-2">
+              <input
+                className="sig-asset-doc-search"
+                type="search"
+                placeholder="Buscar por código, sistema o actividad..."
+                value={planSearchText}
+                onChange={(e) => setPlanSearchText(e.target.value)}
+                aria-label="Buscar en plan anual"
+              />
+              <div className="flex flex-col gap-2">
+                <select className="w-full border rounded p-1.5 text-xs" value={planSedeFilter} onChange={(e) => setPlanSedeFilter(e.target.value)}>
+                  <option value="all">Todas las Sedes</option>
+                  <option value="PLANTA INCUBANT">Planta Incubant</option>
+                  <option value="GRANJA LA FE">Granja La Fe</option>
+                  <option value="GRANJA LA ESPERANZA">Granja La Esperanza</option>
+                </select>
+                <select className="w-full border rounded p-1.5 text-xs" value={planSystemFilter} onChange={(e) => setPlanSystemFilter(e.target.value)}>
+                  <option value="all">Todos los Sistemas ({annualPlanData.systems?.length || 27})</option>
+                  {(annualPlanData.systems || []).map((sys) => (
+                    <option key={sys.name} value={sys.name}>{sys.name} ({sys.taskCount})</option>
+                  ))}
+                </select>
+                <select className="w-full border rounded p-1.5 text-xs" value={planTypeFilter} onChange={(e) => setPlanTypeFilter(e.target.value)}>
+                  <option value="all">Todos los Tipos / Criticidades</option>
+                  <option value="critical">Crítica / Seguridad (Rojo)</option>
+                  <option value="biosecurity">Bioseguridad / Legal (Verde)</option>
+                  <option value="Sistemática">Sistemática</option>
+                  <option value="Predictiva">Predictiva</option>
+                </select>
+              </div>
+            </div>
           )}
           {section === 'documents' && (
             <>
@@ -1053,7 +1272,243 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       </div >
 
       <div className="sig-asset-detail">
-        {section === 'manuals' ? (
+        {section === 'annualPlan' ? (
+          <div className="sig-annual-plan-detail">
+            <div className="sig-annual-plan-header">
+              <div>
+                <span className="sig-detail-kicker">PRGMAT01 · Programa de Mantenimiento Preventivo</span>
+                <h1>Plan Anual de Mantenimiento 2026</h1>
+                <p className="text-sm text-slate-500">
+                  Sincronización de Sistemas (Equipos e Instalaciones) con su Cronograma de 52 Semanas, Tareas Preventivas y Evidencias de la subcarpeta REGISTROS.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  className="sig-asset-primary px-3 py-1.5 text-xs rounded flex items-center gap-1"
+                  href={LOCAL_SIG_2026_EVIDENCE.find((f) => /FOMAT07/i.test(f.file_name))?.url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Documento FOMAT07
+                </a>
+              </div>
+            </div>
+
+            <div className="sig-annual-kpis">
+              <div className="sig-annual-kpi-card">
+                <span>Tareas Preventivas</span>
+                <strong>{annualPlanData.tasks?.length || 288}</strong>
+              </div>
+              <div className="sig-annual-kpi-card">
+                <span>Sistemas / Equipos</span>
+                <strong>{annualPlanData.systems?.length || 27}</strong>
+              </div>
+              <div className="sig-annual-kpi-card">
+                <span>Tareas Correctivas Ref.</span>
+                <strong>{annualPlanData.correctives?.length || 166}</strong>
+              </div>
+              <div className="sig-annual-kpi-card">
+                <span>Evidencias en Registros</span>
+                <strong>{annualPlanData.registrosFiles?.length || 601}</strong>
+              </div>
+            </div>
+
+            <div className="sig-annual-subnav" role="tablist">
+              <button
+                type="button"
+                className={annualPlanSubTab === 'preventive' ? 'is-active' : ''}
+                onClick={() => setAnnualPlanSubTab('preventive')}
+              >
+                Programa Preventivo ({filteredAnnualTasks.length})
+              </button>
+              <button
+                type="button"
+                className={annualPlanSubTab === 'cronograma' ? 'is-active' : ''}
+                onClick={() => setAnnualPlanSubTab('cronograma')}
+              >
+                Cronograma 52 Semanas
+              </button>
+              <button
+                type="button"
+                className={annualPlanSubTab === 'corrective' ? 'is-active' : ''}
+                onClick={() => setAnnualPlanSubTab('corrective')}
+              >
+                Catálogo Correctivo ({filteredAnnualCorrectives.length})
+              </button>
+              <button
+                type="button"
+                className={annualPlanSubTab === 'registros' ? 'is-active' : ''}
+                onClick={() => setAnnualPlanSubTab('registros')}
+              >
+                Evidencias en Registros ({filteredAnnualRegistros.length})
+              </button>
+            </div>
+
+            {annualPlanSubTab === 'preventive' && (
+              <div className="sig-table-wrap bg-white rounded-lg border p-2">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Sede</th>
+                      <th>Sistema / Clase</th>
+                      <th>Equipos Aplicables</th>
+                      <th>Procedimiento / Actividad</th>
+                      <th>Periodicidad</th>
+                      <th>Dur. (h/eq)</th>
+                      <th>Tipo / Criticidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAnnualTasks.map((t) => (
+                      <tr key={t.code}>
+                        <td className="font-bold text-xs text-amber-600">{t.code}</td>
+                        <td className="text-xs">{t.sede}</td>
+                        <td className="text-xs font-semibold">{t.system} <br /><span className="text-[10px] text-slate-400">{t.equipmentClass}</span></td>
+                        <td className="text-xs text-slate-600 max-w-[150px] truncate" title={t.applyingEquipment}>{t.applyingEquipment}</td>
+                        <td className="text-xs font-medium max-w-[280px]">{t.description}</td>
+                        <td className="text-xs">{t.frequency}</td>
+                        <td className="text-xs text-center">{t.duration || 'N/A'}</td>
+                        <td className="text-xs text-center">
+                          {t.isCriticalSecurity ? (
+                            <span className="sig-badge-critical">Crítica Seguridad</span>
+                          ) : t.isBiosecurity ? (
+                            <span className="sig-badge-biosecurity">Bioseguridad</span>
+                          ) : (
+                            <span className="sig-badge-systematic">{t.type}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {!filteredAnnualTasks.length && (
+                      <tr>
+                        <td colSpan="8" className="p-4 text-center text-slate-400">
+                          No hay actividades que coincidan con los filtros seleccionados.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {annualPlanSubTab === 'cronograma' && (
+              <div className="sig-cronograma-wrapper p-2">
+                <div className="mb-2 text-xs text-slate-500 flex items-center justify-between">
+                  <span>Distribución escalonada de 52 semanas · Semana actual destacada en naranja</span>
+                  <span className="flex items-center gap-2">
+                    <span className="sig-cronograma-dot" /> Tarea programada
+                  </span>
+                </div>
+                <table className="sig-cronograma-table">
+                  <thead>
+                    <tr>
+                      <th className="col-sticky">Código & Actividad</th>
+                      <th>Sistema</th>
+                      <th>Periodicidad</th>
+                      {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => {
+                        const isCurrentWeek = w === getWeekOfYear();
+                        const isQuarterEnd = w === 13 || w === 26 || w === 39;
+                        return (
+                          <th
+                            key={w}
+                            className={`${isCurrentWeek ? 'is-current-week' : ''} ${isQuarterEnd ? 'quarter-divider' : ''}`}
+                            title={`Semana ${w}`}
+                          >
+                            W{w}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAnnualTasks.map((t) => (
+                      <tr key={`crono-${t.code}`}>
+                        <td className="col-sticky">
+                          <strong className="text-amber-600 mr-2">{t.code}</strong>
+                          <span className="text-slate-700 font-medium">{t.description}</span>
+                          <small className="block text-slate-400 text-[10px]">{t.equipmentClass} ({t.applyingEquipment})</small>
+                        </td>
+                        <td className="text-xs font-semibold text-slate-600">{t.system}</td>
+                        <td className="text-xs">{t.frequency}</td>
+                        {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => {
+                          const isScheduled = (t.cronograma?.weeks || []).includes(w);
+                          const isCurrentWeek = w === getWeekOfYear();
+                          const isQuarterEnd = w === 13 || w === 26 || w === 39;
+                          return (
+                            <td
+                              key={w}
+                              className={`${isCurrentWeek ? 'is-current-week' : ''} ${isQuarterEnd ? 'quarter-divider' : ''}`}
+                            >
+                              {isScheduled ? <span className="sig-cronograma-dot" title={`Programado semana ${w}`} /> : ''}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {annualPlanSubTab === 'corrective' && (
+              <div className="sig-table-wrap bg-white rounded-lg border p-2">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código Tarea</th>
+                      <th>Actividad Correctiva</th>
+                      <th>Código Equipo</th>
+                      <th>Equipo</th>
+                      <th>Sistema</th>
+                      <th>Especialidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAnnualCorrectives.map((c, idx) => (
+                      <tr key={`${c.taskCode}-${idx}`}>
+                        <td className="font-bold text-xs text-slate-700">{c.taskCode}</td>
+                        <td className="text-xs font-medium">{c.activity}</td>
+                        <td className="text-xs font-mono">{c.equipmentCode}</td>
+                        <td className="text-xs">{c.equipmentName}</td>
+                        <td className="text-xs font-semibold">{c.system}</td>
+                        <td className="text-xs">{c.specialty}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {annualPlanSubTab === 'registros' && (
+              <div className="sig-table-wrap bg-white rounded-lg border p-2">
+                <p className="text-xs text-slate-500 mb-2">
+                  Archivos auditables de la subcarpeta REGISTROS (FOMAT01 a FOMAT08 e INMAT01) indexados por formato y código de equipo.
+                </p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Formato</th>
+                      <th>Archivo</th>
+                      <th>Equipo Vinculado</th>
+                      <th>Ruta / Extensión</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAnnualRegistros.map((f, idx) => (
+                      <tr key={`${f.relPath}-${idx}`}>
+                        <td className="font-bold text-xs text-blue-600">{f.formatCode}</td>
+                        <td className="text-xs font-medium text-slate-800">{f.name}</td>
+                        <td className="text-xs font-mono">{f.machineCode || 'Documento general'}</td>
+                        <td className="text-xs text-slate-500 truncate max-w-[300px]" title={f.relPath}>{f.relPath}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : section === 'manuals' ? (
           <div className="sig-format-detail sig-manual-detail">
             <span className="sig-detail-kicker">Biblioteca documental SIG / Mantum</span>
             <h1>Manuales e instructivos</h1>

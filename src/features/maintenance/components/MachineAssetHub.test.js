@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { LOCAL_DOCUMENT_LIBRARY } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import {
@@ -9,7 +9,42 @@ import {
     sortEvidence,
     resolveSigFormatCatalog,
     mantumHistoricalEvidenceForMachine,
+    readLocalLoadMapsForOrg,
 } from './MachineAssetHub';
+
+describe('load map local persistence', () => {
+    beforeEach(() => {
+        const store = {};
+        Object.defineProperty(globalThis, 'localStorage', {
+            value: {
+                getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
+                setItem: (key, value) => { store[String(key)] = String(value); },
+                removeItem: (key) => { delete store[String(key)]; },
+                clear: () => { Object.keys(store).forEach((key) => delete store[key]); },
+            },
+            configurable: true,
+        });
+    });
+
+    it('preserva la imagen base64 del mapa local para que la vista previa funcione en el centro de activos', () => {
+        const orgId = 'org-1';
+        const key = 'incubapp_load_maps_v1';
+        localStorage.setItem(key, JSON.stringify({
+            [orgId]: [{
+                id: 'map-1',
+                machine_id: 'M-1',
+                createdAt: '2026-09-22T12:00:00Z',
+                status: 'approved',
+                imageDataUrl: 'data:image/png;base64,abc',
+                image_path: 'org/load-maps/map-1.png',
+            }],
+        }));
+
+        expect(readLocalLoadMapsForOrg(orgId)[0].imageDataUrl).toBe('data:image/png;base64,abc');
+        expect(readLocalLoadMapsForOrg(orgId)[0].image_path).toBe('org/load-maps/map-1.png');
+        expect(resolveLoadMapPreviewUrl(readLocalLoadMapsForOrg(orgId)[0])).toBe('data:image/png;base64,abc');
+    });
+});
 
 describe('resolveSelectedEvidence', () => {
     const allEvidence = [

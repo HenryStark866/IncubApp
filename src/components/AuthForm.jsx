@@ -9,7 +9,11 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { signInWithGoogle } from '../lib/authService'
+import {
+  buildAuthRedirectUrl,
+  persistPendingSignupContext,
+  signInWithGoogle,
+} from '../lib/authService'
 import { IncubAppProductLogo, CdhSignature } from './Brand'
 
 export default function AuthForm() {
@@ -45,8 +49,7 @@ export default function AuthForm() {
         setBusy(false)
         return
       }
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const redirectTo = `${origin}/#type=recovery`
+      const redirectTo = buildAuthRedirectUrl('recovery')
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo,
       })
@@ -68,19 +71,23 @@ export default function AuthForm() {
         setBusy(false)
         return
       }
+      persistPendingSignupContext(orgId, fullName)
       const company = companies.find((c) => c.id === orgId)
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim(), org_id: orgId } },
+        options: {
+          data: { full_name: fullName.trim(), org_id: orgId },
+          emailRedirectTo: buildAuthRedirectUrl('confirm'),
+        },
       })
       setMessage(
         error
           ? { kind: 'error', text: error.message }
           : {
-              kind: 'ok',
-              text: `Cuenta creada y vinculada a ${company?.name || 'tu empresa'}. Solo falta que tu empresa apruebe tu acceso y te asigne el rol.`,
-            }
+            kind: 'ok',
+            text: `Cuenta creada y vinculada a ${company?.name || 'tu empresa'}. Solo falta que tu empresa apruebe tu acceso y te asigne el rol.`,
+          }
       )
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
@@ -93,11 +100,8 @@ export default function AuthForm() {
     setBusy(true)
     setMessage(null)
 
-    if (mode === 'signup' && orgId) {
-      try {
-        localStorage.setItem('incubapp_pending_org_id', orgId)
-        if (fullName.trim()) localStorage.setItem('incubapp_pending_full_name', fullName.trim())
-      } catch {}
+    if (mode === 'signup') {
+      persistPendingSignupContext(orgId || null, fullName)
     }
 
     const res = await signInWithGoogle()
