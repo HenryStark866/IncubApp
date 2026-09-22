@@ -43,10 +43,45 @@ function mantumHistoricalEvidence() {
   );
 }
 
-function sortEvidence(items) {
-  return items.sort((a, b) => {
-    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+export function mantumHistoricalEvidenceForMachine(machine = {}) {
+  const machineCode = String(machine.code || machine.mantum_code || machine.machine_id || '').trim().toUpperCase();
+  if (!machineCode) return [];
+
+  return mantumHistoricalEvidence().filter((entry) => {
+    const entryCode = String(entry.machineCode || '').trim().toUpperCase();
+    return entryCode === machineCode || entryCode.includes(machineCode) || machineCode.includes(entryCode);
+  });
+}
+
+export function dedupeEvidence(items = []) {
+  const seen = new Map();
+  for (const item of items) {
+    if (!item) continue;
+    const key = [
+      item.id,
+      item.file_name,
+      item.workOrderCode,
+      item.machineCode,
+      item.kind,
+      item.created_at,
+      item.url,
+    ].filter((value) => value != null && value !== '').join('::');
+
+    if (!seen.has(key)) seen.set(key, item);
+  }
+  return Array.from(seen.values());
+}
+
+export function sortEvidence(items) {
+  const currentYear = new Date().getFullYear();
+  return dedupeEvidence(items).sort((a, b) => {
+    const aDate = a.created_at ? new Date(a.created_at) : null;
+    const bDate = b.created_at ? new Date(b.created_at) : null;
+    const aIsCurrentYear = aDate && !Number.isNaN(aDate.getTime()) && aDate.getFullYear() === currentYear ? 1 : 0;
+    const bIsCurrentYear = bDate && !Number.isNaN(bDate.getTime()) && bDate.getFullYear() === currentYear ? 1 : 0;
+    if (aIsCurrentYear !== bIsCurrentYear) return bIsCurrentYear - aIsCurrentYear;
+    const aTime = aDate ? aDate.getTime() : 0;
+    const bTime = bDate ? bDate.getTime() : 0;
     return bTime - aTime;
   });
 }
@@ -130,13 +165,86 @@ function loadMapDocumentUrl(load) {
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
 }
 
+export function resolveLoadMapPreviewUrl(file = {}) {
+  return file.imageDataUrl || file.imageDataURL || file.imagePath || file.image_path || file.url || file.file_path || null;
+}
+
+export function resolveSigFormatCatalog(formats = Object.values(SIG_FORMATS)) {
+  const catalogByCode = new Map();
+
+  for (const file of LOCAL_MAINTENANCE_MANUALS) {
+    if (file.source !== 'sig') continue;
+    const match = String(file.file_name || '').match(/^(FOMAT\d+|CAMAT\d+|PROMAT\d+|PRGMAT\d+|INMAT\d+)/i);
+    if (!match) continue;
+    catalogByCode.set(match[1].toUpperCase(), file);
+  }
+
+  return (formats || []).map((format) => {
+    const code = String(format.code || format.id || '').toUpperCase();
+    const sourceFile = catalogByCode.get(code) || null;
+    return {
+      ...format,
+      code,
+      file_name: sourceFile?.file_name || `${code} ${format.name || 'Formato SIG'}`,
+      sourceFile,
+      url: sourceFile?.url || null,
+    };
+  });
+}
+
+export function shiftNumberForTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const hour = date.getHours();
+  if (hour >= 6 && hour < 14) return 1;
+  if (hour >= 14 && hour < 22) return 2;
+  return 3;
+}
+
+export function shiftDateForTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const shift = shiftNumberForTimestamp(date);
+  if (shift === 3 && date.getHours() < 6) {
+    const adjusted = new Date(date);
+    adjusted.setDate(adjusted.getDate() - 1);
+    return adjusted.toISOString().slice(0, 10);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+export function resolveLoadedByName({ loadedAt, loadedBy, people = {}, shiftAssignments = [] } = {}) {
+  const fallback = people[loadedBy] || loadedBy || 'Sin carga';
+  if (!loadedAt) return fallback || 'Sin carga';
+
+  const loadedDate = new Date(loadedAt);
+  if (Number.isNaN(loadedDate.getTime())) return fallback || 'Sin carga';
+
+  const shiftNumber = shiftNumberForTimestamp(loadedDate);
+  const shiftDate = shiftDateForTimestamp(loadedDate);
+  if (!shiftNumber || !shiftDate) return fallback || 'Sin carga';
+
+  const currentShiftOperator = (shiftAssignments || []).find((assignment) => {
+    if (assignment.is_rest) return false;
+    return Number(assignment.shift_number) === Number(shiftNumber) && String(assignment.work_date || '').slice(0, 10) === String(shiftDate);
+  });
+
+  return people[currentShiftOperator?.user_id] || fallback || 'Sin carga';
+}
+
 function ManualPreview({ file, showMeta = false }) {
   if (!file) return <p className="sig-empty-tab">Selecciona un manual o instructivo.</p>
 
-  const previewUrl = file.url || file.file_path;
-  const isImage = file.file_type === 'image' || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.file_name || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(previewUrl || '');
+  const previewUrl = resolveLoadMapPreviewUrl(file) || file.url || file.file_path;
+  const isImage =
+    file.file_type === 'image' ||
+    /^data:image\//i.test(previewUrl || '') ||
+    /^blob:/i.test(previewUrl || '') ||
+    /\.(png|jpe?g|gif|webp|svg)$/i.test(file.file_name || '') ||
+    /\.(png|jpe?g|gif|webp|svg)$/i.test(previewUrl || '');
   const isPdf = isPdfCandidate(file);
-  const isHtml = file.kind === 'load-map' && !isImage && !!previewUrl && (!isPdf && !/\.(doc|docx|xlsx|csv|zip)$/i.test(file.file_name || ''));
+  const isHtmlDocument = file.kind === 'mantum-order' || /^data:text\/html/i.test(previewUrl || '') || /\.html?($|[?#])/i.test(file.file_name || '') || /\.html?($|[?#])/i.test(previewUrl || '');
+  const isHtml = !isImage && !!previewUrl && (!isPdf && !/\.(doc|docx|xlsx|csv|zip)$/i.test(file.file_name || '')) && (file.kind === 'load-map' || isHtmlDocument);
   const loadMapMeta = file.kind === 'load-map' ? [
     { label: 'Generó', value: file.generatedBy || 'No registrado' },
     { label: 'Aprobó', value: file.approvedBy || 'Sin aprobación' },
@@ -170,7 +278,7 @@ function ManualPreview({ file, showMeta = false }) {
       <div className="sig-manual-reader-body">
         {isImage && previewUrl ? <img src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
           <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={previewUrl} />
-        ) : isHtml ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={previewUrl} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
+        ) : isHtml && previewUrl ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={previewUrl} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
     </div>
   )
@@ -217,16 +325,43 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     if (!orgId) return undefined
     let active = true
     Promise.all([
-      supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
+      supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at, loaded_at, loaded_by').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
       supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
-    ]).then(async ([mapsResult, membersResult]) => {
+      supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true }),
+    ]).then(async ([mapsResult, membersResult, shiftsResult]) => {
       if (mapsResult.error || !active) return
       const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
+      const shiftAssignments = shiftsResult.data || []
       const maps = await Promise.all((mapsResult.data || []).map(async (map) => {
         const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
         const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
+        const previewImageUrl = signed.data?.signedUrl || payload.imageDataUrl || payload.imageDataURL || payload.imagePath || payload.image_path || null
         const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
-        return { ...map, ...payload, id: `load-map-${map.id}`, file_name: `Mapa de cargue · ${firstLot}`, file_type: signed.data?.signedUrl ? 'image' : 'document', url: signed.data?.signedUrl || loadMapDocumentUrl({ ...map, lote: firstLot, machine_id: map.machine_name || map.machine_id }), downloadName: `mapa-cargue-${firstLot || map.id}.${signed.data?.signedUrl ? 'png' : 'html'}`, formatCode: 'MAPA DE CARGUE', source: 'incubapp', kind: 'load-map', generatedBy: people[map.created_by] || map.created_by || 'No registrado', approvedBy: people[map.approved_by] || map.approved_by || 'Pendiente', loadedBy: people[payload.loaded_by] || payload.loaded_by || 'Pendiente de cargue', mapStatus: map.status, createdAt: map.created_at, approvedAt: map.approved_at, orderedAt: map.ordered_at }
+        const loadedBy = resolveLoadedByName({
+          loadedAt: map.loaded_at || payload.loaded_at || payload.loadedAt,
+          loadedBy: payload.loaded_by || map.loaded_by || payload.loadedBy,
+          people,
+          shiftAssignments,
+        })
+        return {
+          ...map,
+          ...payload,
+          id: `load-map-${map.id}`,
+          file_name: `Mapa de cargue · ${firstLot}`,
+          file_type: previewImageUrl && /^data:image\//i.test(previewImageUrl) || previewImageUrl && /^blob:/i.test(previewImageUrl) ? 'image' : previewImageUrl ? 'image' : 'document',
+          url: previewImageUrl || loadMapDocumentUrl({ ...map, ...payload, lote: firstLot, machine_id: map.machine_name || map.machine_id }),
+          downloadName: `mapa-cargue-${firstLot || map.id}.${previewImageUrl ? 'png' : 'html'}`,
+          formatCode: 'MAPA DE CARGUE',
+          source: 'incubapp',
+          kind: 'load-map',
+          generatedBy: people[map.created_by] || map.created_by || 'No registrado',
+          approvedBy: people[map.approved_by] || map.approved_by || 'Pendiente',
+          loadedBy,
+          mapStatus: map.status,
+          createdAt: map.created_at,
+          approvedAt: map.approved_at,
+          orderedAt: map.ordered_at,
+        }
       }))
       if (active) {
         setLoadMaps(maps)
@@ -360,7 +495,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           kind: 'sig-registry',
         };
       }));
-      const combined = sortEvidence([...resolved, ...resolvedRegistry]);
+      const historicalOrders = selectedMachine?.source !== 'remote' ? mantumHistoricalEvidenceForMachine(selectedMachine) : [];
+      const combined = sortEvidence([...resolved, ...resolvedRegistry, ...historicalOrders]);
       setDocuments(combined);
       setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
@@ -578,12 +714,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     });
   }, [machines, filterText, filterGroup]);
 
-  const filteredFormats = useMemo(() => Object.values(SIG_FORMATS).filter((format) => {
+  const filteredFormats = useMemo(() => resolveSigFormatCatalog(Object.values(SIG_FORMATS)).filter((format) => {
     const query = documentFilter.toLowerCase();
     return !query || `${format.code} ${format.name} ${format.process}`.toLowerCase().includes(query);
   }), [documentFilter]);
 
-  const selectedFormat = SIG_FORMATS[selectedFormatCode] || SIG_FORMATS.FOMAT03;
+  const selectedFormat = filteredFormats.find((format) => format.code === selectedFormatCode) || filteredFormats[0] || SIG_FORMATS.FOMAT03;
   const selectedDocument = resolveSelectedEvidence({
     section,
     selectedDocumentId,
@@ -855,14 +991,34 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <h1>{selectedFormat.code} · {selectedFormat.name}</h1>
             <p className="sig-format-description">{selectedFormat.process}</p>
             <div className="sig-format-meta"><span>Versión <b>{selectedFormat.version}</b></span><span>Fecha <b>{selectedFormat.date}</b></span></div>
-            <div className="sig-format-preview" aria-label={`Vista previa de ${selectedFormat.code}`}>
-              <div className="sig-preview-head"><strong>ANTIOQUEÑA DE INCUBACIÓN S.A.S.</strong><span>SISTEMA INTEGRADO DE GESTIÓN</span></div>
-              <div className="sig-preview-title"><b>{selectedFormat.code}</b><span>{selectedFormat.name}</span></div>
-              <div className="sig-preview-grid"><span>PROCESO</span><b>{selectedFormat.process}</b><span>VERSIÓN</span><b>{selectedFormat.version}</b><span>FECHA</span><b>{selectedFormat.date}</b></div>
-              <div className="sig-preview-lines"><i /><i /><i /><i /></div>
-              <small>Documento controlado · Vista previa para exportación</small>
+            {selectedFormat.url ? (
+              <div className="sig-format-preview sig-format-original-preview">
+                <ManualPreview file={{
+                  ...selectedFormat.sourceFile,
+                  file_name: selectedFormat.sourceFile?.file_name || selectedFormat.file_name,
+                  url: selectedFormat.url,
+                  file_type: selectedFormat.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'document',
+                  source: 'sig',
+                  kind: 'sig-original',
+                  note: `${selectedFormat.code} · ${selectedFormat.name}`,
+                }} />
+              </div>
+            ) : (
+              <div className="sig-format-preview" aria-label={`Vista previa de ${selectedFormat.code}`}>
+                <div className="sig-preview-head"><strong>ANTIOQUEÑA DE INCUBACIÓN S.A.S.</strong><span>SISTEMA INTEGRADO DE GESTIÓN</span></div>
+                <div className="sig-preview-title"><b>{selectedFormat.code}</b><span>{selectedFormat.name}</span></div>
+                <div className="sig-preview-grid"><span>PROCESO</span><b>{selectedFormat.process}</b><span>VERSIÓN</span><b>{selectedFormat.version}</b><span>FECHA</span><b>{selectedFormat.date}</b></div>
+                <div className="sig-preview-lines"><i /><i /><i /><i /></div>
+                <small>Documento controlado · Vista previa para exportación</small>
+              </div>
+            )}
+            <div className="sig-format-actions">
+              <button type="button" className="sig-asset-primary" onClick={() => handleFormatExport('excel')}>Exportar Excel</button>
+              <button type="button" onClick={() => handleFormatExport('pdf')}>Exportar PDF</button>
+              {selectedFormat.url && (
+                <a className="sig-download-link" href={selectedFormat.url} download={selectedFormat.sourceFile?.file_name || selectedFormat.file_name} target="_blank" rel="noopener noreferrer">Descargar original</a>
+              )}
             </div>
-            <div className="sig-format-actions"><button type="button" className="sig-asset-primary" onClick={() => handleFormatExport('excel')}>Exportar Excel</button><button type="button" onClick={() => handleFormatExport('pdf')}>Exportar PDF</button></div>
           </div>
         ) : !selectedMachineId ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
