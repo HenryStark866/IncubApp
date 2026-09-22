@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
-import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
+import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES, LOCAL_SIG_2026_EVIDENCE } from '../../../data/maintenanceManuals';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import './MachineAssetHub.css';
@@ -58,6 +58,8 @@ function splitMantumOrderFeedback(feedback = '', machineCode = '', orderCode = '
 }
 
 function mantumHistoricalEvidence() {
+  const originalFormat = LOCAL_SIG_2026_EVIDENCE.find((file) => /FOMAT01/i.test(file.file_name || file.formatCode || '')) || null;
+
   return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
     (orders || []).flatMap((order) => {
       const segments = splitMantumOrderFeedback(order.feedback, machineCode, order.code);
@@ -65,28 +67,35 @@ function mantumHistoricalEvidence() {
         return [];
       }
 
-      return segments.map((segment, index) => ({
-        id: `mantum-ot-${machineCode}-${segment.code || order.code}-${index}`,
-        file_name: `OT Mantum ${segment.code || order.code}`,
-        file_type: 'record',
-        formatCode: 'FOMAT01',
-        workOrderCode: segment.code || order.code,
-        workOrderTitle: segment.activity || order.activity || 'Orden histórica Mantum',
-        machineCode,
-        note: `${segment.activity || order.feedback || order.description || order.activity || 'OT histórica Mantum'} · Responsable: ${segment.person || MAINTENANCE_RESPONSIBLE}`,
-        created_at: segment.created_at || order.completed_at || order.started_at || order.created_at || null,
-        source: 'mantum',
-        kind: 'mantum-order',
-        url: maintenanceRecordUrl({
+      return segments.map((segment, index) => {
+        const recordCode = segment.code || order.code;
+        const recordDate = segment.created_at || order.completed_at || order.started_at || order.created_at || null;
+        const recordUrl = originalFormat?.url || maintenanceRecordUrl({
           machineCode,
           activity: segment.activity || order.activity,
           description: order.description || segment.activity || order.activity,
           feedback: `${segment.person || ''} · ${segment.activity || order.feedback || 'Actividad registrada en Mantum'}`,
-          date: segment.created_at || order.completed_at || order.started_at || order.created_at,
-          code: segment.code || order.code,
-        }),
-        downloadName: `FOMAT01-${segment.code || order.code || 'OT-Mantum'}.html`,
-      }));
+          date: recordDate,
+          code: recordCode,
+        });
+
+        return {
+          id: `mantum-ot-${machineCode}-${recordCode}-${index}`,
+          file_name: `OT Mantum ${recordCode}`,
+          file_type: 'record',
+          formatCode: 'FOMAT01',
+          workOrderCode: recordCode,
+          workOrderTitle: segment.activity || order.activity || 'Orden histórica Mantum',
+          machineCode,
+          note: `${segment.activity || order.feedback || order.description || order.activity || 'OT histórica Mantum'} · Responsable: ${segment.person || MAINTENANCE_RESPONSIBLE}`,
+          created_at: recordDate,
+          source: 'mantum',
+          kind: 'mantum-order',
+          sourceFile: originalFormat,
+          url: recordUrl,
+          downloadName: `FOMAT01-${recordCode || 'OT-Mantum'}.html`,
+        };
+      });
     })
   );
 }
@@ -222,14 +231,39 @@ function loadMapDocumentUrl(load) {
 }
 
 export function resolveLoadMapPreviewUrl(file = {}) {
-  return file.imageDataUrl || file.imageDataURL || file.imagePath || file.image_path || file.url || file.file_path || null;
+  const payload = typeof file.payload === 'string'
+    ? (() => { try { return JSON.parse(file.payload); } catch { return {}; } })()
+    : (file.payload && typeof file.payload === 'object' ? file.payload : {});
+
+  const candidates = [
+    file.imageDataUrl,
+    file.imageDataURL,
+    file.image_url,
+    file.imageUrl,
+    file.imagePath,
+    file.image_path,
+    payload.imageDataUrl,
+    payload.imageDataURL,
+    payload.image_url,
+    payload.imageUrl,
+    payload.imagePath,
+    payload.image_path,
+    file.photo_path,
+    file.photoPath,
+    payload.photo_path,
+    payload.photoPath,
+    file.url,
+    file.file_path,
+    file.filePath,
+  ];
+
+  return candidates.find((value) => typeof value === 'string' && value.trim()) || null;
 }
 
 export function resolveSigFormatCatalog(formats = Object.values(SIG_FORMATS)) {
   const catalogByCode = new Map();
 
-  for (const file of LOCAL_MAINTENANCE_MANUALS) {
-    if (file.source !== 'sig') continue;
+  for (const file of LOCAL_DOCUMENT_LIBRARY) {
     const match = String(file.file_name || '').match(/^(FOMAT\d+|CAMAT\d+|PROMAT\d+|PRGMAT\d+|INMAT\d+)/i);
     if (!match) continue;
     catalogByCode.set(match[1].toUpperCase(), file);

@@ -91,6 +91,19 @@ describe('resolveSelectedEvidence', () => {
         expect(LOCAL_DOCUMENT_LIBRARY.every((file) => String(file.sourcePath || '').includes('MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS/2026'))).toBe(true);
     });
 
+    it('asocia los registros Mantum del año actual con el formato original del SIG', () => {
+        const [record] = mantumHistoricalEvidenceForMachine({ code: '005.4' });
+        expect(record).toBeTruthy();
+        expect(record.sourceFile).toBeTruthy();
+        expect(record.sourceFile.file_name).toMatch(/FOMAT01/i);
+        expect([record.url.includes('FOMAT01'), record.url.includes('data:text/html')]).toContain(true);
+    });
+
+    it('resuelve la imagen real de un mapa de cargue desde los campos del payload o la imagen firmada', () => {
+        expect(resolveLoadMapPreviewUrl({ imageUrl: 'https://example.test/mapa.png' })).toBe('https://example.test/mapa.png');
+        expect(resolveLoadMapPreviewUrl({ payload: { imageDataUrl: 'data:image/png;base64,abc' } })).toBe('data:image/png;base64,abc');
+    });
+
     it('asocia cada formato SIG con el archivo original del proyecto', () => {
         const catalog = resolveSigFormatCatalog([{ code: 'FOMAT01', name: 'ORDEN DE TRABAJO DE MANTENIMIENTO', process: 'GESTIÓN DE MANTENIMIENTO', version: '01', date: '18-08-2026' }]);
 
@@ -104,7 +117,7 @@ describe('resolveSelectedEvidence', () => {
         expect(records.length).toBeGreaterThan(0);
         expect(records.every((record) => record.formatCode === 'FOMAT01')).toBe(true);
         expect(records.every((record) => record.machineCode === '005.4')).toBe(true);
-        expect(records[0].url).toContain('data:text/html');
+        expect([records[0].url.includes('data:text/html'), /MANTENIMIENTO\/SIG-MANTENIMIENTO\/REGISTROS\/2026\/.*FOMAT01/i.test(records[0].url || '')].some(Boolean)).toBe(true);
     });
 
     it('separa cada tarea de una OT histórica en un formato individual', () => {
