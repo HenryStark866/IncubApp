@@ -802,10 +802,10 @@ export default function MachineDossier({
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: '#f59e0b' }}>{ot.code}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{ot.created_at || ot.started_at}</td>
                           <td style={{ padding: '8px 12px', fontWeight: 500, color: '#f8fafc' }}>{ot.activity}</td>
-                          <td style={{ padding: '8px 12px', color: '#60a5fa' }}>👨‍🔧 {ot.technician}</td>
-                          <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>👔 {ot.approver || 'Líder Mantum'}</td>
+                          <td style={{ padding: '8px 12px', color: '#60a5fa' }}>{ot.sin_registro ? 'Sin registro de ejecución' : `👨‍🔧 ${ot.technician || 'No registrado'}`}</td>
+                          <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>{ot.sin_registro ? '—' : `👔 ${ot.approver || 'Líder Mantum'}`}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12, maxWidth: 300 }}>{ot.feedback || ot.description || '-'}</td>
-                          <td style={{ padding: '8px 12px', color: '#10b981', fontWeight: 600 }}>${ot.cost || '0'}</td>
+                          <td style={{ padding: '8px 12px', color: '#10b981', fontWeight: 600 }}>{ot.sin_registro ? '—' : `$${ot.cost || '0'}`}</td>
                         </tr>
                       ))}
                     </tbody>

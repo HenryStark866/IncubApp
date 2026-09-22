@@ -140,59 +140,62 @@ function generateDefaultMaintenancePlan(machine = {}) {
   }))
 }
 
-function generateDefaultHistoricalOTs(machine = {}) {
-  const year = new Date().getFullYear()
+// Hasta el 22-09-2026 esta función fabricaba OT «ejecutadas» —resultado conforme, técnico, costo y
+// calibraciones «dentro de tolerancia»— para todo equipo sin registros del año, y la hoja de vida
+// FOMAT03 las exportaba como «Cerrada». Eso es inventar evidencia: Mántum no tiene ejecución
+// registrada desde ~dic-2019 (las tareas se hicieron en campo, pero nadie las cerró como OT). Ahora
+// solo marca lo que el plan de referencia tenía programado en los últimos cinco meses y dice que no
+// hay registro; el cierre real se captura con una OT de IncubApp.
+function scheduledWithoutRecord({ code, scheduled, activity, type }) {
+  const iso = scheduled.toISOString()
+  return {
+    code,
+    priority: null,
+    created_at: iso,
+    scheduled_at: iso,
+    started_at: null,
+    completed_at: null,
+    activity,
+    description: 'Actividad de referencia del plan AM. No hay registro de ejecución en Mántum ni en IncubApp.',
+    feedback: null,
+    type,
+    status: 'Programada · sin registro de ejecución',
+    technician: null,
+    approver: null,
+    cost: null,
+    sin_registro: true,
+  }
+}
+
+function generateScheduledWithoutRecord(machine = {}, now = new Date()) {
   const code = String(machine.code || machine.mantum_code || 'EQ-NEW').toUpperCase()
   const name = String(machine.name || 'Máquina sin registro')
   const family = detectMachineFamily(machine)
-  
-  // Actividades desde mayo hasta hoy (Septiembre 2026)
-  const months = [5, 6, 7, 8, 9] // Mayo a Septiembre
-  let ots = [];
+  const isClimateMachine = family === 'incubadora' || family === 'nacedora'
+  const activity = isClimateMachine
+    ? `Revisión sistemática de parámetros y limpieza de ${family}`
+    : 'Inspección general y mantenimiento preventivo'
+  const entries = []
 
-  months.forEach((month, index) => {
-    // 1. OT de Mantenimiento Preventivo / Operativa regular
-    const date = new Date(year, month - 1, 15 + (index % 5))
-    const baseActivity = family === 'incubadora' || family === 'nacedora' 
-      ? `Revisión sistemática de parámetros y limpieza de ${family}` 
-      : 'Inspección general y mantenimiento preventivo';
-      
-    ots.push({
-      code: `${code}-OT-${String(index + 1).padStart(3, '0')}`,
-      priority: index % 2 === 0 ? '2-Media' : '1-Baja',
-      created_at: `${date.toISOString().slice(0, 10)}T08:00:00Z`,
-      started_at: `${date.toISOString().slice(0, 10)}T07:30:00Z`,
-      completed_at: `${date.toISOString().slice(0, 10)}T11:00:00Z`,
-      activity: `${baseActivity} · ${name}`,
-      description: `Registro del plan AM para ${name}. Actividad planeada dentro del calendario anual vigente del equipo. Formato FOMAT01.`,
-      feedback: `Se ejecutó la verificación del sistema, limpieza, ajuste y seguimiento del proceso para ${name}. Resultado conforme con el plan AM del año ${year}. [${date.toISOString().slice(0, 10)} 07:30 - 11:00] - FOMAT01 |`,
-      type: 'Sistemática',
-      technician: 'Henry Camilo Taborda Galeano',
-      approver: 'Henry Camilo Taborda Galeano',
-      cost: `${(450000 + index * 15000).toLocaleString('es-CO')}`,
-    });
-
-    // 2. Si es incubadora o nacedora, agregar Calibraciones (CAMAT) bimensuales
-    if ((family === 'incubadora' || family === 'nacedora') && month % 2 !== 0) {
-      const calDate = new Date(year, month - 1, 5);
-      ots.push({
-        code: `${code}-CAL-${String(index + 1).padStart(3, '0')}`,
-        priority: '1-Baja',
-        created_at: `${calDate.toISOString().slice(0, 10)}T09:00:00Z`,
-        started_at: `${calDate.toISOString().slice(0, 10)}T09:00:00Z`,
-        completed_at: `${calDate.toISOString().slice(0, 10)}T10:00:00Z`,
-        activity: `Calibración de sensores de ${family} · ${name}`,
-        description: `Certificado de calibración de temperatura y humedad para ${name}. Formato CAMAT01 diligenciado.`,
-        feedback: `Calibración de PT100 y sensor capacitivo. Desviación dentro de tolerancia. Equipo operativo. [${calDate.toISOString().slice(0, 10)} 09:00 - 10:00] - CAMAT01 |`,
-        type: 'Calibración',
-        technician: 'Henry Camilo Taborda Galeano',
-        approver: 'Metrología Externa',
-        cost: '150.000',
-      });
+  for (let back = 4; back >= 0; back -= 1) {
+    const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1))
+    const year = month.getUTCFullYear()
+    const monthIndex = month.getUTCMonth()
+    const suffix = `${year}-${String(monthIndex + 1).padStart(2, '0')}`
+    // Solo fechas que ya pasaron: lo que todavía no toca no puede figurar como pendiente.
+    const review = new Date(Date.UTC(year, monthIndex, 15, 13, 0, 0))
+    if (review <= now) {
+      entries.push(scheduledWithoutRecord({ code: `${code}-PRG-${suffix}`, scheduled: review, activity: `${activity} · ${name}`, type: 'Sistemática' }))
     }
-  });
+    if (isClimateMachine && (monthIndex + 1) % 2 !== 0) {
+      const calibration = new Date(Date.UTC(year, monthIndex, 5, 14, 0, 0))
+      if (calibration <= now) {
+        entries.push(scheduledWithoutRecord({ code: `${code}-CALP-${suffix}`, scheduled: calibration, activity: `Calibración de sensores de ${family} · ${name}`, type: 'Calibración' }))
+      }
+    }
+  }
 
-  return ots;
+  return entries
 }
 
 function mergeUniqueByKey(list = [], extra = [], keyFn) {
@@ -354,7 +357,7 @@ export function getMantumDataForMachine(machine) {
   }
 
   if (historicalOTs.length === 0 || currentYearOTs.length === 0) {
-    historicalOTs = mergeUniqueByKey(historicalOTs, generateDefaultHistoricalOTs(machine), (item) => item.code || item.activity)
+    historicalOTs = mergeUniqueByKey(historicalOTs, generateScheduledWithoutRecord(machine), (item) => item.code || item.activity)
   }
 
   return {

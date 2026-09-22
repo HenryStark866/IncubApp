@@ -77,9 +77,10 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
         codigo: h.code || 'HIST-MANTUM',
         tipo: h.type || 'Sistemática',
         actividad: h.activity || h.description || 'Mantenimiento Preventivo Mantum',
-        tecnico: h.technician || MAINTENANCE_RESPONSIBLE,
-        aprobador: h.approver || 'Líder de Mantenimiento / Planta',
-        resultado: `Cerrada ($${h.cost || '0'})`,
+        tecnico: h.sin_registro ? 'Sin registro de ejecución' : h.technician || MAINTENANCE_RESPONSIBLE,
+        aprobador: h.sin_registro ? '—' : h.approver || 'Líder de Mantenimiento / Planta',
+        // La hoja de vida es evidencia SIG: lo programado sin registro no se exporta como cerrado.
+        resultado: h.sin_registro ? h.status : `Cerrada ($${h.cost || '0'})`,
       })
     })
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { resolveMantumKeys, getMantumDataForMachine } from '../../data/mantumCatalog'
 
 describe('mantumCatalog & SIG Dossier Resolver', () => {
@@ -41,7 +41,13 @@ describe('mantumCatalog & SIG Dossier Resolver', () => {
     expect(enriched.maintenancePlan.length).toBeGreaterThan(0)
   })
 
-  it('completes missing this-year history and AM plan for machines without catalog entries', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('marca lo programado del año sin registro de ejecución, en vez de inventar OT cerradas', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-22T12:00:00-05:00'))
     const enriched = getMantumDataForMachine({
       code: 'EQ-NEW-99',
       name: 'Máquina nueva sin registro',
@@ -51,7 +57,22 @@ describe('mantumCatalog & SIG Dossier Resolver', () => {
     expect(enriched).toBeDefined()
     expect(enriched.components.length).toBeGreaterThan(0)
     expect(enriched.maintenancePlan.length).toBeGreaterThan(0)
-    expect(enriched.historicalOTs.length).toBeGreaterThan(0)
-    expect(enriched.historicalOTs.some((ot) => String(ot.created_at || '').startsWith(String(new Date().getFullYear())))).toBe(true)
+
+    const thisYear = enriched.historicalOTs.filter((ot) => String(ot.created_at || '').startsWith('2026'))
+    expect(thisYear.length).toBe(5)
+    expect(thisYear.every((ot) => ot.sin_registro === true)).toBe(true)
+    expect(thisYear.every((ot) => ot.status === 'Programada · sin registro de ejecución')).toBe(true)
+    expect(thisYear.every((ot) => !ot.completed_at && !ot.technician && !ot.cost && !ot.feedback)).toBe(true)
+    expect(thisYear.every((ot) => new Date(ot.created_at) <= new Date('2026-09-22T12:00:00-05:00'))).toBe(true)
+  })
+
+  it('las incubadoras suman calibraciones programadas, también sin registro', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-22T12:00:00-05:00'))
+    const enriched = getMantumDataForMachine({ code: 'INC-99', name: 'Incubadora 99', type: 'setter' })
+    const calibrations = enriched.historicalOTs.filter((ot) => ot.type === 'Calibración' && ot.sin_registro)
+
+    expect(calibrations.map((ot) => ot.code)).toEqual(['INC-99-CALP-2026-05', 'INC-99-CALP-2026-07', 'INC-99-CALP-2026-09'])
+    expect(enriched.historicalOTs.some((ot) => ot.approver === 'Metrología Externa')).toBe(false)
   })
 })
