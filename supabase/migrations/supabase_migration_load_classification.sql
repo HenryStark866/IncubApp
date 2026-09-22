@@ -79,6 +79,10 @@ CREATE TABLE IF NOT EXISTS public.load_maps (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.load_maps
+  ADD COLUMN IF NOT EXISTS loaded_at timestamptz,
+  ADD COLUMN IF NOT EXISTS loaded_by uuid REFERENCES public.profiles (id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS load_maps_org_status_idx
   ON public.load_maps (org_id, status, created_at DESC);
 

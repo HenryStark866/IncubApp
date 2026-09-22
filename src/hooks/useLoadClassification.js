@@ -691,6 +691,10 @@ export function useLoadClassification(orgId, userId) {
         status,
         ...extra,
       }
+      if (status === 'completed') {
+        patch.loaded_at = new Date().toISOString()
+        patch.loaded_by = userId
+      }
       setMaps((list) => list.map((m) => (m.id === mapId ? { ...m, ...patch } : m)))
 
       const map = maps.find((m) => m.id === mapId) || localListMaps(orgId).find((m) => m.id === mapId)
@@ -709,6 +713,8 @@ export function useLoadClassification(orgId, userId) {
           approved_by: status === 'approved' ? userId : undefined,
           ordered_at: status === 'ordered' ? new Date().toISOString() : undefined,
           ordered_by: status === 'ordered' ? userId : undefined,
+          loaded_at: status === 'completed' ? new Date().toISOString() : undefined,
+          loaded_by: status === 'completed' ? userId : undefined,
           rejected_reason: extra.rejectedReason || null,
         }
         Object.keys(dbPatch).forEach((k) => dbPatch[k] === undefined && delete dbPatch[k])
@@ -783,7 +789,7 @@ export function useLoadClassification(orgId, userId) {
         const body =
           status === 'approved'
             ? `${map?.machineName || 'Petersime'}: mapa aprobado por producción. ` +
-              'Operario de turno: ejecutar el cargue y registrarlo con las dos fotos.'
+            'Operario de turno: ejecutar el cargue y registrarlo con las dos fotos.'
             : `${map?.machineName || 'Petersime'}: ubicar carros según mapa aprobado.`
         showBrowserNotification({ title, body, tag: `loadmap-${mapId}-${status}` })
         try {

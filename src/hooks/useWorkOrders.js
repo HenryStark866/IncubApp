@@ -15,6 +15,8 @@ import { enqueueInsert, enqueueUpdate } from '../lib/offlineQueue'
 import { isNetworkError } from '../lib/network'
 import { uniqueChannel } from '../lib/realtimeChannel'
 
+export const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
+
 function maintenanceFormatFor(order) {
   if (order?.source === 'calibration' || /^calibraci[oó]n/i.test(order?.title || '')) return 'FOMAT08'
   return 'FOMAT01'
@@ -24,7 +26,7 @@ function completionDocument(order, result = {}) {
   const formatCode = maintenanceFormatFor(order)
   const date = new Date().toLocaleString('es-CO')
   const esc = (value) => String(value ?? '—').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${formatCode} ${esc(order.code)}</title><style>body{font-family:Arial,sans-serif;color:#202634;margin:36px}h1{color:#0b1428}table{border-collapse:collapse;width:100%}td{border:1px solid #d9e0e8;padding:8px}td:first-child{font-weight:bold;background:#f3f6fa;width:28%}.stamp{color:#9a4d05;font-weight:bold}</style></head><body><div class="stamp">ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SIG</div><h1>${formatCode} · Registro de actividad de mantenimiento</h1><table><tr><td>Orden</td><td>${esc(order.code || order.id)}</td></tr><tr><td>Actividad</td><td>${esc(order.title)}</td></tr><tr><td>Descripción</td><td>${esc(order.description)}</td></tr><tr><td>Equipo</td><td>${esc(order.machine_id || 'Planta / ubicación general')}</td></tr><tr><td>Responsable</td><td>${esc(order.assigned_to || order.created_by)}</td></tr><tr><td>Resultado / resolución</td><td>${esc(result.resolution)}</td></tr><tr><td>Parada (minutos)</td><td>${esc(result.downtimeMinutes)}</td></tr><tr><td>Costo</td><td>${esc(result.cost)}</td></tr><tr><td>Fecha de cierre</td><td>${esc(date)}</td></tr></table><p>Registro generado automáticamente al cerrar la OT. La evidencia fotográfica o documental adicional se adjunta a esta misma orden.</p></body></html>`
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${formatCode} ${esc(order.code)}</title><style>body{font-family:Arial,sans-serif;color:#202634;margin:36px}h1{color:#0b1428}table{border-collapse:collapse;width:100%}td{border:1px solid #d9e0e8;padding:8px}td:first-child{font-weight:bold;background:#f3f6fa;width:28%}.stamp{color:#9a4d05;font-weight:bold}</style></head><body><div class="stamp">ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SIG</div><h1>${formatCode} · Registro de actividad de mantenimiento</h1><table><tr><td>Orden</td><td>${esc(order.code || order.id)}</td></tr><tr><td>Actividad</td><td>${esc(order.title)}</td></tr><tr><td>Descripción</td><td>${esc(order.description)}</td></tr><tr><td>Equipo</td><td>${esc(order.machine_id || 'Planta / ubicación general')}</td></tr><tr><td>Responsable de mantenimiento</td><td>${MAINTENANCE_RESPONSIBLE}</td></tr><tr><td>Usuario que reporta/cierra</td><td>${esc(order.assigned_to || order.created_by)}</td></tr><tr><td>Resultado / resolución</td><td>${esc(result.resolution)}</td></tr><tr><td>Parada (minutos)</td><td>${esc(result.downtimeMinutes)}</td></tr><tr><td>Costo</td><td>${esc(result.cost)}</td></tr><tr><td>Fecha de cierre</td><td>${esc(date)}</td></tr></table><p>Registro generado automáticamente al cerrar la OT. La evidencia fotográfica o documental adicional se adjunta a esta misma orden.</p></body></html>`
 }
 
 async function saveCompletionEvidence(order, result, userId) {

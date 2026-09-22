@@ -3,21 +3,13 @@ import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
-import { LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
-import { MANTUM_MEDIA } from '../../../data/mantumMedia';
+import { LOCAL_MAINTENANCE_MANUALS } from '../../../data/maintenanceManuals';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
+import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import './MachineAssetHub.css';
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
-const MAINTENANCE_RECORD_START = new Date('2025-05-27T00:00:00')
-const MAINTENANCE_RECORD_END = new Date()
-
-function isInMaintenanceWindow(record = {}) {
-  const value = record.completed_at || record.created_at || record.started_at || record.date
-  if (!value) return false
-  const date = new Date(value)
-  return !Number.isNaN(date.getTime()) && date >= MAINTENANCE_RECORD_START && date <= MAINTENANCE_RECORD_END
-}
+const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
 
 function formatCodeForEvidence(file = {}) {
   const text = `${file.file_name || ''} ${file.note || ''} ${file.workOrderCode || ''}`.toUpperCase();
@@ -26,7 +18,7 @@ function formatCodeForEvidence(file = {}) {
 
 function mantumHistoricalEvidence() {
   return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
-    (orders || []).filter(isInMaintenanceWindow).map((order) => ({
+    (orders || []).map((order) => ({
       id: `mantum-ot-${machineCode}-${order.code}`,
       file_name: `OT Mantum ${order.code}`,
       file_type: 'record',
@@ -34,11 +26,19 @@ function mantumHistoricalEvidence() {
       workOrderCode: order.code,
       workOrderTitle: order.activity || 'Orden histórica Mantum',
       machineCode,
-      note: order.feedback || order.description || order.activity || 'OT histórica Mantum',
+      note: `${order.feedback || order.description || order.activity || 'OT histórica Mantum'} · Responsable de mantenimiento: ${MAINTENANCE_RESPONSIBLE}`,
       created_at: order.completed_at || order.started_at || order.created_at || null,
       source: 'mantum',
       kind: 'mantum-order',
-      url: null,
+      url: maintenanceRecordUrl({
+        machineCode,
+        activity: order.activity,
+        description: order.description,
+        feedback: order.feedback,
+        date: order.completed_at || order.started_at || order.created_at,
+        code: order.code,
+      }),
+      downloadName: `FOMAT01-${order.code || 'OT-Mantum'}.html`,
     }))
   );
 }
@@ -100,24 +100,35 @@ async function downloadFile(file) {
   }
 }
 
+function loadMapDocumentUrl(load) {
+  const esc = (value) => String(value ?? 'No registrado').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Mapa de cargue ${esc(load.lote)}</title><style>body{font-family:Arial;color:#202634;margin:36px}h1{color:#0b1428}table{border-collapse:collapse;width:100%}td{border:1px solid #cbd5e1;padding:9px}td:first-child{font-weight:bold;background:#f3f6fa;width:30%}.stamp{color:#e0740a;font-weight:bold}</style></head><body><div class="stamp">ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SISTEMA INTEGRADO DE GESTIÓN</div><h1>MAPA DE CARGUE · PRODUCCIÓN</h1><table><tr><td>Lote</td><td>${esc(load.lote)}</td></tr><tr><td>Incubadora</td><td>${esc(load.machine_code || load.machine_id)}</td></tr><tr><td>Fecha de cargue</td><td>${esc(load.loaded_at || load.created_at)}</td></tr><tr><td>Cinta / clasificación</td><td>${esc(load.tape_color_name || load.tape_color)}</td></tr><tr><td>Registrado por</td><td>${esc(load.created_by)}</td></tr></table><p>Mapa de cargue generado desde el registro operativo de producción.</p></body></html>`
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+}
+
 function ManualPreview({ file }) {
   if (!file) return <p className="sig-empty-tab">Selecciona un manual o instructivo.</p>
   const isImage = file.file_type === 'image'
   const isPdf = file.file_type === 'pdf' || /\.pdf$/i.test(file.file_name || '')
+  const isHtml = file.kind === 'load-map' && file.file_type !== 'image' && file.url
   return (
     <div className="sig-manual-reader">
       <div className="sig-manual-reader-head">
         <div>
           <b>{file.source === 'mantum' ? 'MANTUM' : 'SIG'}</b>
           <strong title={file.file_name}>{file.file_name}</strong>
-          <small>{file.machineCode || 'Documento general'} · {file.workOrderTitle || file.note || 'Manual / instructivo'}</small>
+          <small>{file.kind === 'load-map' ? `Generó: ${file.generatedBy} · Aprobó: ${file.approvedBy} · Cargó: ${file.loadedBy}` : `${file.machineCode || 'Documento general'} · ${file.workOrderTitle || file.note || 'Manual / instructivo'}`}</small>
         </div>
         <button type="button" className="sig-download-button" onClick={() => downloadFile(file)} title="Descargar documento" aria-label={`Descargar ${file.file_name}`}>
           ↓
         </button>
       </div>
       <div className="sig-manual-reader-body">
-        {isImage && file.url ? <img src={file.url} alt={file.file_name} /> : isPdf && file.url ? <iframe title={`Vista previa ${file.file_name}`} src={file.url} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
+        {isImage && file.url ? <img src={file.url} alt={file.file_name} /> : isPdf && file.url ? (
+          <object className="sig-manual-pdf" data={file.url} type="application/pdf" aria-label={`Vista previa ${file.file_name}`}>
+            <p>Este navegador no puede mostrar el PDF aquí. Usa el botón de descarga.</p>
+          </object>
+        ) : isHtml ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={file.url} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
     </div>
   )
@@ -150,12 +161,44 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [allEvidenceLoading, setAllEvidenceLoading] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState('');
   const [manualFilter, setManualFilter] = useState('');
+  const [loadMapFilter, setLoadMapFilter] = useState('');
+  const [loadMaps, setLoadMaps] = useState([]);
+  const [selectedLoadMapId, setSelectedLoadMapId] = useState(null);
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
   const [section, setSection] = useState('assets');
   const [showNewAsset, setShowNewAsset] = useState(false);
   const [newAsset, setNewAsset] = useState({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orgId) return undefined
+    let active = true
+    Promise.all([
+      supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
+      supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
+    ]).then(async ([mapsResult, membersResult]) => {
+      if (mapsResult.error || !active) return
+      const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
+      const maps = await Promise.all((mapsResult.data || []).map(async (map) => {
+        const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
+        const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
+        const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
+        return { ...map, ...payload, id: `load-map-${map.id}`, file_name: `Mapa de cargue · ${firstLot}`, file_type: signed.data?.signedUrl ? 'image' : 'document', url: signed.data?.signedUrl || loadMapDocumentUrl({ ...map, lote: firstLot, machine_id: map.machine_name || map.machine_id }), downloadName: `mapa-cargue-${firstLot || map.id}.${signed.data?.signedUrl ? 'png' : 'html'}`, formatCode: 'MAPA DE CARGUE', source: 'incubapp', kind: 'load-map', generatedBy: people[map.created_by] || map.created_by || 'No registrado', approvedBy: people[map.approved_by] || map.approved_by || 'Pendiente', loadedBy: people[payload.loaded_by] || payload.loaded_by || 'Pendiente de cargue', mapStatus: map.status, createdAt: map.created_at, approvedAt: map.approved_at, orderedAt: map.ordered_at }
+      }))
+      if (active) {
+        setLoadMaps(maps)
+        setSelectedLoadMapId((current) => current && maps.some((map) => map.id === current) ? current : maps[0]?.id || null)
+      }
+    })
+    return () => { active = false }
+  }, [orgId])
+
+  const filteredLoadMaps = useMemo(() => {
+    const query = loadMapFilter.trim().toLowerCase()
+    if (!query) return loadMaps
+    return loadMaps.filter((map) => [map.lote, map.machine_id, map.tape_color_name, map.tape_color, map.file_name].some((value) => String(value || '').toLowerCase().includes(query)))
+  }, [loadMaps, loadMapFilter])
 
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
@@ -166,7 +209,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     const mantum = getMantumDataForMachine(selectedMachine);
     return {
       summary: { ...selectedMachine, ...(mantum.equipo || {}), location: mantum.equipo?.ubicacion_proceso || '' },
-      history: (mantum.historicalOTs || []).filter(isInMaintenanceWindow),
+      history: mantum.historicalOTs || [],
       calibrations: [],
       maintenancePlan: mantum.maintenancePlan || [],
       components: mantum.components || [],
@@ -192,7 +235,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     ].some((value) => String(value || '').toLowerCase().includes(query)));
   }, [allEvidence, evidenceFilter]);
 
-  const manuals = useMemo(() => allEvidence.filter(isManualRecord), [allEvidence]);
+  const manuals = useMemo(
+    () => [...allEvidence, ...LOCAL_MAINTENANCE_MANUALS].filter(isManualRecord),
+    [allEvidence]
+  );
   const filteredManuals = useMemo(() => {
     const query = manualFilter.trim().toLowerCase();
     if (!query) return manuals;
@@ -440,9 +486,6 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...rounds,
         ...calibrations,
         ...mantumHistoricalEvidence(),
-        ...LOCAL_MAINTENANCE_MANUALS,
-        ...LOCAL_MANTUM_RESOURCES,
-        ...MANTUM_MEDIA,
       ]);
       setAllEvidence(combined);
       onEvidenceLoaded?.(combined);
@@ -451,9 +494,6 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
         ...mantumHistoricalEvidence(),
-        ...LOCAL_MAINTENANCE_MANUALS,
-        ...LOCAL_MANTUM_RESOURCES,
-        ...MANTUM_MEDIA,
       ]);
       setAllEvidence(fallbackEvidence);
       onEvidenceLoaded?.(fallbackEvidence);
@@ -573,6 +613,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{allEvidence.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'loadMaps'} className={section === 'loadMaps' ? 'is-active' : ''} onClick={() => { setSection('loadMaps'); setSelectedMachineId(null); }}>Mapas de cargue <b>{loadMaps.length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
           {showNewAsset && (
@@ -654,6 +695,20 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
               </div>
             </div>
           )}
+          {section === 'loadMaps' && (
+            <div className="sig-asset-section-panel">
+              <input className="sig-asset-doc-search" type="search" placeholder="Buscar lote, incubadora o cinta..." value={loadMapFilter} onChange={(e) => setLoadMapFilter(e.target.value)} aria-label="Buscar mapas de cargue" />
+              <div className="sig-manual-list">
+                {!filteredLoadMaps.length ? <p className="sig-empty-tab">No hay mapas de cargue registrados.</p> : filteredLoadMaps.map((map) => (
+                  <button type="button" key={map.id} className={selectedLoadMapId === map.id ? 'is-active' : ''} onClick={() => setSelectedLoadMapId(map.id)}>
+                    <strong>MAPA DE CARGUE</strong>
+                    <span>{map.file_name}</span>
+                    <small>{map.createdAt ? new Date(map.createdAt).toLocaleString('es-CO') : 'Sin fecha'} · {map.mapStatus || 'Borrador'} · Generó: {map.generatedBy}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {section === 'assets' && <>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-slate-400" aria-hidden="true">?</span>
@@ -715,12 +770,19 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <p className="sig-format-description">Solo documentos técnicos, manuales e instructivos. Los formatos y registros están en sus secciones independientes.</p>
             <ManualPreview file={filteredManuals.find((file) => file.id === selectedDocumentId) || filteredManuals[0]} />
           </div>
+        ) : section === 'loadMaps' ? (
+          <div className="sig-format-detail sig-manual-detail">
+            <span className="sig-detail-kicker">SIG Producción · Cargues</span>
+            <h1>Mapas de cargue</h1>
+            <p className="sig-format-description">Vista y descarga de los mapas de cargue registrados desde producción.</p>
+            <ManualPreview file={filteredLoadMaps.find((map) => map.id === selectedLoadMapId) || filteredLoadMaps[0]} />
+          </div>
         ) : section === 'evidence' ? (
           <div className="sig-format-detail sig-global-evidence-detail">
             <span className="sig-detail-kicker">Repositorio general SIG</span>
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Todas las fotos y documentos cargados desde órdenes de trabajo, calibraciones y procesos de mantenimiento.</p>
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} target="_blank" rel="noopener noreferrer">Abrir archivo</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : selectedDocument.note ? <p>{selectedDocument.note}</p> : null}{selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : null}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : selectedDocument.note ? <p>{selectedDocument.note}</p> : null}{selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.kind === 'mantum-order' ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : null}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">

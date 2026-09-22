@@ -7,6 +7,8 @@
 import * as XLSX from 'xlsx'
 import { excelLetterheadRows, excelFooterRows, CORP_SLOGAN } from './corporateBrand'
 
+const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
+
 export function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {}, assetEvidence = [] }) {
   if (!machine) return
 
@@ -63,7 +65,7 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
       codigo: w.code || `OT-${w.id?.slice(0, 6)}`,
       tipo: w.type === 'preventive' ? 'Preventivo' : w.type === 'corrective' ? 'Correctivo' : w.type,
       actividad: w.title || w.description || 'Intervención',
-      tecnico: w.technician_name || 'Auxiliar Mantenimiento',
+      tecnico: w.technician_name || MAINTENANCE_RESPONSIBLE,
       aprobador: w.approver_name || 'Líder de Mantenimiento / Planta',
       resultado: `${w.status} ${w.cost ? `($${Number(w.cost).toLocaleString('es-CO')})` : ''}`,
     })
@@ -75,8 +77,8 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
         codigo: h.code || 'HIST-MANTUM',
         tipo: h.type || 'Sistemática',
         actividad: h.activity || h.description || 'Mantenimiento Preventivo Mantum',
-        tecnico: h.technician || 'Personal Técnico Mantum',
-        aprobador: h.approver || 'Líder Registrador',
+        tecnico: h.technician || MAINTENANCE_RESPONSIBLE,
+        aprobador: h.approver || 'Líder de Mantenimiento / Planta',
         resultado: `Cerrada ($${h.cost || '0'})`,
       })
     })
@@ -113,7 +115,7 @@ export function exportFomat03Excel({ machine, room, plant, calibrations = [], wo
         delta || '0',
         '±0.3°F / ±3.0%',
         ok ? 'CONFORME' : 'NO CONFORME',
-        c.profiles?.full_name || 'Metrólogo / Auxiliar',
+        c.profiles?.full_name || MAINTENANCE_RESPONSIBLE,
       ])
     })
   } else {

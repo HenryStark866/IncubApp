@@ -656,11 +656,14 @@ body {
 .ldr-main-split-3d {
   grid-template-columns: minmax(0, 1fr) 340px;
   align-items: stretch;
+  grid-auto-rows: 1fr;
 }
 
 .ldr-map-section-3d,
 .ldr-main-split-3d>.ldr-feed-section {
   min-height: clamp(480px, calc(100vh - 190px), 760px);
+  height: 100%;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
 }
