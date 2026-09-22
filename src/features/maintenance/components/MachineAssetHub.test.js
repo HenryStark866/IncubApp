@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveSelectedEvidence } from './MachineAssetHub';
+import { resolveSelectedEvidence, isPdfCandidate } from './MachineAssetHub';
 
 describe('resolveSelectedEvidence', () => {
     const allEvidence = [
@@ -27,5 +27,11 @@ describe('resolveSelectedEvidence', () => {
             allEvidence,
             documents,
         })).toEqual({ id: 'doc-1', file_name: 'Documento activo' });
+    });
+
+    it('detecta PDFs aun cuando no tienen el tipo de archivo exacto', () => {
+        expect(isPdfCandidate({ file_name: 'manual.pdf' })).toBe(true);
+        expect(isPdfCandidate({ file_type: 'image', url: 'https://cdn.example.com/archivo.pdf?download=1' })).toBe(true);
+        expect(isPdfCandidate({ file_name: 'imagen.jpg', file_type: 'image' })).toBe(false);
     });
 });

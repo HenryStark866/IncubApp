@@ -82,22 +82,46 @@ function readCustomAssets() {
   }
 }
 
+export function isPdfCandidate(file = {}) {
+  const fileName = String(file.file_name || file.name || '').toLowerCase();
+  const fileUrl = String(file.url || file.file_path || '').toLowerCase();
+  const fileType = String(file.file_type || '').toLowerCase();
+  return fileType === 'pdf' || /\.pdf($|[?#])/.test(fileUrl) || /\.pdf$/i.test(fileName);
+}
+
 async function downloadFile(file) {
-  if (!file?.url) return
+  const sourceUrl = file?.url || file?.file_path;
+  const downloadName = file?.downloadName || file?.file_name || 'documento';
+  if (!sourceUrl) return;
+
   try {
-    const response = await fetch(file.url)
-    if (!response.ok) throw new Error('No se pudo descargar el archivo')
-    const blobUrl = URL.createObjectURL(await response.blob())
-    const link = document.createElement('a')
-    link.href = blobUrl
-    link.download = file.file_name || 'documento'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(blobUrl)
+    const response = await fetch(sourceUrl, { mode: 'cors' });
+    if (response.ok) {
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = downloadName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+      return;
+    }
   } catch {
-    window.open(file.url, '_blank', 'noopener,noreferrer')
+    // Continuamos con el fallback del navegador para asegurar compatibilidad.
   }
+
+  const fallbackLink = document.createElement('a');
+  fallbackLink.href = sourceUrl;
+  fallbackLink.target = '_blank';
+  fallbackLink.rel = 'noopener noreferrer';
+  fallbackLink.download = downloadName;
+  document.body.appendChild(fallbackLink);
+  fallbackLink.click();
+  fallbackLink.remove();
 }
 
 function loadMapDocumentUrl(load) {
@@ -108,9 +132,11 @@ function loadMapDocumentUrl(load) {
 
 function ManualPreview({ file, showMeta = false }) {
   if (!file) return <p className="sig-empty-tab">Selecciona un manual o instructivo.</p>
-  const isImage = file.file_type === 'image'
-  const isPdf = file.file_type === 'pdf' || /\.pdf$/i.test(file.file_name || '')
-  const isHtml = file.kind === 'load-map' && file.file_type !== 'image' && file.url
+
+  const previewUrl = file.url || file.file_path;
+  const isImage = file.file_type === 'image' || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.file_name || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(previewUrl || '');
+  const isPdf = isPdfCandidate(file);
+  const isHtml = file.kind === 'load-map' && !isImage && !!previewUrl && (!isPdf && !/\.(doc|docx|xlsx|csv|zip)$/i.test(file.file_name || ''));
   const loadMapMeta = file.kind === 'load-map' ? [
     { label: 'Generó', value: file.generatedBy || 'No registrado' },
     { label: 'Aprobó', value: file.approvedBy || 'Sin aprobación' },
@@ -142,11 +168,9 @@ function ManualPreview({ file, showMeta = false }) {
         </div>
       )}
       <div className="sig-manual-reader-body">
-        {isImage && file.url ? <img src={file.url} alt={file.file_name} /> : isPdf && file.url ? (
-          <object className="sig-manual-pdf" data={file.url} type="application/pdf" aria-label={`Vista previa ${file.file_name}`}>
-            <p>Este navegador no puede mostrar el PDF aquí. Usa el botón de descarga.</p>
-          </object>
-        ) : isHtml ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={file.url} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
+        {isImage && previewUrl ? <img src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
+          <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={previewUrl} />
+        ) : isHtml ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={previewUrl} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
     </div>
   )
