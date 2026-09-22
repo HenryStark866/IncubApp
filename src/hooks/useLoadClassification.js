@@ -657,6 +657,11 @@ export function useLoadClassification(orgId, userId) {
           return { error: err.message || 'No se pudo guardar el mapa' }
         }
 
+        localInsertMap(orgId, stored)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('incubapp:load-maps-updated', { detail: { orgId, mapId: map.id, status: map.status } }))
+        }
+
         setMaps((list) => [map, ...list.filter((m) => m.id !== map.id)])
 
         if (submitForApproval) {
@@ -700,9 +705,13 @@ export function useLoadClassification(orgId, userId) {
 
       const map = maps.find((m) => m.id === mapId) || localListMaps(orgId).find((m) => m.id === mapId)
 
-      if (localMode) {
-        localUpdateMap(orgId, mapId, patch)
-      } else {
+      // Guardar SIEMPRE en almacenamiento local para asegurar sincronización con Centro de Activos
+      localUpdateMap(orgId, mapId, patch)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('incubapp:load-maps-updated', { detail: { orgId, mapId, status } }))
+      }
+
+      if (!localMode) {
         const payload = { ...(map || {}), ...patch }
         const dbPatch = {
           status,
@@ -722,7 +731,6 @@ export function useLoadClassification(orgId, userId) {
         const { error: err } = await supabase.from('load_maps').update(dbPatch).eq('id', mapId)
         if (err && missingTable(err.message)) {
           setLocalMode(true)
-          localUpdateMap(orgId, mapId, patch)
         } else if (err) {
           return { error: err.message }
         }

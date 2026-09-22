@@ -587,66 +587,106 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   useEffect(() => {
     if (!orgId) return undefined
     let active = true
-    Promise.all([
-      supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at, loaded_at, loaded_by').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
-      supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
-      supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true }),
-    ]).then(async ([mapsResult, membersResult, shiftsResult]) => {
-      const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
-      const shiftAssignments = shiftsResult.data || []
-      const remoteMaps = mapsResult.error ? [] : await Promise.all((mapsResult.data || []).map(async (map) => {
-        const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
-        const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
-        const previewImageUrl = signed.data?.signedUrl || payload.imageDataUrl || payload.imageDataURL || payload.imagePath || payload.image_path || null
-        const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
-        const loadedBy = resolveLoadedByName({
-          loadedAt: map.loaded_at || payload.loaded_at || payload.loadedBy,
-          loadedBy: payload.loaded_by || map.loaded_by || payload.loadedBy,
-          people,
-          shiftAssignments,
-        })
-        return {
-          ...map,
-          ...payload,
-          id: `load-map-${map.id}`,
-          file_name: `Mapa de cargue · ${firstLot}`,
-          file_type: previewImageUrl && /^data:image\//i.test(previewImageUrl) || previewImageUrl && /^blob:/i.test(previewImageUrl) ? 'image' : previewImageUrl ? 'image' : 'document',
-          url: previewImageUrl || loadMapDocumentUrl({ ...map, ...payload, lote: firstLot, machine_id: map.machine_name || map.machine_id }),
-          downloadName: `mapa-cargue-${firstLot || map.id}.${previewImageUrl ? 'png' : 'html'}`,
-          formatCode: 'MAPA DE CARGUE',
-          source: 'incubapp',
-          kind: 'load-map',
-          generatedBy: people[map.created_by] || map.created_by || 'No registrado',
-          approvedBy: people[map.approved_by] || map.approved_by || 'Pendiente',
-          loadedBy,
-          mapStatus: map.status,
-          createdAt: map.created_at,
-          approvedAt: map.approved_at,
-          orderedAt: map.ordered_at,
+
+    const loadAllMaps = async () => {
+      try {
+        const [mapsResult, membersResult, shiftsResult] = await Promise.all([
+          supabase.from('load_maps').select('id, plant_id, machine_id, machine_name, status, payload, image_path, approved_at, approved_by, ordered_at, ordered_by, created_by, created_at, loaded_at, loaded_by').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
+          supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId),
+          supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true }),
+        ])
+
+        const people = Object.fromEntries((membersResult.data || []).map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
+        const shiftAssignments = shiftsResult.data || []
+        const remoteMaps = mapsResult.error ? [] : await Promise.all((mapsResult.data || []).map(async (map) => {
+          const payload = map.payload && typeof map.payload === 'object' ? map.payload : {}
+          const signed = map.image_path ? await supabase.storage.from('machine-checks').createSignedUrl(map.image_path, 3600) : { data: null }
+          const previewImageUrl = signed.data?.signedUrl || payload.imageDataUrl || payload.imageDataURL || payload.imagePath || payload.image_path || null
+          const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || 'Sin lote'
+          const loadedBy = resolveLoadedByName({
+            loadedAt: map.loaded_at || payload.loaded_at || payload.loadedBy,
+            loadedBy: payload.loaded_by || map.loaded_by || payload.loadedBy,
+            people,
+            shiftAssignments,
+          })
+          return {
+            ...map,
+            ...payload,
+            id: `load-map-${map.id}`,
+            rawId: map.id,
+            file_name: `Mapa de cargue · ${firstLot}`,
+            file_type: previewImageUrl && /^data:image\//i.test(previewImageUrl) || previewImageUrl && /^blob:/i.test(previewImageUrl) ? 'image' : previewImageUrl ? 'image' : 'document',
+            url: previewImageUrl || loadMapDocumentUrl({ ...map, ...payload, lote: firstLot, machine_id: map.machine_name || map.machine_id }),
+            downloadName: `mapa-cargue-${firstLot || map.id}.${previewImageUrl ? 'png' : 'html'}`,
+            formatCode: 'MAPA DE CARGUE',
+            source: 'incubapp',
+            kind: 'load-map',
+            generatedBy: people[map.created_by] || map.created_by || 'No registrado',
+            approvedBy: people[map.approved_by] || map.approved_by || 'Pendiente',
+            loadedBy,
+            mapStatus: map.status,
+            createdAt: map.created_at,
+            approvedAt: map.approved_at,
+            orderedAt: map.ordered_at,
+          }
+        }))
+
+        const localMaps = readLocalLoadMapsForOrg(orgId)
+        const mergedMap = new Map()
+        
+        // Agregar primero los remotos, luego locales sin duplicar por ID canónico
+        for (const entry of [...remoteMaps, ...localMaps]) {
+          if (!entry) continue
+          const cleanId = String(entry.rawId || entry.id || '').replace(/^(?:load-map-|local-load-map-)/, '')
+          const key = cleanId || `${entry.machine_id || 'map'}-${entry.createdAt || entry.created_at || entry.file_name}`
+          if (!mergedMap.has(key)) {
+            mergedMap.set(key, entry)
+          } else {
+            // Si ya existe, combinar metadatos para preservar aprobación e imágenes
+            const existing = mergedMap.get(key)
+            mergedMap.set(key, { ...existing, ...entry, url: entry.url || existing.url })
+          }
         }
-      }))
 
-      const localMaps = readLocalLoadMapsForOrg(orgId)
-      const mergedMaps = [...remoteMaps, ...localMaps]
-        .filter(Boolean)
-        .reduce((acc, entry) => {
-          const key = String(entry.id || `${entry.machine_id || 'map'}-${entry.createdAt || entry.created_at || entry.file_name || Math.random()}`)
-          if (acc.has(key)) return acc
-          acc.set(key, entry)
-          return acc
-        }, new Map())
-        .values()
-      const nextMaps = Array.from(mergedMaps)
-      if (active) {
-        setLoadMaps(nextMaps)
-        setSelectedLoadMapId((current) => current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id || null)
-      }
+        const nextMaps = Array.from(mergedMap.values())
+        if (active) {
+          setLoadMaps(nextMaps)
+          setSelectedLoadMapId((current) => current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id || null)
+        }
 
-      if ((!mapsResult.error && remoteMaps.length === 0 && localMaps.length > 0) || (mapsResult.error && localMaps.length > 0)) {
-        await syncLocalLoadMapsToRemote(orgId, localMaps)
+        if ((!mapsResult.error && remoteMaps.length === 0 && localMaps.length > 0) || (mapsResult.error && localMaps.length > 0)) {
+          await syncLocalLoadMapsToRemote(orgId, localMaps)
+        }
+      } catch (err) {
+        console.warn('Centro SIG: Error al cargar mapas de cargue', err)
       }
-    })
-    return () => { active = false }
+    }
+
+    loadAllMaps()
+
+    // Escuchar eventos en vivo de actualización de mapas (aprobación / generación)
+    const handleUpdateEvent = () => { loadAllMaps() }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('incubapp:load-maps-updated', handleUpdateEvent)
+      window.addEventListener('storage', handleUpdateEvent)
+    }
+
+    // Suscripción a cambios en tiempo real en Supabase
+    const channel = supabase
+      .channel(`load_maps_changes_${orgId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'load_maps', filter: `org_id=eq.${orgId}` }, () => {
+        loadAllMaps()
+      })
+      .subscribe()
+
+    return () => {
+      active = false
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('incubapp:load-maps-updated', handleUpdateEvent)
+        window.removeEventListener('storage', handleUpdateEvent)
+      }
+      supabase.removeChannel(channel)
+    }
   }, [orgId])
 
   const filteredLoadMaps = useMemo(() => {
