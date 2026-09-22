@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
-import { LOCAL_MAINTENANCE_MANUALS } from '../../../data/maintenanceManuals';
+import { LOCAL_ASSET_EVIDENCE, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import './MachineAssetHub.css';
@@ -106,23 +106,41 @@ function loadMapDocumentUrl(load) {
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
 }
 
-function ManualPreview({ file }) {
+function ManualPreview({ file, showMeta = false }) {
   if (!file) return <p className="sig-empty-tab">Selecciona un manual o instructivo.</p>
   const isImage = file.file_type === 'image'
   const isPdf = file.file_type === 'pdf' || /\.pdf$/i.test(file.file_name || '')
   const isHtml = file.kind === 'load-map' && file.file_type !== 'image' && file.url
+  const loadMapMeta = file.kind === 'load-map' ? [
+    { label: 'Generó', value: file.generatedBy || 'No registrado' },
+    { label: 'Aprobó', value: file.approvedBy || 'Sin aprobación' },
+    { label: 'Cargó', value: file.loadedBy || 'Sin carga' },
+    { label: 'Lote', value: file.lote || 'No registrado' },
+    { label: 'Máquina', value: file.machineName || file.machine_id || file.machineCode || 'No registrada' },
+  ] : []
+
   return (
     <div className="sig-manual-reader">
       <div className="sig-manual-reader-head">
         <div>
-          <b>{file.source === 'mantum' ? 'MANTUM' : 'SIG'}</b>
+          <b>{file.source === 'mantum' ? 'MANTUM' : file.source === 'local' ? 'LOCAL' : file.kind === 'load-map' ? 'MAPA' : 'SIG'}</b>
           <strong title={file.file_name}>{file.file_name}</strong>
-          <small>{file.kind === 'load-map' ? `Generó: ${file.generatedBy} · Aprobó: ${file.approvedBy} · Cargó: ${file.loadedBy}` : `${file.machineCode || 'Documento general'} · ${file.workOrderTitle || file.note || 'Manual / instructivo'}`}</small>
+          <small>{file.kind === 'load-map' ? `Generó: ${file.generatedBy || 'No registrado'} · Aprobó: ${file.approvedBy || 'Sin aprobación'} · Cargó: ${file.loadedBy || 'Sin carga'}` : `${file.machineCode || 'Documento general'} · ${file.workOrderTitle || file.note || 'Manual / instructivo'}`}</small>
         </div>
         <button type="button" className="sig-download-button" onClick={() => downloadFile(file)} title="Descargar documento" aria-label={`Descargar ${file.file_name}`}>
           ↓
         </button>
       </div>
+      {showMeta && loadMapMeta.length > 0 && (
+        <div className="sig-loadmap-meta-list" aria-label="Datos del mapa de cargue">
+          {loadMapMeta.map((item) => (
+            <div key={item.label} className="sig-loadmap-meta-item">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="sig-manual-reader-body">
         {isImage && file.url ? <img src={file.url} alt={file.file_name} /> : isPdf && file.url ? (
           <object className="sig-manual-pdf" data={file.url} type="application/pdf" aria-label={`Vista previa ${file.file_name}`}>
@@ -221,10 +239,13 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
+  const localAssetEvidence = useMemo(() => [...LOCAL_ASSET_EVIDENCE], []);
+
   const filteredEvidence = useMemo(() => {
     const query = evidenceFilter.trim().toLowerCase();
-    if (!query) return allEvidence;
-    return allEvidence.filter((file) => [
+    const base = [...allEvidence, ...localAssetEvidence];
+    if (!query) return base;
+    return base.filter((file) => [
       file.file_name,
       file.formatCode,
       file.workOrderCode,
@@ -233,10 +254,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       file.note,
       file.source,
     ].some((value) => String(value || '').toLowerCase().includes(query)));
-  }, [allEvidence, evidenceFilter]);
+  }, [allEvidence, evidenceFilter, localAssetEvidence]);
 
   const manuals = useMemo(
-    () => [...allEvidence, ...LOCAL_MAINTENANCE_MANUALS].filter(isManualRecord),
+    () => [...allEvidence, ...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES].filter(isManualRecord),
     [allEvidence]
   );
   const filteredManuals = useMemo(() => {
@@ -775,7 +796,27 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <span className="sig-detail-kicker">SIG Producción · Cargues</span>
             <h1>Mapas de cargue</h1>
             <p className="sig-format-description">Vista y descarga de los mapas de cargue registrados desde producción.</p>
-            <ManualPreview file={filteredLoadMaps.find((map) => map.id === selectedLoadMapId) || filteredLoadMaps[0]} />
+            {(() => {
+              const selectedLoadMap = filteredLoadMaps.find((map) => map.id === selectedLoadMapId) || filteredLoadMaps[0];
+              if (!selectedLoadMap) return <p className="sig-empty-tab">No hay mapas de cargue para mostrar.</p>;
+              return (
+                <div className="sig-loadmap-detail">
+                  <div className="sig-loadmap-preview">
+                    <ManualPreview file={selectedLoadMap} showMeta={true} />
+                  </div>
+                  <div className="sig-loadmap-meta-panel">
+                    <h3>Responsables</h3>
+                    <div className="sig-loadmap-meta-item"><span>Generó</span><strong>{selectedLoadMap.generatedBy || 'No registrado'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Aprobó</span><strong>{selectedLoadMap.approvedBy || 'Sin aprobación'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Cargó</span><strong>{selectedLoadMap.loadedBy || 'Sin carga'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Lote</span><strong>{selectedLoadMap.lote || 'No registrado'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Máquina</span><strong>{selectedLoadMap.machineName || selectedLoadMap.machine_id || 'No registrada'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Estado</span><strong>{selectedLoadMap.mapStatus || selectedLoadMap.status || 'Sin estado'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Creado</span><strong>{selectedLoadMap.createdAt ? new Date(selectedLoadMap.createdAt).toLocaleString('es-CO') : 'Sin fecha'}</strong></div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         ) : section === 'evidence' ? (
           <div className="sig-format-detail sig-global-evidence-detail">

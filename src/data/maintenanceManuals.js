@@ -4,6 +4,12 @@ const localFiles = import.meta.glob('../assets/manuales/**/*', {
     query: '?url',
 })
 
+const localAssetFiles = import.meta.glob('../../public/assets/equipos/**/*.{jpg,jpeg,png,webp,svg}', {
+    eager: true,
+    import: 'default',
+    query: '?url',
+})
+
 function fileType(path) {
     return /\.pdf$/i.test(path) ? 'pdf' : /\.xlsx?$/i.test(path) ? 'spreadsheet' : 'document'
 }
@@ -68,3 +74,24 @@ export const LOCAL_MANTUM_RESOURCES = mantumResources.map(([sourcePath, url]) =>
         note: 'Recurso importado de activos-mantum',
     }
 })
+
+export const LOCAL_ASSET_EVIDENCE = Object.entries(localAssetFiles).map(([sourcePath, url]) => {
+    const name = basename(sourcePath)
+    const machineCode = assetCode(name)
+    return {
+        id: `local-asset-${name}`,
+        file_name: name,
+        file_type: /\.(png|jpe?g|webp|svg)$/i.test(name) ? 'image' : 'document',
+        formatCode: 'EVIDENCIA LOCAL',
+        workOrderTitle: titleFromName(name),
+        machineCode,
+        source: 'local',
+        sourcePath,
+        url,
+        created_at: null,
+        kind: 'local-asset',
+        note: 'Evidencia recuperada de la carpeta local del proyecto',
+    }
+})
+
+export const LOCAL_DOCUMENT_LIBRARY = [...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES, ...LOCAL_ASSET_EVIDENCE]
