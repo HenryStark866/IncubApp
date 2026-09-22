@@ -76,6 +76,38 @@ async function signMapImages(lista) {
   )
 }
 
+async function backfillMapImages(orgId, lista) {
+  const pending = lista.filter((map) => !map.imagePath && !map.imageDataUrl && map.slots?.length);
+  if (!pending.length) return lista;
+
+  const completed = await Promise.all(pending.map(async (map) => {
+    try {
+      const rendered = await renderLoadMapImage(map);
+      if (!rendered?.blob) return map;
+      const imagePath = await uploadMapImage(orgId, map.id, rendered.blob);
+      if (!imagePath) return map;
+
+      const payload = { ...(map.payload || {}), imagePath };
+      const { error } = await supabase
+        .from('load_maps')
+        .update({ image_path: imagePath, payload })
+        .eq('id', map.id)
+        .eq('org_id', orgId);
+      if (error) {
+        console.warn('backfillMapImages update', error.message);
+        return map;
+      }
+      return { ...map, imagePath, payload };
+    } catch (error) {
+      console.warn('backfillMapImages render', error);
+      return map;
+    }
+  }));
+
+  const completedById = new Map(completed.map((map) => [map.id, map]));
+  return lista.map((map) => completedById.get(map.id) || map);
+}
+
 export function useLoadClassification(orgId, userId) {
   const [entries, setEntries] = useState([])
   const [maps, setMaps] = useState([])
@@ -168,9 +200,10 @@ export function useLoadClassification(orgId, userId) {
         orderedBy: r.ordered_by,
         rejectedReason: r.rejected_reason,
       }))
-      setMaps(lista)
+      const withImages = await backfillMapImages(orgId, lista)
+      setMaps(withImages)
       // Las URL firmadas se piden aparte para no demorar el pintado de la lista.
-      signMapImages(lista)
+      signMapImages(withImages)
         .then((con) => setMaps((prev) => (prev.length === con.length ? con : prev)))
         .catch((e) => console.warn('signMapImages', e))
     }
