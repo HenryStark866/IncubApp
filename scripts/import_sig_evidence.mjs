@@ -118,9 +118,7 @@ async function updateMachineFacts(supabase, machines) {
             brand: machine.brand || plate?.brand || null,
             model: machine.model || plate?.model || null,
             installed_at: machine.installed_at || plate?.installed_at || null,
-            capacity_eggs: machine.capacity_eggs || plate?.capacity_eggs || null,
             criticidad: machine.criticidad || catalog?.criticidad || 'Media',
-            sig_notes: machine.sig_notes || plate?.sig_notes || catalog?.responsable || null,
         }
         const { error } = await supabase.from('machines').update(patch).eq('id', machine.id)
         if (error) throw error
@@ -141,7 +139,7 @@ async function main() {
     const supabase = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } })
     const { data: machines, error: machinesError } = await supabase
         .from('machines')
-        .select('id, plant_id, code, name, mantum_code, serial_number, brand, model, installed_at, capacity_eggs, criticidad, sig_notes, plants!inner(org_id)')
+        .select('id, plant_id, code, name, mantum_code, serial_number, brand, model, installed_at, criticidad, plants!inner(org_id)')
         .eq('plants.org_id', ORG_ID)
     if (machinesError) throw machinesError
 
