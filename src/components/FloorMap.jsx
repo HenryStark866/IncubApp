@@ -1298,7 +1298,7 @@ export default function FloorMap({
     }
     window.addEventListener('keydown', onFlecha)
     return () => window.removeEventListener('keydown', onFlecha)
-  }, [canManage, selectedRoom])
+  }, [canManage, selectedRoom, moveRoomApi])
 
   const startDrag = (e, room) => {
     if (!canManage) return

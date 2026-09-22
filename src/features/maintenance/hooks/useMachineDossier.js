@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 export const useMachineDossier = (machineId, orgId) => {
@@ -6,7 +6,7 @@ export const useMachineDossier = (machineId, orgId) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchFullDossier = async () => {
+  const fetchFullDossier = useCallback(async () => {
     if (!machineId) return;
     setLoading(true);
     setError(null);
@@ -50,11 +50,11 @@ export const useMachineDossier = (machineId, orgId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [machineId, orgId]);
 
   useEffect(() => {
     fetchFullDossier();
-  }, [machineId, orgId]);
+  }, [fetchFullDossier]);
 
   return { dossier, loading, error, refresh: fetchFullDossier };
 };

@@ -84,30 +84,40 @@ export default function ManagementCockpit({
   }
   const tone = safeStats.loading ? 'ok' : healthTone(health)
 
+  const openWo = safeStats.health?.openWO ?? Number(byLabel['OT activas']?.value || 0)
+  const criticalWo = safeStats.health?.critical ?? 0
+  const members = safeStats.health?.members ?? Number(byLabel['Personal']?.value || 0)
+  const plantsCount = safeStats.health?.plants ?? Number(byLabel['Plantas']?.value || 0)
+  const activeBatches = Number(byLabel['Lotes activos']?.value || 0)
+  const alertChecks = safeStats.health?.alarms ?? 0
+  const checksToday = Number(byLabel['Checks hoy']?.value || 0)
+  const sensorsFromSub = Number(String(byLabel['Sensores']?.sub || '').match(/(\d+)/)?.[1]) || 0
+  const activeSensors = Number(byLabel['Sensores']?.value || 0)
+
   const scorecard = useMemo(
     () =>
       managementScorecard({
-        openWO: safeStats.health?.openWO ?? Number(byLabel['OT activas']?.value || 0),
-        criticalWO: safeStats.health?.critical ?? 0,
-        members: safeStats.health?.members ?? Number(byLabel['Personal']?.value || 0),
-        plants: safeStats.health?.plants ?? Number(byLabel['Plantas']?.value || 0),
-        activeBatches: Number(byLabel['Lotes activos']?.value || 0),
-        alertChecks: safeStats.health?.alarms ?? 0,
-        checksToday: Number(byLabel['Checks hoy']?.value || 0),
-        sensors: Number(String(byLabel['Sensores']?.sub || '').match(/(\d+)/)?.[1]) || 0,
-        activeSensors: Number(byLabel['Sensores']?.value || 0),
+        openWO: openWo,
+        criticalWO: criticalWo,
+        members,
+        plants: plantsCount,
+        activeBatches,
+        alertChecks,
+        checksToday,
+        sensors: sensorsFromSub,
+        activeSensors,
       }),
-    [safeStats, byLabel]
+    [openWo, criticalWo, members, plantsCount, activeBatches, alertChecks, checksToday, sensorsFromSub, activeSensors]
   )
 
   const cap = useMemo(
     () =>
       capacityRatio({
-        heads: safeStats.health?.members ?? 0,
-        machines: Number(byLabel['Sensores']?.value) || 0,
-        batches: Number(byLabel['Lotes activos']?.value) || 0,
+        heads: members,
+        machines: activeSensors,
+        batches: activeBatches,
       }),
-    [safeStats, byLabel]
+    [members, activeSensors, activeBatches]
   )
 
   const criticalItems = (lists.criticalOrders || []).map((it) => {

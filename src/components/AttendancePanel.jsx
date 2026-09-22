@@ -71,7 +71,7 @@ export default function AttendancePanel({
       cancelled = true
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [file, userName, userId, location, att.isInside])
+  }, [file, userName, userId, location, att.isInside, att])
 
   useEffect(() => {
     let cancelled = false

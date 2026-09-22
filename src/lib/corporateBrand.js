@@ -6,7 +6,7 @@
  */
 
 import { resolveBrandContext } from './platform'
-import { BRAND, LETTERHEAD } from './brandIdentity'
+import { BRAND } from './brandIdentity'
 
 /** Marca comercial del producto */
 export const CORP_LEGAL_NAME = 'Antioqueña de Incubación S.A.S.'
@@ -63,7 +63,6 @@ export function getCorporateIdentity(extra = {}) {
     forcePlatform: !!extra.forcePlatform,
   })
 
-  const isClient = brand.mode === 'client'
   const line1 = 'Antioqueña de Incubación S.A.S.'
   const line2 = 'Sistema Integrado de Gestión (SIG) · "Nuestra calidad nos define."'
 
@@ -100,7 +99,6 @@ function absoluteAssetUrl(path) {
 
 /** Líneas de membrete para filas de Excel (formato oficial SIG) */
 export function excelLetterheadRows(meta = {}) {
-  const id = getCorporateIdentity(meta)
   const fomatKey = meta.fomatCode || meta.code || 'FOMAT03'
   const sigInfo = SIG_FORMATS[fomatKey] || {
     code: fomatKey,

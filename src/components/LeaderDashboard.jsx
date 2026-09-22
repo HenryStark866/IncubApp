@@ -164,7 +164,7 @@ export default function LeaderDashboard({
   userId,
   role,
   developerMode = false,
-  area,
+  area: _area,
   userName,
   orgName,
   onNavigate,

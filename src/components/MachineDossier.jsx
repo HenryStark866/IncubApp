@@ -103,7 +103,6 @@ export default function MachineDossier({
     mantum,
     stats,
     createAutoWorkOrder,
-    reload,
   } = useMachineDossier(machineId, orgId)
 
   if (loading) {
