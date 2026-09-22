@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
-import { LOCAL_ASSET_EVIDENCE, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
+import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import './MachineAssetHub.css';
@@ -458,7 +458,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const filteredEvidence = useMemo(() => {
     const query = evidenceFilter.trim().toLowerCase();
-    const base = [...allEvidence, ...localAssetEvidence];
+    const base = [...allEvidence, ...localAssetEvidence, ...LOCAL_DOCUMENT_LIBRARY];
     if (!query) return base;
     return base.filter((file) => [
       file.file_name,
@@ -723,6 +723,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...rounds,
         ...calibrations,
         ...mantumHistoricalEvidence(),
+        ...LOCAL_DOCUMENT_LIBRARY,
       ]);
       const currentYearEvidence = combined.filter(isCurrentYearEvidence);
       setAllEvidence(currentYearEvidence);
