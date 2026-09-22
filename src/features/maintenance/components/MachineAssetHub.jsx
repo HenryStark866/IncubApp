@@ -481,9 +481,23 @@ function ManualPreview({ file, showMeta = false }) {
           <strong title={file.file_name}>{file.file_name}</strong>
           <small>{file.kind === 'load-map' ? `Generó: ${file.generatedBy || 'No registrado'} · Aprobó: ${file.approvedBy || 'Sin aprobación'} · Cargó: ${file.loadedBy || 'Sin carga'}` : `${file.machineCode || 'Documento general'} · ${file.workOrderTitle || file.note || 'Manual / instructivo'}`}</small>
         </div>
-        <button type="button" className="sig-download-button" onClick={() => downloadFile(file)} title="Descargar documento" aria-label={`Descargar ${file.file_name}`}>
-          ↓
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {(file.photoUrl || (file.items && file.items[0]?.url)) && (
+            <a 
+              href={file.photoUrl || file.items[0].url} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="sig-asset-primary" 
+              style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', textDecoration: 'none' }}
+              title="Ver evidencia fotográfica asociada"
+            >
+              📷 Ver foto
+            </a>
+          )}
+          <button type="button" className="sig-download-button" onClick={() => downloadFile(file)} title="Descargar documento" aria-label={`Descargar ${file.file_name}`}>
+            ↓
+          </button>
+        </div>
       </div>
       {showMeta && loadMapMeta.length > 0 && (
         <div className="sig-loadmap-meta-list" aria-label="Datos del mapa de cargue">
@@ -1732,14 +1746,25 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 {detailTab === 'history' && (
                   <div className="sig-table-wrap">
                     <table><thead><tr><th>Fecha</th><th>Actividad/OT</th><th>Técnico</th><th>Estado</th></tr></thead>
-                      <tbody>{dossier.history.map((ot, index) => (
-                        <tr key={ot.id || `${ot.code || 'ot'}-${index}`}>
-                          <td>{ot.created_at ? new Date(ot.created_at).toLocaleDateString('es-CO') : 'Histórico Mantum'}</td>
-                          <td>{ot.description || 'OT Operativa'}</td>
-                          <td>{ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
-                          <td>{ot.status || 'Registrada'}</td>
-                        </tr>
-                      ))}</tbody>
+                      <tbody>{dossier.history.map((ot, index) => {
+                        const ev = documents.find(d => d.workOrderCode === ot.code || d.workOrderTitle === ot.activity);
+                        return (
+                          <tr key={ot.id || `${ot.code || 'ot'}-${index}`}>
+                            <td>{ot.created_at ? new Date(ot.created_at).toLocaleDateString('es-CO') : 'Histórico Mantum'}</td>
+                            <td>
+                              {ev && ev.url ? (
+                                <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" title="Abrir evidencia original">
+                                  {ot.description || ot.activity || 'OT Operativa'} ↗
+                                </a>
+                              ) : (
+                                <span>{ot.description || ot.activity || 'OT Operativa'}</span>
+                              )}
+                            </td>
+                            <td>{ot.technician || ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
+                            <td>{ot.status || 'Registrada'}</td>
+                          </tr>
+                        );
+                      })}</tbody>
                     </table>
                     {!dossier.history.length && <p className="sig-empty-tab">No hay órdenes históricas registradas para este activo.</p>}
                   </div>
