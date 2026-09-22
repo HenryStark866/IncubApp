@@ -16,6 +16,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# .env.production SÍ se versiona: Vercel compila desde GitHub y no tiene variables propias; sin
+# este archivo la app sale con «Configuración incompleta» (pasó el 22-09-2026). Solo lleva
+# VITE_SUPABASE_URL y la clave publicable, que igual viajan en el bundle. Nunca poner secretos aquí.
+!.env.production
 
 
 # Credenciales de servicio (nunca versionar)
