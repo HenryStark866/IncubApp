@@ -16,30 +16,78 @@ function formatCodeForEvidence(file = {}) {
   return Object.keys(SIG_FORMATS).find((code) => text.includes(code)) || 'EVIDENCIA SIG';
 }
 
+function splitMantumOrderFeedback(feedback = '', machineCode = '', orderCode = '') {
+  const source = String(feedback || '').trim();
+  if (!source) {
+    return [];
+  }
+
+  const segmentPattern = /(?:^|\.\s*)([A-ZÁÉÍÓÚÑÜ][A-Za-zÁÉÍÓÚÑÜáéíóúüñÑ.' -]*?)\s*\[(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\]\s*-\s*([A-Z0-9.-]+)\s*\|/g;
+  const matches = [...source.matchAll(segmentPattern)];
+
+  if (!matches.length) {
+    return [{
+      person: null,
+      code: orderCode,
+      activity: source,
+      created_at: null,
+      started_at: null,
+      completed_at: null,
+      machineCode,
+    }];
+  }
+
+  return matches.map((match, index) => {
+    const startIndex = match.index + match[0].length;
+    const nextIndex = matches[index + 1]?.index ?? source.length;
+    const activity = source.slice(startIndex, nextIndex).replace(/^[\s:;.-]+/, '').replace(/[\s]+/g, ' ').trim();
+    const date = match[2];
+    const startedAt = `${date}T${match[3]}:00`;
+    const completedAt = `${date}T${match[4]}:00`;
+
+    return {
+      person: match[1].trim(),
+      code: match[5].trim(),
+      activity: activity || match[1].trim(),
+      created_at: startedAt,
+      started_at: startedAt,
+      completed_at: completedAt,
+      machineCode,
+    };
+  });
+}
+
 function mantumHistoricalEvidence() {
   return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
-    (orders || []).map((order) => ({
-      id: `mantum-ot-${machineCode}-${order.code}`,
-      file_name: `OT Mantum ${order.code}`,
-      file_type: 'record',
-      formatCode: 'FOMAT01',
-      workOrderCode: order.code,
-      workOrderTitle: order.activity || 'Orden histórica Mantum',
-      machineCode,
-      note: `${order.feedback || order.description || order.activity || 'OT histórica Mantum'} · Responsable de mantenimiento: ${MAINTENANCE_RESPONSIBLE}`,
-      created_at: order.completed_at || order.started_at || order.created_at || null,
-      source: 'mantum',
-      kind: 'mantum-order',
-      url: maintenanceRecordUrl({
+    (orders || []).flatMap((order) => {
+      const segments = splitMantumOrderFeedback(order.feedback, machineCode, order.code);
+      if (segments.length === 0) {
+        return [];
+      }
+
+      return segments.map((segment, index) => ({
+        id: `mantum-ot-${machineCode}-${segment.code || order.code}-${index}`,
+        file_name: `OT Mantum ${segment.code || order.code}`,
+        file_type: 'record',
+        formatCode: 'FOMAT01',
+        workOrderCode: segment.code || order.code,
+        workOrderTitle: segment.activity || order.activity || 'Orden histórica Mantum',
         machineCode,
-        activity: order.activity,
-        description: order.description,
-        feedback: order.feedback,
-        date: order.completed_at || order.started_at || order.created_at,
-        code: order.code,
-      }),
-      downloadName: `FOMAT01-${order.code || 'OT-Mantum'}.html`,
-    }))
+        note: `${segment.activity || order.feedback || order.description || order.activity || 'OT histórica Mantum'} · Responsable: ${segment.person || MAINTENANCE_RESPONSIBLE}`,
+        created_at: segment.created_at || order.completed_at || order.started_at || order.created_at || null,
+        source: 'mantum',
+        kind: 'mantum-order',
+        url: maintenanceRecordUrl({
+          machineCode,
+          activity: segment.activity || order.activity,
+          description: order.description || segment.activity || order.activity,
+          feedback: `${segment.person || ''} · ${segment.activity || order.feedback || 'Actividad registrada en Mantum'}`,
+          date: segment.created_at || order.completed_at || order.started_at || order.created_at,
+          code: segment.code || order.code,
+        }),
+        downloadName: `FOMAT01-${segment.code || order.code || 'OT-Mantum'}.html`,
+      }));
+    })
   );
 }
 
@@ -70,6 +118,14 @@ export function dedupeEvidence(items = []) {
     if (!seen.has(key)) seen.set(key, item);
   }
   return Array.from(seen.values());
+}
+
+export function isCurrentYearEvidence(item = {}) {
+  const value = item.created_at || item.recorded_at || item.createdAt || null;
+  if (!value) return true;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return true;
+  return date.getFullYear() === new Date().getFullYear();
 }
 
 export function sortEvidence(items) {
@@ -668,14 +724,15 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...calibrations,
         ...mantumHistoricalEvidence(),
       ]);
-      setAllEvidence(combined);
-      onEvidenceLoaded?.(combined);
-      setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
+      const currentYearEvidence = combined.filter(isCurrentYearEvidence);
+      setAllEvidence(currentYearEvidence);
+      onEvidenceLoaded?.(currentYearEvidence);
+      setSelectedDocumentId((current) => current && currentYearEvidence.some((file) => file.id === current) ? current : currentYearEvidence[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
         ...mantumHistoricalEvidence(),
-      ]);
+      ]).filter(isCurrentYearEvidence);
       setAllEvidence(fallbackEvidence);
       onEvidenceLoaded?.(fallbackEvidence);
     } finally {

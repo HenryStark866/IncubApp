@@ -100,4 +100,13 @@ describe('resolveSelectedEvidence', () => {
         expect(records.every((record) => record.machineCode === '005.4')).toBe(true);
         expect(records[0].url).toContain('data:text/html');
     });
+
+    it('separa cada tarea de una OT histórica en un formato individual', () => {
+        const records = mantumHistoricalEvidenceForMachine({ code: '005.4' });
+        const taskCodes = new Set(records.map((record) => record.workOrderCode));
+
+        expect(taskCodes.has('005.4-P-001')).toBe(true);
+        expect(taskCodes.has('005.4-S-006')).toBe(true);
+        expect(taskCodes.size).toBeGreaterThan(1);
+    });
 });
