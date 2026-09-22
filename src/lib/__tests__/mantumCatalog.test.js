@@ -40,4 +40,18 @@ describe('mantumCatalog & SIG Dossier Resolver', () => {
     expect(enriched.components.length).toBeGreaterThan(0)
     expect(enriched.maintenancePlan.length).toBeGreaterThan(0)
   })
+
+  it('completes missing this-year history and AM plan for machines without catalog entries', () => {
+    const enriched = getMantumDataForMachine({
+      code: 'EQ-NEW-99',
+      name: 'Máquina nueva sin registro',
+      type: 'equipment',
+    })
+
+    expect(enriched).toBeDefined()
+    expect(enriched.components.length).toBeGreaterThan(0)
+    expect(enriched.maintenancePlan.length).toBeGreaterThan(0)
+    expect(enriched.historicalOTs.length).toBeGreaterThan(0)
+    expect(enriched.historicalOTs.some((ot) => String(ot.created_at || '').startsWith(String(new Date().getFullYear())))).toBe(true)
+  })
 })
