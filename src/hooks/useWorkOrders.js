@@ -15,6 +15,41 @@ import { enqueueInsert, enqueueUpdate } from '../lib/offlineQueue'
 import { isNetworkError } from '../lib/network'
 import { uniqueChannel } from '../lib/realtimeChannel'
 
+function maintenanceFormatFor(order) {
+  if (order?.source === 'calibration' || /^calibraci[oó]n/i.test(order?.title || '')) return 'FOMAT08'
+  return 'FOMAT01'
+}
+
+function completionDocument(order, result = {}) {
+  const formatCode = maintenanceFormatFor(order)
+  const date = new Date().toLocaleString('es-CO')
+  const esc = (value) => String(value ?? '—').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${formatCode} ${esc(order.code)}</title><style>body{font-family:Arial,sans-serif;color:#202634;margin:36px}h1{color:#0b1428}table{border-collapse:collapse;width:100%}td{border:1px solid #d9e0e8;padding:8px}td:first-child{font-weight:bold;background:#f3f6fa;width:28%}.stamp{color:#9a4d05;font-weight:bold}</style></head><body><div class="stamp">ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SIG</div><h1>${formatCode} · Registro de actividad de mantenimiento</h1><table><tr><td>Orden</td><td>${esc(order.code || order.id)}</td></tr><tr><td>Actividad</td><td>${esc(order.title)}</td></tr><tr><td>Descripción</td><td>${esc(order.description)}</td></tr><tr><td>Equipo</td><td>${esc(order.machine_id || 'Planta / ubicación general')}</td></tr><tr><td>Responsable</td><td>${esc(order.assigned_to || order.created_by)}</td></tr><tr><td>Resultado / resolución</td><td>${esc(result.resolution)}</td></tr><tr><td>Parada (minutos)</td><td>${esc(result.downtimeMinutes)}</td></tr><tr><td>Costo</td><td>${esc(result.cost)}</td></tr><tr><td>Fecha de cierre</td><td>${esc(date)}</td></tr></table><p>Registro generado automáticamente al cerrar la OT. La evidencia fotográfica o documental adicional se adjunta a esta misma orden.</p></body></html>`
+}
+
+async function saveCompletionEvidence(order, result, userId) {
+  if (!order?.org_id || !order?.id || !userId) return { error: 'Datos incompletos para evidencia' }
+  const formatCode = maintenanceFormatFor(order)
+  const file = new Blob([completionDocument(order, result)], { type: 'application/msword' })
+  const path = `${order.org_id}/${order.id}/${Date.now()}-${formatCode}-${order.code || 'OT'}.doc`
+  const { error: uploadError } = await supabase.storage.from('wo-evidence').upload(path, file, { contentType: 'application/msword', upsert: false })
+  if (uploadError) return { error: uploadError.message }
+  const { error: insertError } = await supabase.from('wo_evidence').insert({
+    org_id: order.org_id,
+    work_order_id: order.id,
+    uploaded_by: userId,
+    file_path: path,
+    file_name: `${formatCode}-${order.code || 'OT'}.doc`,
+    file_type: 'document',
+    note: `${formatCode} generado automáticamente al cerrar la actividad de mantenimiento`,
+  })
+  if (insertError) {
+    await supabase.storage.from('wo-evidence').remove([path])
+    return { error: insertError.message }
+  }
+  return { error: null }
+}
+
 /**
  * Órdenes de trabajo (mantenimiento) de una organización.
  *  - Lectura + Realtime (RLS: miembros aprobados de la org)
@@ -37,7 +72,7 @@ export function useWorkOrders(orgId, userId) {
     const [o, m] = await Promise.all([
       supabase
         .from('work_orders')
-        .select('id, code, title, description, type, priority, status, source, machine_id, room_id, plant_id, location_type, location_name, assigned_to, created_by, scheduled_for, started_at, completed_at, downtime_minutes, cost, resolution, created_at')
+        .select('id, org_id, code, title, description, type, priority, status, source, machine_id, room_id, plant_id, location_type, location_name, assigned_to, created_by, scheduled_for, started_at, completed_at, downtime_minutes, cost, resolution, created_at')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false }),
       supabase
@@ -175,7 +210,7 @@ export function useWorkOrders(orgId, userId) {
    * se registra 0, que también es un dato.
    */
   const completeOrder = useCallback(
-    (orderId, { resolution, downtimeMinutes, cost }) => {
+    async (orderId, { resolution, downtimeMinutes, cost }) => {
       const orden = orders.find((o) => o.id === orderId)
       const exigeParo = !orden || orden.type === 'corrective' || orden.type === 'preventive'
       const sinParo = downtimeMinutes === '' || downtimeMinutes == null
@@ -184,17 +219,20 @@ export function useWorkOrders(orgId, userId) {
           'Registre el tiempo de parada del equipo en minutos (0 si no hubo parada). ' +
           'Sin este dato no se pueden calcular la disponibilidad, el MTTR ni el MTBF.'
         setError(msg)
-        return Promise.resolve({ error: msg })
+        return { error: msg }
       }
-      return updateOrder(orderId, {
+      const result = await updateOrder(orderId, {
         status: 'completed',
         completed_at: new Date().toISOString(),
         resolution: resolution?.trim() || null,
         downtime_minutes: sinParo ? null : Number(downtimeMinutes),
         cost: cost === '' || cost == null ? null : Number(cost),
       })
+      if (result.error) return result
+      const evidence = await saveCompletionEvidence(orden, { resolution, downtimeMinutes, cost }, userId)
+      return evidence.error ? { ...result, evidenceError: evidence.error } : result
     },
-    [updateOrder, orders]
+    [updateOrder, orders, userId]
   )
 
   const cancelOrder = useCallback(

@@ -35,6 +35,7 @@ const EXCLUDED_QUICK = new Set([
 const FEED_ICONS = {
   Ronda: '◉',
   Actividad: '⚡',
+  Mantenimiento: '🔧',
   Cargue: '📦',
   Transferencia: '[Transferencia]',
 }
@@ -284,11 +285,21 @@ export default function LeaderDashboard({
     for (const t of transfers) {
       out.push({ kind: 'Transferencia', personId: t.created_by, when: t.transferred_at })
     }
+    for (const o of orders) {
+      const when = o.completed_at || o.started_at || o.created_at
+      out.push({
+        kind: 'Mantenimiento',
+        personId: o.assigned_to || o.created_by,
+        when,
+        detail: `${o.code || 'OT'} · ${o.title || 'Actividad de mantenimiento'}`,
+        report: o.resolution || o.status || 'Registrada',
+      })
+    }
     return out
       .filter((e) => !!e.when)
       .sort((a, b) => b.when.localeCompare(a.when))
       .slice(0, 12)
-  }, [mc.checks, so.activities, loads, transfers])
+  }, [mc.checks, so.activities, loads, transfers, orders])
 
   const peopleName = useMemo(() => {
     const map = { ...directory }

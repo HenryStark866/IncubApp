@@ -43,3 +43,28 @@ export const LOCAL_MAINTENANCE_MANUALS = Object.entries(localFiles).map(([source
         note: source === 'sig' ? 'Manual, instructivo o formato controlado del SIG' : 'Manual técnico del inventario Mantum',
     }
 })
+
+const mantumResources = [
+    ['public/assets/mantum/LEEME.md', '/assets/mantum/LEEME.md'],
+    ['public/assets/mantum/inventario_imagenes.csv', '/assets/mantum/inventario_imagenes.csv'],
+    ['public/assets/mantum/inventario_imagenes_instalaciones.csv', '/assets/mantum/inventario_imagenes_instalaciones.csv'],
+    ['public/assets/mantum/manuales_por_equipo.csv', '/assets/mantum/manuales_por_equipo.csv'],
+    ['public/assets/mantum/manuales.zip', '/assets/mantum/manuales.zip'],
+]
+
+export const LOCAL_MANTUM_RESOURCES = mantumResources.map(([sourcePath, url]) => {
+    const name = basename(sourcePath)
+    return {
+        id: `mantum-resource-${name}`,
+        file_name: name,
+        file_type: /\.zip$/i.test(name) ? 'archive' : /\.csv$/i.test(name) ? 'spreadsheet' : 'document',
+        formatCode: 'RECURSO MANTUM',
+        workOrderTitle: titleFromName(name),
+        source: 'mantum',
+        sourcePath,
+        url,
+        created_at: null,
+        kind: 'mantum-resource',
+        note: 'Recurso importado de activos-mantum',
+    }
+})

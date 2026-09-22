@@ -2,37 +2,31 @@
 import { supabase } from '../../../lib/supabase';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_INVENTORY, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
-import { LOCAL_MAINTENANCE_MANUALS } from '../../../data/maintenanceManuals';
+import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES } from '../../../data/maintenanceManuals';
+import { MANTUM_MEDIA } from '../../../data/mantumMedia';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import './MachineAssetHub.css';
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
+const MAINTENANCE_RECORD_START = new Date('2025-05-27T00:00:00')
+const MAINTENANCE_RECORD_END = new Date()
+
+function isInMaintenanceWindow(record = {}) {
+  const value = record.completed_at || record.created_at || record.started_at || record.date
+  if (!value) return false
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime()) && date >= MAINTENANCE_RECORD_START && date <= MAINTENANCE_RECORD_END
+}
 
 function formatCodeForEvidence(file = {}) {
   const text = `${file.file_name || ''} ${file.note || ''} ${file.workOrderCode || ''}`.toUpperCase();
   return Object.keys(SIG_FORMATS).find((code) => text.includes(code)) || 'EVIDENCIA SIG';
 }
 
-function mantumInventoryEvidence() {
-  return Object.values(MANTUM_INVENTORY).map((image) => ({
-    id: `mantum-image-${image.code}`,
-    file_name: image.archivo || `${image.code}.jpg`,
-    file_type: 'image',
-    file_path: image.url,
-    url: image.url,
-    formatCode: 'INVENTARIO MANTUM',
-    workOrderCode: image.code,
-    workOrderTitle: image.nombre,
-    note: image.tipo_imagen || 'Imagen del inventario Mantum',
-    created_at: null,
-    source: 'mantum',
-  }));
-}
-
 function mantumHistoricalEvidence() {
   return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
-    (orders || []).map((order) => ({
+    (orders || []).filter(isInMaintenanceWindow).map((order) => ({
       id: `mantum-ot-${machineCode}-${order.code}`,
       file_name: `OT Mantum ${order.code}`,
       file_type: 'record',
@@ -88,18 +82,58 @@ function readCustomAssets() {
   }
 }
 
+async function downloadFile(file) {
+  if (!file?.url) return
+  try {
+    const response = await fetch(file.url)
+    if (!response.ok) throw new Error('No se pudo descargar el archivo')
+    const blobUrl = URL.createObjectURL(await response.blob())
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = file.file_name || 'documento'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    window.open(file.url, '_blank', 'noopener,noreferrer')
+  }
+}
+
+function ManualPreview({ file }) {
+  if (!file) return <p className="sig-empty-tab">Selecciona un manual o instructivo.</p>
+  const isImage = file.file_type === 'image'
+  const isPdf = file.file_type === 'pdf' || /\.pdf$/i.test(file.file_name || '')
+  return (
+    <div className="sig-manual-reader">
+      <div className="sig-manual-reader-head">
+        <div>
+          <b>{file.source === 'mantum' ? 'MANTUM' : 'SIG'}</b>
+          <strong title={file.file_name}>{file.file_name}</strong>
+          <small>{file.machineCode || 'Documento general'} · {file.workOrderTitle || file.note || 'Manual / instructivo'}</small>
+        </div>
+        <button type="button" className="sig-download-button" onClick={() => downloadFile(file)} title="Descargar documento" aria-label={`Descargar ${file.file_name}`}>
+          ↓
+        </button>
+      </div>
+      <div className="sig-manual-reader-body">
+        {isImage && file.url ? <img src={file.url} alt={file.file_name} /> : isPdf && file.url ? <iframe title={`Vista previa ${file.file_name}`} src={file.url} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
+      </div>
+    </div>
+  )
+}
+
 export function resolveSelectedEvidence({ section, selectedDocumentId, allEvidence = [], documents = [] }) {
   const source = section === 'evidence' ? allEvidence : documents;
   return source.find((file) => file.id === selectedDocumentId) || source[0] || null;
 }
 
 function isManualRecord(file = {}) {
-  if (file.file_type !== 'document') return false;
-  const text = [file.file_name, file.note, file.workOrderTitle, file.sourcePath, file.source]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-  return file.source === 'mantum' || file.source === 'sig' || /manual|instructiv|procedimiento|poe|formato|registro/.test(text);
+  if (file.kind === 'mantum-media' || file.kind === 'mantum-resource') return false;
+  const path = `${file.sourcePath || ''} ${file.file_name || ''}`.toLowerCase()
+  if (/formatos|registros|indicadores|\.xlsx?|\.csv|\.zip|\.md/.test(path)) return false
+  if (file.source === 'mantum') return /\.pdf$|\.docx?$/.test(path)
+  return /procedimientos|manual|instructiv|procedimiento/.test(path)
 }
 
 const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
@@ -132,11 +166,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     const mantum = getMantumDataForMachine(selectedMachine);
     return {
       summary: { ...selectedMachine, ...(mantum.equipo || {}), location: mantum.equipo?.ubicacion_proceso || '' },
-      history: mantum.historicalOTs || [],
+      history: (mantum.historicalOTs || []).filter(isInMaintenanceWindow),
       calibrations: [],
       maintenancePlan: mantum.maintenancePlan || [],
       components: mantum.components || [],
       imageUrl: mantum.imageUrl || null,
+      images: mantum.images || [],
       mantum,
     };
   }, [selectedMachine]);
@@ -404,9 +439,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...resolvedRegistry,
         ...rounds,
         ...calibrations,
-        ...mantumInventoryEvidence(),
         ...mantumHistoricalEvidence(),
         ...LOCAL_MAINTENANCE_MANUALS,
+        ...LOCAL_MANTUM_RESOURCES,
+        ...MANTUM_MEDIA,
       ]);
       setAllEvidence(combined);
       onEvidenceLoaded?.(combined);
@@ -414,9 +450,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
-        ...mantumInventoryEvidence(),
         ...mantumHistoricalEvidence(),
         ...LOCAL_MAINTENANCE_MANUALS,
+        ...LOCAL_MANTUM_RESOURCES,
+        ...MANTUM_MEDIA,
       ]);
       setAllEvidence(fallbackEvidence);
       onEvidenceLoaded?.(fallbackEvidence);
@@ -675,20 +712,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           <div className="sig-format-detail sig-manual-detail">
             <span className="sig-detail-kicker">Biblioteca documental SIG / Mantum</span>
             <h1>Manuales e instructivos</h1>
-            <p className="sig-format-description">Documentos técnicos, instructivos, procedimientos y formatos asociados al mantenimiento y a los equipos.</p>
-            {(() => {
-              const selectedManual = filteredManuals.find((file) => file.id === selectedDocumentId) || filteredManuals[0];
-              return selectedManual ? (
-                <div className="sig-manual-preview">
-                  <div>
-                    <b>{selectedManual.source === 'mantum' ? 'MANTUM' : 'SIG'}</b>
-                    <strong>{selectedManual.file_name}</strong>
-                    <small>{selectedManual.machineCode || selectedManual.workOrderCode || 'Documento general'} · {selectedManual.sourcePath || selectedManual.file_name}</small>
-                  </div>
-                  {selectedManual.url ? <a href={selectedManual.url} target="_blank" rel="noopener noreferrer" className="sig-asset-primary">Abrir documento</a> : <p className="sig-empty-tab">Este registro no tiene archivo disponible.</p>}
-                </div>
-              ) : <p className="sig-empty-tab">No hay manuales disponibles.</p>;
-            })()}
+            <p className="sig-format-description">Solo documentos técnicos, manuales e instructivos. Los formatos y registros están en sus secciones independientes.</p>
+            <ManualPreview file={filteredManuals.find((file) => file.id === selectedDocumentId) || filteredManuals[0]} />
           </div>
         ) : section === 'evidence' ? (
           <div className="sig-format-detail sig-global-evidence-detail">
@@ -738,18 +763,31 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <div className="sig-dossier-kpis">
               <div className="p-4 bg-white rounded-xl border shadow-sm">
                 <span className="text-xs text-slate-400 uppercase font-bold">Adquisición</span>
-                <p className="text-lg font-medium">{dossier.summary.acquisition_date || 'N/A'}</p>
+                <p className="text-lg font-medium">{dossier.summary.acquisition_date || dossier.summary.purchase_year || 'N/A'}</p>
                 <p className="text-sm text-slate-500">{dossier.summary.installed_at || 'Fecha no registrada'}</p>
               </div>
               <div className="p-4 bg-white rounded-xl border shadow-sm">
                 <span className="text-xs text-slate-400 uppercase font-bold">Proveedor</span>
-                <p className="text-lg font-medium">{dossier.summary.supplier || 'No registrado'}</p>
+                <p className="text-lg font-medium">{dossier.summary.manufacturer || dossier.summary.supplier || 'No registrado'}</p>
               </div>
               <div className="p-4 bg-white rounded-xl border shadow-sm">
                 <span className="text-xs text-slate-400 uppercase font-bold">Criticidad</span>
                 <p className="text-lg font-medium">{dossier.summary.criticidad}</p>
               </div>
             </div>
+            {dossier.images?.length > 0 && (
+              <div className="sig-dossier-panel" style={{ marginTop: 14 }}>
+                <div className="sig-dossier-tabs"><span className="is-active">Galería Mantum ({dossier.images.length})</span></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, padding: 14 }}>
+                  {dossier.images.map((image) => (
+                    <a key={image.id} href={image.url} target="_blank" rel="noopener noreferrer" title={image.file_name}>
+                      <img src={image.url} alt={`${dossier.summary.name} · ${image.file_name}`} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
+                      <small style={{ display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{image.file_name}</small>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="sig-dossier-panel">
               <div className="sig-dossier-tabs" role="tablist">
                 {[["history", `Historial (${dossier.history.length})`], ["calibrations", `Calibraciones (${dossier.calibrations.length})`], ["plan", `Plan AM (${dossier.maintenancePlan?.length || 0})`], ["components", `Componentes (${dossier.components?.length || 0})`], ["documents", `Diligenciados (${documents.length})`]].map(([tab, label]) => <button key={tab} type="button" className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{label}</button>)}

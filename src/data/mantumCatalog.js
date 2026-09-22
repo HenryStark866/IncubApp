@@ -10,6 +10,7 @@ import equiposMap from './mantumEquipos.json'
 import componentsMap from './mantumComponents.json'
 import plansMap from './mantumMaintenancePlans.json'
 import historicalOTsMap from './mantumHistoricalOTs.json'
+import { mediaForCode } from './mantumMedia'
 
 function enrichEquipment(equipo, machine = {}) {
   if (!equipo) return equipo
@@ -211,6 +212,7 @@ export function getMantumDataForMachine(machine) {
     matchedKey: candidates[0] || machine.code,
     inventory,
     equipo: enrichEquipment(equipo, machine),
+    images: Array.from(new Map(candidates.flatMap((code) => mediaForCode(code)).map((image) => [image.id, image])).values()),
     components,
     maintenancePlan,
     historicalOTs,

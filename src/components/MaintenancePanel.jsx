@@ -646,7 +646,10 @@ export default function MaintenancePanel({ orgId, userId, role }) {
               setBusy(true)
               const res = await wo.completeOrder(order.id, { resolution, downtimeMinutes: downtime, cost })
               setBusy(false)
-              if (!res?.error) setCompletingId(null)
+              if (!res?.error) {
+                setCompletingId(null)
+                if (res.evidenceError) window.alert(`OT cerrada, pero no se pudo guardar el formato automático: ${res.evidenceError}`)
+              }
             }}
           >
             {busy ? 'Cerrando…' : 'Cerrar orden'}
