@@ -734,7 +734,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const filteredEvidence = useMemo(() => {
     const query = evidenceFilter.trim().toLowerCase();
-    const base = [...allEvidence, ...localAssetEvidence, ...LOCAL_DOCUMENT_LIBRARY];
+    const base = dedupeEvidence([...allEvidence, ...localAssetEvidence, ...LOCAL_DOCUMENT_LIBRARY]);
     if (!query) return base;
     return base.filter((file) => [
       file.file_name,
@@ -1009,6 +1009,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
         ...mantumHistoricalEvidence(),
+        ...LOCAL_DOCUMENT_LIBRARY,
       ]).filter(isCurrentYearEvidence);
       setAllEvidence(fallbackEvidence);
       onEvidenceLoaded?.(fallbackEvidence);
@@ -1587,7 +1588,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <span className="sig-detail-kicker">Repositorio general SIG</span>
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Todas las fotos y documentos cargados desde órdenes de trabajo, calibraciones y procesos de mantenimiento.</p>
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : selectedDocument.note ? <p>{selectedDocument.note}</p> : null}{selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : selectedDocument.kind !== 'round' && selectedDocument.kind !== 'calibration' && selectedDocument.url && selectedDocument.kind === 'mantum-order' ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : null}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">
