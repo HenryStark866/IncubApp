@@ -8,6 +8,7 @@ import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import { localListMaps } from '../../../lib/loadClassificationLocalStore';
+import { renderLoadMapImage } from '../../../lib/loadMapEngine';
 import annualPlanData from '../../../data/annualMaintenancePlanData.json';
 import './MachineAssetHub.css';
 
@@ -320,6 +321,43 @@ function loadMapDocumentUrl(load) {
   const esc = (value) => String(value ?? 'No registrado').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Mapa de cargue ${esc(load.lote)}</title><style>body{font-family:Arial;color:#202634;margin:36px}h1{color:#0b1428}table{border-collapse:collapse;width:100%}td{border:1px solid #cbd5e1;padding:9px}td:first-child{font-weight:bold;background:#f3f6fa;width:30%}.stamp{color:#e0740a;font-weight:bold}</style></head><body><div class="stamp">ANTIOQUEÑA DE INCUBACIÓN S.A.S. · SISTEMA INTEGRADO DE GESTIÓN</div><h1>MAPA DE CARGUE · PRODUCCIÓN</h1><table><tr><td>Lote</td><td>${esc(load.lote)}</td></tr><tr><td>Incubadora</td><td>${esc(load.machine_code || load.machine_id)}</td></tr><tr><td>Fecha de cargue</td><td>${esc(load.loaded_at || load.created_at)}</td></tr><tr><td>Cinta / clasificación</td><td>${esc(load.tape_color_name || load.tape_color)}</td></tr><tr><td>Registrado por</td><td>${esc(load.created_by)}</td></tr></table><p>Mapa de cargue generado desde el registro operativo de producción.</p></body></html>`
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+}
+
+async function backfillLoadMapImages(orgId, maps) {
+  const pending = maps.filter((map) => !map.imagePath && !map.imageDataUrl && map.slots?.length);
+  if (!pending.length) return maps;
+
+  const updated = await Promise.all(pending.map(async (map) => {
+    try {
+      const rendered = await renderLoadMapImage(map);
+      if (!rendered?.blob) return map;
+      const imagePath = `${orgId}/load-maps/${map.rawId || map.id}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('machine-checks')
+        .upload(imagePath, rendered.blob, { contentType: 'image/png', upsert: true });
+      if (uploadError) {
+        console.warn('Centro SIG: no se pudo subir imagen de mapa', uploadError.message);
+        return map;
+      }
+      const payload = { ...(map.payload || {}), imagePath };
+      const { error } = await supabase
+        .from('load_maps')
+        .update({ image_path: imagePath, payload })
+        .eq('id', map.rawId || map.id)
+        .eq('org_id', orgId);
+      if (error) {
+        console.warn('Centro SIG: no se pudo registrar imagen de mapa', error.message);
+        return map;
+      }
+      return { ...map, imagePath, payload };
+    } catch (error) {
+      console.warn('Centro SIG: no se pudo generar imagen de mapa', error);
+      return map;
+    }
+  }));
+
+  const byId = new Map(updated.map((map) => [map.id, map]));
+  return maps.map((map) => byId.get(map.id) || map);
 }
 
 export function resolveLoadMapPreviewUrl(file = {}) {
@@ -648,7 +686,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           }
         }
 
-        const nextMaps = Array.from(mergedMap.values())
+        const nextMaps = await backfillLoadMapImages(orgId, Array.from(mergedMap.values()))
         if (active) {
           setLoadMaps(nextMaps)
           setSelectedLoadMapId((current) => current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id || null)
