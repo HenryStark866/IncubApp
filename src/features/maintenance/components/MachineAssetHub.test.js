@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LOCAL_DOCUMENT_LIBRARY } from '../../../data/maintenanceManuals';
+import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import {
     resolveSelectedEvidence,
     isPdfCandidate,
@@ -86,9 +87,17 @@ describe('resolveSelectedEvidence', () => {
         expect(ordered.map((item) => item.id)).toEqual(['new', 'mid', 'old']);
     });
 
-    it('usa la carpeta de registros 2026 como fuente de evidencia del SIG', () => {
+    it('usa la carpeta de registros del SIG como fuente de evidencia activa para toda la gestión', () => {
         expect(LOCAL_DOCUMENT_LIBRARY.length).toBeGreaterThan(0);
-        expect(LOCAL_DOCUMENT_LIBRARY.every((file) => String(file.sourcePath || '').includes('MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS/2026'))).toBe(true);
+        expect(LOCAL_DOCUMENT_LIBRARY.every((file) => String(file.sourcePath || '').includes('MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS'))).toBe(true);
+    });
+
+    it('incluye las salas y sistemas de la planta como activos del plan anual de mantenimiento', () => {
+        const names = PLANT_ASSET_REGISTRY.map((asset) => asset.name.toLowerCase());
+        expect(names.some((name) => name.includes('sala de incubadoras 1'))).toBe(true);
+        expect(names.some((name) => name.includes('sala de nacedoras 1'))).toBe(true);
+        expect(names.some((name) => name.includes('cuarto de maquinas inc 1'))).toBe(true);
+        expect(names.some((name) => name.includes('lavandería zona limpia'))).toBe(true);
     });
 
     it('asocia los registros Mantum del año actual con el formato original del SIG', () => {

@@ -4,6 +4,7 @@ import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
 import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES, LOCAL_SIG_2026_EVIDENCE } from '../../../data/maintenanceManuals';
+import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
 import './MachineAssetHub.css';
@@ -152,17 +153,33 @@ export function sortEvidence(items) {
 }
 
 function catalogMachines() {
-  return Object.entries(MANTUM_EQUIPOS).map(([key, item]) => ({
-    machine_id: `catalog-${key}`,
-    code: item.mantum_code || key,
-    name: item.nombre || `Activo ${key}`,
-    type: item.tipo || 'Equipo de planta',
-    criticidad: item.criticidad || 'Media',
-    status: item.estado_mantum || 'En operación',
-    serial_number: item.serial_number || '',
-    source: 'catalog',
-    catalogKey: key,
+  const plantAssets = PLANT_ASSET_REGISTRY.map((asset) => ({
+    machine_id: `plant-${asset.code}`,
+    code: asset.code,
+    name: asset.name,
+    type: asset.type || 'Infraestructura',
+    criticidad: asset.criticidad || 'Media',
+    status: asset.status || 'En operación',
+    serial_number: '',
+    source: 'plant',
+    catalogKey: asset.code,
+    roomType: asset.roomType || null,
   }));
+
+  return [
+    ...plantAssets,
+    ...Object.entries(MANTUM_EQUIPOS).map(([key, item]) => ({
+      machine_id: `catalog-${key}`,
+      code: item.mantum_code || key,
+      name: item.nombre || `Activo ${key}`,
+      type: item.tipo || 'Equipo de planta',
+      criticidad: item.criticidad || 'Media',
+      status: item.estado_mantum || 'En operación',
+      serial_number: item.serial_number || '',
+      source: 'catalog',
+      catalogKey: key,
+    })),
+  ];
 }
 
 function mergeMachines(remote, catalog) {
