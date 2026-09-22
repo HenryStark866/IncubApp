@@ -11051,6 +11051,11 @@ a.plant3d-link:hover {
   background: rgba(53, 214, 232, 0.25);
 }
 
+.ldr-ev-format {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .ldr-quick-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

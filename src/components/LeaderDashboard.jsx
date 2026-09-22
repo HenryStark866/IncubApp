@@ -24,6 +24,7 @@ import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
 import MachineAssetHub from '../features/maintenance/components/MachineAssetHub'
+import { evidenceHasRecordDocument, openEvidenceFormat } from '../lib/sigRecordDocuments'
 
 /** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
@@ -150,6 +151,11 @@ function EvidenceCard({ item, getFileUrl, peopleName }) {
         <span className="ldr-ev-meta">{uploader} · {dateStr}</span>
         {item.note && <span className="ldr-ev-note">"{item.note}"</span>}
       </div>
+      {evidenceHasRecordDocument(item) && (
+        <a href="#formato" className="ldr-ev-link ldr-ev-format" title="Abrir el formato diligenciado" onClick={(event) => { event.preventDefault(); openEvidenceFormat(item) }}>
+          Formato
+        </a>
+      )}
       {url && (
         <a href={url} target="_blank" rel="noopener noreferrer" className="ldr-ev-link" title="Ver archivo original">
           ↗

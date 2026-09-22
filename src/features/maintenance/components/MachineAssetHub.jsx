@@ -6,7 +6,10 @@ import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '
 import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES, LOCAL_SIG_2026_EVIDENCE } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
-import { maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
+import { buildMaintenanceRecordHtml, maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
+import { hasEvidenceFormat, openEvidenceFormat, openRecordDocument } from '../../../lib/sigRecordDocuments';
+import { manualsForTask } from '../../../lib/planTaskInstructions';
+import PlanTaskInstructions from './PlanTaskInstructions';
 import { localListMaps } from '../../../lib/loadClassificationLocalStore';
 import { renderLoadMapImage } from '../../../lib/loadMapEngine';
 import annualPlanData from '../../../data/annualMaintenancePlanData.json';
@@ -79,6 +82,10 @@ async function signStoragePaths(bucket, paths = []) {
   return signed
 }
 
+function normalizeSourcePath(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/^(?:\.\.?\/)+/, '').replace(/^\//, '')
+}
+
 function formatDateTime(value) {
   if (!value) return null
   const date = new Date(value)
@@ -101,6 +108,8 @@ export function buildProductionEvidence({ loads = [], transfers = [], hatches = 
     const url = photoOf(path)
     return { id, file_name: label, url, notes: url ? '' : path ? 'La foto no se pudo abrir' : 'Registro sin foto adjunta' }
   }
+  const photoStatus = (path) => (path ? (photoOf(path) ? 'Adjunta' : 'Adjunta, no se pudo abrir') : 'Sin foto')
+  const count = (value) => (value != null ? Number(value).toLocaleString('es-CO') : null)
   const records = []
 
   for (const load of loads) {
@@ -119,6 +128,16 @@ export function buildProductionEvidence({ loads = [], transfers = [], hatches = 
       file_type: 'production',
       formatCode: 'PRODUCCIÓN · CARGUE',
       workOrderTitle: 'Registro de cargue de incubadora',
+      recordTitle: 'REGISTRO DE CARGUE DE INCUBADORA',
+      recordFields: [
+        ['Lote', load.lote || null],
+        ['Incubadora', [machine.code, machine.name].filter(Boolean).join(' · ') || null],
+        ['Fecha y hora del cargue', formatDateTime(when)],
+        ['Inicio del ciclo', cycleStart],
+        ['Cinta / clasificación', tape || null],
+        ['Registró', personName(load.created_by)],
+        ['Foto de la pantalla', photoStatus(load.photo_path)],
+      ],
       machineCode: machine.code || null,
       note: detail,
       created_at: when,
@@ -143,6 +162,15 @@ export function buildProductionEvidence({ loads = [], transfers = [], hatches = 
       file_type: 'production',
       formatCode: 'PRODUCCIÓN · TRANSFERENCIA',
       workOrderTitle: 'Registro de transferencia incubadora → nacedora',
+      recordTitle: 'REGISTRO DE TRANSFERENCIA A NACEDORA',
+      recordFields: [
+        ['Lote', transfer.lote || null],
+        ['Modalidad', mode ? `Transferencia ${mode}` : null],
+        ['Fecha y hora', formatDateTime(when)],
+        ['Diferencia de peso', transfer.weight_diff != null ? String(transfer.weight_diff) : null],
+        ['Registró', personName(transfer.created_by)],
+        ['Foto', photoStatus(transfer.photo_path)],
+      ],
       note: detail,
       created_at: when,
       source: 'incubapp',
@@ -173,6 +201,20 @@ export function buildProductionEvidence({ loads = [], transfers = [], hatches = 
       file_type: 'production',
       formatCode: 'PRODUCCIÓN · NACIMIENTO',
       workOrderTitle: 'Registro de nacimiento',
+      recordTitle: 'REGISTRO DE NACIMIENTO',
+      recordFields: [
+        ['Lote', hatch.lote || null],
+        ['Estado', closed ? 'Completado' : 'En curso'],
+        ['Modalidad', HATCH_MODE_LABEL[hatch.mode] || null],
+        ['Inicio', formatDateTime(hatch.started_at)],
+        ['Fin', formatDateTime(hatch.ended_at)],
+        ['Huevos incubables', count(hatch.incubable_eggs)],
+        ['Pollitos estimados', count(hatch.estimated_chicks)],
+        ['Pollitos nacidos', count(hatch.actual_chicks)],
+        ['Inició', personName(hatch.started_by)],
+        ['Cerró', hatch.closed_by ? personName(hatch.closed_by) : null],
+        ['Foto', photoStatus(hatch.photo_path)],
+      ],
       note: detail,
       created_at: when,
       source: 'incubapp',
@@ -253,6 +295,9 @@ function mantumHistoricalEvidence() {
           feedback: `${segment.person || ''} · ${segment.activity || order.feedback || 'Actividad registrada en Mantum'}`,
           date: recordDate,
           code: recordCode,
+          status: order.completed_at ? 'Cerrada en Mántum' : 'Registrada en Mántum',
+          technician: segment.person || order.technician || null,
+          approver: order.approver || null,
         });
 
         return {
@@ -757,6 +802,15 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [planSearchText, setPlanSearchText] = useState('');
   const [selectedTaskCode, setSelectedTaskCode] = useState(null);
   const [selectedRegistroFileId, setSelectedRegistroFileId] = useState(null);
+  const [instructionTask, setInstructionTask] = useState(null);
+  const openPlanTask = useCallback((task, extraCodes = []) => {
+    setInstructionTask({ task, manuals: manualsForTask(task, LOCAL_MAINTENANCE_MANUALS, extraCodes) });
+  }, []);
+  const closePlanTask = useCallback(() => setInstructionTask(null), []);
+  const openRegistro = useCallback((file) => {
+    if (file?.fileUrl) openRecordDocument({ url: file.fileUrl });
+    else if (file?.recordHtml) openRecordDocument({ html: file.recordHtml });
+  }, []);
 
 
   // Memos de filtrado para el Plan Anual
@@ -803,6 +857,19 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     });
   }, [planSystemFilter, planSearchText]);
 
+  // El archivo real de cada registro: el de la carpeta local (en desarrollo) o el importado al
+  // bucket sig-evidence (en producción, después de npm run import:sig-evidence).
+  const registroFileUrls = useMemo(() => {
+    const urls = new Map();
+    for (const file of LOCAL_DOCUMENT_LIBRARY) {
+      if (file.url) urls.set(normalizeSourcePath(file.sourcePath), file.url);
+    }
+    for (const file of allEvidence) {
+      if (file.kind === 'sig-registry' && file.url && file.sourcePath) urls.set(normalizeSourcePath(file.sourcePath), file.url);
+    }
+    return urls;
+  }, [allEvidence]);
+
   const filteredAnnualRegistros = useMemo(() => {
     const query = planSearchText.trim().toLowerCase();
     // Aplanar todas las OTs de Mantum en un mapa por código para hacer lookup rápido
@@ -822,21 +889,27 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         return matchesQuery;
       })
       .map((f) => {
-        // Buscar la OT en Mantum por el código del archivo (e.g. "OT-00001")
         const fileKey = String(f.machineCode || f.name || '').replace(/\.docx$/i, '').toUpperCase();
         const ot = mantumByCode[fileKey];
-        const generatedUrl = maintenanceRecordUrl({
-          machineCode: ot?.machineCode || f.machineCode || 'No registrado',
-          activity: ot?.activity || ot?.description || 'Mantenimiento preventivo',
-          description: ot?.description || ot?.activity || 'Registro histórico Mantum',
-          feedback: ot?.feedback || `Actividad ejecutada por ${MAINTENANCE_RESPONSIBLE}`,
-          date: ot?.completed_at || ot?.created_at || ot?.started_at || null,
-          code: f.machineCode || fileKey,
-          status: ot?.status || 'Registrada',
-        });
-        return { ...f, url: generatedUrl, mantumOt: ot || null };
+        const fileUrl = registroFileUrls.get(normalizeSourcePath(f.relPath)) || null;
+        // Hasta el 22-09-2026, cuando la OT no aparecía en Mántum (el caso de los 601 registros) se
+        // armaba un FOMAT01 genérico que decía «Actividad ejecutada por …»: un formato diligenciado que
+        // nadie llenó, y además FOMAT01 para listas de chequeo y calibraciones. Ahora se abre el archivo
+        // real; solo si falta y la OT sí está en Mántum se arma su FOMAT01 con esos datos.
+        const recordHtml = !fileUrl && ot ? buildMaintenanceRecordHtml({
+          machineCode: ot.machineCode,
+          activity: ot.activity,
+          description: ot.description,
+          feedback: ot.feedback,
+          date: ot.completed_at || ot.created_at || ot.started_at || null,
+          code: ot.code,
+          status: ot.completed_at ? 'Cerrada en Mántum' : 'Registrada en Mántum',
+          technician: ot.technician,
+          approver: ot.approver,
+        }) : null;
+        return { ...f, fileUrl, recordHtml, mantumOt: ot || null };
       });
-  }, [planSearchText]);
+  }, [planSearchText, registroFileUrls]);
 
 
   useEffect(() => {
@@ -1147,9 +1220,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .eq('org_id', orgId)
           .order('taken_at', { ascending: false })
           .limit(2000)),
+        // Todas las columnas: el FOMAT08 necesita las lecturas del equipo y del patrón.
         safeRows('las calibraciones', supabase
           .from('machine_calibrations')
-          .select('id, machine_id, work_order_id, performed_by, calibrated_at, scope, notes, photo_calibrator_path, photo_screen_path')
+          .select('*')
           .eq('org_id', orgId)
           .order('calibrated_at', { ascending: false })
           .limit(500)),
@@ -1181,7 +1255,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .limit(400)),
         safeRows('los nacimientos', supabase
           .from('hatch_events')
-          .select('id, lote, mode, status, estimated_chicks, actual_chicks, started_at, ended_at, started_by, closed_by, photo_path, created_at')
+          .select('id, lote, mode, status, incubable_eggs, estimated_chicks, actual_chicks, started_at, ended_at, started_by, closed_by, photo_path, created_at')
           .eq('org_id', orgId)
           .order('started_at', { ascending: false })
           .limit(400)),
@@ -1191,9 +1265,13 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .eq('org_id', orgId)),
       ]);
 
-      const ordersResult = await selectByIds('las órdenes de trabajo', evidenceResult.rows.map((file) => file.work_order_id), (ids) => supabase
+      // Las OT que respaldan evidencias y calibraciones, con todas sus columnas para su FOMAT01.
+      const ordersResult = await selectByIds('las órdenes de trabajo', [
+        ...evidenceResult.rows.map((file) => file.work_order_id),
+        ...calibrationsResult.rows.map((calibration) => calibration.work_order_id),
+      ], (ids) => supabase
         .from('work_orders')
-        .select('id, code, title, machine_id')
+        .select('*')
         .in('id', ids));
       const failedSources = [evidenceResult, checksResult, calibrationsResult, reportsResult, machinesResult, registryResult, loadsResult, transfersResult, hatchesResult, ordersResult]
         .map((result) => result.failed)
@@ -1202,6 +1280,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       const orderMap = Object.fromEntries(ordersResult.rows.map((order) => [order.id, order]));
       const machineMap = Object.fromEntries(machinesResult.rows.map((machine) => [machine.id, machine]));
       const people = Object.fromEntries(membersResult.rows.map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || 'Operario registrado']));
+      const personName = (userId) => (userId ? people[userId] || null : null);
       const calibrationPaths = calibrationsResult.rows.flatMap((calibration) => [calibration.photo_calibrator_path, calibration.photo_screen_path]);
       const [woUrls, registryUrls, checkUrls, calibrationUrls, productionUrls] = await Promise.all([
         signStoragePaths('wo-evidence', evidenceResult.rows.map((file) => file.file_path)),
@@ -1214,15 +1293,43 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       const calibrationFallbackUrls = await signStoragePaths('machine-checks', calibrationPaths.filter((path) => path && !calibrationUrls.has(path)));
       const calibrationUrl = (path) => (path ? calibrationUrls.get(path) || calibrationFallbackUrls.get(path) || null : null);
 
+      // Cada evidencia de OT lleva el resumen de todos los archivos de su OT: el FOMAT01 los lista todos.
+      const filesByOrder = new Map();
+      for (const file of evidenceResult.rows) {
+        if (!file.work_order_id) continue;
+        filesByOrder.set(file.work_order_id, [...(filesByOrder.get(file.work_order_id) || []), {
+          file_name: file.file_name,
+          file_type: file.file_type,
+          note: file.note,
+          created_at: file.created_at,
+          uploadedByName: personName(file.uploaded_by),
+          url: woUrls.get(file.file_path) || null,
+        }]);
+      }
       const resolved = evidenceResult.rows.map((file) => {
-        const order = orderMap[file.work_order_id] || {};
-        return { ...file, workOrderCode: order.code, workOrderTitle: order.title, machineId: order.machine_id, url: woUrls.get(file.file_path) || null, formatCode: formatCodeForEvidence({ ...file, workOrderCode: order.code }), source: 'incubapp', kind: 'work-order' };
+        const order = orderMap[file.work_order_id] || null;
+        return {
+          ...file,
+          workOrderCode: order?.code,
+          workOrderTitle: order?.title,
+          machineId: order?.machine_id,
+          url: woUrls.get(file.file_path) || null,
+          formatCode: formatCodeForEvidence({ ...file, workOrderCode: order?.code }),
+          source: 'incubapp',
+          kind: 'work-order',
+          uploadedByName: personName(file.uploaded_by),
+          order,
+          orderMachine: order ? machineMap[order.machine_id] || null : null,
+          orderPeople: order ? { createdBy: personName(order.created_by), assignedTo: personName(order.assigned_to) } : null,
+          orderFiles: filesByOrder.get(file.work_order_id) || [],
+        };
       });
       const resolvedRegistry = registryResult.rows.map((file) => ({
         id: `sig-${file.id}`,
         file_name: file.file_name,
         file_type: file.file_type,
         file_path: file.file_path,
+        sourcePath: file.metadata?.source_path || null,
         workOrderCode: file.machine_code,
         workOrderTitle: file.title,
         note: file.title,
@@ -1232,6 +1339,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         formatCode: file.format_code || 'EVIDENCIA SIG',
         url: registryUrls.get(file.file_path) || null,
       }));
+      const withAuthor = (reports = []) => reports.map((report) => ({ ...report, authorName: personName(report.user_id) }));
       const checksByRound = new Map();
       for (const check of checksResult.rows) {
         const rawShift = check.shift_number || 'T?';
@@ -1246,7 +1354,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       }
       const rounds = Array.from(checksByRound.entries()).map(([key, checks]) => {
         const [shiftDate, shiftNumber, hourSlot] = key.split('|');
-        const items = checks.map((check) => ({ ...check, url: check.photo_path ? checkUrls.get(check.photo_path) || null : null, machine: machineMap[check.machine_id] || null }));
+        const items = checks.map((check) => ({
+          ...check,
+          url: check.photo_path ? checkUrls.get(check.photo_path) || null : null,
+          machine: machineMap[check.machine_id] || null,
+          takenByName: personName(check.taken_by),
+        }));
         const latest = checks.reduce((date, check) => check.taken_at > date ? check.taken_at : date, checks[0]?.taken_at || null);
         return {
           id: `round-${key}`,
@@ -1258,8 +1371,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           created_at: latest,
           source: 'incubapp',
           kind: 'round',
+          shiftDate,
+          shiftCode: shiftNumber,
+          hourSlot,
           items,
-          reports: reportsByRound.get(`${shiftDate}|${shiftNumber}`) || [],
+          reports: withAuthor(reportsByRound.get(`${shiftDate}|${shiftNumber}`)),
           url: items.find((item) => item.url)?.url || null,
         };
       });
@@ -1276,8 +1392,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           created_at: reports[0]?.created_at || null,
           source: 'incubapp',
           kind: 'round',
+          shiftDate,
+          shiftCode: shiftNumber,
+          hourSlot: null,
           items: [],
-          reports,
+          reports: withAuthor(reports),
           url: null,
         });
       }
@@ -1298,6 +1417,10 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           source: 'incubapp',
           kind: 'calibration',
           uploaded_by: calibration.performed_by,
+          calibration,
+          machine,
+          performedByName: personName(calibration.performed_by),
+          workOrderCode: orderMap[calibration.work_order_id]?.code || null,
           items: photos,
           url: photos[0]?.url || null,
         };
@@ -1527,19 +1650,23 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
               />
               <div className="sig-evidence-global-list">
                 {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : !filteredEvidence.length ? <p className="sig-empty-tab">No hay evidencias que coincidan con la búsqueda.</p> : filteredEvidence.map((file) => (
-                  <button
-                    type="button"
-                    key={file.id}
-                    className={selectedDocumentId === file.id ? 'is-active' : ''}
-                    onClick={() => {
-                      setSelectedDocumentId(file.id);
-                      setSection('evidence');
-                    }}
-                  >
-                    <strong>{file.formatCode}</strong>
-                    <span>{file.file_name}</span>
-                    <small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small>
-                  </button>
+                  <div key={file.id} className="sig-evidence-row">
+                    <button
+                      type="button"
+                      className={selectedDocumentId === file.id ? 'is-active' : ''}
+                      onClick={() => {
+                        setSelectedDocumentId(file.id);
+                        setSection('evidence');
+                      }}
+                    >
+                      <strong>{file.formatCode}</strong>
+                      <span>{file.file_name}</span>
+                      <small>{file.created_at ? new Date(file.created_at).toLocaleString('es-CO') : 'Sin fecha'} · {file.source === 'mantum' ? 'Mantum' : 'IncubApp'}</small>
+                    </button>
+                    {hasEvidenceFormat(file) && (
+                      <a href="#formato" className="sig-format-link" title={`Abrir el formato diligenciado de ${file.file_name}`} onClick={(event) => { event.preventDefault(); openEvidenceFormat(file); }}>Formato ↗</a>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -1707,6 +1834,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
             {annualPlanSubTab === 'preventive' && (
               <div className="sig-table-wrap bg-white rounded-lg border p-2">
+                <p className="text-xs text-slate-500 mb-2">Haz clic en una actividad para ver cómo se realiza.</p>
                 <table>
                   <thead>
                     <tr>
@@ -1722,12 +1850,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                   </thead>
                   <tbody>
                     {filteredAnnualTasks.map((t) => (
-                      <tr key={t.code}>
+                      <tr key={t.code} className="sig-plan-row" onClick={() => openPlanTask(t)}>
                         <td className="font-bold text-xs text-amber-600">{t.code}</td>
                         <td className="text-xs">{t.sede}</td>
                         <td className="text-xs font-semibold">{t.system} <br /><span className="text-[10px] text-slate-400">{t.equipmentClass}</span></td>
                         <td className="text-xs text-slate-600 max-w-[150px] truncate" title={t.applyingEquipment}>{t.applyingEquipment}</td>
-                        <td className="text-xs font-medium max-w-[280px]">{t.description}</td>
+                        <td className="text-xs font-medium max-w-[280px]"><button type="button" className="sig-link-button" title="Ver cómo se realiza esta actividad" onClick={(event) => { event.stopPropagation(); openPlanTask(t); }}>{t.description}</button></td>
                         <td className="text-xs">{t.frequency}</td>
                         <td className="text-xs text-center">{t.duration || 'N/A'}</td>
                         <td className="text-xs text-center">
@@ -1844,7 +1972,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             {annualPlanSubTab === 'registros' && (
               <div className="sig-table-wrap bg-white rounded-lg border p-2">
                 <p className="text-xs text-slate-500 mb-2">
-                  Haz clic en cualquier fila para abrir el formato original diligenciado. Se generan dinámicamente desde los datos Mantum.
+                  Cada fila abre el archivo diligenciado de la carpeta REGISTROS del SIG. Los marcados «Sin publicar» solo están en el equipo de mantenimiento: se suben a la nube con npm run import:sig-evidence.
                 </p>
                 <table>
                   <thead>
@@ -1866,8 +1994,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                         <tr
                           key={`${f.relPath}-${idx}`}
                           style={{ cursor: 'pointer' }}
-                          onClick={() => f.url && window.open(f.url, '_blank', 'noopener,noreferrer')}
-                          title="Clic para abrir el formato diligenciado"
+                          onClick={() => openRegistro(f)}
+                          title={f.fileUrl || f.recordHtml ? 'Clic para abrir el formato diligenciado' : 'Archivo sin publicar en la nube'}
                           className="hover:bg-blue-50 transition-colors"
                         >
                           <td className="font-bold text-xs text-blue-600">{f.formatCode}</td>
@@ -1880,16 +2008,20 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                           </td>
                           <td className="text-xs text-slate-500 whitespace-nowrap">{fechaStr}</td>
                           <td className="text-xs">
-                            <a
-                              href={f.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline font-semibold"
-                              onClick={(e) => e.stopPropagation()}
-                              title="Abrir formato FOMAT01 diligenciado"
-                            >
-                              Ver ↗
-                            </a>
+                            {f.fileUrl || f.recordHtml ? (
+                              <a
+                                href={f.fileUrl || '#formato'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline font-semibold"
+                                onClick={(e) => { e.stopPropagation(); if (!f.fileUrl) { e.preventDefault(); openRegistro(f); } }}
+                                title="Abrir el formato diligenciado"
+                              >
+                                Ver ↗
+                              </a>
+                            ) : (
+                              <span className="text-slate-400" title="El archivo está en la carpeta REGISTROS del SIG en el equipo de mantenimiento y todavía no se subió a la nube (npm run import:sig-evidence).">Sin publicar</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1939,7 +2071,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Fotos y registros de órdenes de trabajo, rondas, calibraciones y producción (cargues, transferencias y nacimientos), tal como están en la base.</p>
             {evidenceWarnings.length > 0 && <p className="sig-empty-tab" role="status">No se pudo leer {evidenceWarnings.join(', ')}. El resto de las evidencias sí está al día.</p>}
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div>{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div><div className="sig-evidence-actions">{hasEvidenceFormat(selectedDocument) && <button type="button" className="sig-format-button" onClick={() => openEvidenceFormat(selectedDocument)}>Formato diligenciado ↗</button>}{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div></div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">
@@ -2038,7 +2170,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                       <div className="sig-evidence-list">
                         {documents.map((file) => <button type="button" key={file.id} className={file.id === selectedDocumentId ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
                       </div>
-                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#'} target="_blank" rel="noopener noreferrer">Abrir archivo</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
+                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#formato'} target="_blank" rel="noopener noreferrer" onClick={(event) => { event.preventDefault(); openEvidenceFormat(selectedDocument); }}>Abrir formato ↗</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
                     </>}
                   </div>
                 )}
@@ -2051,12 +2183,37 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                           <tr key={ot.id || `${ot.code || 'ot'}-${index}`}>
                             <td>{ot.created_at ? new Date(ot.created_at).toLocaleDateString('es-CO') : 'Histórico Mantum'}</td>
                             <td>
-                              {ev && ev.url ? (
-                                <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" title="Abrir evidencia original">
+                              {ot.sin_registro ? (
+                                <span title="Programada en el plan; no hay registro de ejecución, así que no hay formato diligenciado">{ot.description || ot.activity || 'OT Operativa'}</span>
+                              ) : ev ? (
+                                <a href="#formato" className="text-blue-600 hover:underline" title="Abrir el formato diligenciado de esta evidencia" onClick={(event) => { event.preventDefault(); openEvidenceFormat(ev); }}>
                                   {ot.description || ot.activity || 'OT Operativa'} ↗
                                 </a>
                               ) : (
-                                <span>{ot.description || ot.activity || 'OT Operativa'}</span>
+                                <a
+                                  href="#formato"
+                                  className="text-blue-600 hover:underline"
+                                  title="Abrir el FOMAT01 diligenciado con los datos de esta OT"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    openRecordDocument({
+                                      html: buildMaintenanceRecordHtml({
+                                        machineCode: selectedMachine?.code,
+                                        activity: ot.activity || ot.title,
+                                        description: ot.description,
+                                        feedback: ot.feedback || ot.resolution,
+                                        date: ot.completed_at || ot.created_at || ot.started_at || null,
+                                        code: ot.code,
+                                        status: ot.status || (ot.completed_at ? 'Cerrada en Mántum' : 'Registrada en Mántum'),
+                                        technician: ot.technician || ot.technician_name,
+                                        approver: ot.approver || ot.approver_name,
+                                        origin: ot.org_id ? 'Registro tomado de la orden de trabajo en IncubApp.' : undefined,
+                                      }),
+                                    });
+                                  }}
+                                >
+                                  {ot.description || ot.activity || 'OT Operativa'} ↗
+                                </a>
                               )}
                             </td>
                             <td>{ot.sin_registro ? 'Sin registro' : ot.technician || ot.technician_name || ot.profiles?.full_name || 'N/A'}</td>
@@ -2072,7 +2229,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                   dossier.calibrations.length ? <div className="sig-table-wrap"><table><thead><tr><th>Fecha</th><th>Alcance</th><th>Resultado</th></tr></thead><tbody>{dossier.calibrations.map((cal, index) => <tr key={cal.id || index}><td>{cal.calibrated_at ? new Date(cal.calibrated_at).toLocaleDateString('es-CO') : 'Sin fecha'}</td><td>{cal.scope || 'Equipo'}</td><td>{cal.result || cal.status || 'Registrada'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay calibraciones registradas para este activo.</p>
                 )}
                 {detailTab === 'plan' && (
-                  dossier.maintenancePlan?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Actividad</th><th>Frecuencia</th><th>Especialidad</th></tr></thead><tbody>{dossier.maintenancePlan.map((task, index) => <tr key={task.plan_code || index}><td>{task.activity || task.title || 'Actividad preventiva'}</td><td>{task.frequency || 'Programada'}</td><td>{task.specialty || 'Mantenimiento'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay tareas de mantenimiento programadas para este activo.</p>
+                  dossier.maintenancePlan?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Actividad</th><th>Frecuencia</th><th>Especialidad</th></tr></thead><tbody>{dossier.maintenancePlan.map((task, index) => <tr key={task.plan_code || task.code || index}><td><button type="button" className="sig-link-button" title="Ver cómo se realiza esta actividad" onClick={() => openPlanTask(task, [selectedMachine?.code, selectedMachine?.mantum_code])}>{task.activity || task.description || task.title || 'Actividad preventiva'}</button></td><td>{task.frequency || 'Programada'}</td><td>{task.specialty || 'Mantenimiento'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay tareas de mantenimiento programadas para este activo.</p>
                 )}
                 {detailTab === 'components' && (
                   dossier.components?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Componente</th><th>Especificación</th><th>Estado</th><th>Vida útil</th></tr></thead><tbody>{dossier.components.map((component, index) => <tr key={component.code || index}><td>{component.name || 'Componente'}</td><td>{component.component_spec || component.reference || 'Según ficha Mantum'}</td><td>{component.status || 'Registrado'}</td><td>{component.useful_life_pct != null ? `${component.useful_life_pct}%` : 'S/D'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay componentes registrados para este activo.</p>
@@ -2084,6 +2241,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           <div className="h-full flex items-center justify-center text-slate-400">Error al cargar el dossier.</div>
         )}
       </div >
+      <PlanTaskInstructions task={instructionTask?.task} manuals={instructionTask?.manuals || []} onClose={closePlanTask} />
     </div >
   );
 };
