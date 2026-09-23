@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { readBootCache, saveBootCache } from '../lib/offlineAuth'
 
 /**
  * Perfil del usuario con sincronización bidireccional:
@@ -34,7 +35,10 @@ export function useProfile(userId) {
       setLoading(false)
       return
     }
-    setLoading(true)
+    // Sin red la app arranca con el último perfil guardado en el dispositivo.
+    const cached = readBootCache('profile', userId)
+    if (cached) setProfile(cached)
+    setLoading(!cached)
     try {
       const { data, error: err } = await supabase
         .from('profiles')
@@ -42,7 +46,10 @@ export function useProfile(userId) {
         .eq('id', userId)
         .maybeSingle()
       if (err) setError(err.message)
-      else setProfile(data)
+      else {
+        setProfile(data)
+        if (data) saveBootCache('profile', userId, data)
+      }
     } catch (e) {
       setError(e?.message || String(e))
     } finally {

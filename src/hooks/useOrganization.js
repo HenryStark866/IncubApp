@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { ACTIVE_ORG_STORAGE_KEY } from '../lib/platform'
+import { readBootCache, saveBootCache } from '../lib/offlineAuth'
 
 function readStoredOrgId() {
   try {
@@ -64,7 +65,14 @@ export function useOrganization(userId) {
       setLoading(false)
       return
     }
-    setLoading(true)
+    // Sin red la app arranca con las empresas guardadas del último ingreso.
+    const cached = readBootCache('memberships', userId)
+    if (Array.isArray(cached) && cached.length) {
+      setMemberships(cached)
+      const preferred = readStoredOrgId()
+      applyMembership(cached.find((r) => r.org_id === preferred || r.organizations?.id === preferred) || cached[0])
+    }
+    setLoading(!(Array.isArray(cached) && cached.length))
     try {
       const { data, error: err } = await supabase
         .from('organization_members')
@@ -92,12 +100,16 @@ export function useOrganization(userId) {
         }
         if (retry.error) {
           setError(retry.error.message)
-          setMemberships([])
-          applyMembership(null)
+          // Error de red con empresas guardadas: se sigue trabajando con ellas.
+          if (!(Array.isArray(cached) && cached.length)) {
+            setMemberships([])
+            applyMembership(null)
+          }
         } else {
           setError(null)
           const rows = retry.data ?? []
           setMemberships(rows)
+          saveBootCache('memberships', userId, rows)
           const preferred = readStoredOrgId()
           const pick =
             rows.find((r) => r.org_id === preferred || r.organizations?.id === preferred) ||
@@ -109,6 +121,7 @@ export function useOrganization(userId) {
         setError(null)
         const rows = data ?? []
         setMemberships(rows)
+        saveBootCache('memberships', userId, rows)
         const preferred = readStoredOrgId()
         const pick =
           rows.find((r) => r.org_id === preferred || r.organizations?.id === preferred) ||

@@ -8,8 +8,9 @@
  * =============================================================================
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, supabaseConfigError } from './lib/supabase.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { supabase, supabaseConfigError, SIGNED_OUT_EVENT, SUPABASE_URL } from './lib/supabase.js'
+import { isNetworkError, OFFLINE_SESSION_EVENT, readStoredSession } from './lib/offlineAuth.js'
 import { checkIsRecoveryUrl, readPendingSignupContext, clearPendingSignupContext } from './lib/authService.js'
 // Shell ligero (eager): auth, nav, chrome. Paneles pesados → lazyPanels (code-split).
 import AuthForm from './components/AuthForm.jsx'
@@ -1000,25 +1001,44 @@ function Workspace({
 // Decide qué pantalla mostrar antes del Workspace. Henry Stark Desarrollador
 // ---------------------------------------------------------------------------
 export default function App() {
-  const [session, setSession] = useState(null)
+  const [session, setSessionState] = useState(null)
+  const sessionRef = useRef(null)
+  const setSession = useCallback((s) => {
+    sessionRef.current = s
+    setSessionState(s)
+  }, [])
   const [ready, setReady] = useState(false)
   const [isRecoveryMode, setIsRecoveryMode] = useState(() => checkIsRecoveryUrl())
+
+  /*
+   * Sin red (23-09-2026): si el servidor no responde, la app abre con la última
+   * sesión guardada en el dispositivo en vez de sacar al usuario. Al volver la
+   * señal, supabase-js renueva el token solo y la sesión vuelve a ser la real.
+   */
+  const openStoredSessionOffline = useCallback(() => {
+    const stored = readStoredSession(SUPABASE_URL)
+    if (stored && !sessionRef.current) setSession({ ...stored, offline: true })
+    return !!stored
+  }, [setSession])
 
   useEffect(() => {
     let alive = true
     // Nunca colgar el arranque: máximo 4s aunque Supabase no responda
     const timeout = setTimeout(() => {
       if (alive) {
-        console.warn('getSession timeout — continuando sin sesión')
+        console.warn('getSession timeout — continuando con la sesión guardada si la hay')
+        openStoredSessionOffline()
         setReady(true)
       }
     }, 4000)
 
     supabase.auth
       .getSession()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (!alive) return
-        setSession(data.session ?? null)
+        if (data.session) setSession(data.session)
+        else if ((error && isNetworkError(error)) || navigator.onLine === false) openStoredSessionOffline()
+        else setSession(null)
         if (data.session?.access_token) {
           try {
             supabase.realtime.setAuth(data.session.access_token)
@@ -1029,6 +1049,7 @@ export default function App() {
       })
       .catch((err) => {
         console.error('getSession:', err)
+        if (alive) openStoredSessionOffline()
       })
       .finally(() => {
         clearTimeout(timeout)
@@ -1038,6 +1059,9 @@ export default function App() {
     let sub
     try {
       const res = supabase.auth.onAuthStateChange((event, s) => {
+        // Sin red, supabase-js puede avisar «sin sesión» porque no logró renovar el
+        // token: eso no es un cierre de sesión y no debe sacar a quien trabaja offline.
+        if (!s && event !== 'SIGNED_OUT' && sessionRef.current?.offline) return
         setSession(s)
         if (event === 'PASSWORD_RECOVERY') {
           setIsRecoveryMode(true)
@@ -1053,16 +1077,41 @@ export default function App() {
     } catch (e) {
       console.error('onAuthStateChange:', e)
     }
+    // Entrada sin conexión desde el formulario de acceso (AuthForm).
+    const onOffline = (e) => {
+      if (e.detail?.session) setSession(e.detail.session)
+    }
+    window.addEventListener(OFFLINE_SESSION_EVENT, onOffline)
+
+    // Volvió la red: si la sesión offline era solo local, hay que iniciar sesión de
+    // verdad para sincronizar (la cola de registros se conserva en el dispositivo).
+    const onOnline = async () => {
+      if (!sessionRef.current?.offline) return
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (data.session) setSession(data.session)
+        else if (sessionRef.current?.access_token === 'offline') setSession(null)
+      } catch {
+        /* sigue offline */
+      }
+    }
+    window.addEventListener('online', onOnline)
+    const onSignedOut = () => setSession(null)
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut)
+
     return () => {
       alive = false
       clearTimeout(timeout)
+      window.removeEventListener(OFFLINE_SESSION_EVENT, onOffline)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut)
       try {
         sub?.subscription?.unsubscribe()
       } catch {
         /* */
       }
     }
-  }, [])
+  }, [setSession, openStoredSessionOffline])
 
   const userId = session?.user?.id ?? null
   const profileApi = useProfile(userId)
@@ -1076,32 +1125,33 @@ export default function App() {
     loading: orgLoading,
   } = useOrganization(userId)
 
-  // Auto-vincular usuarios nuevos (Google OAuth o registro) a su organización y aprobarlos
+  /*
+   * Registro como en el inicio (23-09-2026): quien crea su cuenta queda vinculado a
+   * la empresa que ELIGIÓ y pendiente de aprobación. Hasta hoy, desde que entró el
+   * acceso con Google, a cualquier cuenta sin empresa se le aprobaba el acceso y se
+   * la metía en una empresa fija; eso se quitó. El vínculo normalmente lo hace el
+   * servidor con org_id del registro; esto solo lo completa si faltara, sin aprobar.
+   */
   useEffect(() => {
-    if (!userId || orgLoading || memberships.length > 0) return
+    if (!userId || orgLoading || memberships.length > 0 || session?.offline) return
 
     const pending = readPendingSignupContext()
-    const pendingOrg = pending.orgId || 'd54fca1e-1878-4967-aee5-330aa2e631cc'
+    const pendingOrg = pending.orgId || session?.user?.user_metadata?.org_id || null
+    if (!pendingOrg) return
     const pendingName = pending.fullName || session?.user?.user_metadata?.full_name || ''
 
     async function ensureUserMembership() {
       try {
-        clearPendingSignupContext()
-
-        // Asegurar que su perfil esté aprobado y tenga nombre
-        const updates = { is_approved: true }
-        if (pendingName) updates.full_name = pendingName
-        await supabase.from('profiles').update(updates).eq('id', userId)
-
-        // Crear membresía en Antioqueña de Incubación SAS (o la empresa seleccionada)
-        await supabase.from('organization_members').upsert({
+        if (pendingName) await supabase.from('profiles').update({ full_name: pendingName }).eq('id', userId)
+        const { error } = await supabase.from('organization_members').upsert({
           org_id: pendingOrg,
           user_id: userId,
           role: 'operator',
           area: 'general',
         })
+        if (!error) clearPendingSignupContext()
       } catch (err) {
-        console.warn('Auto-membership notice:', err)
+        console.warn('Vínculo con la empresa pendiente:', err)
       }
     }
     ensureUserMembership()

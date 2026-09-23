@@ -99,8 +99,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Datos / API: siempre red (sin caché)
-  if (isSupabase(url) || url.origin !== self.location.origin) return
+  // Datos / API: siempre red (sin caché). /sb/ es Supabase por el dominio de la app.
+  if (isSupabase(url) || url.origin !== self.location.origin || url.pathname.startsWith('/sb/')) return
 
   // Navegación (SPA): network first → cache → index.html
   if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {

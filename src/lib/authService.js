@@ -1,8 +1,9 @@
 /**
  * =============================================================================
  * ARCHIVO: src/lib/authService.js
- * PROPÓSITO: Servicio unificado de Autenticación, Recuperación de Contraseña,
- * Inicio de Sesión con Google y Sincronización con Base de Datos / Dependencias.
+ * PROPÓSITO: Servicio unificado de Autenticación, Recuperación de Contraseña y
+ * Sincronización con Base de Datos / Dependencias. El acceso con Google se retiró
+ * el 23-09-2026 (a pedido de Henry): se entra solo con correo y contraseña.
  * Mantenido por: Henry Stark Desarrollador — IncubApp SIG
  * =============================================================================
  */
@@ -97,47 +98,6 @@ export async function updatePassword(newPassword) {
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message || 'Error al actualizar contraseña.' }
-  }
-}
-
-/**
- * Inicia sesión mediante OAuth de Google.
- * @returns {Promise<{ success: boolean, error?: string }>} 
- */
-export async function signInWithGoogle() {
-  try {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: origin,
-        skipBrowserRedirect: true,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
-        },
-      },
-    })
-    if (error) return { success: false, error: error.message }
-
-    if (data?.url) {
-      // Verificar si el proveedor está habilitado en Supabase antes de redirigir al usuario
-      const checkRes = await fetch(data.url, { method: 'GET', redirect: 'manual' }).catch(() => null)
-      if (checkRes && checkRes.status === 400) {
-        const json = await checkRes.json().catch(() => null)
-        if (json?.error_code === 'validation_failed' || json?.msg?.includes('provider is not enabled')) {
-          return {
-            success: false,
-            error: 'El acceso con Google no está activado en este servidor de Supabase. Por favor ingresa con tu correo y contraseña.',
-          }
-        }
-      }
-      window.location.href = data.url
-      return { success: true }
-    }
-    return { success: false, error: 'No se obtuvo URL de inicio de sesión.' }
-  } catch (err) {
-    return { success: false, error: err.message || 'Error al conectar con Google.' }
   }
 }
 
