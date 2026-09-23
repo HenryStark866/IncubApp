@@ -149,14 +149,21 @@
   // ── Mundo ────────────────────────────────────────────────────────────────
   let mundo = Mundo.construirPlanta(D, opciones)
   escena.add(mundo.raiz)
-  const L = mundo.limites
+  // Un solo objeto de límites para toda la app (controles, encuadre, sol y
+  // plano de ubicación). Al reconstruir se actualiza EN SU SITIO: si el plano
+  // en vivo no mide lo mismo que la instantánea, todos lo ven.
+  const L = { ...mundo.limites }
+  const inicio = performance.now()
 
-  sol.position.set(L.cx + 70, 110, L.cz - 90)
-  sol.target.position.set(L.cx, 0, L.cz)
-  const sc = sol.shadow.camera
-  sc.left = -(L.ancho / 2 + 25); sc.right = L.ancho / 2 + 25
-  sc.top = L.largo / 2 + 60; sc.bottom = -(L.largo / 2 + 60)
-  sc.updateProjectionMatrix()
+  function ajustarSol() {
+    sol.position.set(L.cx + 70, 110, L.cz - 90)
+    sol.target.position.set(L.cx, 0, L.cz)
+    const sc = sol.shadow.camera
+    sc.left = -(L.ancho / 2 + 25); sc.right = L.ancho / 2 + 25
+    sc.top = L.largo / 2 + 60; sc.bottom = -(L.largo / 2 + 60)
+    sc.updateProjectionMatrix()
+  }
+  ajustarSol()
 
   // ── Controles ────────────────────────────────────────────────────────────
   const fps = Controles.PrimeraPersona(camara, lienzo, { limites: L })
@@ -1063,10 +1070,11 @@
   const mini = $('#lienzoMini')
   const mctx = mini.getContext('2d')
   const MARGEN = 8
-  const escalaMini = Math.min(
-    (mini.width - MARGEN * 2) / L.ancho,
-    (mini.height - MARGEN * 2) / L.largo
-  )
+  let escalaMini = 1
+  function ajustarMini() {
+    escalaMini = Math.min((mini.width - MARGEN * 2) / L.ancho, (mini.height - MARGEN * 2) / L.largo)
+  }
+  ajustarMini()
   const mx = (x) => MARGEN + (x - L.minX) * escalaMini
   const mz = (z) => MARGEN + (z - L.minZ) * escalaMini
 
@@ -1362,9 +1370,12 @@
 
   // ── Portada ──────────────────────────────────────────────────────────────
   $('#tituloPlanta').textContent = D.meta.nombre
-  $('#subPlanta').textContent = `${D.meta.empresa} · ${D.meta.ciudad} · ${L.ancho} × ${L.largo} m`
-  $('#subPortada').textContent = `${D.meta.empresa} · ${D.meta.nombre} · ${D.meta.ciudad} · ${D.rooms.length} áreas · ${D.machines.length} equipos`
-  $('#pieMini').textContent = `${L.ancho} × ${L.largo} m · ${D.rooms.length} áreas`
+  function rotularMedidas() {
+    $('#subPlanta').textContent = `${D.meta.empresa} · ${D.meta.ciudad} · ${L.ancho} × ${L.largo} m`
+    $('#subPortada').textContent = `${D.meta.empresa} · ${D.meta.nombre} · ${D.meta.ciudad} · ${D.rooms.length} áreas · ${D.machines.length} equipos`
+    $('#pieMini').textContent = `${L.ancho} × ${L.largo} m · ${D.rooms.length} áreas`
+  }
+  rotularMedidas()
 
   function cerrarPortada() { $('#portada').style.display = 'none' }
   $('#btnEntrar').onclick = () => {
@@ -1457,6 +1468,22 @@
     fps.rampas = mundo.rampas
     recogerRotulos()
     aplicarOpciones()
+
+    // El plano en vivo puede no medir lo que la instantánea (el 23-09-2026: 86 m
+    // en vivo contra 154 m en la instantánea). El encuadre, el sol, su sombra y
+    // el plano de ubicación seguían con las medidas viejas: la planta quedaba
+    // chica y corrida a un lado. Si cambian, se recalculan; y si es la primera
+    // lectura en vivo, recién abierta la maqueta, se vuelve a encuadrar.
+    const nuevos = mundo.limites
+    const cambio = ['minX', 'minZ', 'maxX', 'maxZ'].some((k) => Math.abs(nuevos[k] - L[k]) > 0.01)
+    if (cambio) {
+      Object.assign(L, nuevos)
+      ajustarSol()
+      ajustarMini()
+      rotularMedidas()
+      const deConjunto = vista === 'orbita' || vista === 'cenital' || vista === 'iso'
+      if (deConjunto && performance.now() - inicio < 20000) ponerVista(vista, true)
+    }
 
     // La selección abierta se refresca contra el objeto nuevo, o se cierra si
     // lo que estaba seleccionado dejó de existir.
