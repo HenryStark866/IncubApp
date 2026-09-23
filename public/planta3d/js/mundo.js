@@ -249,6 +249,99 @@
 
   const round2 = (n) => Math.round(n * 100) / 100
 
+  // ── Texturas de detalle, pintadas en un lienzo ─────────────────────────
+  // Grano para el pasto y el concreto, y la sombra de contacto de los equipos.
+  // Son multiplicadores en gris: no cambian el color de cada material, solo le
+  // dan textura. Se pintan una vez y las comparten todas las reconstrucciones
+  // (`compartida`: app.js no las libera al rehacer la planta).
+  const texturas = {}
+
+  function azar(semilla) {
+    let s = semilla % 2147483647
+    return () => (s = (s * 16807) % 2147483647) / 2147483647
+  }
+
+  function texturaGrano(clave, trazos, largo, contraste) {
+    if (texturas[clave]) return texturas[clave]
+    const N = 256
+    const c = document.createElement('canvas')
+    c.width = c.height = N
+    const ctx = c.getContext('2d')
+    ctx.fillStyle = 'rgb(236,236,236)'
+    ctx.fillRect(0, 0, N, N)
+    const r = azar(clave.length * 7919 + 17)
+    for (let i = 0; i < trazos; i++) {
+      const v = Math.round(236 + (r() - 0.62) * contraste)
+      ctx.strokeStyle = `rgb(${v},${v},${v})`
+      ctx.lineWidth = 1 + r() * 1.4
+      const x = r() * N, y = r() * N
+      const a = largo > 1 ? -Math.PI / 2 + (r() - 0.5) * 0.9 : r() * Math.PI * 2
+      const l = largo * (0.5 + r())
+      // Se pinta también desplazado un lado del lienzo: así el grano no se
+      // corta en el borde y la textura se repite sin costura.
+      for (const [dx, dy] of [[0, 0], [-N, 0], [0, -N], [-N, -N]]) {
+        ctx.beginPath()
+        ctx.moveTo(x + dx, y + dy)
+        ctx.lineTo(x + dx + Math.cos(a) * l, y + dy + Math.sin(a) * l)
+        ctx.stroke()
+      }
+    }
+    const t = new THREE.CanvasTexture(c)
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.anisotropy = 8
+    t.userData.compartida = true
+    texturas[clave] = t
+    return t
+  }
+
+  /** Mismo grano con otra repetición: comparte el lienzo, no la escala. */
+  function granoRepetido(base, rx, ry) {
+    const t = base.clone()
+    t.repeat.set(rx, ry)
+    t.needsUpdate = true
+    t.userData.compartida = true
+    return t
+  }
+
+  /** Degradado de la penumbra piso–muro: oscuro contra el muro, nada a 40 cm. */
+  function texturaPenumbra() {
+    if (texturas.penumbra) return texturas.penumbra
+    const c = document.createElement('canvas')
+    c.width = 4
+    c.height = 64
+    const ctx = c.getContext('2d')
+    // Con flipY, la fila de abajo del lienzo es v = 0: el pie del muro.
+    const g = ctx.createLinearGradient(0, 64, 0, 0)
+    g.addColorStop(0, 'rgba(0,0,0,0.34)')
+    g.addColorStop(0.25, 'rgba(0,0,0,0.17)')
+    g.addColorStop(0.6, 'rgba(0,0,0,0.05)')
+    g.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 4, 64)
+    const t = new THREE.CanvasTexture(c)
+    t.userData.compartida = true
+    texturas.penumbra = t
+    return t
+  }
+
+  function texturaSombraContacto() {
+    if (texturas.sombra) return texturas.sombra
+    const c = document.createElement('canvas')
+    c.width = c.height = 128
+    const ctx = c.getContext('2d')
+    // Sombra desenfocada de un rectángulo que se pinta fuera del lienzo: solo
+    // cae dentro la sombra, sin el rectángulo.
+    ctx.shadowColor = 'rgba(0,0,0,1)'
+    ctx.shadowBlur = 20
+    ctx.shadowOffsetX = 1000
+    ctx.fillStyle = '#000'
+    ctx.fillRect(26 - 1000, 26, 76, 76)
+    const t = new THREE.CanvasTexture(c)
+    t.userData.compartida = true
+    texturas.sombra = t
+    return t
+  }
+
   function tono(hex, f) {
     const c = new THREE.Color(hex)
     c.multiplyScalar(f)
@@ -615,9 +708,14 @@
     const masAlto = (a, b) => (RANGO_REMATE[b] || 0) > (RANGO_REMATE[a] || 0) ? b : a
 
     // ── Terreno ────────────────────────────────────────────────────────────
+    // 2,4 km de lado: el borde queda siempre dentro de la niebla y no se ve
+    // dónde se acaba el mundo. El grano se repite cada 3 m.
     const terreno = new THREE.Mesh(
-      new THREE.PlaneGeometry(600, 600),
-      new THREE.MeshStandardMaterial({ color: 0x1e2a1b, roughness: 1 })
+      new THREE.PlaneGeometry(2400, 2400),
+      new THREE.MeshStandardMaterial({
+        color: 0x1f3a0c, roughness: 1,
+        map: granoRepetido(texturaGrano('pasto', 5200, 5, 150), 800, 800),
+      })
     )
     terreno.rotation.x = -Math.PI / 2
     terreno.position.set(limites.cx, NIVEL_TERRENO - 0.05, limites.cz)
@@ -626,7 +724,10 @@
 
     const explanada = new THREE.Mesh(
       new THREE.PlaneGeometry(limites.ancho + 26, limites.largo + 26),
-      new THREE.MeshStandardMaterial({ color: 0x323944, roughness: 0.95 })
+      new THREE.MeshStandardMaterial({
+        color: 0x363633, roughness: 0.95,
+        map: granoRepetido(texturaGrano('concreto', 2600, 1, 70), (limites.ancho + 26) / 2.5, (limites.largo + 26) / 2.5),
+      })
     )
     explanada.rotation.x = -Math.PI / 2
     explanada.position.set(limites.cx, NIVEL_TERRENO - 0.02, limites.cz)
@@ -890,6 +991,61 @@
 
       r._yPiso = piso.position.y
     })
+
+    // ── Penumbra del encuentro piso–muro ───────────────────────────────────
+    // Una franja que se desvanece a lo largo de cada muro, por dentro de la
+    // sala: la penumbra que hay en todo rincón real. Sin ella piso y muro se
+    // cortaban limpio, como en una maqueta de cartón, y los rincones se veían
+    // tan claros como el centro. Es una sola malla para toda la planta.
+    {
+      const ANCHO = 0.4
+      const pos = []
+      const uv = []
+      porArea.forEach((r) => {
+        if (r.type === 'plenum' || !r._cat || !r._cat.muro || r._yPiso == null) return
+        // `_yPiso` sobrevive entre reconstrucciones: una sala del nivel oculto
+        // conserva el de la vez anterior y su franja quedaría flotando.
+        if (!seVeNivel(esNivel2(r) ? 2 : 1)) return
+        const pts = esLibre(r)
+          ? contornoDe(r)
+          : [{ x: r.x, z: r.y }, { x: r.x + r.w, z: r.y }, { x: r.x + r.w, z: r.y + r.h }, { x: r.x, z: r.y + r.h }]
+        if (pts.length < 3) return
+        // Lado de adentro: a la izquierda de cada arista si el contorno va en
+        // sentido antihorario (área con signo positivo), a la derecha si no.
+        let area = 0
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length]
+          area += a.x * b.z - b.x * a.z
+        }
+        const lado = area >= 0 ? 1 : -1
+        const w = Math.min(ANCHO, Math.min(r.w, r.h) * 0.3)
+        const y = r._yPiso + 0.003
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length]
+          const dx = b.x - a.x, dz = b.z - a.z
+          const L = Math.hypot(dx, dz)
+          if (L < 0.2) continue
+          const nx = (-dz / L) * lado * w, nz = (dx / L) * lado * w
+          pos.push(a.x, y, a.z, b.x, y, b.z, b.x + nx, y, b.z + nz)
+          pos.push(a.x, y, a.z, b.x + nx, y, b.z + nz, a.x + nx, y, a.z + nz)
+          uv.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1)
+        }
+      })
+      if (pos.length) {
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+        geo.computeBoundingSphere()
+        const penumbra = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+          map: texturaPenumbra(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+          polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+        }))
+        penumbra.renderOrder = 1
+        penumbra.name = 'penumbra'
+        penumbra.userData.sinHolograma = true
+        raiz.add(penumbra)
+      }
+    }
 
     // Altura efectiva de una sala: la que traiga el plano, si no la de su tipo.
     // `r.altura` permite cuartos más bajos que el estándar (p. ej. la cava del huevo, 2.2 m).
@@ -2519,6 +2675,17 @@
         malla.castShadow = lista[0].castShadow
         malla.receiveShadow = lista[0].receiveShadow
         malla.renderOrder = lista[0].renderOrder
+        // Lo que no se tiñe en modo holograma (la sombra de contacto) sigue sin
+        // teñirse una vez fundido: la malla nueva no hereda el userData.
+        if (lista.every((o) => o.userData && o.userData.sinHolograma)) malla.userData.sinHolograma = true
+        // Fundido con el holograma puesto: la malla nueva hereda el material
+        // original de las que junta (el mismo para todas, porque el holograma
+        // se clona por material), o al apagarlo se quedaría teñida.
+        const original = lista[0].userData && lista[0].userData.hologramaOriginal
+        if (original && lista.every((o) => o.userData.hologramaOriginal === original)) {
+          malla.userData.hologramaOriginal = original
+          if (lista[0].material !== original) malla.userData.hologramaMaterial = lista[0].material
+        }
         malla.name = `${grupo.name}-fundido`
         lista.forEach((o) => o.parent && o.parent.remove(o))
         grupo.add(malla)
@@ -3261,6 +3428,11 @@
 
     // ── Equipos ────────────────────────────────────────────────────────────
     const equipos = []
+    const geoPlanoSombra = new THREE.PlaneGeometry(1, 1)
+    const matSombraContacto = new THREE.MeshBasicMaterial({
+      map: texturaSombraContacto(), color: 0x000000, transparent: true, opacity: 0.5,
+      depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    })
     // Mando de la pantalla de cada equipo, por id: vivo.js cambia las fotos
     // de ronda sin reconstruir la planta.
     const pantallas = new Map()
@@ -3311,6 +3483,17 @@
       base.scale.set(dim.w - 0.02, 0.16, dim.d - 0.02)
       base.position.y = 0.08
       g.add(base)
+
+      // Sombra de contacto: oscurece el piso justo alrededor del equipo. Es lo
+      // que lo asienta en la sala cuando el sol no entra (con el cielo raso,
+      // caminando) o con las sombras apagadas; sin ella parecía flotar.
+      const sombra = new THREE.Mesh(geoPlanoSombra, matSombraContacto)
+      sombra.rotation.x = -Math.PI / 2
+      sombra.scale.set(dim.w + 0.9, dim.d + 0.9, 1)
+      sombra.position.y = 0.006
+      sombra.renderOrder = 1
+      sombra.userData.sinHolograma = true
+      g.add(sombra)
 
       // ── Cada equipo con su facha ───────────────────────────────────────
       // El frente de dos hojas con visor, columna de mando y placa numerada es
@@ -3442,7 +3625,10 @@
           matTenido(cat.color, 0.22)
         )
         franja.scale.set(dim.w - 0.16, 0.26, dim.d - 0.02)
-        franja.position.y = dim.h - 0.13
+        // 4 mm por encima del techo del cuerpo. En la misma cota, las dos caras
+        // se disputaban el mismo píxel y desde el aire el techo de cada
+        // incubadora salía en dientes de sierra naranja y gris.
+        franja.position.y = dim.h - 0.126
         franja.castShadow = true
         g.add(franja)
 

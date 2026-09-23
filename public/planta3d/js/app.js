@@ -43,10 +43,103 @@
   relleno.position.set(-60, 50, 80)
   escena.add(relleno)
 
+  // Sombras: 4096 px donde la tarjeta los aguanta (un computador), 2048 en
+  // tablets y celulares. Con 2048 cada texel medía unos 10 cm y la sombra de
+  // un equipo salía con los bordes serruchados. El sesgo normal quita el acné
+  // de las caras que el sol toca de lado.
+  const pantallaTactil = matchMedia('(pointer: coarse)').matches
+  const TAM_SOMBRA = !pantallaTactil && renderer.capabilities.maxTextureSize >= 8192 ? 4096 : 2048
+  sol.shadow.mapSize.set(TAM_SOMBRA, TAM_SOMBRA)
+  sol.shadow.normalBias = 0.015
+
+  // ── Cielo y luz de ambiente ──────────────────────────────────────────────
+  // Sin mapa de entorno, el acero de las incubadoras, el aluminio y el vidrio
+  // se veían como plástico mate: un metal se reconoce por lo que refleja. Se
+  // arma un cielo con primitivas —cenit, horizonte claro, suelo verde y el sol
+  // en la misma dirección de la luz— y PMREM lo convierte en la luz difusa y
+  // los reflejos de toda la escena. No se baja ningún HDR: la maqueta sigue
+  // funcionando sin red.
+  const DIR_SOL = new THREE.Vector3(70, 110, -90).normalize()
+  function crearEntorno() {
+    const cielo = new THREE.Scene()
+    const geo = new THREE.SphereGeometry(100, 48, 24)
+    const pos = geo.attributes.position
+    const colores = new Float32Array(pos.count * 3)
+    const cenit = new THREE.Color(0x24406a), horizonte = new THREE.Color(0x7d8894), suelo = new THREE.Color(0x1d2418)
+    const c = new THREE.Color()
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i) / 100
+      if (y >= 0) c.copy(horizonte).lerp(cenit, Math.pow(y, 0.55))
+      else c.copy(horizonte).lerp(suelo, Math.min(1, -y * 5))
+      c.toArray(colores, i * 3)
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colores, 3))
+    const matCielo = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })
+    cielo.add(new THREE.Mesh(geo, matCielo))
+    const geoSol = new THREE.SphereGeometry(4.5, 16, 8)
+    const matSol = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.94, 0.84).multiplyScalar(30) })
+    const disco = new THREE.Mesh(geoSol, matSol)
+    disco.position.copy(DIR_SOL).multiplyScalar(90)
+    cielo.add(disco)
+    const pmrem = new THREE.PMREMGenerator(renderer)
+    const rt = pmrem.fromScene(cielo, 0.02)
+    pmrem.dispose()
+    geo.dispose(); geoSol.dispose(); matCielo.dispose(); matSol.dispose()
+    return rt.texture
+  }
+
+  // Fondo del cielo, como se ve: degradado de cenit a horizonte. La niebla
+  // lleva el mismo color del horizonte para que el terreno lejano se funda
+  // con él en vez de cortarse contra el fondo.
+  function crearFondoCielo() {
+    const c = document.createElement('canvas')
+    c.width = 4
+    c.height = 256
+    const ctx = c.getContext('2d')
+    const g = ctx.createLinearGradient(0, 0, 0, 256)
+    g.addColorStop(0, '#2f5d99')
+    g.addColorStop(0.3, '#6f98c7')
+    g.addColorStop(0.47, '#c5d5e4')
+    g.addColorStop(0.5, '#dfe7ee')
+    g.addColorStop(0.56, '#c9d2c6')
+    g.addColorStop(1, '#5f6b56')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 4, 256)
+    const t = new THREE.CanvasTexture(c)
+    t.mapping = THREE.EquirectangularReflectionMapping
+    t.encoding = THREE.sRGBEncoding
+    return t
+  }
+
+  // Si la tarjeta no puede armar el entorno (algún WebGL1 sin texturas de
+  // medio flotante), la maqueta sigue con las luces de siempre.
+  let entornoDia = null
+  try { entornoDia = crearEntorno() } catch (e) { console.warn('[planta3d] sin luz de entorno:', e.message) }
+  const fondoDia = crearFondoCielo()
+  const NIEBLA_DIA = new THREE.Color(0xdfe7ee).convertSRGBToLinear()
+  const FONDO_HOLOGRAMA = new THREE.Color(0x0a1526)
+
+  /** Cielo de día para la maqueta real; el azul de noche, para el holograma. */
+  function ambientar() {
+    const holo = opciones.holograma
+    escena.environment = entornoDia
+    // Sin entorno, el hemisférico y el relleno vuelven a cargar con la luz del cielo.
+    const conEntorno = !!entornoDia
+    escena.background = holo ? FONDO_HOLOGRAMA : fondoDia
+    escena.fog.color.copy(holo ? FONDO_HOLOGRAMA : NIEBLA_DIA)
+    // El entorno ya aporta la luz del cielo: el hemisférico y el relleno bajan
+    // para no lavar los colores.
+    hemi.intensity = holo || !conEntorno ? 0.45 : 0.18
+    relleno.intensity = holo || !conEntorno ? 0.35 : 0.14
+    sol.intensity = holo ? 1.55 : 1.45
+  }
+
   // ── Opciones (se declara ya, porque el primer armado del mundo la necesita) ─
   const opciones = {
     etiquetas: true, equipos: true, techos: false, cotas: true,
-    sombras: true, atravesar: false, volar: false, giro: true, holograma: true, sonido: true,
+    // Arranca como se ve la planta real (22-09-2026: «más preciso y realista»).
+    // El holograma sigue a un clic en el menú, con su fondo azul de noche.
+    sombras: true, atravesar: false, volar: false, giro: true, holograma: false, sonido: true,
     sensor: false,
     // 'ambos' arma la planta completa con sus dos niveles, tal como está
     // construida; 1 o 2 aísla ese nivel (ver el toggle #grupoNivel).
@@ -558,6 +651,14 @@
   }
 
   lienzo.addEventListener('click', (e) => {
+    if (medicion.activa && vista !== 'tour') {
+      if (vista === 'fps' && !fps.estado.bloqueado) { fps.pedirBloqueo(); return }
+      if (vista !== 'fps' && Math.abs(e.movementX || 0) > 3) return
+      const p = vista === 'fps' ? puntoEn(innerWidth / 2, innerHeight / 2) : puntoEn(e.clientX, e.clientY)
+      if (p) marcarMedida(p)
+      else aviso('Ahí no hay superficie: toque un piso, un muro o un equipo')
+      return
+    }
     if (vista === 'fps') {
       if (!fps.estado.bloqueado) { fps.pedirBloqueo(); return }
       elegir(innerWidth / 2, innerHeight / 2)
@@ -566,6 +667,90 @@
       elegir(e.clientX, e.clientY)
     }
   })
+
+  // ── Medir ────────────────────────────────────────────────────────────────
+  // Dos toques sobre cualquier superficie —piso, muro, equipo— y la maqueta da
+  // la distancia real entre ellos, con cuánto es en planta y cuánto en altura.
+  // Para planear sin ir con el metro: si un equipo pasa por una puerta, cuánto
+  // queda entre dos máquinas, a qué altura va un tablero. Mide sobre la
+  // geometría a escala real, así que es tan precisa como el plano.
+  const medicion = { activa: false, a: null, grupo: new THREE.Group() }
+  escena.add(medicion.grupo)
+  const matMedida = new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false, transparent: true })
+  const matPuntoMedida = new THREE.MeshBasicMaterial({ color: 0xffd166, depthTest: false, transparent: true })
+  const geoPuntoMedida = new THREE.SphereGeometry(0.06, 14, 10)
+
+  function limpiarMedida() {
+    medicion.a = null
+    for (const o of [...medicion.grupo.children]) {
+      medicion.grupo.remove(o)
+      if (o.isSprite) o.material.dispose()
+      else if (o.isLine) o.geometry.dispose()
+    }
+  }
+
+  function ponerMedicion(v) {
+    medicion.activa = v
+    document.body.classList.toggle('midiendo', v)
+    $('#btnMedir').classList.toggle('activo', v)
+    limpiarMedida()
+    if (v) aviso('Medir: toque el primer punto y luego el segundo · M o Esc para terminar', 4200)
+  }
+  $('#btnMedir').onclick = () => ponerMedicion(!medicion.activa)
+
+  const visibleEnEscena = (o) => {
+    for (let p = o; p; p = p.parent) if (!p.visible) return false
+    return true
+  }
+
+  /** Primer punto de una superficie a la vista bajo (cx, cy). Los rótulos, las
+   *  líneas y lo casi transparente (plenums, proyecciones) no cuentan. */
+  function puntoEn(cx, cy) {
+    punto.x = (cx / innerWidth) * 2 - 1
+    punto.y = -(cy / innerHeight) * 2 + 1
+    rayo.setFromCamera(punto, camara)
+    const hit = rayo.intersectObject(mundo.raiz, true).find((h) => {
+      const o = h.object
+      if (!o.isMesh || !visibleEnEscena(o)) return false
+      const m = Array.isArray(o.material) ? o.material[0] : o.material
+      return !(m && m.transparent && m.opacity < 0.4)
+    })
+    return hit ? hit.point.clone() : null
+  }
+
+  const metros = (n) => n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  function marcarMedida(p) {
+    if (!medicion.a && medicion.grupo.children.length) limpiarMedida()
+    const bola = new THREE.Mesh(geoPuntoMedida, matPuntoMedida)
+    bola.position.copy(p)
+    bola.renderOrder = 31
+    bola.userData.marca = true
+    medicion.grupo.add(bola)
+    if (!medicion.a) {
+      medicion.a = p
+      aviso('Ahora el segundo punto')
+      return
+    }
+    const a = medicion.a
+    medicion.a = null
+    const linea = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, p]), matMedida)
+    linea.renderOrder = 30
+    medicion.grupo.add(linea)
+    const total = a.distanceTo(p)
+    const plano = Math.hypot(p.x - a.x, p.z - a.z)
+    const alto = Math.abs(p.y - a.y)
+    const rotulo = window.Etiquetas.crearEtiqueta(`${metros(total)} m`, {
+      sub: `en planta ${metros(plano)} m · en altura ${metros(alto)} m`,
+      alturaM: 0.5, fondo: 'rgba(8,14,24,0.92)', borde: '#ffd166', color: '#ffe3a1',
+    })
+    rotulo.position.copy(a).lerp(p, 0.5)
+    rotulo.material.depthTest = false
+    rotulo.renderOrder = 32
+    rotulo.userData.medida = true
+    medicion.grupo.add(rotulo)
+    aviso(`Distancia: ${metros(total)} m`, 3200)
+  }
 
   // ── Opciones ─────────────────────────────────────────────────────────────
   // Los rótulos se reescalan según la distancia para que se lean desde cualquier vista
@@ -583,6 +768,7 @@
   const tamPantalla = new THREE.Vector2()
   const PX_ROTULO = 16    // altura aparente deseada del rótulo, en píxeles
   const PX_MINIMO = 38    // por debajo de este tamaño aparente, el área no se rotula
+  const PX_ROTULO_MAX = 44 // y por encima de este, se achica: de cerca no tapa la vista
 
   function actualizarRotulos() {
     const cp = camara.position
@@ -599,7 +785,9 @@
       const sala = sp.userData.sala
       sp.visible = Math.max(sala.w, sala.h) * ppm > PX_MINIMO
       if (!sp.visible) return
-      const k = Math.min(3.0, Math.max(1, PX_ROTULO / (ppm * sp.userData.base.h)))
+      // De lejos se agranda hasta leerse; de cerca se achica: sin tope, con la
+      // cámara a nueve metros el nombre de la sala tapaba media pantalla.
+      const k = Math.min(3.0, PX_ROTULO_MAX / (ppm * sp.userData.base.h), Math.max(1, PX_ROTULO / (ppm * sp.userData.base.h)))
       sp.scale.set(sp.userData.base.w * k, sp.userData.base.h * k, 1)
       candidatos.push({ sp, sala, alto: sp.userData.base.h * k * ppm })
     })
@@ -627,10 +815,24 @@
       const ppm = pxPorMetro(d)
       sp.visible = 3 * ppm > PX_MINIMO
       if (!sp.visible) return
-      const k = Math.min(1.8, Math.max(1, (PX_ROTULO * 0.85) / (ppm * sp.userData.base.h)))
+      const k = Math.min(1.8, PX_ROTULO_MAX / (ppm * sp.userData.base.h), Math.max(1, (PX_ROTULO * 0.85) / (ppm * sp.userData.base.h)))
       sp.scale.set(sp.userData.base.w * k, sp.userData.base.h * k, 1)
     })
+
+    // La medida y sus dos puntos se ven siempre del mismo tamaño, de cerca o
+    // de lejos.
+    medicion.grupo.children.forEach((o) => {
+      const d = Math.max(0.5, cp.distanceTo(o.position))
+      if (o.userData.medida) {
+        const k = 30 / (pxPorMetro(d) * o.userData.base.h)
+        o.scale.set(o.userData.base.w * k, o.userData.base.h * k, 1)
+      } else if (o.userData.marca) {
+        o.scale.setScalar(Math.max(1, 11 / (pxPorMetro(d) * 0.12)))
+      }
+    })
   }
+
+  const hologramas = new WeakMap() // material original → su versión holograma
 
   function aplicarOpciones() {
     // Los rótulos de sala cuelgan 1,5 m POR ENCIMA del remate de muro: desde
@@ -644,15 +846,22 @@
     mundo.grupos.equipos.visible = opciones.equipos
     mundo.grupos.techos.visible = opciones.techos
     escena.traverse((obj) => {
-      // La pantalla de ronda no se tiñe: es una foto y se ve tal cual.
-      if (!obj.isMesh || !obj.material || obj.userData.pantallaRonda) return
+      // La pantalla de ronda no se tiñe: es una foto y se ve tal cual. Tampoco
+      // la sombra de contacto de los equipos: opaca, sería un cuadro negro.
+      if (!obj.isMesh || !obj.material || obj.userData.pantallaRonda || obj.userData.sinHolograma) return
       if (!obj.userData.hologramaOriginal) {
         obj.userData.hologramaOriginal = obj.material
       }
       if (opciones.holograma) {
         if (!obj.userData.hologramaMaterial) {
+          // Un clon por material, no por malla: las mallas que comparten
+          // material comparten también su holograma. Con un clon por malla, el
+          // fundido de estáticos (que junta por material) no juntaba nada y el
+          // holograma costaba ~2.200 llamadas de dibujo de más.
           const transformar = (material) => {
+            if (hologramas.has(material)) return hologramas.get(material)
             const holo = material.clone()
+            hologramas.set(material, holo)
             const opacityBase = material.opacity == null ? 1 : material.opacity
             // Conserva colores, texturas y transparencias de la maqueta. Solo
             // refuerza el brillo cian y duplica la visibilidad de lo translúcido.
@@ -685,6 +894,7 @@
       mundo.grupos.entrepiso.visible = opciones.nivel !== '1'
     }
     mundo.grupos.cotas.visible = opciones.cotas
+    ambientar()
     renderer.shadowMap.enabled = opciones.sombras
     escena.traverse((o) => { if (o.isMesh) o.material.needsUpdate = true })
     fps.estado.atravesar = opciones.atravesar
@@ -935,6 +1145,8 @@
     else if (e.code === 'KeyF') { opciones.volar = !opciones.volar; aplicarOpciones(); aviso(opciones.volar ? 'Modo vuelo activado (E sube · Q baja)' : 'Modo vuelo desactivado') }
     else if (e.code === 'KeyL') { opciones.etiquetas = !opciones.etiquetas; aplicarOpciones() }
     else if (e.code === 'KeyT') { opciones.techos = !opciones.techos; aplicarOpciones() }
+    else if (e.code === 'KeyM') ponerMedicion(!medicion.activa)
+    else if (e.code === 'Escape' && medicion.activa) ponerMedicion(false)
   })
 
   $('#btnFoto').onclick = () => {
@@ -1226,8 +1438,11 @@
     obj.traverse((o) => {
       if (o.geometry) o.geometry.dispose()
       const m = o.material
-      if (Array.isArray(m)) m.forEach((x) => { if (x.map) x.map.dispose(); x.dispose() })
-      else if (m) { if (m.map) m.map.dispose(); m.dispose() }
+      // Las texturas `compartida` (grano de pasto y de concreto, sombra de
+      // contacto) sirven a todas las reconstrucciones: no se liberan.
+      const soltar = (x) => { if (x.map && !x.map.userData.compartida) x.map.dispose(); x.dispose() }
+      if (Array.isArray(m)) m.forEach(soltar)
+      else if (m) soltar(m)
     })
   }
 

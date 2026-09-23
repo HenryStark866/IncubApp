@@ -412,6 +412,10 @@
       padding: 7px 10px
     }
 
+    body.midiendo #lienzo {
+      cursor: crosshair
+    }
+
     .fotoRonda {
       margin: 10px 0 4px
     }
@@ -1201,12 +1205,13 @@
 
       <p class="mm-titulo">Acciones</p>
       <div class="grupo">
+        <button id="btnMedir" title="Medir la distancia entre dos puntos (M)">📏 Medir</button>
         <button id="btnFoto">📷 Foto</button>
         <button id="btnPantalla">⛶ Pantalla completa</button>
       </div>
 
       <p class="mm-titulo">Controles</p>
-      <p id="ayuda">W A S D caminar · Mouse mirar · Shift correr · F volar · Clic para ver detalle · Esc salir</p>
+      <p id="ayuda">W A S D caminar · Mouse mirar · Shift correr · F volar · M medir · Clic para ver detalle · Esc salir</p>
     </div>
   </div>
 

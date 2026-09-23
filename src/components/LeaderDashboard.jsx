@@ -469,13 +469,13 @@ export default function LeaderDashboard({
             </div>
           </section>
         ) : puede3D ? (
-          <section className="ldr-map-section ldr-map-section-3d" aria-label="Planta 3D holográfica">
+          <section className="ldr-map-section ldr-map-section-3d" aria-label="Planta 3D en vivo">
             <h2 className="ldr-section-title">
-              <span aria-hidden="true">3D</span> Planta holográfica en vivo
+              <span aria-hidden="true">3D</span> Planta 3D en vivo
               {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
             </h2>
             <div className="ldr-map-frame ldr-map-frame-3d">
-              <iframe className="ldr-tour-3d" src={PLANT_3D_TOUR_URL} title="Planta 3D holográfica" allow="fullscreen" />
+              <iframe className="ldr-tour-3d" src={PLANT_3D_TOUR_URL} title="Planta 3D en vivo" allow="fullscreen" />
             </div>
           </section>
         ) : null}
