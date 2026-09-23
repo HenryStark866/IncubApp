@@ -92,6 +92,14 @@ describe('resolveSelectedEvidence', () => {
         expect(resolveLoadMapPreviewUrl({ url: 'https://example.test/mapa.png' })).toBe('https://example.test/mapa.png');
     });
 
+    it('no usa una URL firmada vieja guardada en el payload: manda la firma nueva', () => {
+        const vieja = 'https://pdx.supabase.co/storage/v1/object/sign/machine-checks/org/load-maps/1.png?token=vencido';
+        const nueva = 'https://pdx.supabase.co/storage/v1/object/sign/machine-checks/org/load-maps/1.png?token=nuevo';
+        expect(resolveLoadMapPreviewUrl({ imageDataUrl: vieja, url: nueva })).toBe(nueva);
+        expect(resolveLoadMapPreviewUrl({ payload: { imageDataUrl: vieja }, url: nueva })).toBe(nueva);
+        expect(resolveLoadMapPreviewUrl({ imageDataUrl: 'data:image/png;base64,abc', url: nueva })).toBe('data:image/png;base64,abc');
+    });
+
     it('nunca devuelve una ruta de Storage suelta: el navegador la pedía a la app y la vista salía rota', () => {
         expect(resolveLoadMapPreviewUrl({ image_path: 'org/load-maps/123.png' })).toBeNull();
         expect(resolveLoadMapPreviewUrl({
@@ -233,6 +241,16 @@ describe('mapas de cargue sin repetidos', () => {
         const viejo = mapa('v', 'draft', ['c3'], { createdAt: '2026-09-19T10:00:00Z' });
         const nuevo = mapa('n', 'draft', ['c3'], { createdAt: '2026-09-22T10:00:00Z' });
         expect(curateLoadMaps([viejo, nuevo]).visible.map((m) => m.rawId)).toEqual(['n']);
+    });
+
+    it('un mapa que comparte carros con uno mejor es otro intento del mismo cargue', () => {
+        const sinMaquina = mapa('a', 'ordered', ['c1', 'c2', 'c3'], { machineName: 'Petersime 12 carros' });
+        const inc09 = mapa('b', 'ordered', ['c1', 'c2'], { machineName: 'Inc 9 (INC-09)' });
+        const inc18 = mapa('c', 'ordered', ['c3', 'c4'], { machineName: 'Inc 18 (INC-18)' });
+        const aparte = mapa('d', 'ordered', ['c9'], { machineName: 'Petersime 12 carros' });
+        const { visible, hidden } = curateLoadMaps([sinMaquina, inc09, inc18, aparte]);
+        expect(visible.map((m) => m.rawId)).toEqual(['b', 'c', 'd']);
+        expect(hidden.map((m) => m.rawId)).toEqual(['a']);
     });
 
     it('sin carros identificados no junta mapas distintos', () => {

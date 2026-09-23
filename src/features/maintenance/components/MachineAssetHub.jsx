@@ -42,12 +42,14 @@ const LOAD_MAP_HIDDEN = new Set(['rejected', 'cancelled'])
 // El payload trae la imagen del mapa en base64 (unos 300 KB por mapa): con 90 mapas, pedirlo entero
 // tardaba 16 s. Se piden solo las partes que usan la lista, la vista y el dibujo de la imagen.
 const LOAD_MAP_COLUMNS = [
+  // loaded_at y loaded_by están en la migración de clasificación pero no en la base de producción
+  // (42703): pedirlas tumbaba la consulta. Quién y cuándo cargó va en el payload.
   'id', 'org_id', 'plant_id', 'machine_id', 'machine_name', 'status', 'image_path',
-  'created_by', 'created_at', 'approved_at', 'approved_by', 'ordered_at', 'ordered_by',
-  'loaded_at', 'loaded_by', 'rejected_reason',
+  'created_by', 'created_at', 'approved_at', 'approved_by', 'ordered_at', 'ordered_by', 'rejected_reason',
   'slots:payload->slots', 'summary:payload->summary', 'balance:payload->balance', 'cartIds:payload->cartIds',
-  'payloadMachineName:payload->>machineName', 'payloadImagePath:payload->>imagePath',
-  'payloadLote:payload->>lote', 'payloadLoadedBy:payload->>loaded_by',
+  'payloadMachineName:payload->>machineName', 'payloadImagePath:payload->>imagePath', 'payloadLote:payload->>lote',
+  'payloadLoadedAt:payload->>loaded_at', 'payloadLoadedAtCamel:payload->>loadedAt',
+  'payloadLoadedBy:payload->>loaded_by', 'payloadLoadedByCamel:payload->>loadedBy',
 ].join(', ')
 
 /** Nombre corto de la máquina de un mapa: el código entre paréntesis si lo trae. */
@@ -62,22 +64,21 @@ function loadMapHasMachine(map = {}) {
   return Boolean(map.machine_id) || loadMapMachineLabel(map.machineName || map.machine_name) !== 'Sin máquina asignada'
 }
 
-function loadMapCartKey(map = {}) {
+function loadMapCarts(map = {}) {
   const ids = Array.isArray(map.cartIds) && map.cartIds.length
     ? map.cartIds
     : (map.slots || []).map((slot) => slot?.entry?.id).filter(Boolean)
-  return ids.length ? `carros:${ids.map(String).sort().join('|')}` : `mapa:${map.rawId || map.id}`
+  return ids.map(String)
 }
 
 /**
  * Deja un mapa por cargue. Rechazar o cancelar un mapa libera sus carros, y el siguiente que se arma
  * con ellos es el mismo cargue otra vez: por eso aparecían repetidos. De los que comparten carros se
  * queda el más avanzado (cargado, orden emitida, aprobado, pendiente, borrador), luego el que tiene
- * máquina y luego el más reciente. Los rechazados y cancelados no cuentan como mapas vigentes.
+ * máquina y luego el más reciente. Los rechazados y cancelados no cuentan como mapas vigentes. Un
+ * mapa sin carros identificados no se junta con ninguno.
  */
 export function curateLoadMaps(maps = []) {
-  const best = new Map()
-  const hidden = []
   const statusOf = (map) => map.mapStatus || map.status
   const timeOf = (map) => new Date(map.createdAt || map.created_at || 0).getTime() || 0
   const better = (a, b) => {
@@ -87,21 +88,28 @@ export function curateLoadMaps(maps = []) {
     if (machine) return machine > 0
     return timeOf(a) > timeOf(b)
   }
+  const hidden = []
+  const candidates = []
   for (const map of maps) {
     if (!map) continue
-    if (LOAD_MAP_HIDDEN.has(statusOf(map))) {
+    if (LOAD_MAP_HIDDEN.has(statusOf(map))) hidden.push(map)
+    else candidates.push(map)
+  }
+  // Del mejor al peor, cada mapa reclama sus carros. Un carro va a un solo cargue: el mapa que comparte
+  // carros con uno ya elegido es otro intento del mismo cargue (uno armado sin máquina y rehecho luego
+  // para una incubadora, por ejemplo), aunque no tenga exactamente los mismos.
+  const ordered = [...candidates].sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0))
+  const claimed = new Set()
+  const kept = new Set()
+  for (const map of ordered) {
+    const carts = loadMapCarts(map)
+    if (carts.some((id) => claimed.has(id))) {
       hidden.push(map)
       continue
     }
-    const key = loadMapCartKey(map)
-    const current = best.get(key)
-    if (!current) best.set(key, map)
-    else if (better(map, current)) {
-      hidden.push(current)
-      best.set(key, map)
-    } else hidden.push(map)
+    carts.forEach((id) => claimed.add(id))
+    kept.add(map)
   }
-  const kept = new Set(best.values())
   return { visible: maps.filter((map) => kept.has(map)), hidden }
 }
 
@@ -161,12 +169,12 @@ async function selectByIds(label, ids, runChunk) {
 
 // Firmar una a una 2.000 fotos de ronda eran 2.000 peticiones; createSignedUrls firma cien por
 // llamada. Devuelve un Map ruta → URL firmada con las que salieron bien.
-async function signStoragePaths(bucket, paths = []) {
+async function signStoragePaths(bucket, paths = [], expiresIn = 3600) {
   const signed = new Map()
   const unique = Array.from(new Set((paths || []).filter(Boolean)))
   for (const chunk of chunkList(unique, SIGN_CHUNK)) {
     try {
-      const { data, error } = await supabase.storage.from(bucket).createSignedUrls(chunk, 3600)
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrls(chunk, expiresIn)
       if (error) {
         console.warn(`Centro SIG: no se pudieron firmar archivos de ${bucket}.`, error)
         continue
@@ -719,24 +727,26 @@ export function resolveLoadMapPreviewUrl(file = {}) {
     ? (() => { try { return JSON.parse(file.payload); } catch { return {}; } })()
     : (file.payload && typeof file.payload === 'object' ? file.payload : {});
 
+  // La imagen incrustada (data:/blob:) es la del propio mapa. Una URL http guardada en esos campos es
+  // una firma vieja que ya venció: no se usa, y manda `url`, que se firma al leer.
+  const inline = [file.imageDataUrl, file.imageDataURL, payload.imageDataUrl, payload.imageDataURL]
+    .find((value) => typeof value === 'string' && /^(data:|blob:)/i.test(value.trim()));
+  if (inline) return inline;
+
   const candidates = [
-    file.imageDataUrl,
-    file.imageDataURL,
+    file.url,
     file.image_url,
     file.imageUrl,
-    file.imagePath,
-    file.image_path,
-    payload.imageDataUrl,
-    payload.imageDataURL,
     payload.image_url,
     payload.imageUrl,
+    file.imagePath,
+    file.image_path,
     payload.imagePath,
     payload.image_path,
     file.photo_path,
     file.photoPath,
     payload.photo_path,
     payload.photoPath,
-    file.url,
     file.file_path,
     file.filePath,
   ];
@@ -1067,14 +1077,22 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             machineName: map.payloadMachineName || null,
             imagePath: map.payloadImagePath || null,
             lote: map.payloadLote || null,
+            loaded_at: map.payloadLoadedAt || null,
+            loadedAt: map.payloadLoadedAtCamel || null,
             loaded_by: map.payloadLoadedBy || null,
+            loadedBy: map.payloadLoadedByCamel || null,
           })
         const storedImagePath = (map) => map.image_path || payloadOf(map).imagePath || payloadOf(map).image_path || null
-        const imageUrls = await signStoragePaths('machine-checks', mapsResult.rows.map(storedImagePath))
+        // Seis horas: el Centro SIG se deja abierto en el tablero del líder, y a la hora la imagen se caía.
+        const imageUrls = await signStoragePaths('machine-checks', mapsResult.rows.map(storedImagePath), 6 * 3600)
         const remoteMaps = mapsResult.rows.map((map) => {
           const payload = payloadOf(map)
           const imagePath = storedImagePath(map)
-          const previewImageUrl = (imagePath && imageUrls.get(imagePath)) || payload.imageDataUrl || payload.imageDataURL || null
+          // Del payload solo sirve una imagen en data:. Al aprobar u ordenar un mapa, el módulo de Cargue
+          // guardaba en payload.imageDataUrl la URL firmada que tenía en memoria, y esa vence a la hora:
+          // era la vista previa rota de los mapas. Manda la firma nueva de image_path.
+          const inlineImage = [payload.imageDataUrl, payload.imageDataURL].find((value) => typeof value === 'string' && /^data:image\//i.test(value)) || null
+          const previewImageUrl = (imagePath && imageUrls.get(imagePath)) || inlineImage
           const firstLot = payload.slots?.find((slot) => slot.entry)?.entry?.lots?.[0]?.lot || payload.slots?.find((slot) => slot.entry)?.entry?.lot || payload.lot || payload.lote || 'Sin lote'
           const loadedBy = resolveLoadedByName({
             loadedAt: map.loaded_at || payload.loaded_at || payload.loadedAt,
@@ -1087,6 +1105,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             ...payload,
             id: `load-map-${map.id}`,
             rawId: map.id,
+            imageDataUrl: inlineImage,
+            imageDataURL: null,
             image_path: imagePath,
             lote: payload.lote || firstLot,
             machineName: map.machine_name || payload.machineName || null,

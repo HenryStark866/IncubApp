@@ -194,7 +194,9 @@ export function useLoadClassification(orgId, userId) {
         plantId: r.plant_id || r.payload?.plantId,
         createdAt: r.created_at || r.payload?.createdAt,
         imagePath: r.image_path || r.payload?.imagePath || null,
-        imageDataUrl: r.payload?.imageDataUrl || null,
+        // Solo una imagen en data:. Una URL http en ese campo es una firma guardada al aprobar u
+        // ordenar el mapa y ya vencida; sin ella, signMapImages firma de nuevo image_path.
+        imageDataUrl: /^data:image\//i.test(r.payload?.imageDataUrl || '') ? r.payload.imageDataUrl : null,
         approvedAt: r.approved_at,
         approvedBy: r.approved_by,
         orderedAt: r.ordered_at,
@@ -746,7 +748,14 @@ export function useLoadClassification(orgId, userId) {
       }
 
       if (!localMode) {
-        const payload = { ...(map || {}), ...patch }
+        // En memoria, imageDataUrl puede ser la URL firmada que puso signMapImages, que vence a la
+        // hora. Guardarla en el payload dejaba el mapa con la vista previa rota para siempre.
+        const { imageDataUrl: imagen, ...mapa } = map || {}
+        const payload = {
+          ...mapa,
+          ...(typeof imagen === 'string' && imagen.startsWith('data:') ? { imageDataUrl: imagen } : {}),
+          ...patch,
+        }
         const dbPatch = {
           status,
           payload,
@@ -762,7 +771,15 @@ export function useLoadClassification(orgId, userId) {
           rejected_reason: extra.rejectedReason || null,
         }
         Object.keys(dbPatch).forEach((k) => dbPatch[k] === undefined && delete dbPatch[k])
-        const { error: err } = await supabase.from('load_maps').update(dbPatch).eq('id', mapId)
+        let { error: err } = await supabase.from('load_maps').update(dbPatch).eq('id', mapId)
+        // loaded_at y loaded_by vienen en la migración de clasificación, pero la base de producción
+        // aún no las tiene (42703). Ese error pasaba por «tabla faltante», el módulo se iba a modo
+        // local y el mapa se quedaba en «orden emitida» en la base. Se reintenta sin esas dos
+        // columnas: el dato no se pierde, va también en el payload.
+        if (err && /loaded_(at|by)/.test(err.message || '') && ('loaded_at' in dbPatch || 'loaded_by' in dbPatch)) {
+          const { loaded_at: _cargadoEn, loaded_by: _cargadoPor, ...sinCarga } = dbPatch
+          ;({ error: err } = await supabase.from('load_maps').update(sinCarga).eq('id', mapId))
+        }
         if (err && missingTable(err.message)) {
           setLocalMode(true)
         } else if (err) {

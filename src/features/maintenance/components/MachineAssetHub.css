@@ -608,6 +608,21 @@
         overflow-y: auto;
     }
 
+    .sig-manual-detail {
+        height: auto;
+    }
+
+    .sig-manual-detail>.sig-manual-reader {
+        flex: 0 0 auto;
+        min-height: 0;
+    }
+
+    .sig-manual-detail .sig-manual-pdf,
+    .sig-manual-detail .sig-manual-document {
+        height: 70vh;
+        min-height: 420px;
+    }
+
     .sig-asset-list {
         max-height: none;
     }
@@ -911,6 +926,13 @@
     min-height: 0;
     overflow: auto;
     background: #eef2f6;
+}
+
+/* El visor de manuales no se encoge por debajo de un alto útil. En el tablero del líder el Centro de
+   Activos vive en un marco de 420 a 560 px y el visor quedaba en 47 px, solo la cabecera: el manual
+   parecía no poderse ver y había que descargarlo. Si no cabe, el panel hace scroll. */
+.sig-manual-detail>.sig-manual-reader {
+    min-height: 600px;
 }
 
 .sig-manual-reader-body img {
