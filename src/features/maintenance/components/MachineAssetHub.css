@@ -608,20 +608,6 @@
         overflow-y: auto;
     }
 
-    .sig-manual-detail {
-        height: auto;
-    }
-
-    .sig-manual-detail>.sig-manual-reader {
-        flex: 0 0 auto;
-        min-height: 0;
-    }
-
-    .sig-manual-detail .sig-manual-pdf,
-    .sig-manual-detail .sig-manual-document {
-        height: 70vh;
-        min-height: 420px;
-    }
 
     .sig-asset-list {
         max-height: none;
@@ -933,6 +919,25 @@
    parecía no poderse ver y había que descargarlo. Si no cabe, el panel hace scroll. */
 .sig-manual-detail>.sig-manual-reader {
     min-height: 600px;
+}
+
+/* En pantallas angostas el visor crece con el documento y el panel hace scroll.
+   Va después de la regla general: con la misma especificidad, gana la última. */
+@media (max-width: 860px) {
+    .sig-manual-detail {
+        height: auto;
+    }
+
+    .sig-manual-detail>.sig-manual-reader {
+        flex: 0 0 auto;
+        min-height: 0;
+    }
+
+    .sig-manual-detail .sig-manual-pdf,
+    .sig-manual-detail .sig-manual-document {
+        height: 70vh;
+        min-height: 420px;
+    }
 }
 
 .sig-manual-reader-body img {
