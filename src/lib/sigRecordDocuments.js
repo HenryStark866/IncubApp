@@ -145,7 +145,7 @@ export function productionRecordHtml(item = {}) {
   ].join('')
   return documentHtml({
     // Producción no tiene código de formato propio en el SIG: el membrete lo dice en vez de inventar uno.
-    meta: { code: 'Registro operativo', version: '—', date: '—', process: 'PRODUCCIÓN · PLANTA DE INCUBACIÓN', title: item.recordTitle || 'REGISTRO DE PRODUCCIÓN' },
+    meta: { code: 'Registro operativo', version: '—', date: '—', process: item.recordProcess || 'PRODUCCIÓN · PLANTA DE INCUBACIÓN', title: item.recordTitle || 'REGISTRO DE PRODUCCIÓN' },
     title: item.file_name || 'Registro de producción',
     body,
   })
@@ -165,6 +165,96 @@ export function evidenceRecordHtml(item) {
   if (item.kind === 'calibration') return calibrationRecordHtml(item)
   if (item.kind === 'work-order') return workOrderRecordHtml(item)
   return productionRecordHtml(item)
+}
+
+// ── Registros sueltos ───────────────────────────────────────────────────────
+// El dossier de la máquina, el feed del líder y las OT de Mantenimiento listan los
+// registros uno por uno. Estas funciones los dejan con la misma forma que arma el
+// Centro SIG, para que openEvidenceFormat saque el mismo formato desde cualquier lista.
+
+const ACTIVITY_STATUS = { pending: 'Pendiente', assigned: 'Asignada', in_progress: 'En curso', done: 'Terminada', completed: 'Terminada', cancelled: 'Cancelada' }
+
+function shiftCodeOf(value) {
+  if (value == null || value === '') return null
+  return String(value).startsWith('T') ? String(value) : `T${value}`
+}
+
+/** Chequeo de un equipo en una ronda: su línea del FOMAT04. */
+export function singleCheckRound({ check = {}, machine = null, takenByName = null, photoUrl = null } = {}) {
+  const shiftCode = shiftCodeOf(check.shift_number)
+  return {
+    id: `check-${check.id}`,
+    kind: 'round',
+    formatCode: 'FOMAT04',
+    file_name: `Ronda ${check.shift_date || 'sin fecha'} · ${shiftCode || 'turno sin registrar'} · ${check.hour_slot || 'franja sin registrar'} · ${machine?.code || machine?.name || 'Equipo'}`,
+    created_at: check.taken_at || null,
+    shiftDate: check.shift_date || null,
+    shiftCode,
+    hourSlot: check.hour_slot || null,
+    items: [{ ...check, machine, takenByName, url: photoUrl }],
+    reports: [],
+  }
+}
+
+/** Calibración con sus lecturas: FOMAT08. Solo entran las fotos que sí se pudieron abrir. */
+export function calibrationRecordItem({ calibration = {}, machine = null, performedByName = null, workOrderCode = null, photos = [] } = {}) {
+  return {
+    id: `calibration-${calibration.id}`,
+    kind: 'calibration',
+    formatCode: 'FOMAT08',
+    file_name: `Calibración ${machine?.code || machine?.name || 'de máquina'}`,
+    created_at: calibration.calibrated_at || null,
+    calibration,
+    machine,
+    performedByName,
+    workOrderCode,
+    items: photos.filter((photo) => photo?.url),
+  }
+}
+
+/** Orden de trabajo con sus archivos de evidencia: FOMAT01. */
+export function workOrderRecordItem({ order = {}, files = [], machine = null, createdBy = null, assignedTo = null } = {}) {
+  return {
+    id: `work-order-${order.id}`,
+    kind: 'work-order',
+    formatCode: 'FOMAT01',
+    file_name: `OT ${order.code || 'sin código'}`,
+    created_at: order.completed_at || order.created_at || null,
+    workOrderCode: order.code || null,
+    workOrderTitle: order.title || null,
+    order,
+    orderFiles: files,
+    orderMachine: machine,
+    orderPeople: { createdBy, assignedTo: assignedTo || order.technician_name || null },
+  }
+}
+
+/** Actividad asignada en el turno. No tiene formato propio en el SIG: sale como registro operativo. */
+export function shiftActivityRecordItem({ activity = {}, machine = null, people = {}, photoUrl = null } = {}) {
+  const name = (userId) => (userId ? people[userId] || 'No registrado' : null)
+  return {
+    id: `shift-activity-${activity.id}`,
+    kind: 'production',
+    formatCode: 'REGISTRO · ACTIVIDAD DEL TURNO',
+    file_name: `Actividad del turno · ${activity.title || 'sin título'}`,
+    created_at: activity.completed_at || activity.started_at || activity.created_at || null,
+    recordTitle: 'REGISTRO DE ACTIVIDAD DEL TURNO',
+    recordProcess: 'OPERACIÓN DE PLANTA · ACTIVIDADES DEL TURNO',
+    recordFields: [
+      ['Actividad', activity.title],
+      ['Descripción', activity.description],
+      ['Equipo', machine ? machineLabel(machine) : null],
+      ['Estado', ACTIVITY_STATUS[activity.status] || activity.status],
+      ['Asignada a', name(activity.assigned_to)],
+      ['Asignó', name(activity.assigned_by)],
+      ['Inicio', formatDateTime(activity.started_at)],
+      ['Fin', formatDateTime(activity.completed_at)],
+      ['Cantidad reportada', activity.result_qty != null ? String(activity.result_qty) : null],
+      ['Resultado / observación', activity.result_note || activity.completion],
+      ['Foto', activity.photo_path ? (photoUrl ? 'Adjunta' : 'Adjunta, no se pudo abrir') : 'Sin foto'],
+    ],
+    items: photoUrl ? [{ url: photoUrl, file_name: 'Foto de la actividad' }] : [],
+  }
 }
 
 /** Hay formato que abrir: armado desde el registro o el archivo diligenciado que se subió. */

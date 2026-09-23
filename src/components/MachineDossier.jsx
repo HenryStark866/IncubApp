@@ -12,9 +12,15 @@
  * - Exportación oficial FOMAT03 a Excel
  */
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useMachineDossier } from '../hooks/useMachineDossier'
 import { exportFomat03Excel } from '../lib/exportFomat03'
+import { resolveMantumKeys } from '../data/mantumCatalog'
+import { LOCAL_MAINTENANCE_MANUALS } from '../data/maintenanceManuals'
+import { buildMaintenanceRecordHtml } from '../lib/maintenanceRecordDocument'
+import { manualsForTask } from '../lib/planTaskInstructions'
+import { calibrationRecordItem, openEvidenceFormat, openRecordDocument, singleCheckRound, workOrderRecordItem } from '../lib/sigRecordDocuments'
+import PlanTaskInstructions from '../features/maintenance/components/PlanTaskInstructions'
 import { IncubantSigPill } from './Brand'
 import SensorPanel from './SensorPanel'
 
@@ -73,6 +79,11 @@ const TABS = [
   { id: 'iot', label: '📡 Sensores IoT' },
 ]
 
+// Cada registro de las listas abre su formato diligenciado y cada tarea del plan, sus
+// instrucciones (22-09-2026). Enlaces visibles sobre el fondo oscuro del dossier.
+const RECORD_LINK = { color: '#93c5fd', textDecoration: 'underline', textUnderlineOffset: 2 }
+const TASK_BUTTON = { ...RECORD_LINK, background: 'none', border: 0, padding: 0, font: 'inherit', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }
+
 export default function MachineDossier({
   machineId,
   orgId,
@@ -87,6 +98,8 @@ export default function MachineDossier({
   const [autoOtBusy, setAutoOtBusy] = useState(null)
   const [autoOtMsg, setAutoOtMsg] = useState(null)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
+  const [planTask, setPlanTask] = useState(null)
+  const closePlanTask = useCallback(() => setPlanTask(null), [])
 
   const {
     loading,
@@ -103,6 +116,7 @@ export default function MachineDossier({
     mantum,
     stats,
     createAutoWorkOrder,
+    loadWorkOrderFiles,
   } = useMachineDossier(machineId, orgId)
 
   if (loading) {
@@ -154,6 +168,64 @@ export default function MachineDossier({
       setTimeout(() => setAutoOtMsg(null), 6000)
     }
   }
+
+  // ── Formatos diligenciados e instrucciones ──
+  // Cada formato se llena solo con lo que guarda la base; lo que no se registró sale
+  // «No registrado». Lo programado sin registro de ejecución no tiene formato.
+  const nameOf = (userId) => (userId ? usersMap[userId]?.name || 'No registrado' : null)
+  const mantumCode = mantum?.equipo?.mantum_code || null
+  const machineCodes = Array.from(new Set([machine.code, machine.mantum_code, mantumCode, ...resolveMantumKeys(machine)].filter(Boolean)))
+
+  const openPlanTask = (task) => setPlanTask({ task, manuals: manualsForTask(task, LOCAL_MAINTENANCE_MANUALS, machineCodes) })
+
+  const openWorkOrderFormat = async (wo) => {
+    let files = []
+    try {
+      files = await loadWorkOrderFiles(wo.id)
+    } catch (err) {
+      console.warn('Dossier SIG: el FOMAT01 se abre sin las evidencias de la OT.', err)
+    }
+    openEvidenceFormat(workOrderRecordItem({
+      order: wo,
+      files: files.map((file) => ({ ...file, uploadedByName: nameOf(file.uploaded_by) })),
+      machine,
+      createdBy: nameOf(wo.created_by),
+      assignedTo: nameOf(wo.assigned_to),
+    }))
+  }
+
+  const openMantumOtFormat = (ot) => openRecordDocument({
+    title: `FOMAT01 · ${ot.code || 'OT Mántum'}`,
+    html: buildMaintenanceRecordHtml({
+      machineCode: mantumCode && mantumCode !== machine.code ? `${machine.code} · Mántum ${mantumCode}` : machine.code,
+      activity: ot.activity,
+      description: ot.description,
+      feedback: ot.feedback,
+      date: ot.completed_at || ot.started_at || ot.created_at || null,
+      code: ot.code,
+      status: ot.status || (ot.completed_at ? 'Cerrada en Mántum' : 'Registrada en Mántum'),
+      technician: ot.technician,
+      approver: ot.approver,
+    }),
+  })
+
+  const openCalibrationFormat = (c) => openEvidenceFormat(calibrationRecordItem({
+    calibration: c,
+    machine,
+    performedByName: nameOf(c.performed_by),
+    workOrderCode: workOrders.find((wo) => wo.id === c.work_order_id)?.code || null,
+    photos: [
+      { url: c.photo_calibrator_url, file_name: 'Foto del calibrador (patrón)' },
+      { url: c.photo_screen_url, file_name: 'Foto de la pantalla del equipo' },
+    ],
+  }))
+
+  const openCheckFormat = (chk) => openEvidenceFormat(singleCheckRound({
+    check: chk,
+    machine,
+    takenByName: nameOf(chk.taken_by),
+    photoUrl: chk.photo_url || null,
+  }))
 
   // Semáforo visual
   const semaforoColor = stats?.auditSemaphore === 'green' ? '#10b981' : stats?.auditSemaphore === 'yellow' ? '#f59e0b' : '#ef4444'
@@ -652,7 +724,7 @@ export default function MachineDossier({
                   📅 Tareas Programadas del Plan de Mantenimiento AM (FOMAT07)
                 </h3>
                 <p className="hint" style={{ margin: '4px 0 0 0' }}>
-                  Seleccione cualquier tarea para generar automáticamente la Orden de Trabajo correspondiente en IncubApp.
+                  Haga clic en una actividad para ver cómo se realiza. «⚡ Crear OT Auto» genera su orden de trabajo en IncubApp.
                 </p>
               </div>
             </div>
@@ -672,9 +744,13 @@ export default function MachineDossier({
                 </thead>
                 <tbody>
                   {(mantum?.maintenancePlan || []).map((p, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => openPlanTask(p)}>
                       <td style={{ padding: '10px 12px', fontWeight: 600, color: '#f472b6' }}>{p.plan_code}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#f8fafc' }}>{p.activity}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#f8fafc' }}>
+                        <button type="button" style={TASK_BUTTON} title="Ver cómo se realiza esta actividad" onClick={(event) => { event.stopPropagation(); openPlanTask(p) }}>
+                          {p.activity || 'Actividad del plan AM'}
+                        </button>
+                      </td>
                       <td style={{ padding: '10px 12px', color: '#cbd5e1' }}>{p.type}</td>
                       <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{p.specialty}</td>
                       <td style={{ padding: '10px 12px', color: '#38bdf8', fontWeight: 500 }}>{p.frequency}</td>
@@ -686,7 +762,7 @@ export default function MachineDossier({
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                         <button
                           className="chip primary small"
-                          onClick={() => handleCreateAutoOt(p)}
+                          onClick={(event) => { event.stopPropagation(); handleCreateAutoOt(p) }}
                           disabled={autoOtBusy === (p.plan_code || p.activity)}
                           style={{ fontSize: 11, padding: '4px 8px' }}
                         >
@@ -740,7 +816,9 @@ export default function MachineDossier({
                           <tr key={wo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                             <td style={{ padding: '8px 12px', fontWeight: 600, color: '#60a5fa' }}>{wo.code || wo.id.slice(0, 8)}</td>
                             <td style={{ padding: '8px 12px', fontWeight: 500, color: '#f8fafc' }}>
-                              {wo.title}
+                              <a href="#formato" style={RECORD_LINK} title="Abrir el FOMAT01 diligenciado de esta orden" onClick={(event) => { event.preventDefault(); openWorkOrderFormat(wo) }}>
+                                {wo.title || 'Orden de trabajo'} ↗
+                              </a>
                               {wo.auto_generated && (
                                 <span style={{ marginLeft: 6, fontSize: 10, background: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', padding: '1px 5px', borderRadius: 4 }}>
                                   Auto-AM
@@ -801,7 +879,15 @@ export default function MachineDossier({
                         <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: '#f59e0b' }}>{ot.code}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{ot.created_at || ot.started_at}</td>
-                          <td style={{ padding: '8px 12px', fontWeight: 500, color: '#f8fafc' }}>{ot.activity}</td>
+                          <td style={{ padding: '8px 12px', fontWeight: 500, color: '#f8fafc' }}>
+                            {ot.sin_registro ? (
+                              <span title="Programada en el plan; no hay registro de ejecución, así que no hay formato diligenciado">{ot.activity}</span>
+                            ) : (
+                              <a href="#formato" style={RECORD_LINK} title="Abrir el FOMAT01 diligenciado de esta intervención" onClick={(event) => { event.preventDefault(); openMantumOtFormat(ot) }}>
+                                {ot.activity || 'Intervención Mántum'} ↗
+                              </a>
+                            )}
+                          </td>
                           <td style={{ padding: '8px 12px', color: '#60a5fa' }}>{ot.sin_registro ? 'Sin registro de ejecución' : `👨‍🔧 ${ot.technician || 'No registrado'}`}</td>
                           <td style={{ padding: '8px 12px', color: '#cbd5e1' }}>{ot.sin_registro ? '—' : `👔 ${ot.approver || 'Líder Mantum'}`}</td>
                           <td style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12, maxWidth: 300 }}>{ot.feedback || ot.description || '-'}</td>
@@ -851,6 +937,7 @@ export default function MachineDossier({
                       <th style={{ padding: '8px 12px' }}>Evaluación SIG</th>
                       <th style={{ padding: '8px 12px' }}>Metrólogo / Ejecutor</th>
                       <th style={{ padding: '8px 12px' }}>Evidencias</th>
+                      <th style={{ padding: '8px 12px' }}>Formato</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -913,6 +1000,11 @@ export default function MachineDossier({
                               {!c.photo_screen_path && !c.photo_calibrator_path && <span style={{ color: '#64748b' }}>-</span>}
                             </div>
                           </td>
+                          <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                            <a href="#formato" style={RECORD_LINK} title="Abrir el FOMAT08 diligenciado de esta calibración" onClick={(event) => { event.preventDefault(); openCalibrationFormat(c) }}>
+                              FOMAT08 ↗
+                            </a>
+                          </td>
                         </tr>
                       )
                     })}
@@ -955,6 +1047,7 @@ export default function MachineDossier({
                       <th style={{ padding: '8px 12px' }}>Condición</th>
                       <th style={{ padding: '8px 12px' }}>Observaciones</th>
                       <th style={{ padding: '8px 12px' }}>Foto</th>
+                      <th style={{ padding: '8px 12px' }}>Formato</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -978,6 +1071,11 @@ export default function MachineDossier({
                         <td style={{ padding: '8px 12px' }}>
                           {chk.photo_url ? <a href={chk.photo_url} target="_blank" rel="noopener noreferrer"><img src={chk.photo_url} alt="Evidencia de ronda" style={{ width: 72, height: 48, objectFit: 'cover', borderRadius: 4 }} /></a> : 'Sin foto'}
                         </td>
+                        <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                          <a href="#formato" style={RECORD_LINK} title="Abrir el FOMAT04 diligenciado de este chequeo" onClick={(event) => { event.preventDefault(); openCheckFormat(chk) }}>
+                            FOMAT04 ↗
+                          </a>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -997,6 +1095,8 @@ export default function MachineDossier({
           </div>
         )}
       </div>
+
+      <PlanTaskInstructions task={planTask?.task} manuals={planTask?.manuals || []} onClose={closePlanTask} />
 
       {/* Modal visor de foto de evidencia */}
       {selectedPhoto && (

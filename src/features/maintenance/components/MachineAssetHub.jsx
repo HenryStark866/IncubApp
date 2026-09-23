@@ -7,7 +7,7 @@ import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { buildMaintenanceRecordHtml, maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
-import { hasEvidenceFormat, openEvidenceFormat, openRecordDocument } from '../../../lib/sigRecordDocuments';
+import { calibrationRecordItem, hasEvidenceFormat, openEvidenceFormat, openRecordDocument } from '../../../lib/sigRecordDocuments';
 import { manualsForTask } from '../../../lib/planTaskInstructions';
 import PlanTaskInstructions from './PlanTaskInstructions';
 import { localListMaps } from '../../../lib/loadClassificationLocalStore';
@@ -2228,7 +2228,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                   </div>
                 )}
                 {detailTab === 'calibrations' && (
-                  dossier.calibrations.length ? <div className="sig-table-wrap"><table><thead><tr><th>Fecha</th><th>Alcance</th><th>Resultado</th></tr></thead><tbody>{dossier.calibrations.map((cal, index) => <tr key={cal.id || index}><td>{cal.calibrated_at ? new Date(cal.calibrated_at).toLocaleDateString('es-CO') : 'Sin fecha'}</td><td>{cal.scope || 'Equipo'}</td><td>{cal.result || cal.status || 'Registrada'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay calibraciones registradas para este activo.</p>
+                  dossier.calibrations.length ? <div className="sig-table-wrap"><table><thead><tr><th>Fecha</th><th>Alcance</th><th>Resultado</th><th>Formato</th></tr></thead><tbody>{dossier.calibrations.map((cal, index) => <tr key={cal.id || index}><td>{cal.calibrated_at ? new Date(cal.calibrated_at).toLocaleDateString('es-CO') : 'Sin fecha'}</td><td>{cal.scope || 'Equipo'}</td><td>{cal.result || cal.status || 'Registrada'}</td><td><a href="#formato" className="sig-format-link" title="Abrir el FOMAT08 diligenciado de esta calibración" onClick={(event) => { event.preventDefault(); openEvidenceFormat(calibrationRecordItem({ calibration: cal, machine: selectedMachine, performedByName: cal.profiles?.full_name || null })); }}>FOMAT08 ↗</a></td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay calibraciones registradas para este activo.</p>
                 )}
                 {detailTab === 'plan' && (
                   dossier.maintenancePlan?.length ? <div className="sig-table-wrap"><table><thead><tr><th>Actividad</th><th>Frecuencia</th><th>Especialidad</th></tr></thead><tbody>{dossier.maintenancePlan.map((task, index) => <tr key={task.plan_code || task.code || index}><td><button type="button" className="sig-link-button" title="Ver cómo se realiza esta actividad" onClick={() => openPlanTask(task, [selectedMachine?.code, selectedMachine?.mantum_code])}>{task.activity || task.description || task.title || 'Actividad preventiva'}</button></td><td>{task.frequency || 'Programada'}</td><td>{task.specialty || 'Mantenimiento'}</td></tr>)}</tbody></table></div> : <p className="sig-empty-tab">No hay tareas de mantenimiento programadas para este activo.</p>

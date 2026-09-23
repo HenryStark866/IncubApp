@@ -23,8 +23,8 @@ import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
-import MachineAssetHub from '../features/maintenance/components/MachineAssetHub'
-import { evidenceHasRecordDocument, openEvidenceFormat } from '../lib/sigRecordDocuments'
+import MachineAssetHub, { buildProductionEvidence } from '../features/maintenance/components/MachineAssetHub'
+import { evidenceHasRecordDocument, openEvidenceFormat, shiftActivityRecordItem, singleCheckRound, workOrderRecordItem } from '../lib/sigRecordDocuments'
 
 /** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
@@ -80,7 +80,7 @@ function QuickCard({ item, onNavigate }) {
   )
 }
 
-function FeedItem({ event, peopleName, getPhotoUrl }) {
+function FeedItem({ event, peopleName, getPhotoUrl, onOpenFormat }) {
   const [photoUrl, setPhotoUrl] = useState(null)
   const who = peopleName?.[event.personId] || 'Operario registrado'
   const when = event.when
@@ -109,11 +109,23 @@ function FeedItem({ event, peopleName, getPhotoUrl }) {
         {event.report && <span className="ldr-feed-report" title={event.report}>{event.report}</span>}
         {when && <span className="ldr-feed-when">{when}</span>}
       </div>
-      {event.kind === 'Ronda' && (
-        photoUrl
-          ? <a className="ldr-feed-view" href={photoUrl} target="_blank" rel="noopener noreferrer">VER</a>
-          : <span className="ldr-feed-view is-empty">Sin foto</span>
-      )}
+      <div className="ldr-feed-actions">
+        {event.kind === 'Ronda' && (
+          photoUrl
+            ? <a className="ldr-feed-view" href={photoUrl} target="_blank" rel="noopener noreferrer">VER</a>
+            : <span className="ldr-feed-view is-empty">Sin foto</span>
+        )}
+        {event.source && onOpenFormat && (
+          <a
+            className="ldr-feed-view ldr-feed-format"
+            href="#formato"
+            title="Abrir el formato diligenciado de este registro"
+            onClick={(clickEvent) => { clickEvent.preventDefault(); onOpenFormat(event) }}
+          >
+            FORMATO
+          </a>
+        )}
+      </div>
     </div>
   )
 }
@@ -271,6 +283,7 @@ export default function LeaderDashboard({
         personId: c.taken_by,
         when: c.taken_at,
         photoPath: c.photo_path,
+        source: c,
         detail: `Ronda ${c.hour_slot || '—'} · Turno ${c.shift_number || '—'} · ${c.shift_date || 'sin fecha'}`,
         report: c.notes || 'Sin novedad reportada',
       })
@@ -281,15 +294,30 @@ export default function LeaderDashboard({
         kind: 'Actividad',
         personId: a.assigned_to,
         when,
+        source: a,
         detail: a.title || a.description || 'Actividad de turno',
         report: a.result_note || a.completion || a.status || 'Reportada',
       })
     }
+    // Un cargue programado para más adelante todavía no tiene registro que abrir.
+    const happened = (value) => Boolean(value) && new Date(value).getTime() <= Date.now()
     for (const l of loads) {
-      out.push({ kind: 'Cargue', personId: l.created_by, when: l.loaded_at })
+      out.push({
+        kind: 'Cargue',
+        personId: l.created_by,
+        when: l.loaded_at,
+        detail: `Lote ${l.lote || '—'}${l.tape_color_name ? ` · Cinta ${l.tape_color_name}` : ''}`,
+        source: happened(l.loaded_at) ? l : null,
+      })
     }
     for (const t of transfers) {
-      out.push({ kind: 'Transferencia', personId: t.created_by, when: t.transferred_at })
+      out.push({
+        kind: 'Transferencia',
+        personId: t.created_by,
+        when: t.transferred_at,
+        detail: `Lote ${t.lote || '—'}`,
+        source: happened(t.transferred_at) ? t : null,
+      })
     }
     for (const o of orders) {
       const when = o.completed_at || o.started_at || o.created_at
@@ -297,6 +325,7 @@ export default function LeaderDashboard({
         kind: 'Mantenimiento',
         personId: o.assigned_to || o.created_by,
         when,
+        source: o,
         detail: `${o.code || 'OT'} · ${o.title || 'Actividad de mantenimiento'}`,
         report: o.resolution || o.status || 'Registrada',
       })
@@ -312,6 +341,41 @@ export default function LeaderDashboard({
     for (const [id, p] of Object.entries(people)) map[id] = p.name || 'Operario'
     return map
   }, [directory, people])
+
+  // Cada actividad del feed abre su formato diligenciado con lo que guarda la base:
+  // ronda → FOMAT04, OT → FOMAT01, cargue / transferencia / actividad → registro operativo.
+  const machinesById = useMemo(() => Object.fromEntries(machines.map((m) => [m.id, m])), [machines])
+  const getCheckPhotoUrl = mc.getPhotoUrl
+  const openFeedFormat = useCallback(async (ev) => {
+    const row = ev.source || {}
+    const photo = async (path) => (path ? getCheckPhotoUrl(path) : null)
+    try {
+      if (ev.kind === 'Ronda') {
+        openEvidenceFormat(singleCheckRound({ check: row, machine: machinesById[row.machine_id] || null, takenByName: peopleName[row.taken_by] || null, photoUrl: await photo(row.photo_path) }))
+      } else if (ev.kind === 'Actividad') {
+        openEvidenceFormat(shiftActivityRecordItem({ activity: row, machine: machinesById[row.machine_id] || null, people: peopleName, photoUrl: await photo(row.photo_path) }))
+      } else if (ev.kind === 'Cargue' || ev.kind === 'Transferencia') {
+        const url = await photo(row.photo_path)
+        const [record] = buildProductionEvidence({
+          loads: ev.kind === 'Cargue' ? [row] : [],
+          transfers: ev.kind === 'Transferencia' ? [row] : [],
+          machines: machinesById,
+          people: peopleName,
+          photoUrls: new Map(url ? [[row.photo_path, url]] : []),
+        })
+        if (record) openEvidenceFormat(record)
+      } else if (ev.kind === 'Mantenimiento') {
+        const files = await Promise.all(evidence.filter((file) => file.work_order_id === row.id).map(async (file) => ({
+          ...file,
+          url: await getFileUrl(file.file_path),
+          uploadedByName: peopleName[file.uploaded_by] || null,
+        })))
+        openEvidenceFormat(workOrderRecordItem({ order: row, files, machine: machinesById[row.machine_id] || null, createdBy: peopleName[row.created_by] || null, assignedTo: peopleName[row.assigned_to] || null }))
+      }
+    } catch (error) {
+      console.warn('Tablero del líder: no se pudo abrir el formato del registro.', error)
+    }
+  }, [getCheckPhotoUrl, machinesById, peopleName, evidence, getFileUrl])
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
@@ -423,7 +487,7 @@ export default function LeaderDashboard({
               <p className="ldr-feed-empty">Sin actividad registrada en este turno aún.</p>
             ) : (
               recentEvents.map((ev, i) => (
-                <FeedItem key={i} event={ev} peopleName={peopleName} getPhotoUrl={mc.getPhotoUrl} />
+                <FeedItem key={i} event={ev} peopleName={peopleName} getPhotoUrl={mc.getPhotoUrl} onOpenFormat={openFeedFormat} />
               ))
             )}
           </div>

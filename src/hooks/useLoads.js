@@ -43,7 +43,7 @@ export function useLoads(orgId, userId) {
     const [l, t] = await Promise.all([
       supabase
         .from('setter_loads')
-        .select('id, plant_id, machine_id, batch_id, lote, loaded_at, cycle_start_at, tape_color, tape_color_name, created_by, created_at')
+        .select('id, plant_id, machine_id, batch_id, lote, loaded_at, cycle_start_at, tape_color, tape_color_name, photo_path, created_by, created_at')
         .eq('org_id', orgId)
         .order('loaded_at', { ascending: false })
         .limit(400),

@@ -123,15 +123,19 @@ export function useMachineDossier(machineId, orgId) {
       setPlant(pRes?.data || null)
       setOpsState(opsRes?.data || null)
       const signedCalibration = async (record) => {
-        const sign = async (bucket, filePath) => {
+        // Las fotos quedaron en wo-evidence o en machine-checks según la versión que las subió.
+        const sign = async (filePath) => {
           if (!filePath) return null
-          const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 3600)
-          return data?.signedUrl || null
+          for (const bucket of ['wo-evidence', 'machine-checks']) {
+            const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 3600)
+            if (data?.signedUrl) return data.signedUrl
+          }
+          return null
         }
         return {
           ...record,
-          photo_screen_url: await sign('wo-evidence', record.photo_screen_path),
-          photo_calibrator_url: await sign('wo-evidence', record.photo_calibrator_path),
+          photo_screen_url: await sign(record.photo_screen_path),
+          photo_calibrator_url: await sign(record.photo_calibrator_path),
         }
       }
       const signedChecks = await Promise.all((chkRes?.data || []).map(async (check) => {
@@ -293,6 +297,31 @@ export function useMachineDossier(machineId, orgId) {
     [machine, orgId, loadDossier]
   )
 
+  // Evidencias de una OT, firmadas al abrir su FOMAT01: las firmas duran una hora y el
+  // dossier puede llevar más tiempo abierto que eso.
+  const loadWorkOrderFiles = useCallback(async (workOrderId) => {
+    if (!workOrderId || !orgId) return []
+    const { data, error: filesErr } = await supabase
+      .from('wo_evidence')
+      .select('id, file_name, file_type, file_path, note, uploaded_by, created_at')
+      .eq('org_id', orgId)
+      .eq('work_order_id', workOrderId)
+      .order('created_at', { ascending: true })
+    if (filesErr) {
+      console.warn('Dossier SIG: no se pudieron leer las evidencias de la OT.', filesErr)
+      return []
+    }
+    const paths = (data || []).map((file) => file.file_path).filter(Boolean)
+    const signed = new Map()
+    if (paths.length) {
+      const { data: urls } = await supabase.storage.from('wo-evidence').createSignedUrls(paths, 3600)
+      for (const row of urls || []) {
+        if (row?.path && row.signedUrl && !row.error) signed.set(row.path, row.signedUrl)
+      }
+    }
+    return (data || []).map((file) => ({ ...file, url: signed.get(file.file_path) || null }))
+  }, [orgId])
+
   return {
     loading,
     error,
@@ -308,6 +337,7 @@ export function useMachineDossier(machineId, orgId) {
     mantum,
     stats,
     createAutoWorkOrder,
+    loadWorkOrderFiles,
     reload: loadDossier,
   }
 }

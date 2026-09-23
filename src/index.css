@@ -11257,6 +11257,21 @@ a.plant3d-link:hover {
   font-weight: 600;
 }
 
+/* VER (foto) y FORMATO (formato diligenciado) a la derecha de cada actividad del feed. */
+.ldr-feed-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ldr-feed-format {
+  color: var(--accent);
+}
+
 .ldr-feed-when {
   font-size: 11px;
   color: var(--text-dim);
@@ -11406,7 +11421,8 @@ a.plant3d-link:hover {
 .sig-record-viewer {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  /* Por encima de las capas de 9990 en las que Mantenimiento y Calibración abren el dossier. */
+  z-index: 10050;
   display: grid;
   place-items: center;
   padding: 16px;

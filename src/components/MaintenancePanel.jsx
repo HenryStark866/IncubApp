@@ -15,6 +15,7 @@ import { useWorkOrders } from '../hooks/useWorkOrders'
 import { useEvidence, useActivityCatalog } from '../hooks/useEvidence'
 import ListControls, { useListControls } from './ListControls'
 import MachineDossier from './MachineDossier'
+import { openEvidenceFormat, workOrderRecordItem } from '../lib/sigRecordDocuments'
 import { compressImage } from '../lib/image'
 import { exportToExcel } from '../lib/exportExcel'
 import {
@@ -512,6 +513,22 @@ export default function MaintenancePanel({ orgId, userId, role }) {
   const machineOf = (id) => machines.find((m) => m.id === id)
   const plantOf = (id) => plants.find((p) => p.id === id)
   const nameOf = (id) => wo.team.find((t) => t.id === id)?.name ?? null
+
+  // FOMAT01 de la OT llenado con lo que guarda la base y sus evidencias (22-09-2026).
+  const openOrderFormat = async (o) => {
+    const files = await Promise.all(ev.evidence.filter((e) => e.work_order_id === o.id).map(async (file) => ({
+      ...file,
+      url: await ev.getFileUrl(file.file_path),
+      uploadedByName: nameOf(file.uploaded_by),
+    })))
+    openEvidenceFormat(workOrderRecordItem({
+      order: o,
+      files,
+      machine: machineOf(o.machine_id) || null,
+      createdBy: nameOf(o.created_by),
+      assignedTo: nameOf(o.assigned_to),
+    }))
+  }
   const myName = nameOf(userId) ?? 'Usuario'
   const evidenceCount = (woId) => ev.evidence.filter((e) => e.work_order_id === woId).length
 
@@ -806,6 +823,15 @@ export default function MaintenancePanel({ orgId, userId, role }) {
                   </div>
                   <span className={`pill status ${pr.cls}`}>{pr.label}</span>
                   <span className={`pill status ${st.cls}`}>{st.label}</span>
+                  <a
+                    href="#formato"
+                    className="chip ghost small"
+                    title="Abrir el FOMAT01 diligenciado de esta orden"
+                    onClick={(event) => { event.preventDefault(); openOrderFormat(o) }}
+                    style={{ fontSize: 10, padding: '1px 6px', textDecoration: 'none' }}
+                  >
+                    📄 FOMAT01
+                  </a>
                 </div>
 
                 {/* Tipificación ordenada (mismo estilo visual que las atendidas) */}

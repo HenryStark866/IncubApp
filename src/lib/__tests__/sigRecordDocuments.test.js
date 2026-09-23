@@ -2,6 +2,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   calibrationRecordHtml,
+  calibrationRecordItem,
+  shiftActivityRecordItem,
+  singleCheckRound,
+  workOrderRecordItem,
   evidenceHasRecordDocument,
   evidenceRecordHtml,
   openRecordDocument,
@@ -129,5 +133,75 @@ describe('formatos SIG diligenciados con los registros de IncubApp', () => {
     expect(openRecordDocument({ url: 'https://firmada.test/FOMAT04.xlsx' })).toBe(true)
     expect(click).toHaveBeenCalledTimes(1)
     expect(openRecordDocument({})).toBe(false)
+  })
+})
+
+describe('registros sueltos de las listas: dossier, feed del líder y OT de Mantenimiento', () => {
+  it('un chequeo de ronda arma su línea del FOMAT04 con turno, franja y quién lo tomó', () => {
+    const item = singleCheckRound({
+      check: { id: 'c1', shift_date: '2026-09-22', shift_number: 2, hour_slot: 'H3', condition: 'fault', notes: 'Ventilador trabado', taken_at: '2026-09-22T15:10:00-05:00', photo_path: 'org/x.jpg' },
+      machine: { code: 'INC-05', name: 'Incubadora 5' },
+      takenByName: 'Ferney Tabares',
+      photoUrl: 'https://firmada.test/x.jpg',
+    })
+
+    expect(item.shiftCode).toBe('T2')
+    const html = evidenceRecordHtml(item)
+    expect(html).toContain('FOMAT04')
+    expect(html).toContain('INC-05')
+    expect(html).toContain('Falla')
+    expect(html).toContain('Ventilador trabado')
+    expect(html).toContain('Ferney Tabares')
+    expect(html).toContain('https://firmada.test/x.jpg')
+  })
+
+  it('la calibración llega al FOMAT08 con sus lecturas y solo con las fotos que abren', () => {
+    const item = calibrationRecordItem({
+      calibration: { id: 'k1', scope: 'both', calibrated_at: '2026-09-19T14:19:00-05:00', temp_machine_f: 99.5, temp_calibrator_f: 99.7, temp_delta_f: -0.2, rh_machine_pct: 55, rh_calibrator_pct: 57, rh_delta_pct: -2 },
+      machine: { code: 'INC-05' },
+      performedByName: 'Ferney Tabares',
+      workOrderCode: 'OT-0101',
+      photos: [{ url: 'https://firmada.test/patron.jpg', file_name: 'Patrón' }, { url: null, file_name: 'Pantalla' }],
+    })
+
+    expect(item.items).toHaveLength(1)
+    const html = evidenceRecordHtml(item)
+    expect(html).toContain('FOMAT08')
+    expect(html).toContain('99.7')
+    expect(html).toContain('57')
+    expect(html).toContain('OT-0101')
+    expect(html).toContain('https://firmada.test/patron.jpg')
+  })
+
+  it('la OT llega al FOMAT01 con quien la pidió, quien la atendió y sus archivos', () => {
+    const item = workOrderRecordItem({
+      order: { id: 'w1', code: 'OT-0102', title: 'Cambio de empaque', status: 'completed' },
+      files: [{ file_name: 'antes.jpg', note: 'Antes', uploadedByName: 'Juan' }],
+      machine: { code: 'NAC-03' },
+      createdBy: 'Henry',
+      assignedTo: 'Juan',
+    })
+
+    const html = evidenceRecordHtml(item)
+    expect(html).toContain('FOMAT01')
+    expect(html).toContain('OT-0102')
+    expect(html).toContain('NAC-03')
+    expect(html).toContain('Henry')
+    expect(html).toContain('antes.jpg')
+  })
+
+  it('la actividad del turno sale como registro operativo y sin código de formato del SIG', () => {
+    const item = shiftActivityRecordItem({
+      activity: { id: 'a1', title: 'Lavado de bandejas', status: 'done', assigned_to: 'u1', completed_at: '2026-09-22T11:00:00-05:00', result_qty: 120, photo_path: null },
+      people: { u1: 'Ana Operaria' },
+    })
+
+    const html = evidenceRecordHtml(item)
+    expect(html).toContain('REGISTRO DE ACTIVIDAD DEL TURNO')
+    expect(html).toContain('Lavado de bandejas')
+    expect(html).toContain('Ana Operaria')
+    expect(html).toContain('120')
+    expect(html).toContain('Sin foto')
+    expect(html).not.toMatch(/FOMAT0\d/)
   })
 })

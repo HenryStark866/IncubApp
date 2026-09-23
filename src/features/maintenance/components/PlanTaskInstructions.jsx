@@ -1,9 +1,14 @@
 /**
  * Recuadro con las instrucciones de ejecución de una actividad del Plan AM.
  * Los pasos salen de PROMAT01 (ver src/lib/planTaskInstructions.js); aquí solo se pintan.
+ * Se monta en document.body con un portal: el dossier de la máquina se abre dentro de
+ * capas fijas con backdrop-filter (Mantenimiento, Calibración), que atrapan a los hijos
+ * position: fixed y los dejaban detrás del expediente. Por eso trae su propio CSS.
  */
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { normalizePlanTask, planTaskSteps, PROCEDURE_SOURCE, RECORD_RETENTION } from '../../../lib/planTaskInstructions';
+import './PlanTaskInstructions.css';
 
 export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
   const closeRef = useRef(null);
@@ -16,7 +21,7 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [task, onClose]);
 
-  if (!task) return null;
+  if (!task || typeof document === 'undefined') return null;
 
   const info = normalizePlanTask(task);
   const steps = planTaskSteps(task);
@@ -35,12 +40,12 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
     ['Evidencia', info.evidenceFormat],
   ].filter(([, value]) => value);
 
-  return (
+  return createPortal(
     <div className="sig-modal-backdrop" role="presentation" onClick={onClose}>
       <section className="sig-modal" role="dialog" aria-modal="true" aria-labelledby="sig-plan-task-title" onClick={(event) => event.stopPropagation()}>
         <header className="sig-modal-head">
           <div>
-            <span className="sig-detail-kicker">Plan AM · Cómo se realiza</span>
+            <span className="sig-modal-kicker">Plan AM · Cómo se realiza</span>
             <h2 id="sig-plan-task-title">{info.activity}</h2>
           </div>
           <button ref={closeRef} type="button" className="sig-modal-close" onClick={onClose} aria-label="Cerrar instrucciones">×</button>
@@ -73,6 +78,7 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
         <p className="sig-modal-muted">{RECORD_RETENTION}</p>
         <p className="sig-modal-source">Fuente: {PROCEDURE_SOURCE}, y programa PRGMAT01. El instructivo técnico propio de esta tarea todavía no está estandarizado en el programa: los pasos son el procedimiento general aprobado.</p>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
