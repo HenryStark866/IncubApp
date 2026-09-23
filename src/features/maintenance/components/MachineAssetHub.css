@@ -285,6 +285,26 @@
     flex: 0 0 auto;
 }
 
+/* Rechazados y repetidos: ocultos, a un clic */
+.sig-loadmap-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.sig-loadmap-toggle input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #e0740a;
+}
+
 .sig-asset-document-list {
     display: grid;
     gap: 6px;

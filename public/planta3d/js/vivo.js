@@ -11,6 +11,9 @@
  *      miembro de la organización) y reemplaza los datos de la instantánea.
  *   3. Se suscribe por Realtime a las dos tablas y, ante cualquier cambio,
  *      vuelve a pedir el plano y manda reconstruir la escena.
+ *   4. Trae la última foto de ronda de cada equipo (machine_checks) para su
+ *      pantalla, la renueva cada 5 minutos y cuando entra una ronda nueva, y
+ *      la cambia sin reconstruir nada.
  *
  * Sin sesión —una visita pública— no pasa nada: se queda la instantánea de
  * data/planta.js, que es el respaldo y funciona hasta sin internet.
@@ -146,11 +149,110 @@
         ...(m.width != null ? { w: num(m.width) } : null),
         ...(m.depth != null ? { d: num(m.depth) } : null),
         ...(m.height != null ? { h: num(m.height) } : null),
-        // `ops` y `foto` son derivados: no viven en la tabla.
+        // `ops` y las fotos son derivados: no viven en la tabla. `foto` es la
+        // de la instantánea (fotos/) hasta que llega la de la ronda en vivo, y
+        // entonces la de la instantánea pasa a `fotoRespaldo`.
         ops: p.ops || 'idle',
         foto: p.foto !== undefined ? p.foto : `${m.code}.jpg`,
+        ...(p.fotoRespaldo !== undefined ? { fotoRespaldo: p.fotoRespaldo } : null),
+        ...(p.fotoTomada ? { fotoTomada: p.fotoTomada, fotoCondicion: p.fotoCondicion ?? null } : null),
       }
     })
+  }
+
+  // ── Fotos de ronda en vivo ──────────────────────────────────────────────
+  // La pantalla de cada equipo enseña su ÚLTIMA foto de ronda. La carpeta
+  // fotos/ es una instantánea que envejece (se bajó el 18-08-2026 con
+  // `npm run planta3d:fotos`): con sesión abierta se pide a la base la última
+  // foto de cada equipo, se firma en Storage y se vuelve a mirar cada 5 min y
+  // cada vez que Realtime avisa de una ronda nueva. Sin sesión o sin red se
+  // queda la instantánea, que es también el respaldo si una foto no carga.
+  const FOTOS_CADA_MS = 5 * 60 * 1000
+  const FIRMA_SEG = 6 * 60 * 60
+  const CAMPOS_RONDA = 'select=machine_id,photo_path,taken_at,condition'
+  const firmas = new Map() // photo_path → { url, vence }
+  const ultimas = new Map() // machine_id → { path, tomada, condicion }
+  let barridoCompleto = false
+
+  const ms = (iso) => { const t = Date.parse(iso); return Number.isNaN(t) ? 0 : t }
+
+  function anotar(f) {
+    if (!f?.machine_id || !f.photo_path) return
+    const previa = ultimas.get(f.machine_id)
+    if (previa && ms(previa.tomada) >= ms(f.taken_at)) return
+    ultimas.set(f.machine_id, { path: f.photo_path, tomada: f.taken_at, condicion: f.condition || null })
+  }
+
+  /** URL firmadas del bucket privado machine-checks, reutilizadas mientras no estén por vencer. */
+  async function firmar(paths, token) {
+    const ahora = Date.now()
+    const faltan = paths.filter((p) => !(firmas.get(p)?.vence > ahora + 30 * 60 * 1000))
+    for (let i = 0; i < faltan.length; i += 100) {
+      const r = await fetch(`${CFG.url}/storage/v1/object/sign/machine-checks`, {
+        method: 'POST',
+        headers: { apikey: CFG.key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresIn: FIRMA_SEG, paths: faltan.slice(i, i + 100) }),
+      })
+      if (!r.ok) throw new Error(`firma ${r.status} ${r.statusText}`)
+      for (const f of await r.json()) {
+        if (f?.path && f.signedURL) {
+          firmas.set(f.path, { url: encodeURI(`${CFG.url}/storage/v1${f.signedURL}`), vence: ahora + FIRMA_SEG * 1000 })
+        }
+      }
+    }
+    return new Map(paths.filter((p) => firmas.has(p)).map((p) => [p, firmas.get(p).url]))
+  }
+
+  /** Trae la última foto de ronda de cada equipo y la deja en window.PLANTA. */
+  async function traerFotos(token) {
+    const maquinas = global.PLANTA.machines || []
+    const base = `machine_checks?plant_id=eq.${PLANTA}&photo_path=not.is.null&${CAMPOS_RONDA}&order=taken_at.desc`
+    let desde = 0
+    for (const u of ultimas.values()) desde = Math.max(desde, ms(u.tomada))
+    // La primera vez, las mil rondas con foto más recientes; después, solo lo nuevo.
+    const filas = barridoCompleto && desde
+      ? await pedir(`${base}&taken_at=gt.${encodeURIComponent(new Date(desde).toISOString())}&limit=500`, token)
+      : await pedir(`${base}&limit=1000`, token)
+    filas.forEach(anotar)
+
+    if (!barridoCompleto) {
+      // Un equipo que no salió entre esas mil (un compresor que se revisa poco)
+      // se busca aparte, de a seis consultas a la vez.
+      const faltan = maquinas.filter((m) => !ultimas.has(m.id))
+      for (let i = 0; i < faltan.length; i += 6) {
+        await Promise.all(faltan.slice(i, i + 6).map(async (m) => {
+          try {
+            const [f] = await pedir(`machine_checks?machine_id=eq.${m.id}&photo_path=not.is.null&${CAMPOS_RONDA}&order=taken_at.desc&limit=1`, token)
+            anotar(f)
+          } catch { /* se queda con la foto de la instantánea */ }
+        }))
+      }
+      barridoCompleto = true
+    }
+
+    const urls = await firmar([...new Set([...ultimas.values()].map((u) => u.path))], token)
+    for (const m of maquinas) {
+      const u = ultimas.get(m.id)
+      const url = u && urls.get(u.path)
+      if (!url) continue
+      // La foto de la instantánea queda de respaldo por si la de la base no carga.
+      if (m.fotoRespaldo === undefined) m.fotoRespaldo = m.foto && !/^https?:/i.test(m.foto) ? m.foto : null
+      m.foto = url
+      m.fotoTomada = u.tomada
+      m.fotoCondicion = u.condicion
+    }
+  }
+
+  let fotosEnCurso = null
+  function refrescarFotos() {
+    if (fotosEnCurso) return fotosEnCurso
+    const token = tokenDeSesion()
+    if (!token) return Promise.resolve()
+    fotosEnCurso = traerFotos(token)
+      .then(() => global.PLANTA3D?.actualizarPantallas?.())
+      .catch((e) => console.warn('[planta3d] no se pudieron leer las fotos de ronda:', e.message))
+      .finally(() => { fotosEnCurso = null })
+    return fotosEnCurso
   }
 
   // ── Realtime por WebSocket, sin librería ────────────────────────────────
@@ -176,6 +278,17 @@
         },
         access_token: token,
       })
+      // Las rondas van en un canal aparte: si ese no se pudiera suscribir, el
+      // del plano sigue funcionando igual.
+      env('realtime:planta3d-rondas', 'phx_join', {
+        config: {
+          broadcast: { self: false },
+          postgres_changes: [
+            { event: 'INSERT', schema: 'public', table: 'machine_checks', filter: `plant_id=eq.${PLANTA}` },
+          ],
+        },
+        access_token: token,
+      })
       latido = setInterval(() => env('phoenix', 'heartbeat', {}), 25000)
     }
 
@@ -187,7 +300,8 @@
 
     const reintentar = () => {
       clearInterval(latido)
-      setTimeout(() => escuchar(token, alCambiar), 4000)
+      // Con la sesión de ahora: la del arranque vence a la hora.
+      setTimeout(() => escuchar(tokenDeSesion() || token, alCambiar), 4000)
     }
     ws.onclose = reintentar
     ws.onerror = () => ws.close()
@@ -207,8 +321,18 @@
       return                     // sin permiso o sin red: sigue la instantánea
     }
 
+    refrescarFotos()
+    setInterval(refrescarFotos, FOTOS_CADA_MS)
+
     let pendiente = null
-    escuchar(token, () => {
+    let pendienteFotos = null
+    escuchar(token, (tabla) => {
+      // Una ronda nueva solo cambia la pantalla de su equipo: no se reconstruye.
+      if (tabla === 'machine_checks') {
+        clearTimeout(pendienteFotos)
+        pendienteFotos = setTimeout(refrescarFotos, 1500)
+        return
+      }
       // Varios cambios seguidos (arrastrar una puerta emite muchos) se juntan
       // en una sola reconstrucción.
       clearTimeout(pendiente)

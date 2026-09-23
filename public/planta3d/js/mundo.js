@@ -65,7 +65,187 @@
   // Pantalla de control del equipo (m). Sobre ella se proyecta la última foto de ronda.
   const ANCHO_PANTALLA = 0.56
   const ALTO_PANTALLA = 0.40
-  const cargadorTex = new THREE.TextureLoader()
+
+  // ── Pantalla de ronda ──────────────────────────────────────────────────
+  // La pantalla enseña la ÚLTIMA foto de ronda del equipo como la enseñaría un
+  // monitor: entera y sin deformar —las fotos de ronda son verticales, 3:4, y
+  // la pantalla es apaisada— y, al lado, el código del equipo, la hora y la
+  // fecha de la ronda y la condición reportada. Se compone en un lienzo de
+  // 512 px en vez de subir la foto tal cual: 41 fotos de 960 × 1280 eran unos
+  // 270 MB de memoria de vídeo, más de lo que tiene una tablet.
+  const PX_PANTALLA_W = 512
+  const PX_PANTALLA_H = Math.round((PX_PANTALLA_W * ALTO_PANTALLA) / ANCHO_PANTALLA)
+  const PX_MARGEN = 12
+  const cargadorImg = new THREE.ImageLoader()
+  cargadorImg.setCrossOrigin('anonymous')
+  const fotosReducidas = new Map() // ruta sin la firma → Promise<canvas>
+  const CONDICION_RONDA = {
+    normal: { txt: 'Sin novedad', color: '#22c55e' },
+    warning: { txt: 'Alerta', color: '#f59e0b' },
+    fault: { txt: 'Falla', color: '#ef4444' },
+    off: { txt: 'Apagada', color: '#94a3b8' },
+  }
+  const FUENTE_PANTALLA = '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+
+  /** Las fotos de la instantánea son nombres de archivo de fotos/; las que llegan en vivo, URL firmadas. */
+  function rutaFoto(f) {
+    if (!f) return null
+    return /^(https?:|blob:|data:)/i.test(f) ? f : 'fotos/' + f
+  }
+
+  /**
+   * La foto ya reducida al tamaño con que se ve en pantalla. Se guarda por la
+   * ruta sin la firma: al renovarse la URL firmada no se vuelve a bajar.
+   */
+  function fotoReducida(url) {
+    const clave = url.split('?')[0]
+    if (!fotosReducidas.has(clave)) {
+      if (fotosReducidas.size > 150) fotosReducidas.delete(fotosReducidas.keys().next().value)
+      const promesa = new Promise((resolve, reject) => {
+        cargadorImg.load(url, (img) => {
+          const k = Math.min(1, (PX_PANTALLA_H - 2 * PX_MARGEN) / img.height, (PX_PANTALLA_W * 0.6) / img.width)
+          const c = document.createElement('canvas')
+          c.width = Math.max(1, Math.round(img.width * k))
+          c.height = Math.max(1, Math.round(img.height * k))
+          const ctx = c.getContext('2d')
+          ctx.imageSmoothingQuality = 'high'
+          ctx.drawImage(img, 0, 0, c.width, c.height)
+          resolve(c)
+        }, undefined, reject)
+      })
+      // Una foto que no cargó no se queda en la caché: la próxima vez se reintenta.
+      promesa.catch(() => { if (fotosReducidas.get(clave) === promesa) fotosReducidas.delete(clave) })
+      fotosReducidas.set(clave, promesa)
+    }
+    return fotosReducidas.get(clave)
+  }
+
+  function fechaRonda(iso) {
+    const d = new Date(iso)
+    if (!iso || Number.isNaN(d.getTime())) return null
+    const min = Math.round((Date.now() - d.getTime()) / 60000)
+    let edad = null
+    if (min >= 0) {
+      edad = min < 60 ? `hace ${Math.max(1, min)} min`
+        : min < 48 * 60 ? `hace ${Math.round(min / 60)} h`
+          : `hace ${Math.round(min / 1440)} días`
+    }
+    return {
+      hora: d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      dia: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }),
+      edad,
+    }
+  }
+
+  /** Escribe `txt` y achica la letra si no cabe en `ancho`. */
+  function textoAjustado(ctx, txt, x, y, ancho, px, peso) {
+    ctx.font = `${peso} ${px}px ${FUENTE_PANTALLA}`
+    const w = ctx.measureText(txt).width
+    if (w > ancho) ctx.font = `${peso} ${Math.max(10, Math.floor((px * ancho) / w))}px ${FUENTE_PANTALLA}`
+    ctx.fillText(txt, x, y)
+  }
+
+  function pintarPantalla(lienzo, m, foto, info, cargando) {
+    const W = lienzo.width
+    const H = lienzo.height
+    const ctx = lienzo.getContext('2d')
+    const fondo = ctx.createLinearGradient(0, 0, 0, H)
+    fondo.addColorStop(0, '#0f1a2c')
+    fondo.addColorStop(1, '#060b14')
+    ctx.fillStyle = fondo
+    ctx.fillRect(0, 0, W, H)
+    ctx.textBaseline = 'alphabetic'
+
+    if (!foto) {
+      // Sin foto se dice, en vez de dejar la pantalla en negro: negro parece
+      // una falla del recorrido, no un equipo sin ronda.
+      ctx.textAlign = 'center'
+      ctx.fillStyle = cargando ? '#475569' : '#e2e8f0'
+      textoAjustado(ctx, m.code, W / 2, H / 2 - 6, W - 40, 52, 700)
+      if (!cargando) {
+        ctx.fillStyle = '#64748b'
+        textoAjustado(ctx, 'SIN FOTO DE RONDA', W / 2, H / 2 + 34, W - 40, 22, 700)
+      }
+      return
+    }
+
+    const x0 = PX_MARGEN
+    const y0 = Math.round((H - foto.height) / 2)
+    ctx.drawImage(foto, x0, y0)
+    ctx.strokeStyle = 'rgba(148,163,184,0.35)'
+    ctx.lineWidth = 2
+    ctx.strokeRect(x0 - 1, y0 - 1, foto.width + 2, foto.height + 2)
+
+    const cx = x0 + foto.width + 18
+    const ancho = W - cx - PX_MARGEN
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#f8fafc'
+    textoAjustado(ctx, m.code, cx, 60, ancho, 40, 700)
+    ctx.fillStyle = '#7dd3fc'
+    textoAjustado(ctx, 'ÚLTIMA RONDA', cx, 92, ancho, 15, 700)
+    const f = fechaRonda(info && info.tomada)
+    if (f) {
+      ctx.fillStyle = '#f8fafc'
+      textoAjustado(ctx, f.hora, cx, 142, ancho, 44, 700)
+      ctx.fillStyle = '#cbd5e1'
+      textoAjustado(ctx, f.dia, cx, 174, ancho, 21, 600)
+      if (f.edad) {
+        ctx.fillStyle = '#94a3b8'
+        textoAjustado(ctx, f.edad, cx, 202, ancho, 18, 500)
+      }
+    } else {
+      ctx.fillStyle = '#94a3b8'
+      textoAjustado(ctx, 'Fecha no registrada', cx, 130, ancho, 18, 500)
+    }
+    const c = CONDICION_RONDA[info && info.condicion]
+    if (c) {
+      const y = H - 30
+      ctx.fillStyle = c.color
+      ctx.beginPath()
+      ctx.arc(cx + 9, y - 7, 9, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#f1f5f9'
+      textoAjustado(ctx, c.txt, cx + 26, y, ancho - 26, 22, 700)
+    }
+  }
+
+  /**
+   * Monta la pantalla sobre su malla y devuelve con qué cambiarle la foto sin
+   * reconstruir la planta: `poner(foto, respaldo, info)`. Si la foto en vivo
+   * no carga se prueba la de la instantánea; si tampoco, la pantalla lo dice.
+   */
+  function crearPantalla(malla, m) {
+    const lienzo = document.createElement('canvas')
+    lienzo.width = PX_PANTALLA_W
+    lienzo.height = PX_PANTALLA_H
+    const tex = new THREE.CanvasTexture(lienzo)
+    tex.encoding = THREE.sRGBEncoding
+    tex.anisotropy = 4
+    malla.material.map = tex
+    malla.material.needsUpdate = true
+    let turno = 0
+    const pintar = (foto, info, cargando) => {
+      pintarPantalla(lienzo, m, foto, info, cargando)
+      tex.needsUpdate = true
+    }
+    function poner(foto, respaldo, info) {
+      const mio = ++turno
+      const rutas = [rutaFoto(foto), rutaFoto(respaldo)].filter((r, i, a) => r && a.indexOf(r) === i)
+      if (!rutas.length) { pintar(null, info, false); return }
+      // Mientras carga se deja lo que había; en reposo solo la primera vez.
+      if (mio === 1) pintar(null, info, true)
+      const probar = (i) => {
+        if (mio !== turno) return
+        if (i >= rutas.length) { pintar(null, info, false); return }
+        fotoReducida(rutas[i]).then(
+          (c) => { if (mio === turno) pintar(c, i === 0 ? info : null, false) },
+          () => probar(i + 1)
+        )
+      }
+      probar(0)
+    }
+    return { poner }
+  }
 
   const round2 = (n) => Math.round(n * 100) / 100
 
@@ -3081,6 +3261,9 @@
 
     // ── Equipos ────────────────────────────────────────────────────────────
     const equipos = []
+    // Mando de la pantalla de cada equipo, por id: vivo.js cambia las fotos
+    // de ronda sin reconstruir la planta.
+    const pantallas = new Map()
     datos.machines.forEach((m) => {
       const sala = salasPorId.get(m.room)
       if (!sala) return
@@ -3323,10 +3506,10 @@
       }
 
       // ── Pantalla de control ────────────────────────────────────────────
-      // Muestra la última foto de ronda del equipo (carpeta fotos/), sin importar
-      // si está operando: lo que decide es tener foto. La pantalla nace oscura y
-      // solo se enciende cuando la imagen termina de cargar, así un equipo sin
-      // archivo se ve apagado en vez de encendido y vacío.
+      // Muestra la última foto de ronda del equipo, sin importar si está
+      // operando: lo que decide es tener foto. Con sesión abierta es la que
+      // vivo.js trae de la base; sin ella, la de la instantánea (carpeta
+      // fotos/). Un equipo sin ninguna lo dice en vez de quedarse en negro.
       const yPantalla = dim.h * 0.72
       const zPantalla = -dim.d / 2 - 0.11
 
@@ -3335,26 +3518,20 @@
       marco.position.set(0, yPantalla, zPantalla)
       g.add(marco)
 
-      // MeshBasic: la pantalla se ve igual de nítida sin depender de la luz de la sala.
-      const matPantalla = new THREE.MeshBasicMaterial({ color: 0x0a0f18 })
+      // MeshBasic y sin tone mapping: la pantalla se ve con sus colores reales,
+      // igual de nítida, sin depender de la luz de la sala.
+      const matPantalla = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
       const pantalla = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_PANTALLA, ALTO_PANTALLA), matPantalla)
       pantalla.rotation.y = Math.PI          // el frente del equipo mira a −Z
       pantalla.position.set(0, yPantalla, zPantalla - 0.028)
+      // El modo holograma clona los materiales para teñirlos y la pantalla se
+      // queda fuera: la foto llegaba después del clon, caía en el material
+      // viejo y la pantalla se veía negra (así estuvo hasta el 22-09-2026).
+      pantalla.userData.pantallaRonda = true
       g.add(pantalla)
-
-      if (m.foto) {
-        cargadorTex.load(
-          'fotos/' + m.foto,
-          (tex) => {
-            tex.encoding = THREE.sRGBEncoding
-            matPantalla.map = tex
-            matPantalla.color.set(0xffffff)
-            matPantalla.needsUpdate = true
-          },
-          undefined,
-          () => { /* falta el archivo: la pantalla se queda apagada, como un equipo sin ronda */ }
-        )
-      }
+      const mandoPantalla = crearPantalla(pantalla, m)
+      mandoPantalla.poner(m.foto, m.fotoRespaldo, { tomada: m.fotoTomada, condicion: m.fotoCondicion })
+      pantallas.set(m.id, mandoPantalla)
 
       // Piloto de estado
       const piloto = new THREE.Mesh(
@@ -3944,9 +4121,10 @@
       salasPorId,
       salasPorCodigo,
       equipos,
+      pantallas,
       limites,
     }
   }
 
-  global.Mundo = { construirPlanta, GROSOR_MURO }
+  global.Mundo = { construirPlanta, GROSOR_MURO, rutaFoto }
 })(window)

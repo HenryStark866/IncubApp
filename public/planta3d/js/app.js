@@ -356,11 +356,62 @@
       fila('Sala', `${sala.name} (${sala.code})`) +
       fila('Posición en la sala', `x ${m.x} m · y ${m.y} m`) +
       fila('Posición en el plano', `x ${Math.round(m._pos.x * 10) / 10} m · y ${Math.round(m._pos.z * 10) / 10} m`) +
+      `<div data-foto-equipo="${m.id}">${htmlFotoRonda(m)}</div>` +
       `<div class="accionesInfo">
          <button data-ir="${sala.id}">🚶 Caminar hasta la sala</button>
          <button data-enfocarEquipo="${m.id}">🔍 Enfocar equipo</button>
        </div>`
+    conRespaldo($('#cuerpoInfo .fotoRonda img'), m)
     abrirHoja('#panelInfo', 'visible')
+  }
+
+  // ── Última foto de ronda en la ficha del equipo ─────────────────────────
+  const CONDICION_TXT = { normal: 'Sin novedad', warning: 'Alerta', fault: 'Falla', off: 'Apagada' }
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+  function htmlFotoRonda(m) {
+    const ruta = Mundo.rutaFoto(m.foto)
+    if (!ruta) return fila('Última foto de ronda', 'No registrado')
+    const cuando = m.fotoTomada
+      ? new Date(m.fotoTomada).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+      : 'fecha no registrada'
+    const cond = CONDICION_TXT[m.fotoCondicion]
+    return `<figure class="fotoRonda"><a href="${esc(ruta)}" target="_blank" rel="noopener noreferrer" title="Abrir la foto completa">` +
+      `<img src="${esc(ruta)}" alt="Última foto de ronda de ${esc(m.code)}"></a>` +
+      `<figcaption>Última ronda · ${esc(cuando)}${cond ? ' · ' + esc(cond) : ''}</figcaption></figure>`
+  }
+
+  // Si la foto en vivo no carga se muestra la de la instantánea; si tampoco,
+  // se quita el recuadro en vez de dejar una imagen rota.
+  function conRespaldo(img, m) {
+    if (!img) return
+    const respaldo = Mundo.rutaFoto(m.fotoRespaldo)
+    img.addEventListener('error', function falla() {
+      if (respaldo && !img.dataset.respaldo) {
+        img.dataset.respaldo = '1'
+        img.src = respaldo
+        img.parentElement.href = respaldo
+        return
+      }
+      img.removeEventListener('error', falla)
+      const fig = img.closest('figure')
+      if (fig?.parentNode) fig.outerHTML = fila('Última foto de ronda', 'No registrado')
+    })
+  }
+
+  // Las fotos de ronda cambian sin que cambie el plano: vivo.js trae la última
+  // de cada equipo y aquí solo se repintan las pantallas, sin reconstruir. La
+  // ficha abierta se actualiza en su sitio, sin volver a abrir el menú.
+  function actualizarPantallas() {
+    for (const m of D.machines) {
+      mundo.pantallas?.get(m.id)?.poner(m.foto, m.fotoRespaldo, { tomada: m.fotoTomada, condicion: m.fotoCondicion })
+    }
+    const caja = $('#cuerpoInfo [data-foto-equipo]')
+    const m = caja && D.machines.find((x) => x.id === caja.dataset.fotoEquipo)
+    if (m) {
+      caja.innerHTML = htmlFotoRonda(m)
+      conRespaldo(caja.querySelector('img'), m)
+    }
   }
 
   function irCaminando(sala) {
@@ -593,7 +644,8 @@
     mundo.grupos.equipos.visible = opciones.equipos
     mundo.grupos.techos.visible = opciones.techos
     escena.traverse((obj) => {
-      if (!obj.isMesh || !obj.material) return
+      // La pantalla de ronda no se tiñe: es una foto y se ve tal cual.
+      if (!obj.isMesh || !obj.material || obj.userData.pantallaRonda) return
       if (!obj.userData.hologramaOriginal) {
         obj.userData.hologramaOriginal = obj.material
       }
@@ -1211,7 +1263,7 @@
     escena, camara, renderer, fps, orbita, opciones, reconstruir,
     get mundo() { return mundo },
     ponerVista, encuadrarPlanta, mostrarSala, mostrarEquipo, irCaminando, aplicarOpciones,
-    actualizarRotulos, pintarMini, actualizarTour, tour,
+    actualizarRotulos, pintarMini, actualizarTour, tour, actualizarPantallas,
     get vista() { return vista },
   }
 

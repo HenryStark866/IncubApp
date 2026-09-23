@@ -87,17 +87,18 @@ async function backfillMapImages(orgId, lista) {
       const imagePath = await uploadMapImage(orgId, map.id, rendered.blob);
       if (!imagePath) return map;
 
-      const payload = { ...(map.payload || {}), imagePath };
+      // Solo la columna. Aquí el mapa llega aplanado (sin `payload`), así que el payload que se
+      // armaba era `{ imagePath }` a secas y, al guardarlo, borraba los carros del mapa en la base.
       const { error } = await supabase
         .from('load_maps')
-        .update({ image_path: imagePath, payload })
+        .update({ image_path: imagePath })
         .eq('id', map.id)
         .eq('org_id', orgId);
       if (error) {
         console.warn('backfillMapImages update', error.message);
         return map;
       }
-      return { ...map, imagePath, payload };
+      return { ...map, imagePath };
     } catch (error) {
       console.warn('backfillMapImages render', error);
       return map;

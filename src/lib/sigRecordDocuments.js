@@ -262,7 +262,7 @@ export function hasEvidenceFormat(item) {
   return evidenceHasRecordDocument(item) || Boolean(item?.formatUrl || item?.url)
 }
 
-function dataUrlToBlob(url) {
+export function dataUrlToBlob(url) {
   const comma = url.indexOf(',')
   const meta = url.slice(5, comma)
   const payload = url.slice(comma + 1)

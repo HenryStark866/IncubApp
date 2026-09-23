@@ -5,6 +5,10 @@ import {
     resolveSelectedEvidence,
     isPdfCandidate,
     resolveLoadMapPreviewUrl,
+    curateLoadMaps,
+    loadMapMachineLabel,
+    loadMapStatusLabel,
+    frameSourceFor,
     resolveLoadedByName,
     sortEvidence,
     resolveSigFormatCatalog,
@@ -83,10 +87,17 @@ describe('resolveSelectedEvidence', () => {
         expect(isPdfCandidate({ file_name: 'imagen.jpg', file_type: 'image' })).toBe(false);
     });
 
-    it('usa la imagen real generada cuando el mapa trae un data URL o path de storage', () => {
+    it('usa la imagen real generada cuando el mapa trae un data URL o la URL firmada', () => {
         expect(resolveLoadMapPreviewUrl({ imageDataUrl: 'data:image/png;base64,abc' })).toBe('data:image/png;base64,abc');
-        expect(resolveLoadMapPreviewUrl({ image_path: 'org/load-maps/123.png' })).toBe('org/load-maps/123.png');
         expect(resolveLoadMapPreviewUrl({ url: 'https://example.test/mapa.png' })).toBe('https://example.test/mapa.png');
+    });
+
+    it('nunca devuelve una ruta de Storage suelta: el navegador la pedía a la app y la vista salía rota', () => {
+        expect(resolveLoadMapPreviewUrl({ image_path: 'org/load-maps/123.png' })).toBeNull();
+        expect(resolveLoadMapPreviewUrl({
+            image_path: 'org/load-maps/123.png',
+            url: 'https://pdx.supabase.co/storage/v1/object/sign/machine-checks/org/load-maps/123.png?token=x',
+        })).toBe('https://pdx.supabase.co/storage/v1/object/sign/machine-checks/org/load-maps/123.png?token=x');
     });
 
     it('resuelve el responsable de cargue por turno cuando la carga se hizo en un turno asignado', () => {
@@ -194,6 +205,61 @@ describe('lectura del repositorio de evidencias', () => {
         expect(failed).toEqual({ rows: [], failed: 'las evidencias de OT' });
         expect(ok).toEqual({ rows: [{ id: 1 }], failed: null });
         expect(thrown).toEqual({ rows: [], failed: 'los cargues' });
+    });
+});
+
+describe('mapas de cargue sin repetidos', () => {
+    const mapa = (id, status, cartIds, extra = {}) => ({ id: `load-map-${id}`, rawId: id, mapStatus: status, cartIds, createdAt: '2026-09-20T10:00:00Z', ...extra });
+
+    it('deja un solo mapa por cargue: el más avanzado de los que comparten carros', () => {
+        const borrador = mapa('a', 'draft', ['c2', 'c1']);
+        const aprobado = mapa('b', 'approved', ['c1', 'c2']);
+        const otro = mapa('c', 'pending_approval', ['c9']);
+        const { visible, hidden } = curateLoadMaps([borrador, aprobado, otro]);
+        expect(visible.map((m) => m.rawId)).toEqual(['b', 'c']);
+        expect(hidden.map((m) => m.rawId)).toEqual(['a']);
+    });
+
+    it('oculta rechazados y cancelados aunque no tengan otra versión', () => {
+        const { visible, hidden } = curateLoadMaps([mapa('r', 'rejected', ['c1']), mapa('x', 'cancelled', ['c5']), mapa('k', 'completed', ['c1'])]);
+        expect(visible.map((m) => m.rawId)).toEqual(['k']);
+        expect(hidden.map((m) => m.rawId).sort()).toEqual(['r', 'x']);
+    });
+
+    it('a igual estado prefiere el que tiene máquina y luego el más reciente', () => {
+        const sinMaquina = mapa('s', 'draft', ['c1'], { machineName: 'Petersime 12 carros', createdAt: '2026-09-21T10:00:00Z' });
+        const conMaquina = mapa('m', 'draft', ['c1'], { machineName: 'Inc 13 (INC-13)', createdAt: '2026-09-20T10:00:00Z' });
+        expect(curateLoadMaps([sinMaquina, conMaquina]).visible.map((m) => m.rawId)).toEqual(['m']);
+        const viejo = mapa('v', 'draft', ['c3'], { createdAt: '2026-09-19T10:00:00Z' });
+        const nuevo = mapa('n', 'draft', ['c3'], { createdAt: '2026-09-22T10:00:00Z' });
+        expect(curateLoadMaps([viejo, nuevo]).visible.map((m) => m.rawId)).toEqual(['n']);
+    });
+
+    it('sin carros identificados no junta mapas distintos', () => {
+        const { visible } = curateLoadMaps([mapa('p', 'draft', []), mapa('q', 'draft', [])]);
+        expect(visible).toHaveLength(2);
+    });
+
+    it('usa los carros de las posiciones cuando el mapa no trae cartIds', () => {
+        const conSlots = mapa('s1', 'approved', undefined, { slots: [{ entry: { id: 'c1' } }, { entry: null }, { entry: { id: 'c2' } }] });
+        const conIds = mapa('s2', 'draft', ['c2', 'c1']);
+        expect(curateLoadMaps([conIds, conSlots]).visible.map((m) => m.rawId)).toEqual(['s1']);
+    });
+
+    it('nombra la máquina por su código y en español el estado', () => {
+        expect(loadMapMachineLabel('Inc 13 (INC-13)')).toBe('INC-13');
+        expect(loadMapMachineLabel('Petersime 12 carros')).toBe('Sin máquina asignada');
+        expect(loadMapMachineLabel('')).toBe('Sin máquina asignada');
+        expect(loadMapMachineLabel('Incubadora 4')).toBe('Incubadora 4');
+        expect(loadMapStatusLabel({ mapStatus: 'ordered' })).toBe('Orden de cargue emitida');
+        expect(loadMapStatusLabel({ status: 'pending_approval' })).toBe('Pendiente de aprobación');
+        expect(loadMapStatusLabel({})).toBe('Sin estado');
+    });
+
+    it('los marcos reciben tal cual lo que no es data:', () => {
+        expect(frameSourceFor('https://pdx.supabase.co/manual.pdf')).toBe('https://pdx.supabase.co/manual.pdf');
+        expect(frameSourceFor('/assets/manual.pdf')).toBe('/assets/manual.pdf');
+        expect(frameSourceFor(null)).toBeNull();
     });
 });
 

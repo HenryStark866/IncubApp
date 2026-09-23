@@ -7,7 +7,7 @@ import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
 import { buildMaintenanceRecordHtml, maintenanceRecordUrl } from '../../../lib/maintenanceRecordDocument';
-import { calibrationRecordItem, hasEvidenceFormat, openEvidenceFormat, openRecordDocument } from '../../../lib/sigRecordDocuments';
+import { calibrationRecordItem, dataUrlToBlob, hasEvidenceFormat, openEvidenceFormat, openRecordDocument } from '../../../lib/sigRecordDocuments';
 import { manualsForTask } from '../../../lib/planTaskInstructions';
 import PlanTaskInstructions from './PlanTaskInstructions';
 import { localListMaps } from '../../../lib/loadClassificationLocalStore';
@@ -25,6 +25,105 @@ const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
 const ID_CHUNK = 80
 const SIGN_CHUNK = 100
 const HATCH_MODE_LABEL = { single: 'sencilla', double: 'doble' }
+
+// Estados de un mapa de cargue como se dicen en la planta; en la base van en inglés.
+export const LOAD_MAP_STATUS = {
+  draft: 'Borrador',
+  pending_approval: 'Pendiente de aprobación',
+  approved: 'Aprobado',
+  ordered: 'Orden de cargue emitida',
+  completed: 'Cargado',
+  rejected: 'Rechazado',
+  cancelled: 'Cancelado',
+}
+const LOAD_MAP_RANK = { completed: 5, ordered: 4, approved: 3, pending_approval: 2, draft: 1 }
+const LOAD_MAP_HIDDEN = new Set(['rejected', 'cancelled'])
+
+// El payload trae la imagen del mapa en base64 (unos 300 KB por mapa): con 90 mapas, pedirlo entero
+// tardaba 16 s. Se piden solo las partes que usan la lista, la vista y el dibujo de la imagen.
+const LOAD_MAP_COLUMNS = [
+  'id', 'org_id', 'plant_id', 'machine_id', 'machine_name', 'status', 'image_path',
+  'created_by', 'created_at', 'approved_at', 'approved_by', 'ordered_at', 'ordered_by',
+  'loaded_at', 'loaded_by', 'rejected_reason',
+  'slots:payload->slots', 'summary:payload->summary', 'balance:payload->balance', 'cartIds:payload->cartIds',
+  'payloadMachineName:payload->>machineName', 'payloadImagePath:payload->>imagePath',
+  'payloadLote:payload->>lote', 'payloadLoadedBy:payload->>loaded_by',
+].join(', ')
+
+/** Nombre corto de la máquina de un mapa: el código entre paréntesis si lo trae. */
+export function loadMapMachineLabel(name) {
+  const text = String(name || '').trim()
+  // «Petersime 12 carros» es el nombre por defecto del motor cuando nadie eligió incubadora.
+  if (!text || /^petersime 12 carros$/i.test(text)) return 'Sin máquina asignada'
+  return text.match(/\(([A-Z]{2,4}-?\d+)\)/)?.[1] || text
+}
+
+function loadMapHasMachine(map = {}) {
+  return Boolean(map.machine_id) || loadMapMachineLabel(map.machineName || map.machine_name) !== 'Sin máquina asignada'
+}
+
+function loadMapCartKey(map = {}) {
+  const ids = Array.isArray(map.cartIds) && map.cartIds.length
+    ? map.cartIds
+    : (map.slots || []).map((slot) => slot?.entry?.id).filter(Boolean)
+  return ids.length ? `carros:${ids.map(String).sort().join('|')}` : `mapa:${map.rawId || map.id}`
+}
+
+/**
+ * Deja un mapa por cargue. Rechazar o cancelar un mapa libera sus carros, y el siguiente que se arma
+ * con ellos es el mismo cargue otra vez: por eso aparecían repetidos. De los que comparten carros se
+ * queda el más avanzado (cargado, orden emitida, aprobado, pendiente, borrador), luego el que tiene
+ * máquina y luego el más reciente. Los rechazados y cancelados no cuentan como mapas vigentes.
+ */
+export function curateLoadMaps(maps = []) {
+  const best = new Map()
+  const hidden = []
+  const statusOf = (map) => map.mapStatus || map.status
+  const timeOf = (map) => new Date(map.createdAt || map.created_at || 0).getTime() || 0
+  const better = (a, b) => {
+    const rank = (LOAD_MAP_RANK[statusOf(a)] || 0) - (LOAD_MAP_RANK[statusOf(b)] || 0)
+    if (rank) return rank > 0
+    const machine = Number(loadMapHasMachine(a)) - Number(loadMapHasMachine(b))
+    if (machine) return machine > 0
+    return timeOf(a) > timeOf(b)
+  }
+  for (const map of maps) {
+    if (!map) continue
+    if (LOAD_MAP_HIDDEN.has(statusOf(map))) {
+      hidden.push(map)
+      continue
+    }
+    const key = loadMapCartKey(map)
+    const current = best.get(key)
+    if (!current) best.set(key, map)
+    else if (better(map, current)) {
+      hidden.push(current)
+      best.set(key, map)
+    } else hidden.push(map)
+  }
+  const kept = new Set(best.values())
+  return { visible: maps.filter((map) => kept.has(map)), hidden }
+}
+
+// Los marcos no aceptan data: (la CSP solo deja 'self', blob: y Supabase): un documento que llega
+// como data: se muestra desde un blob. Uno por documento, y los más viejos se liberan.
+const frameBlobCache = new Map()
+export function frameSourceFor(url) {
+  if (!url || !/^data:/i.test(url)) return url || null
+  if (!frameBlobCache.has(url)) {
+    try {
+      frameBlobCache.set(url, URL.createObjectURL(dataUrlToBlob(url)))
+    } catch {
+      return null
+    }
+    if (frameBlobCache.size > 24) {
+      const [oldKey, oldBlob] = frameBlobCache.entries().next().value
+      frameBlobCache.delete(oldKey)
+      URL.revokeObjectURL(oldBlob)
+    }
+  }
+  return frameBlobCache.get(url)
+}
 
 // Cada fuente del repositorio se lee por separado: si una tabla falla, las demás se siguen
 // mostrando y el aviso dice cuál fue, en vez de dejar la sección vacía sin explicación.
@@ -539,42 +638,67 @@ function loadMapDocumentUrl(load) {
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
 }
 
+async function loadMapRows(orgId) {
+  const base = () => supabase.from('load_maps')
+  const light = await safeRows('los mapas de cargue', base().select(LOAD_MAP_COLUMNS).eq('org_id', orgId).order('created_at', { ascending: false }).limit(400))
+  if (!light.failed) return { ...light, rows: light.rows.map((row) => ({ ...row, lightRow: true })) }
+  // Si la consulta por partes falla (una columna que esta base no tiene), se piden completos: tarda
+  // más, pero la sección no se queda en 0 como el 22-09-2026.
+  return safeRows('los mapas de cargue', base().select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400))
+}
+
+/** Estado del mapa en palabras de la planta. */
+export function loadMapStatusLabel(map = {}) {
+  const status = map.mapStatus || map.status
+  return LOAD_MAP_STATUS[status] || status || 'Sin estado'
+}
+
 async function backfillLoadMapImages(orgId, maps) {
-  const pending = maps.filter((map) => !map.imagePath && !map.image_path && !map.imageDataUrl && map.slots?.length);
+  const pending = maps.filter((map) => map.rawId && !map.imagePath && !map.image_path && (map.imageDataUrl || map.slots?.length || map.lightRow));
   if (!pending.length) return maps;
+
+  // La consulta liviana no trae la imagen en base64. Para los mapas que todavía no tienen su imagen en
+  // Storage se pide aparte y se sube tal cual: es la imagen original del mapa, y así la próxima vez
+  // basta la ruta. Solo si no hay ninguna se dibuja una nueva con los carros.
+  const embedded = new Map();
+  const needEmbedded = pending.filter((map) => !map.imageDataUrl && map.lightRow).map((map) => map.rawId);
+  for (const chunk of chunkList(needEmbedded, 20)) {
+    const { rows } = await safeRows('las imágenes de los mapas', supabase.from('load_maps').select('id, imageDataUrl:payload->>imageDataUrl').eq('org_id', orgId).in('id', chunk));
+    for (const row of rows) if (row?.imageDataUrl) embedded.set(row.id, row.imageDataUrl);
+  }
 
   const updated = await Promise.all(pending.map(async (map) => {
     try {
-      const rendered = await renderLoadMapImage(map);
-      if (!rendered?.blob) return map;
-      const imagePath = `${orgId}/load-maps/${map.rawId || map.id}.png`;
+      const dataUrl = map.imageDataUrl || embedded.get(map.rawId) || null;
+      let blob = dataUrl && /^data:image\//i.test(dataUrl) ? dataUrlToBlob(dataUrl) : null;
+      if (!blob && map.slots?.length) blob = (await renderLoadMapImage(map))?.blob || null;
+      if (!blob) return map;
+      const imagePath = `${orgId}/load-maps/${map.rawId}.png`;
       const { error: uploadError } = await supabase.storage
         .from('machine-checks')
-        .upload(imagePath, rendered.blob, { contentType: 'image/png', upsert: true });
+        .upload(imagePath, blob, { contentType: blob.type || 'image/png', upsert: true });
       if (uploadError) {
         console.warn('Centro SIG: no se pudo subir imagen de mapa', uploadError.message);
-        return map;
+        return dataUrl ? { ...map, url: dataUrl, file_type: 'image' } : map;
       }
-      const payload = { ...(map.payload || {}), imagePath };
+      // Solo la columna. El payload no se reescribe: con la consulta liviana aquí no está entero, y
+      // mandarlo a medias borraba los carros del mapa.
       const { error } = await supabase
         .from('load_maps')
-        .update({ image_path: imagePath, payload })
-        .eq('id', map.rawId || map.id)
+        .update({ image_path: imagePath })
+        .eq('id', map.rawId)
         .eq('org_id', orgId);
-      if (error) {
-        console.warn('Centro SIG: no se pudo registrar imagen de mapa', error.message);
-        return map;
-      }
-      const { data: signed } = await supabase.storage.from('machine-checks').createSignedUrl(imagePath, 3600);
-      if (!signed?.signedUrl) return { ...map, imagePath, image_path: imagePath, payload };
+      if (error) console.warn('Centro SIG: no se pudo registrar imagen de mapa', error.message);
+      const { data: signed } = await supabase.storage.from('machine-checks').createSignedUrl(imagePath, 6 * 3600);
+      const url = signed?.signedUrl || dataUrl;
+      if (!url) return { ...map, imagePath, image_path: imagePath };
       return {
         ...map,
         imagePath,
         image_path: imagePath,
-        payload,
-        url: signed.signedUrl,
+        url,
         file_type: 'image',
-        downloadName: String(map.downloadName || `mapa-cargue-${map.rawId || map.id}.html`).replace(/\.html$/, '.png'),
+        downloadName: String(map.downloadName || `mapa-cargue-${map.rawId}.html`).replace(/\.html$/, '.png'),
       };
     } catch (error) {
       console.warn('Centro SIG: no se pudo generar imagen de mapa', error);
@@ -585,6 +709,10 @@ async function backfillLoadMapImages(orgId, maps) {
   const byId = new Map(updated.map((map) => [map.id, map]));
   return maps.map((map) => byId.get(map.id) || map);
 }
+
+// Solo lo que un <img> o un marco pueden abrir. Una ruta de Storage suelta («org/load-maps/123.png»)
+// no es una URL: el navegador la pedía a la propia app y la vista previa salía rota.
+const DISPLAYABLE_URL = /^(data:|blob:|https?:|\/)/i
 
 export function resolveLoadMapPreviewUrl(file = {}) {
   const payload = typeof file.payload === 'string'
@@ -613,7 +741,7 @@ export function resolveLoadMapPreviewUrl(file = {}) {
     file.filePath,
   ];
 
-  return candidates.find((value) => typeof value === 'string' && value.trim()) || null;
+  return candidates.find((value) => typeof value === 'string' && DISPLAYABLE_URL.test(value.trim())) || null;
 }
 
 export function resolveSigFormatCatalog(formats = Object.values(SIG_FORMATS)) {
@@ -696,7 +824,7 @@ function ManualPreview({ file, showMeta = false }) {
     { label: 'Aprobó', value: file.approvedBy || 'Sin aprobación' },
     { label: 'Cargó', value: file.loadedBy || 'Sin carga' },
     { label: 'Lote', value: file.lote || 'No registrado' },
-    { label: 'Máquina', value: file.machineName || file.machine_id || file.machineCode || 'No registrada' },
+    { label: 'Máquina', value: loadMapMachineLabel(file.machineName || file.machine_name) === 'Sin máquina asignada' ? 'Sin máquina asignada' : file.machineName || file.machine_name },
   ] : []
 
   return (
@@ -737,8 +865,8 @@ function ManualPreview({ file, showMeta = false }) {
       )}
       <div className="sig-manual-reader-body">
         {isImage && previewUrl ? <img src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
-          <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={previewUrl} />
-        ) : isHtml && previewUrl ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={previewUrl} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
+          <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} />
+        ) : isHtml && previewUrl ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
     </div>
   )
@@ -786,6 +914,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [manualFilter, setManualFilter] = useState('');
   const [loadMapFilter, setLoadMapFilter] = useState('');
   const [loadMaps, setLoadMaps] = useState([]);
+  const [showAllLoadMaps, setShowAllLoadMaps] = useState(false);
   const [selectedLoadMapId, setSelectedLoadMapId] = useState(null);
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
@@ -920,17 +1049,26 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     const loadAllMaps = async () => {
       try {
         const [mapsResult, membersResult, shiftsResult] = await Promise.all([
-          // Se piden todas las columnas a propósito. Si una sola de las pedidas por nombre falta en
-          // la base, PostgREST rechaza la consulta entera, y aquí ese error se tragaba en silencio:
-          // el 22-09-2026 el Consolidado (BI) contaba 90 mapas y esta sección mostraba 0.
-          safeRows('los mapas de cargue', supabase.from('load_maps').select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400)),
+          loadMapRows(orgId),
           safeRows('el personal', supabase.from('organization_members').select('user_id, profiles(full_name, email)').eq('org_id', orgId)),
           safeRows('los turnos', supabase.from('shift_assignments').select('user_id, work_date, shift_number, is_rest').eq('org_id', orgId).order('work_date', { ascending: true })),
         ])
 
         const people = Object.fromEntries(membersResult.rows.map((row) => [row.user_id, row.profiles?.full_name || row.profiles?.email || row.user_id]))
         const shiftAssignments = shiftsResult.rows
-        const payloadOf = (map) => (map.payload && typeof map.payload === 'object' ? map.payload : {})
+        // Con la consulta liviana el payload llega por partes; con la completa, entero.
+        const payloadOf = (map) => (map.payload && typeof map.payload === 'object'
+          ? map.payload
+          : {
+            slots: Array.isArray(map.slots) ? map.slots : [],
+            summary: map.summary || null,
+            balance: map.balance || null,
+            cartIds: Array.isArray(map.cartIds) ? map.cartIds : [],
+            machineName: map.payloadMachineName || null,
+            imagePath: map.payloadImagePath || null,
+            lote: map.payloadLote || null,
+            loaded_by: map.payloadLoadedBy || null,
+          })
         const storedImagePath = (map) => map.image_path || payloadOf(map).imagePath || payloadOf(map).image_path || null
         const imageUrls = await signStoragePaths('machine-checks', mapsResult.rows.map(storedImagePath))
         const remoteMaps = mapsResult.rows.map((map) => {
@@ -952,7 +1090,9 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             image_path: imagePath,
             lote: payload.lote || firstLot,
             machineName: map.machine_name || payload.machineName || null,
-            file_name: `Mapa de cargue · ${firstLot}`,
+            // La lista dice de qué máquina es cada mapa: con solo el lote, dos cargues del mismo lote
+            // en incubadoras distintas se leían como el mismo mapa repetido.
+            file_name: `Mapa de cargue · ${loadMapMachineLabel(map.machine_name || payload.machineName)} · ${firstLot && firstLot !== 'Sin lote' ? `Lote ${firstLot}` : 'Sin lote'}`,
             file_type: previewImageUrl ? 'image' : 'document',
             url: previewImageUrl || loadMapDocumentUrl({ ...map, ...payload, lote: firstLot, machine_id: map.machine_name || map.machine_id }),
             downloadName: `mapa-cargue-${firstLot || map.id}.${previewImageUrl ? 'png' : 'html'}`,
@@ -990,7 +1130,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         const mergedMaps = Array.from(mergedMap.values())
         if (!active) return
         setLoadMaps(mergedMaps)
-        setSelectedLoadMapId((current) => current && mergedMaps.some((map) => map.id === current) ? current : mergedMaps[0]?.id || null)
+        const firstVisible = curateLoadMaps(mergedMaps).visible[0] || mergedMaps[0]
+        setSelectedLoadMapId((current) => current && mergedMaps.some((map) => map.id === current) ? current : firstVisible?.id || null)
 
         // Lo local solo se sube cuando la lectura remota salió bien y la base no tiene ningún mapa:
         // con la lectura caída no se sabe qué hay arriba, y un upsert a ciegas podría devolver un
@@ -1035,11 +1176,22 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     }
   }, [orgId])
 
+  const curatedLoadMaps = useMemo(() => curateLoadMaps(loadMaps), [loadMaps])
   const filteredLoadMaps = useMemo(() => {
+    const source = showAllLoadMaps ? loadMaps : curatedLoadMaps.visible
     const query = loadMapFilter.trim().toLowerCase()
-    if (!query) return loadMaps
-    return loadMaps.filter((map) => [map.lote, map.machine_id, map.tape_color_name, map.tape_color, map.file_name].some((value) => String(value || '').toLowerCase().includes(query)))
-  }, [loadMaps, loadMapFilter])
+    if (!query) return source
+    return source.filter((map) => [
+      map.lote,
+      map.machine_id,
+      map.machineName,
+      loadMapMachineLabel(map.machineName || map.machine_name),
+      loadMapStatusLabel(map),
+      map.tape_color_name,
+      map.tape_color,
+      map.file_name,
+    ].some((value) => String(value || '').toLowerCase().includes(query)))
+  }, [loadMaps, curatedLoadMaps, showAllLoadMaps, loadMapFilter])
 
   const selectedMachine = machines.find((machine) => machine.machine_id === selectedMachineId);
   const remoteMachineId = selectedMachine?.source === 'remote' ? selectedMachine.machine_id : null;
@@ -1100,10 +1252,19 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     ].some((value) => String(value || '').toLowerCase().includes(query)));
   }, [evidenceFilter, evidenceLibrary]);
 
-  const manuals = useMemo(
-    () => [...allEvidence, ...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES].filter(isManualRecord),
-    [allEvidence]
-  );
+  // Cada manual una sola vez. Los de Mántum están en la app y también en el bucket, y la lista los
+  // contaba dos veces (145). Gana la copia de la app: es del mismo origen, abre al instante y el
+  // visor del navegador la muestra sin descargarla.
+  const manuals = useMemo(() => {
+    const seen = new Set();
+    return [...LOCAL_MAINTENANCE_MANUALS, ...LOCAL_MANTUM_RESOURCES, ...allEvidence].filter(isManualRecord).filter((file) => {
+      const key = String(file.file_name || '').trim().toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [allEvidence]);
   const filteredManuals = useMemo(() => {
     const query = manualFilter.trim().toLowerCase();
     if (!query) return manuals;
@@ -1574,7 +1735,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{evidenceLibrary.length}</b></button>
             <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'loadMaps'} className={section === 'loadMaps' ? 'is-active' : ''} onClick={() => { setSection('loadMaps'); setSelectedMachineId(null); }}>Mapas de cargue <b>{loadMaps.length}</b></button>
+            <button type="button" role="tab" aria-selected={section === 'loadMaps'} className={section === 'loadMaps' ? 'is-active' : ''} onClick={() => { setSection('loadMaps'); setSelectedMachineId(null); }}>Mapas de cargue <b>{curatedLoadMaps.visible.length}</b></button>
             <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
           </div>
           {showNewAsset && (
@@ -1683,7 +1844,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 aria-label="Buscar manuales e instructivos"
               />
               <div className="sig-manual-list">
-                {allEvidenceLoading ? <p className="sig-empty-tab">Cargando manuales...</p> : !filteredManuals.length ? <p className="sig-empty-tab">No hay manuales registrados todavía.</p> : filteredManuals.map((file) => (
+                {allEvidenceLoading && !filteredManuals.length ? <p className="sig-empty-tab">Cargando manuales...</p> : !filteredManuals.length ? <p className="sig-empty-tab">No hay manuales registrados todavía.</p> : filteredManuals.map((file) => (
                   <button type="button" key={file.id} className={selectedDocumentId === file.id ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}>
                     <strong>{file.source === 'mantum' ? 'MANTUM' : 'SIG'}</strong>
                     <span>{file.file_name}</span>
@@ -1696,12 +1857,18 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           {section === 'loadMaps' && (
             <div className="sig-asset-section-panel">
               <input className="sig-asset-doc-search" type="search" placeholder="Buscar lote, incubadora o cinta..." value={loadMapFilter} onChange={(e) => setLoadMapFilter(e.target.value)} aria-label="Buscar mapas de cargue" />
+              {curatedLoadMaps.hidden.length > 0 && (
+                <label className="sig-loadmap-toggle">
+                  <input type="checkbox" checked={showAllLoadMaps} onChange={(e) => setShowAllLoadMaps(e.target.checked)} />
+                  <span>Ver también rechazados y repetidos ({curatedLoadMaps.hidden.length})</span>
+                </label>
+              )}
               <div className="sig-manual-list">
                 {!filteredLoadMaps.length ? <p className="sig-empty-tab">No hay mapas de cargue registrados.</p> : filteredLoadMaps.map((map) => (
                   <button type="button" key={map.id} className={selectedLoadMapId === map.id ? 'is-active' : ''} onClick={() => setSelectedLoadMapId(map.id)}>
                     <strong>MAPA DE CARGUE</strong>
                     <span>{map.file_name}</span>
-                    <small>{map.createdAt ? new Date(map.createdAt).toLocaleString('es-CO') : 'Sin fecha'} · {map.mapStatus || 'Borrador'} · Generó: {map.generatedBy}</small>
+                    <small>{map.createdAt ? new Date(map.createdAt).toLocaleString('es-CO') : 'Sin fecha'} · {loadMapStatusLabel(map)} · Generó: {map.generatedBy}</small>
                   </button>
                 ))}
               </div>
@@ -2058,8 +2225,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                     <div className="sig-loadmap-meta-item"><span>Aprobó</span><strong>{selectedLoadMap.approvedBy || 'Sin aprobación'}</strong></div>
                     <div className="sig-loadmap-meta-item"><span>Cargó</span><strong>{selectedLoadMap.loadedBy || 'Sin carga'}</strong></div>
                     <div className="sig-loadmap-meta-item"><span>Lote</span><strong>{selectedLoadMap.lote || 'No registrado'}</strong></div>
-                    <div className="sig-loadmap-meta-item"><span>Máquina</span><strong>{selectedLoadMap.machineName || selectedLoadMap.machine_id || 'No registrada'}</strong></div>
-                    <div className="sig-loadmap-meta-item"><span>Estado</span><strong>{selectedLoadMap.mapStatus || selectedLoadMap.status || 'Sin estado'}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Máquina</span><strong>{loadMapMachineLabel(selectedLoadMap.machineName || selectedLoadMap.machine_name) === 'Sin máquina asignada' ? 'Sin máquina asignada' : selectedLoadMap.machineName || selectedLoadMap.machine_name}</strong></div>
+                    <div className="sig-loadmap-meta-item"><span>Estado</span><strong>{loadMapStatusLabel(selectedLoadMap)}</strong></div>
                     <div className="sig-loadmap-meta-item"><span>Creado</span><strong>{selectedLoadMap.createdAt ? new Date(selectedLoadMap.createdAt).toLocaleString('es-CO') : 'Sin fecha'}</strong></div>
                   </div>
                 </div>
