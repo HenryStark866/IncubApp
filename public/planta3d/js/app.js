@@ -65,7 +65,11 @@
     const geo = new THREE.SphereGeometry(100, 48, 24)
     const pos = geo.attributes.position
     const colores = new Float32Array(pos.count * 3)
-    const cenit = new THREE.Color(0x24406a), horizonte = new THREE.Color(0x7d8894), suelo = new THREE.Color(0x1d2418)
+    // El «suelo» del entorno es gris neutro y claro, no verde: es la luz que
+    // reciben las caras que miran abajo, y casi todas son cielos rasos, que
+    // dentro de la planta se iluminan con lo que rebota del piso. Con el verde
+    // del pasto, caminando, el cielo raso blanco se veía color oliva.
+    const cenit = new THREE.Color(0x24406a), horizonte = new THREE.Color(0x7d8894), suelo = new THREE.Color(0x57544e)
     const c = new THREE.Color()
     for (let i = 0; i < pos.count; i++) {
       const y = pos.getY(i) / 100
@@ -129,6 +133,7 @@
     escena.fog.color.copy(holo ? FONDO_HOLOGRAMA : NIEBLA_DIA)
     // El entorno ya aporta la luz del cielo: el hemisférico y el relleno bajan
     // para no lavar los colores.
+    hemi.groundColor.set(holo ? 0x1d2a19 : 0x4d4b45)
     hemi.intensity = holo || !conEntorno ? 0.45 : 0.18
     relleno.intensity = holo || !conEntorno ? 0.35 : 0.14
     sol.intensity = holo ? 1.55 : 1.45
