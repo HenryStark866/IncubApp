@@ -44,6 +44,11 @@ export const SIG_FORMATS = {
   INMAT01: { code: 'INMAT01', name: 'INDICADORES DEL PROCESO DE MANTENIMIENTO', version: '01', date: '18-08-2026', process: 'GESTIÓN DE MANTENIMIENTO' },
   CAMAT01: { code: 'CAMAT01', name: 'CARACTERIZACIÓN PROCESO GESTIÓN DE MANTENIMIENTO', version: '02', date: '18-08-2026', process: 'GESTIÓN DE MANTENIMIENTO' },
   PROMAT01: { code: 'PROMAT01', name: 'PROCEDIMIENTO PROCESO DE MANTENIMIENTO', version: '02', date: '18-08-2026', process: 'GESTIÓN DE MANTENIMIENTO' },
+  // Registros de producción que IncubApp diligencia con las rondas y los movimientos de la planta.
+  FOINC01: { code: 'FOINC01', name: 'CONTROL DIARIO DE INCUBADORAS', version: '01', date: '15-09-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
+  FONAC01: { code: 'FONAC01', name: 'CONTROL DIARIO DE NACEDORAS', version: '01', date: '15-09-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
+  // Código siguiente del proceso de incubación; confirmar con la asesora del SIG (23-09-2026).
+  FOINC02: { code: 'FOINC02', name: 'REPORTE CONSOLIDADO DE OPERACIÓN Y RONDAS', version: '01', date: '23-09-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
 }
 
 /**

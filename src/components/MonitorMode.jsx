@@ -15,7 +15,7 @@ import { useMachineChecks, currentSlot } from '../hooks/useMachineChecks'
 import { useShiftOps } from '../hooks/useShiftOps'
 import { useLoads } from '../hooks/useLoads'
 import { useShiftSchedule } from '../hooks/useShiftSchedule'
-import { exportOperationReport } from '../lib/operationReport'
+import { exportOperationReport, exportOperationReportDoc } from '../lib/operationReport'
 import ControlDiarioPanel from './ControlDiarioPanel'
 import { conditionOf } from '../lib/machineCondition'
 
@@ -197,10 +197,11 @@ export default function MonitorMode({ orgId, userId, role }) {
    * tenía el panel-carrusel anterior, más una hoja "Operarios" que reúne por
    * persona cuántos turnos/rondas/cargues/transferencias/actividades tuvo.
    */
-  const handleExportReport = useCallback(async () => {
+  const handleExportReport = useCallback(async (formato = 'doc') => {
     setExporting(true)
     try {
-      await exportOperationReport({
+      await (formato === 'excel' ? exportOperationReport : exportOperationReportDoc)({
+        plantName: plants.find((p) => p.id === plantId)?.name,
         assignments,
         checks: mc.checks,
         loads,
@@ -212,7 +213,7 @@ export default function MonitorMode({ orgId, userId, role }) {
     } finally {
       setExporting(false)
     }
-  }, [assignments, people, mc.checks, loads, transfers, so.activities, machineName])
+  }, [assignments, people, mc.checks, loads, transfers, so.activities, machineName, plants, plantId])
 
 
   if (!canMonitor) {
@@ -251,11 +252,20 @@ export default function MonitorMode({ orgId, userId, role }) {
           <button
             type="button"
             className="ghost small"
-            onClick={handleExportReport}
+            onClick={() => handleExportReport('doc')}
             disabled={exporting}
-            title="Descargar Excel con turnos, operarios, rondas, cargues y transferencias"
+            title="FOINC02 del SIG (Word): turnos, operarios, rondas, cargues y transferencias con membrete y codificación"
           >
-            {exporting ? '⏳ Generando…' : '📥 Reporte de operación'}
+            {exporting ? '⏳ Generando…' : '📄 Reporte de operación'}
+          </button>
+          <button
+            type="button"
+            className="ghost small"
+            onClick={() => handleExportReport('excel')}
+            disabled={exporting}
+            title="El mismo FOINC02 en Excel, para filtrar"
+          >
+            Excel
           </button>
           <button
             type="button"

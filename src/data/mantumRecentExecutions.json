@@ -1,0 +1,104 @@
+{
+ "generatedAt": "2026-09-23T08:32:41",
+ "since": "2025-09-23",
+ "source": "Exportaciones de Mántum en MANTENIMIENTO/generador/datos_mantum",
+ "files": [
+  {
+   "file": "bitacoras_historico_mantum.xlsx",
+   "kind": "bitacora",
+   "records": 5
+  },
+  {
+   "file": "ot_cerradas_historico_mantum.xlsx",
+   "kind": "ot",
+   "records": 0
+  }
+ ],
+ "records": [
+  {
+   "id": "mantum-bit-4",
+   "source": "mantum-bitacora",
+   "code": "RT-026",
+   "date": "2026-03-07T09:50",
+   "equipment": [],
+   "entities": "",
+   "activity": "RT-026 | VERIFICACION NACEDORA 1",
+   "description": "se realiza check list y mantenimiento preventivo en la nacedora no 1",
+   "feedback": "",
+   "maintenanceType": "",
+   "executors": [
+    "Henry Camilo Taborda Galeano"
+   ],
+   "registeredBy": "Henry Camilo Taborda Galeano",
+   "cost": null
+  },
+  {
+   "id": "mantum-bit-3",
+   "source": "mantum-bitacora",
+   "code": "",
+   "date": "2026-03-09T06:30",
+   "equipment": [],
+   "entities": "",
+   "activity": "Orden y aseo",
+   "description": "se realiza el despejado del área de incubadoras, de los materiales utilizados por los obreros que organizaron las laminas de las paredes dentro de la planta de incubación. dejando ordenado y aseado.",
+   "feedback": "",
+   "maintenanceType": "",
+   "executors": [
+    "Henry Camilo Taborda Galeano"
+   ],
+   "registeredBy": "Henry Camilo Taborda Galeano",
+   "cost": null
+  },
+  {
+   "id": "mantum-bit-0",
+   "source": "mantum-bitacora",
+   "code": "SS-01593",
+   "date": "2026-04-20T07:00",
+   "equipment": [],
+   "entities": "",
+   "activity": "SS-01593",
+   "description": "Se hace el pedido de lámparas queda pendiente instalación.",
+   "feedback": "",
+   "maintenanceType": "",
+   "executors": [
+    "Henry Camilo Taborda Galeano"
+   ],
+   "registeredBy": "Henry Camilo Taborda Galeano",
+   "cost": null
+  },
+  {
+   "id": "mantum-bit-1",
+   "source": "mantum-bitacora",
+   "code": "SS-01621",
+   "date": "2026-04-20T07:00",
+   "equipment": [],
+   "entities": "",
+   "activity": "SS-01621",
+   "description": "Se realizo el cambio del rodamiento",
+   "feedback": "",
+   "maintenanceType": "",
+   "executors": [
+    "PETERSIME"
+   ],
+   "registeredBy": "Henry Camilo Taborda Galeano",
+   "cost": null
+  },
+  {
+   "id": "mantum-bit-2",
+   "source": "mantum-bitacora",
+   "code": "SS-01621",
+   "date": "2026-04-20T07:00",
+   "equipment": [],
+   "entities": "",
+   "activity": "SS-01621",
+   "description": "se cambia con éxito y se piden repuestos nuevos.",
+   "feedback": "",
+   "maintenanceType": "",
+   "executors": [
+    "PETERSIME"
+   ],
+   "registeredBy": "Henry Camilo Taborda Galeano",
+   "cost": null
+  }
+ ]
+}

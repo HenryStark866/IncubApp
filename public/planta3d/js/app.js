@@ -144,7 +144,9 @@
     etiquetas: true, equipos: true, techos: false, cotas: true,
     // Arranca como se ve la planta real (22-09-2026: «más preciso y realista»).
     // El holograma sigue a un clic en el menú, con su fondo azul de noche.
-    sombras: true, atravesar: false, volar: false, giro: true, holograma: false, sonido: true,
+    // El sonido de las puertas arranca apagado (23-09-2026, a pedido de Henry):
+    // la maqueta vive embebida en el tablero y sonaba sin que nadie lo pidiera.
+    sombras: true, atravesar: false, volar: false, giro: true, holograma: false, sonido: false,
     sensor: false,
     // 'ambos' arma la planta completa con sus dos niveles, tal como está
     // construida; 1 o 2 aísla ese nivel (ver el toggle #grupoNivel).

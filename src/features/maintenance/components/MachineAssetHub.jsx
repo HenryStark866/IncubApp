@@ -14,6 +14,11 @@ import { localListMaps } from '../../../lib/loadClassificationLocalStore';
 import { renderLoadMapImage } from '../../../lib/loadMapEngine';
 import annualPlanData from '../../../data/annualMaintenancePlanData.json';
 import './MachineAssetHub.css';
+import PlanCompliancePanel from './PlanCompliancePanel';
+import MaintenanceIndicatorsPanel from './MaintenanceIndicatorsPanel';
+import OperationRecordsPanel from './OperationRecordsPanel';
+import { useMaintenanceRecords } from '../hooks/useMaintenanceRecords';
+import './SigInsights.css';
 
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
@@ -907,6 +912,38 @@ function getWeekOfYear(date = new Date()) {
   return 1 + Math.round((firstThursday - target) / 604800000);
 }
 
+// Pestañas del Centro, agrupadas por para qué se usan (23-09-2026, rediseño pedido por Henry):
+// gestionar el mantenimiento, consultar/entregar registros y consultar referencias.
+const SECTION_KEY = 'incubapp:sig-hub:section';
+const HUB_GROUPS = [
+  { id: 'gestion', label: 'Gestión', tabs: [
+    { id: 'assets', icon: '🏭', label: 'Activos', hint: 'Hoja de vida y dossier' },
+    { id: 'annualPlan', icon: '🗓️', label: 'Plan AM', hint: 'Programa y cumplimiento' },
+    { id: 'indicators', icon: '📈', label: 'Indicadores', hint: 'Persona · actividad · activo' },
+  ] },
+  { id: 'registros', label: 'Registros', tabs: [
+    { id: 'operation', icon: '📋', label: 'Operación', hint: 'Control diario y reporte' },
+    { id: 'evidence', icon: '🧾', label: 'Evidencias', hint: 'Formatos diligenciados' },
+    { id: 'documents', icon: '📑', label: 'Formatos', hint: 'Catálogo del SIG' },
+  ] },
+  { id: 'consulta', label: 'Consulta', tabs: [
+    { id: 'manuals', icon: '📘', label: 'Manuales', hint: 'Fabricante e instructivos' },
+    { id: 'loadMaps', icon: '🗺️', label: 'Mapas de cargue', hint: 'Por lote e incubadora' },
+  ] },
+];
+const HUB_SECTIONS = HUB_GROUPS.flatMap((group) => group.tabs.map((tab) => tab.id));
+const FULL_WIDTH_SECTIONS = new Set(['indicators', 'operation']);
+
+/** La pestaña se recuerda mientras dure la sesión del navegador (si hay almacenamiento). */
+function readSection() {
+  try {
+    const saved = sessionStorage.getItem(SECTION_KEY);
+    return HUB_SECTIONS.includes(saved) ? saved : 'assets';
+  } catch {
+    return 'assets';
+  }
+}
+
 const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [machines, setMachines] = useState([]);
   const [customAssets, setCustomAssets] = useState(readCustomAssets);
@@ -928,13 +965,13 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [selectedLoadMapId, setSelectedLoadMapId] = useState(null);
   const [documentFilter, setDocumentFilter] = useState('');
   const [selectedFormatCode, setSelectedFormatCode] = useState('FOMAT03');
-  const [section, setSection] = useState('assets');
+  const [section, setSection] = useState(readSection);
   const [showNewAsset, setShowNewAsset] = useState(false);
   const [newAsset, setNewAsset] = useState({ code: '', name: '', type: 'Equipo de planta', criticidad: 'Media' });
   const [loading, setLoading] = useState(true);
 
   // Estados del Plan Anual de Mantenimiento (PRGMAT01)
-  const [annualPlanSubTab, setAnnualPlanSubTab] = useState('preventive'); // 'preventive', 'cronograma', 'corrective', 'registros'
+  const [annualPlanSubTab, setAnnualPlanSubTab] = useState('compliance'); // 'compliance', 'preventive', 'cronograma', 'corrective', 'registros'
   const [planSedeFilter, setPlanSedeFilter] = useState('all');
   const [planSystemFilter, setPlanSystemFilter] = useState('all');
   const [planTypeFilter, setPlanTypeFilter] = useState('all');
@@ -942,6 +979,32 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [selectedTaskCode, setSelectedTaskCode] = useState(null);
   const [selectedRegistroFileId, setSelectedRegistroFileId] = useState(null);
   const [instructionTask, setInstructionTask] = useState(null);
+  // Registros del último año (OT, calibraciones, rondas, Mántum): solo se piden al abrir
+  // Cumplimiento, Indicadores u Operación.
+  const needsRecords = section === 'indicators' || section === 'operation' || (section === 'annualPlan' && annualPlanSubTab === 'compliance');
+  const maint = useMaintenanceRecords(orgId, { enabled: needsRecords });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SECTION_KEY, section);
+    } catch {
+      // sin almacenamiento del navegador: la pestaña simplemente no se recuerda
+    }
+  }, [section]);
+  const goSection = useCallback((id) => {
+    setSection(id);
+    setSelectedMachineId(null);
+  }, []);
+  const onTabsKeyDown = useCallback((event) => {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    const edge = event.key === 'Home' ? 0 : event.key === 'End' ? HUB_SECTIONS.length - 1 : null;
+    if (!step && edge == null) return;
+    event.preventDefault();
+    const index = HUB_SECTIONS.indexOf(section);
+    const next = HUB_SECTIONS[edge != null ? edge : (index + step + HUB_SECTIONS.length) % HUB_SECTIONS.length];
+    goSection(next);
+    event.currentTarget.querySelector(`[data-section="${next}"]`)?.focus();
+    event.currentTarget.querySelector(`[data-section="${next}"]`)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [section, goSection]);
   const openPlanTask = useCallback((task, extraCodes = []) => {
     setInstructionTask({ task, manuals: manualsForTask(task, LOCAL_MAINTENANCE_MANUALS, extraCodes) });
   }, []);
@@ -1742,22 +1805,97 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   if (loading) return <div className="sig-asset-loading"><span className="sig-asset-spinner" aria-hidden="true" /> Cargando Centro SIG...</div>;
 
+  const tabCounts = {
+    assets: machines.length,
+    annualPlan: annualPlanData.tasks?.length || 288,
+    evidence: evidenceLibrary.length,
+    documents: Object.keys(SIG_FORMATS).length,
+    manuals: manuals.length,
+    loadMaps: curatedLoadMaps.visible.length,
+  };
+  const fullSection = FULL_WIDTH_SECTIONS.has(section);
+
   return (
+    <div className="sig-hub-shell">
+      <div className="sig-hub-bar">
+        <div className="sig-hub-brand"><span aria-hidden="true">SIG</span> Centro de Activos</div>
+        <div className="sig-hub-tabs" role="tablist" aria-label="Secciones del Centro SIG" onKeyDown={onTabsKeyDown}>
+          {HUB_GROUPS.map((group) => (
+            <div key={group.id} className="sig-hub-group" role="presentation" aria-label={group.label}>
+              {group.tabs.map((tab) => {
+                const active = section === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    data-section={tab.id}
+                    aria-selected={active}
+                    tabIndex={active ? 0 : -1}
+                    className={`sig-hub-tab${active ? ' is-active' : ''}`}
+                    title={tab.hint}
+                    onClick={() => goSection(tab.id)}
+                  >
+                    <span className="sig-hub-ico" aria-hidden="true">{tab.icon}</span>
+                    <span>{tab.label}<small>{tab.hint}</small></span>
+                    {tabCounts[tab.id] != null && <b>{tabCounts[tab.id]}</b>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <button type="button" className="sig-hub-new" onClick={() => { goSection('assets'); setShowNewAsset(true); }}>+ Nuevo activo</button>
+      </div>
+      {fullSection ? (
+        <div className="sig-hub-full">
+          {section === 'indicators' ? (
+            <>
+              <div className="sig-hub-full-head">
+                <div>
+                  <span className="sig-detail-kicker">INMAT01 · Indicadores del proceso de mantenimiento</span>
+                  <h1>Indicadores de mantenimiento</h1>
+                  <p>Último año de registros de IncubApp y Mántum, con el cumplimiento del Plan AM. Elige cómo verlos: en general, por persona, por actividad, por máquina, por zona o por sede.</p>
+                </div>
+              </div>
+              <MaintenanceIndicatorsPanel
+                records={maint.records}
+                tasks={annualPlanData.tasks || []}
+                people={maint.data?.people || {}}
+                roomsById={maint.roomsById}
+                plantsById={maint.plantsById}
+                loading={maint.loading}
+                warnings={maint.data?.warnings || []}
+                onReload={maint.reload}
+              />
+            </>
+          ) : (
+            <>
+              <div className="sig-hub-full-head">
+                <div>
+                  <span className="sig-detail-kicker">FOINC01 · FONAC01 · FOINC02 · Registros de producción</span>
+                  <h1>Operación de la planta</h1>
+                  <p>Los registros que la app diligencia con las rondas y los movimientos: el control diario por máquina y el reporte consolidado del periodo, con membrete y codificación del SIG.</p>
+                </div>
+              </div>
+              {maint.data ? (
+                <OperationRecordsPanel
+                  orgId={orgId}
+                  machines={maint.data.machines || []}
+                  rooms={maint.data.rooms || []}
+                  plants={maint.data.plants || []}
+                  people={maint.data.people || {}}
+                />
+              ) : (
+                <p className="si-empty"><span className="sig-asset-spinner" aria-hidden="true" /> Cargando máquinas y personal…</p>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
     <div className={`sig-asset-hub sig-asset-hub-${section}`}>
       <div className="sig-asset-sidebar">
         <div className="p-4 border-b space-y-3">
-          <h2 className="sig-asset-title">
-            <span aria-hidden="true">SIG</span> Centro de Activos
-          </h2>
-          <div className="sig-asset-nav" role="tablist" aria-label="Secciones del Centro SIG">
-            <button type="button" role="tab" aria-selected={section === 'assets'} className={section === 'assets' ? 'is-active' : ''} onClick={() => { setSection('assets'); setSelectedMachineId(null); }}>Activos <b>{machines.length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'annualPlan'} className={section === 'annualPlan' ? 'is-active' : ''} onClick={() => { setSection('annualPlan'); setSelectedMachineId(null); }}>Plan Anual <b>{annualPlanData.tasks?.length || 288}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'documents'} className={section === 'documents' ? 'is-active' : ''} onClick={() => { setSection('documents'); setSelectedMachineId(null); }}>Formatos <b>{Object.keys(SIG_FORMATS).length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'evidence'} className={section === 'evidence' ? 'is-active' : ''} onClick={() => { setSection('evidence'); setSelectedMachineId(null); }}>Evidencias <b>{evidenceLibrary.length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'manuals'} className={section === 'manuals' ? 'is-active' : ''} onClick={() => { setSection('manuals'); setSelectedMachineId(null); }}>Manuales <b>{manuals.length}</b></button>
-            <button type="button" role="tab" aria-selected={section === 'loadMaps'} className={section === 'loadMaps' ? 'is-active' : ''} onClick={() => { setSection('loadMaps'); setSelectedMachineId(null); }}>Mapas de cargue <b>{curatedLoadMaps.visible.length}</b></button>
-            <button type="button" className="sig-asset-new" onClick={() => setShowNewAsset(true)}>+ Nuevo</button>
-          </div>
           {showNewAsset && (
             <form onSubmit={saveAsset} className="space-y-2 rounded border p-3 bg-slate-50">
               <input required className="w-full border rounded p-2 text-sm" placeholder="Código SIG / Mantum" value={newAsset.code} onChange={(e) => setNewAsset({ ...newAsset, code: e.target.value })} />
@@ -1992,6 +2130,13 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <div className="sig-annual-subnav" role="tablist">
               <button
                 type="button"
+                className={annualPlanSubTab === 'compliance' ? 'is-active' : ''}
+                onClick={() => setAnnualPlanSubTab('compliance')}
+              >
+                Cumplimiento 2026
+              </button>
+              <button
+                type="button"
                 className={annualPlanSubTab === 'preventive' ? 'is-active' : ''}
                 onClick={() => setAnnualPlanSubTab('preventive')}
               >
@@ -2019,6 +2164,19 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 Evidencias en Registros ({filteredAnnualRegistros.length})
               </button>
             </div>
+
+            {annualPlanSubTab === 'compliance' && (
+              <PlanCompliancePanel
+                tasks={filteredAnnualTasks}
+                allTasks={annualPlanData.tasks || []}
+                records={maint.records}
+                loading={maint.loading}
+                warnings={maint.data?.warnings || []}
+                mantum={maint.mantum}
+                onOpenTask={openPlanTask}
+                onReload={maint.reload}
+              />
+            )}
 
             {annualPlanSubTab === 'preventive' && (
               <div className="sig-table-wrap bg-white rounded-lg border p-2">
@@ -2430,6 +2588,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           <div className="h-full flex items-center justify-center text-slate-400">Error al cargar el dossier.</div>
         )}
       </div >
+    </div >
+      )}
       <PlanTaskInstructions task={instructionTask?.task} manuals={instructionTask?.manuals || []} onClose={closePlanTask} />
     </div >
   );

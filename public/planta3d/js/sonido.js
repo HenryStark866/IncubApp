@@ -12,7 +12,8 @@ window.Sonido = (function () {
 
   let ctx = null
   let maestro = null
-  let activo = true
+  // Arranca apagado (23-09-2026): se enciende en el menú, «Sonido de puertas».
+  let activo = false
 
   /** Crea el contexto la primera vez; después solo lo reanuda si quedó suspendido. */
   function despertar() {
@@ -27,8 +28,10 @@ window.Sonido = (function () {
     if (ctx.state === 'suspended') ctx.resume()
     return ctx
   }
+  // Con el sonido apagado ni siquiera se crea el contexto de audio: el
+  // navegador avisaba en consola de un AudioContext que nadie iba a usar.
   ;['pointerdown', 'keydown', 'touchstart'].forEach((ev) =>
-    window.addEventListener(ev, despertar, { passive: true })
+    window.addEventListener(ev, () => { if (activo) despertar() }, { passive: true })
   )
 
   /** Ruido blanco reutilizable: es la base del roce y del rodamiento. */

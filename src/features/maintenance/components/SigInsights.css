@@ -1,0 +1,1116 @@
+/* Centro de Activos y Dossiers SIG — pestañas, Cumplimiento del Plan AM,
+   Indicadores y Operación. Claro, con la identidad del SIG (azul noche
+   #0b1428 + naranja #e0740a). Los estados llevan ícono y texto, no solo color. */
+
+.sig-hub-shell {
+  --si-ink: #0b1428;
+  --si-ink-2: #3b4a60;
+  --si-muted: #66758b;
+  --si-line: #dce4ee;
+  --si-soft: #f3f6fa;
+  --si-accent: #e0740a;
+  --si-accent-ink: #9a4d05;
+  --si-ok: #0ca30c;
+  --si-ok-ink: #0f6b2c;
+  --si-warn: #d9a400;
+  --si-warn-ink: #7a5a00;
+  --si-bad: #d03b3b;
+  --si-bad-ink: #9b1f1f;
+  --si-planned: #2f6db3;
+  --si-corrective: #e0740a;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--si-soft);
+  color: #182235;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+.sig-hub-shell > .sig-asset-hub {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* ── Barra de pestañas ─────────────────────────────────────────────────── */
+
+.sig-hub-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--si-line);
+  background: #fff;
+}
+
+.sig-hub-brand {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 10px 2px;
+  color: var(--si-ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sig-hub-brand span {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--si-ink);
+  color: #f5a24d;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.sig-hub-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.sig-hub-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding-right: 8px;
+  margin-right: 6px;
+  border-right: 1px solid var(--si-line);
+}
+
+.sig-hub-group:last-child {
+  border-right: 0;
+  margin-right: 0;
+}
+
+.sig-hub-shell .sig-hub-tab {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 12px 9px;
+  border: 0 !important;
+  border-radius: 9px 9px 0 0;
+  background: transparent !important;
+  color: var(--si-ink-2) !important;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.sig-hub-shell .sig-hub-tab:hover {
+  background: var(--si-soft) !important;
+  color: var(--si-ink) !important;
+}
+
+.sig-hub-tab .sig-hub-ico {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sig-hub-tab small {
+  display: block;
+  color: var(--si-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.sig-hub-tab b {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--si-soft);
+  color: var(--si-ink-2);
+  font-size: 10.5px;
+  text-align: center;
+}
+
+.sig-hub-tab::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+}
+
+.sig-hub-shell .sig-hub-tab.is-active {
+  color: var(--si-ink) !important;
+}
+
+.sig-hub-tab.is-active::after {
+  background: var(--si-accent);
+}
+
+.sig-hub-tab.is-active b {
+  background: #fff4e8;
+  color: var(--si-accent-ink);
+}
+
+.sig-hub-shell .sig-hub-tab:focus-visible {
+  outline: 2px solid var(--si-accent);
+  outline-offset: -2px;
+}
+
+.sig-hub-shell .sig-hub-new {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-bottom: 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--si-ink) !important;
+  border-radius: 9px;
+  background: var(--si-ink) !important;
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Secciones a ancho completo (sin la lista lateral). */
+.sig-hub-full {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 24px;
+}
+
+.sig-hub-full-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sig-hub-full-head h1 {
+  margin: 2px 0 0;
+  color: var(--si-ink);
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.sig-hub-full-head p {
+  margin: 4px 0 0;
+  color: var(--si-muted);
+  font-size: 13px;
+}
+
+/* ── Piezas comunes ────────────────────────────────────────────────────── */
+
+.si-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  color: var(--si-ink);
+}
+
+.si-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.si-toolbar-sub {
+  align-items: center;
+}
+
+.si-toolbar-sub > small {
+  color: var(--si-muted);
+}
+
+.si-field {
+  display: grid;
+  gap: 2px;
+  color: var(--si-muted);
+  font-size: 11px;
+}
+
+.si-panel select,
+.si-panel input[type='date'],
+.si-search {
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid #cbd6e2;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--si-ink);
+  font-size: 13px;
+  color-scheme: light;
+}
+
+.si-search {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.si-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--si-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.si-panel .si-seg button {
+  min-height: 32px;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--si-ink-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.si-panel .si-seg button:hover {
+  background: var(--si-soft);
+  color: var(--si-ink);
+}
+
+.si-panel .si-seg button.is-on {
+  background: var(--si-ink);
+  color: #fff;
+}
+
+.si-seg-sm button {
+  font-size: 12px !important;
+}
+
+.si-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.si-actions button,
+.si-detail-actions button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.si-actions-lg {
+  margin-left: 0;
+}
+
+.si-actions-lg button {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.si-panel .si-primary {
+  border-color: var(--si-ink) !important;
+  background: var(--si-ink) !important;
+  color: #fff !important;
+}
+
+.si-note {
+  margin: 0;
+  color: var(--si-ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.si-warn,
+.si-ok {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+.si-warn {
+  border: 1px solid #f0c58f;
+  background: #fff8ef;
+  color: #85501b;
+}
+
+.si-ok {
+  border: 1px solid #b5dfc4;
+  background: #eefaf2;
+  color: var(--si-ok-ink);
+}
+
+.si-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 8px;
+  color: var(--si-muted);
+  font-size: 13px;
+}
+
+.si-card {
+  border: 1px solid var(--si-line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.si-sub {
+  display: block;
+  color: var(--si-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── KPIs ──────────────────────────────────────────────────────────────── */
+
+.si-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 8px;
+}
+
+.si-kpi {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--si-line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.si-kpi small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--si-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.si-kpi strong {
+  color: var(--si-ink);
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.si-kpi-hero {
+  grid-column: span 2;
+  border-color: #f0c58f;
+  background: linear-gradient(135deg, #fff, #fff6ec);
+}
+
+.si-kpi-hero strong {
+  font-size: 2rem;
+}
+
+.si-tone-ok small { color: var(--si-ok-ink); }
+.si-tone-warn small { color: var(--si-warn-ink); }
+.si-tone-bad small { color: var(--si-bad-ink); }
+
+.si-meter {
+  display: block;
+  width: 100%;
+  min-width: 60px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ecf3;
+}
+
+.si-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.si-meter-ok > span { background: var(--si-ok); }
+.si-meter-warn > span { background: var(--si-warn); }
+.si-meter-bad > span { background: var(--si-bad); }
+.si-meter-muted > span { background: #b8c3d0; }
+
+/* ── Cumplimiento por sistema ──────────────────────────────────────────── */
+
+.si-systems {
+  padding: 8px 12px;
+  border: 1px solid var(--si-line);
+  border-radius: 11px;
+  background: #fff;
+  font-size: 13px;
+}
+
+.si-systems summary {
+  cursor: pointer;
+  color: var(--si-ink);
+  font-weight: 600;
+}
+
+.si-systems ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.si-systems li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(80px, 1fr) 52px minmax(110px, auto);
+  align-items: center;
+  gap: 10px;
+}
+
+.si-systems-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.si-systems small {
+  color: var(--si-muted);
+  white-space: nowrap;
+}
+
+/* ── Leyenda y celdas de semana ────────────────────────────────────────── */
+
+.si-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  color: var(--si-ink-2);
+  font-size: 12px;
+}
+
+.si-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.si-cell {
+  display: inline-block;
+  width: 11px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.si-cell-done { background: var(--si-ok); }
+.si-cell-partial { background: repeating-linear-gradient(135deg, var(--si-warn) 0 3px, #f4dd8c 3px 6px); }
+.si-cell-missing { background: var(--si-bad); }
+.si-cell-upcoming { background: #fff; box-shadow: inset 0 0 0 1.5px #b8c3d0; }
+
+.si-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 330px;
+}
+
+.si-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.si-dot-planned,
+.si-seg-planned { background: var(--si-planned); }
+.si-dot-corrective,
+.si-seg-corrective { background: var(--si-corrective); }
+
+/* ── Tabla + detalle ───────────────────────────────────────────────────── */
+
+.si-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.si-split:has(.si-detail) {
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+}
+
+.si-table-wrap {
+  min-width: 0;
+  overflow: auto;
+  max-height: 560px;
+  border: 1px solid var(--si-line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.si-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.si-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--si-line);
+  background: var(--si-soft);
+  color: var(--si-ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.si-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #edf1f6;
+  vertical-align: middle;
+}
+
+.si-table tbody tr {
+  cursor: pointer;
+}
+
+.si-table tbody tr:hover td {
+  background: #fffaf4;
+}
+
+.si-table tbody tr.is-selected td {
+  background: #fff4e8;
+}
+
+.si-table .si-subrow td {
+  background: #fbfcfe;
+  cursor: default;
+}
+
+.si-panel .si-code,
+.si-panel .si-rowbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--si-ink);
+  font-weight: 700;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.si-panel .si-rowbtn {
+  white-space: normal;
+}
+
+.si-activity {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.si-pct {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.si-bar {
+  display: inline-flex;
+  width: 110px;
+  height: 9px;
+  margin-right: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef2f7;
+  vertical-align: middle;
+}
+
+.si-bar span {
+  height: 100%;
+}
+
+.si-bar span + span {
+  border-left: 2px solid #fff;
+}
+
+.si-detail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--si-line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.si-detail header {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.si-detail h3 {
+  margin: 3px 0;
+  color: var(--si-ink);
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.si-detail header small {
+  color: var(--si-muted);
+  font-size: 12px;
+}
+
+.si-kicker {
+  color: var(--si-accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.si-panel .si-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.si-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.si-occ {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.si-occ > li {
+  padding: 9px 10px;
+  border: 1px solid var(--si-line);
+  border-left-width: 4px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+.si-occ-done { border-left-color: var(--si-ok) !important; }
+.si-occ-partial { border-left-color: var(--si-warn) !important; }
+.si-occ-missing { border-left-color: var(--si-bad) !important; }
+
+.si-occ-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.si-occ-head small {
+  color: var(--si-muted);
+}
+
+.si-occ ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: var(--si-ink-2);
+}
+
+.si-badge {
+  display: inline-block;
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.si-badge-done { background: #e8f7ea; color: var(--si-ok-ink); }
+.si-badge-partial { background: #fdf4d6; color: var(--si-warn-ink); }
+.si-badge-missing { background: #fde9e9; color: var(--si-bad-ink); }
+.si-badge-upcoming { background: var(--si-soft); color: var(--si-ink-2); }
+
+.si-panel .si-link {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--si-accent-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.si-reclist {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.si-reclist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.si-reclist .si-badge {
+  margin-left: 0;
+}
+
+.si-reclist small {
+  color: var(--si-muted);
+}
+
+/* ── Tendencia mensual ─────────────────────────────────────────────────── */
+
+.si-trend {
+  margin: 0;
+  padding: 12px 14px 8px;
+  border: 1px solid var(--si-line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.si-trend figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.si-trend-legend {
+  display: inline-flex;
+  gap: 12px;
+  color: var(--si-ink-2);
+  font-size: 12px;
+}
+
+.si-trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.si-trend-plot {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 170px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--si-line);
+}
+
+.si-trend-col {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 14px;
+  outline: none;
+}
+
+.si-trend-bar {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 34px);
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 4px 4px 0 0;
+}
+
+.si-trend-bar span {
+  min-height: 2px;
+}
+
+.si-trend-bar span + span {
+  border-top: 2px solid #fff;
+}
+
+.si-trend-col small {
+  position: absolute;
+  bottom: -18px;
+  color: var(--si-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.si-trend-plot {
+  margin-bottom: 20px;
+}
+
+.si-trend-col:hover .si-trend-bar,
+.si-trend-col:focus-visible .si-trend-bar {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--si-ink-2);
+}
+
+.si-tip {
+  position: absolute;
+  bottom: calc(100% - 20px);
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: var(--si-ink);
+  color: #fff;
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Operación ─────────────────────────────────────────────────────────── */
+
+.si-op {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+}
+
+.si-op-doc {
+  display: grid;
+  flex: 0 0 92px;
+  align-content: start;
+  justify-items: center;
+  gap: 2px;
+  padding: 14px 6px;
+  border: 1px solid var(--si-line);
+  border-top: 4px solid var(--si-accent);
+  border-radius: 8px;
+  background: var(--si-soft);
+  color: var(--si-ink-2);
+  font-size: 11px;
+}
+
+.si-op-code {
+  color: var(--si-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.si-op-body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 10px;
+  min-width: 0;
+}
+
+.si-op-body h3 {
+  margin: 0;
+  color: var(--si-ink);
+  font-size: 15px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+
+.si-hide-sm,
+.si-hide-md {
+  display: table-cell;
+}
+
+@media (max-width: 1180px) {
+  .si-split:has(.si-detail) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .si-detail {
+    position: static;
+    max-height: none;
+  }
+
+  .si-hide-md {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .sig-hub-bar {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 8px 0;
+  }
+
+  .sig-hub-brand {
+    flex: 1 1 auto;
+    padding-bottom: 4px;
+  }
+
+  .sig-hub-shell .sig-hub-new {
+    margin-bottom: 4px;
+  }
+
+  .sig-hub-tabs {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .sig-hub-tab small {
+    display: none;
+  }
+
+  .sig-hub-full {
+    padding: 14px 12px 20px;
+  }
+
+  .si-kpi-hero {
+    grid-column: 1 / -1;
+  }
+
+  .si-hide-sm {
+    display: none;
+  }
+
+  .si-actions {
+    margin-left: 0;
+  }
+
+  .si-systems li {
+    grid-template-columns: minmax(0, 1fr) 70px 46px;
+  }
+
+  .si-systems li small {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sig-hub-shell .sig-hub-tab {
+    padding: 6px 9px 9px;
+    font-size: 12.5px;
+  }
+
+  .sig-hub-group {
+    padding-right: 4px;
+    margin-right: 2px;
+  }
+
+  .si-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .si-kpi strong {
+    font-size: 1.2rem;
+  }
+
+  .si-kpi-hero strong {
+    font-size: 1.6rem;
+  }
+
+  .si-toolbar > .si-seg,
+  .si-toolbar > .si-field,
+  .si-toolbar > .si-search {
+    flex: 1 1 100%;
+  }
+
+  .si-seg {
+    display: flex;
+  }
+
+  .si-panel .si-seg button {
+    flex: 1 1 auto;
+  }
+
+  .si-strip {
+    max-width: 150px;
+  }
+
+  .si-bar {
+    width: 60px;
+  }
+
+  .si-op {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .si-op-doc {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    padding: 8px 10px;
+  }
+
+  .si-actions-lg button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si-trend-bar {
+    transition: none;
+  }
+}
+
+/* Botones y campos de las secciones nuevas: fuera de .sig-asset-hub no heredan su estilo.
+   :where() deja la especificidad en cero para que cada componente mande sobre esta base. */
+:where(.sig-hub-shell) button {
+  border: 1px solid #cbd6e2;
+  border-radius: 9px;
+  background: #fff;
+  color: #35445a;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+:where(.sig-hub-shell) button:hover:not(:disabled) {
+  border-color: #e0740a;
+  background: #fffaf4;
+  color: #9a4d05;
+}
+
+:where(.sig-hub-shell) button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+:where(.sig-hub-shell) :is(input, select) {
+  font-family: inherit;
+}
+
+:where(.sig-hub-shell) button:focus-visible {
+  outline: 2px solid #e0740a;
+  outline-offset: 2px;
+}

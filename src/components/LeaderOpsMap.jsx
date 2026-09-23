@@ -33,7 +33,7 @@ import { useShiftSchedule } from '../hooks/useShiftSchedule'
 import { readPlantGeo, projectPeopleOnPlan } from '../lib/geoMap'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import FloorMap from './FloorMap'
-import { exportOperationReport, SHIFT_LABEL } from '../lib/operationReport'
+import { exportOperationReport, exportOperationReportDoc, SHIFT_LABEL } from '../lib/operationReport'
 import { conditionOf } from '../lib/machineCondition'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 
@@ -306,10 +306,11 @@ export default function LeaderOpsMap({
     return buildClientNavItems({ can, role }).filter((i) => !EXCLUDED_TOOL_TABS.has(i.id))
   }, [can, role])
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (formato = 'doc') => {
     setExporting(true)
     try {
-      await exportOperationReport({
+      await (formato === 'excel' ? exportOperationReport : exportOperationReportDoc)({
+        plantName: selectedPlant?.name,
         assignments,
         checks: mc.checks,
         loads,
@@ -321,7 +322,7 @@ export default function LeaderOpsMap({
     } finally {
       setExporting(false)
     }
-  }, [assignments, mc.checks, loads, transfers, so.activities, people, machineName])
+  }, [assignments, mc.checks, loads, transfers, so.activities, people, machineName, selectedPlant])
 
   /* ── Eventos unificados: alimentan el efecto visual de los filtros sobre el mapa ── */
   const events = useMemo(() => {
@@ -481,11 +482,19 @@ export default function LeaderOpsMap({
       items: [
         {
           id: 'reporte',
-          label: 'Reporte de operación',
-          icon: '📊',
-          hint: 'Descargar Excel con turnos, operarios, rondas, cargues y transferencias',
+          label: 'Reporte de operación (FOINC02)',
+          icon: '📄',
+          hint: 'Formato del SIG en Word: turnos, operarios, rondas, cargues y transferencias con membrete y codificación',
           disabled: exporting,
-          onClick: handleExport,
+          onClick: () => handleExport('doc'),
+        },
+        {
+          id: 'reporte-excel',
+          label: 'Reporte de operación en Excel',
+          icon: '📊',
+          hint: 'El mismo FOINC02 en Excel, para filtrar',
+          disabled: exporting,
+          onClick: () => handleExport('excel'),
         },
         puede3D && {
           id: 'tour-aparte',
