@@ -799,25 +799,33 @@ export function resolveSigFormatCatalog(formats = Object.values(SIG_FORMATS)) {
   });
 }
 
-export function shiftNumberForTimestamp(value) {
+// Los turnos son de la planta (Colombia, UTC-5 sin horario de verano), no del equipo:
+// con la hora local del navegador, un celular o servidor en otra zona asignaba la
+// carga al turno y al día equivocados. Se corre el instante a hora de Bogotá y se
+// leen los campos UTC.
+const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function bogotaClock(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  const hour = date.getHours();
+  return new Date(date.getTime() - BOGOTA_OFFSET_MS);
+}
+
+export function shiftNumberForTimestamp(value) {
+  const local = bogotaClock(value);
+  if (!local) return null;
+  const hour = local.getUTCHours();
   if (hour >= 6 && hour < 14) return 1;
   if (hour >= 14 && hour < 22) return 2;
   return 3;
 }
 
 export function shiftDateForTimestamp(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const shift = shiftNumberForTimestamp(date);
-  if (shift === 3 && date.getHours() < 6) {
-    const adjusted = new Date(date);
-    adjusted.setDate(adjusted.getDate() - 1);
-    return adjusted.toISOString().slice(0, 10);
-  }
-  return date.toISOString().slice(0, 10);
+  const local = bogotaClock(value);
+  if (!local) return null;
+  // El turno 3 empieza a las 22:00: la madrugada pertenece al día anterior.
+  if (local.getUTCHours() < 6) local.setUTCDate(local.getUTCDate() - 1);
+  return local.toISOString().slice(0, 10);
 }
 
 export function resolveLoadedByName({ loadedAt, loadedBy, people = {}, shiftAssignments = [] } = {}) {

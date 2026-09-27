@@ -14,7 +14,11 @@ SRV=/opt/incubapp/server
 echo "=== Túnel $(date -Is) → $URL ==="
 umask 077
 printf 'TUNNEL_TOKEN=%s\n' "$(tr -d '\r\n ' < "$TOKFILE")" > /opt/incubapp/tunel.env
-RED=$(docker inspect supabase-envoy -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+# La app (contenedor `incubapp`, con nginx) y Supabase comparten la red supabase_default
+# (ver docker-compose.yml de la raíz). El túnel entra por ahí y apunta a incubapp:80,
+# que sirve la app y reenvía /auth, /rest, /storage, /realtime y /functions a kong.
+RED=supabase_default
+docker network inspect "$RED" >/dev/null 2>&1 || RED=$(docker inspect supabase-kong -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' | awk '{print $1}')
 echo "Red de Supabase: $RED"
 docker rm -f incubapp-tunel >/dev/null 2>&1 || true
 docker run -d --name incubapp-tunel --restart unless-stopped --network "$RED" \
@@ -24,6 +28,8 @@ cd "$SRV"
 set_env() { if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else printf '%s=%s\n' "$1" "$2" >> .env; fi; }
 set_env SUPABASE_PUBLIC_URL "$URL"
 set_env API_EXTERNAL_URL "$URL/auth/v1"
+# Los enlaces de los correos (recuperar contraseña, confirmar cuenta) vuelven a la app.
+set_env SITE_URL "$URL"
 echo "==> Aplicando la nueva dirección"
 docker compose up -d --wait || docker compose ps
 docker compose stop studio supavisor imgproxy || true
@@ -42,4 +48,4 @@ for i in $(seq 1 20); do
 done
 echo "Prueba desde internet ($URL/auth/v1/health): ${code:-sin respuesta}"
 docker logs --tail 5 incubapp-tunel
-[ "${code:-}" = 200 ] && echo "LISTO: el servidor responde desde internet." || echo "El túnel aún no responde: revisa en Cloudflare que el 'Public hostname' apunte a HTTP kong:8000."
+[ "${code:-}" = 200 ] && echo "LISTO: el servidor responde desde internet." || echo "El túnel aún no responde: revisa en Cloudflare que el 'Public hostname' apunte a HTTP incubapp:80 y que el contenedor incubapp esté arriba (docker compose up -d en C:\\IncubApp)."

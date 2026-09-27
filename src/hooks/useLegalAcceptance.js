@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { isNetworkError } from '../lib/offlineAuth'
 import { TERMS_VERSION, PRIVACY_VERSION } from '../legal/legalContent'
 
 export function useLegalAcceptance({ userId, orgId }) {
@@ -18,15 +19,24 @@ export function useLegalAcceptance({ userId, orgId }) {
       return
     }
     setLoading(true)
-    const { data, error: err } = await supabase
+    const { data, error: err, status } = await supabase
       .from('legal_acceptances')
       .select('doc_type, doc_version')
       .eq('user_id', userId)
       .in('doc_type', ['terms', 'privacy'])
 
     if (err) {
-      setError(err.message)
-      setAccepted(false)
+      // Sin red o con el servidor caído no se puede consultar ni guardar la aceptación:
+      // bloquear ahí dejaría atrapado a quien trabaja sin conexión. Se vuelve a
+      // comprobar en la siguiente carga con red. Un error real de la tabla sí muestra
+      // el aviso para aceptar de nuevo.
+      const offline =
+        (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+        isNetworkError(err) ||
+        !status ||
+        status >= 500
+      setError(offline ? null : err.message)
+      setAccepted(offline)
       setLoading(false)
       return
     }

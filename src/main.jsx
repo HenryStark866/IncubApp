@@ -44,6 +44,23 @@ try {
   /* */
 }
 
+// Tras publicar una versión nueva, una pestaña que ya estaba abierta pide los
+// módulos con el nombre viejo, que el servidor ya no tiene, y el panel no abre.
+// Con red se recarga una vez (máximo una por minuto) para tomar la versión nueva.
+window.addEventListener('vite:preloadError', (event) => {
+  if (navigator.onLine === false) return
+  const KEY = 'incubapp:reload-por-version'
+  try {
+    const last = Number(sessionStorage.getItem(KEY) || 0)
+    if (Date.now() - last < 60_000) return
+    sessionStorage.setItem(KEY, String(Date.now()))
+  } catch {
+    /* sin sessionStorage: recargar igual */
+  }
+  event.preventDefault()
+  window.location.reload()
+})
+
 /**
  * AppRoot — puerta de entrada directa al workspace autenticado.
  */

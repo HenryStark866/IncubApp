@@ -26,7 +26,11 @@ export const supabaseConfigError = !urlOk
     : null
 
 function resolveSupabaseUrl() {
+  // Proyecto en la nube de Supabase: se usa tal cual, sea cual sea el dominio de la app.
+  if (urlOk && /\.supabase\.co\/?$/i.test(rawUrl)) return rawUrl.replace(/\/$/, '')
   if (typeof window !== 'undefined') {
+    // Servidor propio (túnel, incubapp.cdhmaker.com o red local): la app y la API
+    // salen por el mismo nginx, así que el origen de la página es el de Supabase.
     const { origin, hostname, port, protocol } = window.location
     // Si se accede vía túnel (ngrok / cloudflare) o directo por puerto 80 / 443 / producción
     if (hostname.includes('ngrok') || hostname.includes('trycloudflare.com') || protocol === 'https:' || !port || port === '80') {

@@ -4,3 +4,7 @@ dist
 .agents
 servidor-local/logs
 .respaldo
+docs
+servidor-local
+supabase
+coverage

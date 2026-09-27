@@ -134,3 +134,21 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 - Datos del backup en la nube: 16 usuarios, ~80 MB de datos, 15.160 archivos (2,1 GB)
   registrados en storage.objects. **Los archivos de fotos NO vienen en el backup de la
   base**: hay que conseguir el backup de Storage aparte.
+
+## Actualización 27-09-2026 — producción en el servidor local y dominio propio
+
+- **Producción** corre en el Lenovo: Supabase self-hosted + contenedor `incubapp`
+  (raíz del repo: `Dockerfile`, `nginx.conf`, `docker-compose.yml`). nginx sirve la app
+  y reenvía la API a `kong:8000`; `src/lib/supabase.js` usa el mismo origen de la página
+  como URL de Supabase (salvo que `VITE_SUPABASE_URL` sea un `*.supabase.co`).
+- Hoy se publica con **ngrok** (`https://comply-duckling-displace.ngrok-free.dev`).
+- **Dominio definitivo: `https://incubapp.cdhmaker.com`** con Cloudflare Tunnel. El
+  Public hostname del túnel apunta a **`HTTP incubapp:80`** (ya no a `kong:8000`: con
+  kong solo quedaba la API, sin la app). `tunel.sh` usa la red `supabase_default` y
+  ahora también fija `SITE_URL`. Requiere que `cdhmaker.com` esté en Cloudflare
+  (nameservers). Pasos en el README, sección «Despliegue».
+- nginx: gzip activado (el módulo de Mantenimiento baja de 6,7 MB a ~0,45 MB por el
+  túnel), `/assets/` con caché de un año y 404 si falta el archivo, y las cabeceras de
+  seguridad llegan también a `index.html` y `sw.js`.
+- Actualizar la app en el servidor: `git pull && docker compose build incubapp &&
+  docker compose up -d incubapp` en `/mnt/c/IncubApp` (Ubuntu/WSL).

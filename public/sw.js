@@ -113,14 +113,17 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           if (res && res.ok) {
+            // Las copias se sacan YA: dentro del .then de caches.open el navegador
+            // ya empezó a leer `res` y res.clone() fallaba, así que el caparazón
+            // offline (/ y /index.html) se quedaba con la versión de la instalación.
             const copy = res.clone()
             // Solo el caparazón real de la app sobreescribe / y /index.html.
-            const esCaparazon = !isStandalonePage(url)
+            const shell = isStandalonePage(url) ? null : [res.clone(), res.clone()]
             caches.open(CACHE).then((c) => {
-              c.put(req, copy)
-              if (esCaparazon) {
-                c.put('/index.html', res.clone()).catch(() => { })
-                c.put('/', res.clone()).catch(() => { })
+              c.put(req, copy).catch(() => { })
+              if (shell) {
+                c.put('/index.html', shell[0]).catch(() => { })
+                c.put('/', shell[1]).catch(() => { })
               }
             })
           }
