@@ -150,5 +150,8 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 - nginx: gzip activado (el módulo de Mantenimiento baja de 6,7 MB a ~0,45 MB por el
   túnel), `/assets/` con caché de un año y 404 si falta el archivo, y las cabeceras de
   seguridad llegan también a `index.html` y `sw.js`.
-- Actualizar la app en el servidor: `git pull && docker compose build incubapp &&
-  docker compose up -d incubapp` en `/mnt/c/IncubApp` (Ubuntu/WSL).
+- Actualizar la app en el servidor: **7-ACTUALIZAR-APP.bat** (o a mano `git pull &&
+  docker compose build incubapp && docker compose up -d incubapp` en `/mnt/c/IncubApp`).
+- El tablero del líder abre el Centro de Activos SIG de forma diferida y los datos fijos
+  de Mantum van en su propio archivo (`mantum-datos-*.js`), que el navegador conserva
+  entre versiones.

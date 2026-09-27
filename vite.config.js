@@ -15,6 +15,12 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Datos fijos de Mantum (historial de OT ~6,5 MB, planes AM): casi nunca
+          // cambian. En su propio archivo el navegador los conserva entre versiones
+          // y no los vuelve a bajar cada vez que se publica un cambio de código.
+          if (/src[\\/]data[\\/](mantumHistoricalOTs|mantumMaintenancePlans|annualMaintenancePlanData)\.json$/.test(id)) {
+            return 'mantum-datos'
+          }
           if (id.includes('node_modules')) {
             if (id.includes('xlsx')) return 'xlsx'
             if (id.includes('leaflet')) return 'leaflet'

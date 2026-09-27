@@ -132,7 +132,9 @@ node scripts/generar_propuesta_perfil.mjs
 `/storage`, `/realtime` y `/functions` a Supabase, así que la app y su API salen
 por el mismo dominio. Pasos de instalación: `servidor-local/ESTADO.md`.
 
-Actualizar la app en el servidor (en `C:\IncubApp`, dentro de Ubuntu/WSL):
+Actualizar la app en el servidor: doble clic en `servidor-local/7-ACTUALIZAR-APP.bat`
+(trae los cambios de GitHub, reconstruye el contenedor `incubapp` y comprueba que
+responde; Supabase y la base no se tocan). A mano, en `/mnt/c/IncubApp` (Ubuntu/WSL):
 
 ```bash
 git pull && docker compose build incubapp && docker compose up -d incubapp

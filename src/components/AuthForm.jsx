@@ -223,7 +223,7 @@ export default function AuthForm() {
       <div className="auth-wave" aria-hidden="true" />
 
       <div className="auth-brand">
-        <IncubAppProductLogo mark={54} showSlogan={false} />
+        <IncubAppProductLogo mark={54} showSlogan={false} light />
       </div>
       <p className="auth-tagline">{mode === 'forgot' ? 'Recuperación de cuenta' : 'Acceso a la plataforma'}</p>
 

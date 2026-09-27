@@ -54,11 +54,11 @@ export function IncubAppProductMark({ size = 44, className = '' }) {
   )
 }
 
-export function IncubAppProductLogo({ mark = 48, center = true, showSlogan = true }) {
+export function IncubAppProductLogo({ mark = 48, center = true, showSlogan = true, light = false }) {
   return (
     <div className={`brand-lockup${center ? ' center' : ''}`}>
       <img
-        src={BRAND.assets.logo}
+        src={light ? BRAND.assets.logoLight : BRAND.assets.logo}
         alt={`${BRAND.productName} — ${BRAND.tagline}`}
         style={{ height: Math.round(mark * 1.15), width: 'auto', maxWidth: '100%' }}
         draggable={false}

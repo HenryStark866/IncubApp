@@ -47,6 +47,8 @@ export const BRAND = {
   assets: {
     mark: '/brand/incubapp-mark.svg',
     logo: '/brand/incubapp-logo.svg',
+    /** Mismo logo con texto oscuro, para tarjetas claras (pantalla de acceso). */
+    logoLight: '/brand/incubapp-logo-light.svg',
     wordmark: '/brand/incubapp-wordmark.svg',
     og: '/brand/incubapp-og.svg',
     favicon: '/brand/incubapp-favicon.svg',

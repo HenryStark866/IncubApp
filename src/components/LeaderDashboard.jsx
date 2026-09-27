@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState, useEffect } from 'react'
 import { usePlants } from '../hooks/usePlants'
 import { useRooms } from '../hooks/useRooms'
 import { useMachines } from '../hooks/useMachines'
@@ -23,8 +23,12 @@ import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
-import MachineAssetHub, { buildProductionEvidence } from '../features/maintenance/components/MachineAssetHub'
+import { buildProductionEvidence } from '../features/maintenance/lib/productionEvidence'
 import { evidenceHasRecordDocument, openEvidenceFormat, shiftActivityRecordItem, singleCheckRound, workOrderRecordItem } from '../lib/sigRecordDocuments'
+
+// El Centro de Activos SIG trae el historial Mantum (~7 MB): se carga aparte para que
+// indicadores y feed del turno se vean de inmediato, sobre todo por el túnel.
+const MachineAssetHub = lazy(() => import('../features/maintenance/components/MachineAssetHub'))
 
 /** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
@@ -500,7 +504,9 @@ export default function LeaderDashboard({
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
         <div className="ldr-assets-frame">
-          <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
+          <Suspense fallback={<p className="ldr-feed-empty">Cargando Centro de Activos…</p>}>
+            <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
+          </Suspense>
         </div>
       </section>
       <footer className="ldr-actions">
