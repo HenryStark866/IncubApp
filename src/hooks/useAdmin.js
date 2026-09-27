@@ -360,12 +360,15 @@ export function useAdmin(opts = true) {
       safeRole === 'coordinator'
         ? normalizeWorkArea(area) || 'plant'
         : normalizeWorkArea(area) || 'general'
-    return supabase.from('organization_members').insert({
-      org_id: targetOrg,
-      user_id: userId,
-      role: safeRole,
-      area: safeArea,
-    })
+    return supabase.from('organization_members').upsert(
+      {
+        org_id: targetOrg,
+        user_id: userId,
+        role: safeRole,
+        area: safeArea,
+      },
+      { onConflict: 'org_id, user_id' }
+    )
   })
 
   const saveMember = wrap((orgId, userId, { role, area, jobTitle } = {}) => {

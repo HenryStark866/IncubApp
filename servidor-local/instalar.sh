@@ -15,16 +15,28 @@ SRV=$BASE/server
 
 paso() { printf '\n==> %s\n' "$*"; }
 
+paso "Configuración de Ubuntu (systemd)"
+printf '[boot]\nsystemd=true\n[user]\ndefault=root\n' > /etc/wsl.conf
+cat /etc/wsl.conf
+echo "Proceso 1: $(ps -p 1 -o comm=)"
+
+paso "Red de Ubuntu"
+grep -v '^#' /etc/resolv.conf | head -5
+getent hosts archive.ubuntu.com || echo "SIN DNS para archive.ubuntu.com"
+curl -sS -o /dev/null -w "https archive.ubuntu.com: %{http_code}\n" --max-time 20 https://archive.ubuntu.com/ubuntu/ || echo "SIN salida https"
+curl -sS -o /dev/null -w "https get.docker.com: %{http_code}\n" --max-time 20 https://get.docker.com || true
+
 paso "Paquetes básicos"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
+for i in 1 2 3; do apt-get update && break; echo "apt-get update falló (intento $i)"; sleep 10; done
 apt-get install -y -qq ca-certificates curl git openssl jq gzip >/dev/null
 
 paso "Docker"
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
-systemctl enable --now docker
+if [ "$(ps -p 1 -o comm=)" = systemd ]; then systemctl enable --now docker
+else echo "(systemd aún no activo en esta sesión: Docker se inicia con 'service')"; service docker start; sleep 5; fi
 docker --version; docker compose version
 
 paso "Supabase ($VERSION)"
@@ -67,10 +79,19 @@ set_env PGRST_DB_MAX_ROWS 1000
 grep -E '^(SUPABASE_PUBLIC_URL|API_EXTERNAL_URL|SITE_URL|DASHBOARD_USERNAME)=' .env
 
 paso "Descargando imágenes (la primera vez tarda: son varios GB)"
-docker compose pull -q
+# Conexión lenta: 2 imágenes a la vez y hasta 6 intentos (lo ya bajado se conserva).
+export COMPOSE_PARALLEL_LIMIT=2
+for i in 1 2 3 4 5 6; do
+  docker compose pull -q && break
+  echo "Descarga incompleta (intento $i de 6); reintento en 20 s..."; sleep 20
+  [ "$i" = 6 ] && { echo "DETENIDO: no se pudieron bajar las imágenes."; exit 5; }
+done
 
 paso "Arrancando"
 docker compose up -d --wait || { docker compose ps; echo "Algún servicio no quedó sano; revisa arriba"; }
+paso "Ahorro de memoria (equipo de 4 GB): se apagan Studio, Supavisor e imgproxy"
+# La app no los usa en el día a día. Para abrir el panel: docker compose start studio
+docker compose stop studio supavisor imgproxy || true
 docker compose ps --format 'table {{.Name}}\t{{.Status}}'
 
 paso "Datos públicos para la app (sin secretos)"

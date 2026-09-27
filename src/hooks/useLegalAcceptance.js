@@ -25,9 +25,8 @@ export function useLegalAcceptance({ userId, orgId }) {
       .in('doc_type', ['terms', 'privacy'])
 
     if (err) {
-      // No bloquear el acceso a la app por un fallo de red/tabla: se reintenta luego.
       setError(err.message)
-      setAccepted(true)
+      setAccepted(false)
       setLoading(false)
       return
     }
@@ -45,6 +44,7 @@ export function useLegalAcceptance({ userId, orgId }) {
 
   const accept = useCallback(async () => {
     if (!userId) return { error: 'Sin sesión' }
+    setError(null)
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null
     const rows = [
       { user_id: userId, org_id: orgId ?? null, doc_type: 'terms', doc_version: TERMS_VERSION, user_agent: ua },
@@ -53,7 +53,10 @@ export function useLegalAcceptance({ userId, orgId }) {
     const { error: err } = await supabase
       .from('legal_acceptances')
       .upsert(rows, { onConflict: 'user_id,doc_type,doc_version' })
-    if (err) return { error: err.message }
+    if (err) {
+      setError(err.message)
+      return { error: err.message }
+    }
     setAccepted(true)
     return { error: null }
   }, [userId, orgId])

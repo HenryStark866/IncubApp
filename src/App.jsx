@@ -1059,9 +1059,14 @@ export default function App() {
     let sub
     try {
       const res = supabase.auth.onAuthStateChange((event, s) => {
-        // Sin red, supabase-js puede avisar «sin sesión» porque no logró renovar el
-        // token: eso no es un cierre de sesión y no debe sacar a quien trabaja offline.
-        if (!s && event !== 'SIGNED_OUT' && sessionRef.current?.offline) return
+        // Sin red o por fallo de red temporal al renovar token: no cerrar sesión si el evento no es SIGNED_OUT
+        if (!s && event !== 'SIGNED_OUT') {
+          const stored = readStoredSession(SUPABASE_URL)
+          if (stored || sessionRef.current) {
+            if (!sessionRef.current && stored) setSession({ ...stored, offline: true })
+            return
+          }
+        }
         setSession(s)
         if (event === 'PASSWORD_RECOVERY') {
           setIsRecoveryMode(true)
@@ -1347,7 +1352,7 @@ export default function App() {
       <div className="grid-bg" aria-hidden="true" />
       {content}
       {!!session && !legal.loading && !legal.accepted && (
-        <LegalDocsModal mode="gate" onAccept={acceptLegal} busy={legalBusy} />
+        <LegalDocsModal mode="gate" onAccept={acceptLegal} busy={legalBusy} error={legal.error} />
       )}
       {showLegalView && (
         <LegalDocsModal mode="view" onClose={() => setShowLegalView(false)} />

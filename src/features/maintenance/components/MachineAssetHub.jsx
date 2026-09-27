@@ -18,6 +18,7 @@ import PlanCompliancePanel from './PlanCompliancePanel';
 import MaintenanceIndicatorsPanel from './MaintenanceIndicatorsPanel';
 import OperationRecordsPanel from './OperationRecordsPanel';
 import { useMaintenanceRecords } from '../hooks/useMaintenanceRecords';
+import StorageImage from '../../../components/StorageImage';
 import './SigInsights.css';
 
 
@@ -152,6 +153,23 @@ export async function safeRows(label, query) {
     console.warn(`Centro SIG: no se pudo leer ${label}.`, error)
     return { rows: [], failed: label }
   }
+}
+
+export async function paginatedRows(label, buildQuery, pageSize = 1000) {
+  const rows = []
+  let failed = null
+
+  for (let from = 0; ; from += pageSize) {
+    const result = await safeRows(label, buildQuery().range(from, from + pageSize - 1))
+    if (result.failed) {
+      failed = result.failed
+      break
+    }
+    rows.push(...result.rows)
+    if (result.rows.length < pageSize) break
+  }
+
+  return { rows, failed }
 }
 
 export function chunkList(list = [], size = ID_CHUNK) {
@@ -879,7 +897,7 @@ function ManualPreview({ file, showMeta = false }) {
         </div>
       )}
       <div className="sig-manual-reader-body">
-        {isImage && previewUrl ? <img src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
+        {isImage && previewUrl ? <StorageImage src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
           <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} />
         ) : isHtml && previewUrl ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
@@ -1453,12 +1471,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       ] = await Promise.all([
         // Por org_id y no con `.in()` sobre todas las OT: esa lista desbordaba la URL, Supabase
         // respondía «Bad Request» y Evidencias quedaba en 0.
-        safeRows('las evidencias de OT', supabase
+        paginatedRows('las evidencias de OT', () => supabase
           .from('wo_evidence')
           .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
           .eq('org_id', orgId)
-          .order('created_at', { ascending: false })
-          .limit(1000)),
+          .order('created_at', { ascending: false })),
         safeRows('las rondas', supabase
           .from('machine_checks')
           .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
@@ -1480,12 +1497,11 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .limit(1000)),
         // Sin filtro de org, como en el resto de la app: la RLS ya limita las máquinas visibles.
         safeRows('las máquinas', supabase.from('machines').select('id, code, name')),
-        safeRows('el registro SIG', supabase
+        paginatedRows('el registro SIG', () => supabase
           .from('sig_evidence')
           .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
           .eq('org_id', orgId)
-          .order('recorded_at', { ascending: false })
-          .limit(5000)),
+          .order('recorded_at', { ascending: false })),
         safeRows('los cargues', supabase
           .from('setter_loads')
           .select('id, plant_id, machine_id, lote, loaded_at, cycle_start_at, tape_color, tape_color_name, photo_path, created_by, created_at')
@@ -1687,17 +1703,16 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...mantumHistoricalEvidence(),
         ...LOCAL_DOCUMENT_LIBRARY,
       ]);
-      const currentYearEvidence = combined.filter(isCurrentYearEvidence);
-      setAllEvidence(currentYearEvidence);
+      setAllEvidence(combined);
       setEvidenceWarnings(failedSources);
-      onEvidenceLoaded?.(currentYearEvidence);
-      setSelectedDocumentId((current) => current && currentYearEvidence.some((file) => file.id === current) ? current : currentYearEvidence[0]?.id || null);
+      onEvidenceLoaded?.(combined);
+      setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
         ...mantumHistoricalEvidence(),
         ...LOCAL_DOCUMENT_LIBRARY,
-      ]).filter(isCurrentYearEvidence);
+      ]);
       setAllEvidence(fallbackEvidence);
       setEvidenceWarnings(['las evidencias remotas']);
       onEvidenceLoaded?.(fallbackEvidence);
@@ -1706,7 +1721,20 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     }
   }, [onEvidenceLoaded, orgId]);
 
-  useEffect(() => { loadAllEvidence(); }, [loadAllEvidence]);
+  useEffect(() => {
+    loadAllEvidence()
+
+    const tables = ['wo_evidence', 'sig_evidence', 'work_orders', 'machine_checks', 'machine_calibrations', 'round_reports', 'setter_loads', 'transfers', 'hatch_events']
+    const channel = supabase.channel(`sig-evidence-changes-${orgId}`)
+    tables.forEach((table) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `org_id=eq.${orgId}` }, loadAllEvidence)
+    })
+    channel.subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadAllEvidence, orgId]);
 
   const loadMachines = useCallback(async () => {
     setLoading(true);
@@ -2417,7 +2445,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Fotos y registros de órdenes de trabajo, rondas, calibraciones y producción (cargues, transferencias y nacimientos), tal como están en la base.</p>
             {evidenceWarnings.length > 0 && <p className="sig-empty-tab" role="status">No se pudo leer {evidenceWarnings.join(', ')}. El resto de las evidencias sí está al día.</p>}
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div><div className="sig-evidence-actions">{hasEvidenceFormat(selectedDocument) && <button type="button" className="sig-format-button" onClick={() => openEvidenceFormat(selectedDocument)}>Formato diligenciado ↗</button>}{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div></div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div><div className="sig-evidence-actions">{hasEvidenceFormat(selectedDocument) && <button type="button" className="sig-format-button" onClick={() => openEvidenceFormat(selectedDocument)}>Formato diligenciado ↗</button>}{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div></div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <StorageImage src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">
@@ -2498,7 +2526,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, padding: 14 }}>
                   {dossier.images.map((image) => (
                     <a key={image.id} href={image.url} target="_blank" rel="noopener noreferrer" title={image.file_name}>
-                      <img src={image.url} alt={`${dossier.summary.name} · ${image.file_name}`} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
+                      <StorageImage src={image.url} alt={`${dossier.summary.name} · ${image.file_name}`} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
                       <small style={{ display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{image.file_name}</small>
                     </a>
                   ))}
@@ -2516,7 +2544,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                       <div className="sig-evidence-list">
                         {documents.map((file) => <button type="button" key={file.id} className={file.id === selectedDocumentId ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
                       </div>
-                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#formato'} target="_blank" rel="noopener noreferrer" onClick={(event) => { event.preventDefault(); openEvidenceFormat(selectedDocument); }}>Abrir formato ↗</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
+                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#formato'} target="_blank" rel="noopener noreferrer" onClick={(event) => { event.preventDefault(); openEvidenceFormat(selectedDocument); }}>Abrir formato ↗</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <StorageImage src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
                     </>}
                   </div>
                 )}

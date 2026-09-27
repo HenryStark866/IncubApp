@@ -53,17 +53,15 @@ trabajo real se está pasando al Lenovo.
 
 ## El Lenovo (DESKTOP-ROMOGM3) — equipo objetivo real
 
-- Windows 11 Pro, Intel Core i3-4160 @ 3.60GHz, **4 GB RAM DDR3**, sin tarjeta
+- Windows 11 Pro, Intel Core i3-4160 @ 3.60GHz, **12 GB RAM DDR3**, sin tarjeta
   de video dedicada (Intel HD Graphics 4400, 112 MB).
-- **4 GB de RAM es poco** para Docker + Supabase self-hosted (lo recomendado
-  son 8 GB+). Henry ya confirmó que quiere intentarlo igual — puede ir lento o
-  fallar por memoria; si falla, la alternativa es ampliar RAM o usar otro
-  equipo.
-- El script de preparación (`1-preparar-windows.ps1`) calcula la memoria para
-  WSL como `max(4, floor(RAM_total * 0.6))` GB — con 4 GB totales, eso da
-  **4 GB para WSL**, dejando muy poco para Windows. Puede que haya que bajar
-  ese número a mano si el equipo se pone inestable (editar `.wslconfig` en
-  `%USERPROFILE%\.wslconfig`, bajar `memory=` a 2GB o 3GB).
+- Con 12 GB el equipo ya tiene margen razonable para Docker + Supabase
+  self-hosted, aunque el procesador sigue siendo antiguo y sera el limite en
+  tareas concurrentes.
+- El script de preparación (`1-preparar-windows.ps1`) asigna automaticamente
+  **7 GB a WSL**, **4 GB de swap** y hasta **4 procesadores**, dejando unos
+  5 GB para Windows. Si el equipo se pone inestable, editar
+  `%USERPROFILE%\.wslconfig` y bajar `memory=` a 6GB.
 
 ## Qué falta después de que el servidor quede levantado
 
@@ -107,3 +105,32 @@ los `.bat` directamente desde el Explorador de archivos (doble clic), en este
 orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 `2-INSTALAR-SERVIDOR.bat` → `3-RESTAURAR-BACKUP.bat`. O se puede recrear
 `tasks.json` a mano si se prefiere usar VS Code.
+
+## Actualización 23-09-2026 (noche) — Lenovo DESKTOP-ROMOGM3
+
+- Repo clonado en `C:\IncubApp` (sin espacios en la ruta; el usuario de Windows es
+  "Admin Mantenimiento" y las rutas con espacio dan problemas al pasar a WSL).
+- Diagnóstico inicial: RAM 3,9 GB, **virtualización desactivada en BIOS** (hay que activar
+  Intel VT-x: F1 → Advanced → CPU Setup), disco C: 293 GB libres, IP LAN 192.168.5.68.
+- Actualización: la RAM fue ampliada a **12 GB DDR3**. El script ahora configura
+  WSL con `memory=7168MB`, `processors=4`, `swap=4GB` y recuperación gradual de
+  memoria, dejando aproximadamente 5 GB para Windows.
+- Paso 1 corrido una vez: WSL y VirtualMachinePlatform activados; falta reiniciar
+  y volver a correrlo.
+- El ajuste anterior para 4 GB (`memory=2560MB`, `swap=3GB`) queda obsoleto. Con
+  12 GB se mantiene `autoMemoryReclaim=gradual`; tras arrancar se apagan `studio`, `supavisor` e
+  `imgproxy` (la app no usa transformación de imágenes). Studio: `docker compose start studio`.
+- Nuevos pasos:
+  - **4-ACTIVAR-RESPALDO.bat** → respaldo diario 2:00 a. m. (temporizador systemd
+    `incubapp-respaldo`) a `OneDrive - Antioqueña de Incubacion\IncubApp-Respaldos`:
+    base (`pg_dump -Fc` + roles, 14 días) y fotos (rsync incremental, nunca borra).
+  - **5-ACCESO-EXTERNO.bat** → Cloudflare Tunnel (contenedor `incubapp-tunel`, token en
+    `/opt/incubapp/tunel.env`); requiere cuenta de Cloudflare y un dominio en Cloudflare.
+    Public hostname → `HTTP kong:8000`. Actualiza SUPABASE_PUBLIC_URL y `logs/publico.env`.
+  - El arranque automático queda configurado por la tarea de Windows **IncubApp Servidor**:
+    se ejecuta al iniciar Windows y al iniciar sesión, arranca WSL, Docker y el contenedor
+    `incubapp-tunel`. El contenedor usa `--restart unless-stopped` para recuperarse de
+    caídas de red o reinicios del proceso.
+- Datos del backup en la nube: 16 usuarios, ~80 MB de datos, 15.160 archivos (2,1 GB)
+  registrados en storage.objects. **Los archivos de fotos NO vienen en el backup de la
+  base**: hay que conseguir el backup de Storage aparte.
