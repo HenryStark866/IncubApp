@@ -17,6 +17,7 @@ import {
     buildProductionEvidence,
     chunkList,
     safeRows,
+    paginatedRows,
 } from './MachineAssetHub';
 
 describe('load map local persistence', () => {
@@ -197,6 +198,19 @@ describe('resolveSelectedEvidence', () => {
 });
 
 describe('lectura del repositorio de evidencias', () => {
+    it('pagina fuentes grandes para no perder evidencias después del límite de Supabase', async () => {
+        const source = Array.from({ length: 1022 }, (_, index) => ({ id: index + 1 }));
+        const buildQuery = () => ({
+            range: (from, to) => Promise.resolve({ data: source.slice(from, to + 1), error: null }),
+        });
+
+        const result = await paginatedRows('el registro SIG', buildQuery, 1000);
+
+        expect(result.failed).toBeNull();
+        expect(result.rows).toHaveLength(1022);
+        expect(result.rows.at(-1)).toEqual({ id: 1022 });
+    });
+
     it('parte las listas de IDs en tandas para no desbordar la URL del filtro in()', () => {
         const ids = Array.from({ length: 205 }, (_, index) => `id-${index}`);
         const chunks = chunkList(ids, 80);

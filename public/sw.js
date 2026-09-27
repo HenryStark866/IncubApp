@@ -9,7 +9,7 @@
    caparazón de la app, así que quien hubiera entrado a /reparar.html (o al
    recorrido 3D) abría IncubApp sin red y le salía esa página en vez del login.
    Al cambiar de nombre la caché, esos caparazones envenenados se descartan. */
-const CACHE = 'incubapp-shell-v12'
+const CACHE = 'incubapp-shell-v14'
 const PRECACHE = [
   '/',
   '/index.html',
@@ -58,7 +58,12 @@ function isSupabase(url) {
   return (
     url.hostname.endsWith('.supabase.co') ||
     url.hostname.includes('supabase') ||
-    url.pathname.includes('/auth/v1')
+    url.pathname.startsWith('/auth/v1') ||
+    url.pathname.startsWith('/rest/v1') ||
+    url.pathname.startsWith('/storage/v1') ||
+    url.pathname.startsWith('/realtime/v1') ||
+    url.pathname.startsWith('/functions/v1') ||
+    url.pathname.startsWith('/sb/')
   )
 }
 
