@@ -62,7 +62,7 @@ export const MAINTENANCE_DOC_MAP = [
   { Código: PLAN_CODE, Versión: '1.0', Documento: 'Plan de Gestión del Mantenimiento', 'Dónde está': 'Carpeta MANTENIMIENTO (PDF/Excel oficial) + este export en vivo desde IncubApp' },
   { Código: 'MTO-PRG-001', Versión: '2.1', Documento: 'Programa de Mantenimiento Preventivo', 'Dónde está': 'Carpeta MANTENIMIENTO' },
   { Código: 'POE núm. 1.9 / Formato 2.2.10', Versión: 'Vigente', Documento: 'Procedimiento y formato de calibración exigidos por el ICA', 'Dónde está': 'Res. ICA 3650/2014 y 3651/2014' },
-  { Código: 'IncubApp', Versión: 'Producción', Documento: 'Sistema de gestión de operación y mantenimiento', 'Dónde está': 'incubant-app.vercel.app' },
+  { Código: 'IncubApp', Versión: 'Producción', Documento: 'Sistema de gestión de operación y mantenimiento', 'Dónde está': 'incubapp.cdhmaker.com' },
 ]
 
 const TEMP_TOLERANCE_F = 0.2 // ≈ ±0,1 °C

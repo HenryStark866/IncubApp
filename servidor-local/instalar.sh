@@ -59,7 +59,7 @@ set_env STUDIO_DEFAULT_PROJECT IncubApp
 set_env SUPABASE_PUBLIC_URL "$PUBLICA"
 set_env API_EXTERNAL_URL "$PUBLICA/auth/v1"
 set_env SITE_URL "${INCUBAPP_SITE:-$PUBLICA}"
-set_env ADDITIONAL_REDIRECT_URLS "https://incubant-app.vercel.app,https://incubant-app.vercel.app/**,http://localhost:5173/**"
+set_env ADDITIONAL_REDIRECT_URLS "https://incubapp.cdhmaker.com,https://incubapp.cdhmaker.com/**,https://incubant-app.vercel.app,https://incubant-app.vercel.app/**,http://localhost:5173/**"
 # Sin servidor de correo todavía: las cuentas nuevas quedan confirmadas y la
 # empresa aprueba el acceso en la app (is_approved), como siempre.
 set_env ENABLE_EMAIL_AUTOCONFIRM true

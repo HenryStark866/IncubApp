@@ -129,6 +129,15 @@ node scripts/generar_propuesta_perfil.mjs
 `deploy_incubapp.bat` (o `npx vercel --prod`).  
 Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_KEY` en Vercel.
 
+**Dominio propio:** `https://incubapp.cdhmaker.com`
+
+1. Vercel → proyecto de IncubApp → Settings → Domains → agregar `incubapp.cdhmaker.com`.
+2. En el proveedor DNS de `cdhmaker.com`, crear el registro
+   `CNAME  incubapp  →  cname.vercel-dns.com` (o el valor exacto que muestre Vercel).
+3. Esperar a que Vercel marque el dominio como «Valid Configuration» (el HTTPS se emite solo).
+4. Supabase → Authentication → URL Configuration: poner `https://incubapp.cdhmaker.com`
+   como Site URL y agregar `https://incubapp.cdhmaker.com/**` a Redirect URLs.
+
 ---
 
 ## Planta 3D — el «metaverso» de la planta

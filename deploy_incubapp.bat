@@ -26,7 +26,7 @@ call npx --yes vercel@latest deploy --prod --yes --token %VERCEL_TOKEN% --scope 
 set DEPLOY_EXIT=%ERRORLEVEL%
 echo.
 if "%DEPLOY_EXIT%"=="0" (
-  echo Listo. La URL de produccion aparece arriba ^(termina en .vercel.app^).
+  echo Listo. La app queda en https://incubapp.cdhmaker.com ^(y en la URL .vercel.app de arriba^).
 ) else (
   echo [!] El despliegue termino con codigo %DEPLOY_EXIT%. Revisa el mensaje de arriba.
 )
