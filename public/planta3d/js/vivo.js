@@ -22,18 +22,37 @@
 ;(function (global) {
   'use strict'
 
-  const CFG = global.PLANTA3D_SUPABASE
-  if (!CFG || !CFG.url || !CFG.key) return
+  const CFG0 = global.PLANTA3D_SUPABASE
+  if (!CFG0 || !CFG0.url || !CFG0.key) return
+
+  // La MISMA regla que la app (src/lib/supabase.js): con Supabase en la nube se usa
+  // su URL; con servidor propio (incubapp.cdhmaker.com, túnel o red local) la API
+  // sale por el mismo nginx que sirve esta página. Antes se usaba la URL con que se
+  // compiló (el túnel ngrok): la sesión que la app guarda con el nombre del dominio
+  // no se encontraba y las pantallas nunca traían las fotos de ronda.
+  function urlSupabase() {
+    const fija = String(CFG0.url).replace(/\/$/, '')
+    if (/\.supabase\.co$/i.test(fija)) return fija
+    const { origin, hostname, port, protocol } = global.location
+    if (hostname.includes('ngrok') || hostname.includes('trycloudflare.com') || protocol === 'https:' || !port || port === '80') {
+      return origin
+    }
+    if (port === '5173') return `${protocol}//${hostname}:8000`
+    return fija
+  }
+  const CFG = { url: urlSupabase(), key: CFG0.key }
+  const ENCABEZADOS = { apikey: CFG.key, 'ngrok-skip-browser-warning': '1' }
 
   const PLANTA = global.PLANTA?.meta?.plantId
   if (!PLANTA) return
 
-  const REF = CFG.url.replace(/^https?:\/\//, '').split('.')[0]
+  const refDe = (u) => String(u).replace(/^https?:\/\//, '').split(/[.:/]/)[0]
+  const REFS = [...new Set([refDe(CFG.url), refDe(CFG0.url)])]
 
   /** La sesión que guarda supabase-js en este mismo dominio. */
   function tokenDeSesion() {
     try {
-      for (const clave of [`sb-${REF}-auth-token`, 'supabase.auth.token']) {
+      for (const clave of [...REFS.map((r) => `sb-${r}-auth-token`), 'supabase.auth.token']) {
         const crudo = localStorage.getItem(clave)
         if (!crudo) continue
         const j = JSON.parse(crudo)
@@ -55,7 +74,7 @@
 
   async function pedir(ruta, token) {
     const r = await fetch(`${CFG.url}/rest/v1/${ruta}`, {
-      headers: { apikey: CFG.key, Authorization: `Bearer ${token}` },
+      headers: { ...ENCABEZADOS, Authorization: `Bearer ${token}` },
     })
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
     return r.json()
@@ -190,7 +209,7 @@
     for (let i = 0; i < faltan.length; i += 100) {
       const r = await fetch(`${CFG.url}/storage/v1/object/sign/machine-checks`, {
         method: 'POST',
-        headers: { apikey: CFG.key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...ENCABEZADOS, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ expiresIn: FIRMA_SEG, paths: faltan.slice(i, i + 100) }),
       })
       if (!r.ok) throw new Error(`firma ${r.status} ${r.statusText}`)
