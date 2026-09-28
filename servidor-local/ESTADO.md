@@ -155,3 +155,20 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 - El tablero del líder abre el Centro de Activos SIG de forma diferida y los datos fijos
   de Mantum van en su propio archivo (`mantum-datos-*.js`), que el navegador conserva
   entre versiones.
+
+## Actualización 28-09-2026 — contraseñas y correo
+
+- **Recuperar contraseña no funcionaba**: el servidor local no tiene correo configurado
+  (instalar.sh lo dejó así) y Supabase no puede enviar el enlace. Dos salidas:
+  1. **8-CONFIGURAR-CORREO.bat**: pide servidor SMTP, puerto, usuario, contraseña y
+     remitente; los guarda en `/opt/incubapp/server/.env` y reinicia `auth`. Corrige además
+     `API_EXTERNAL_URL` (sin `/auth/v1`: Supabase ya lo agrega al armar el enlace del
+     correo) y agrega el dominio a `ADDITIONAL_REDIRECT_URLS`.
+  2. **Contraseña temporal**: Administración → Usuarios → «Contraseña». Función
+     `public.admin_set_user_password` (dueño/admin de la empresa con sus miembros; admin
+     de plataforma con todos; nadie de una empresa con un admin de plataforma).
+- «Crear usuario» ya no depende de la función `admin-users` (no existe en el servidor
+  propio): crea la cuenta con el registro normal en un cliente aparte.
+- **Migraciones automáticas**: 7-ACTUALIZAR-APP aplica las de
+  `servidor-local/migraciones.txt` que falten (anotadas en `incubapp_ops.migraciones`),
+  cada una en una transacción.

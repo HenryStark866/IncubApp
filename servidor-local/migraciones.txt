@@ -1,0 +1,6 @@
+# Migraciones que el servidor local aplica solo al actualizar (7-ACTUALIZAR-APP.bat).
+# Una por línea, en orden, con su nombre en supabase/migrations/. Deben ser idempotentes
+# (se pueden correr varias veces sin dañar datos). Cada una se aplica una sola vez y queda
+# anotada en incubapp_ops.migraciones.
+20260927_fix_legal_acceptances_upsert.sql
+20260928_admin_set_password.sql

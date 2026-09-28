@@ -146,7 +146,10 @@ export async function resilientFetch(input, init) {
   const upload = /\/storage\/v1\/object\//.test(url) && (init?.method || 'GET') !== 'GET'
   const slow = upload || /\/functions\/v1\//.test(url)
   const ctrl = !slow && typeof AbortController !== 'undefined' ? new AbortController() : null
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null
+  // Recuperar contraseña o confirmar cuenta espera a que el servidor envíe el correo:
+  // con 12 s el intento se cortaba y se mostraba como «sin conexión».
+  const mail = /\/auth\/v1\/(recover|otp|resend|signup|magiclink)/.test(url)
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), mail ? 45000 : 12000) : null
   const outer = init?.signal
   if (ctrl && outer) {
     if (outer.aborted) ctrl.abort()
@@ -224,3 +227,14 @@ try {
 }
 
 export const supabase = client
+
+/**
+ * Cliente aparte que no guarda sesión: sirve para crear la cuenta de otra persona
+ * (Administración → Crear usuario) sin cerrar la sesión del administrador.
+ */
+export function createIsolatedAuthClient() {
+  return createClient(SUPABASE_URL, keyOk ? rawKey : FALLBACK_KEY, {
+    global: { fetch: resilientFetch },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'incubapp-admin-signup' },
+  })
+}

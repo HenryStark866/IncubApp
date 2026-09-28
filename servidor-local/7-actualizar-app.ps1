@@ -25,6 +25,10 @@ $wslRaiz = AWsl $raiz
 wsl.exe -d Ubuntu-24.04 -u root -- bash -c "cd '$wslRaiz' && docker compose build incubapp && docker compose up -d incubapp" 2>&1 | ForEach-Object { Add-Content -Path $log -Value $_ }
 if ($LASTEXITCODE -ne 0) { L 'Falló la reconstrucción. Detalle en servidor-local\logs\7-actualizar.txt. La versión anterior sigue en línea si el contenedor no se reemplazó.' 'Red'; exit 1 }
 
+L 'Aplicando cambios pendientes de la base de datos...'
+wsl.exe -d Ubuntu-24.04 -u root -- bash "$wslRaiz/servidor-local/aplicar-migraciones.sh" "$wslRaiz" 2>&1 | ForEach-Object { L "  $_" }
+if ($LASTEXITCODE -ne 0) { L 'Una migración falló (no quedó a medias). Detalle arriba y en servidor-local\logs\7-actualizar.txt.' 'Red'; exit 1 }
+
 Start-Sleep 3
 try {
   $r = Invoke-WebRequest -Uri 'http://localhost/' -UseBasicParsing -TimeoutSec 15

@@ -17,6 +17,7 @@ import {
   authErrorEs,
   hasOfflineLogin,
   isNetworkError,
+  MAIL_UNAVAILABLE,
   offlineSessionFor,
   rememberOfflineLogin,
   startOfflineSession,
@@ -136,9 +137,11 @@ export default function AuthForm() {
         const { error } = await withNetworkRetry(() =>
           supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: buildAuthRedirectUrl('recovery') })
         )
+        // Con red pero sin respuesta: el servidor se quedó intentando enviar el correo.
+        const mailStuck = error && navigator.onLine !== false && isNetworkError(error)
         setMessage(
           error
-            ? { kind: 'error', text: authErrorEs(error) }
+            ? { kind: 'error', text: mailStuck ? MAIL_UNAVAILABLE : authErrorEs(error) }
             : { kind: 'ok', text: 'Te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada o la carpeta de spam.' }
         )
         return
