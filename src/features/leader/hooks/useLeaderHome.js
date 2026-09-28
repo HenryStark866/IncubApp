@@ -246,12 +246,59 @@ async function loadLogistics({ orgId }) {
   }
 }
 
+async function loadVeterinary({ orgId }) {
+  const [records, hatches, members] = await Promise.all([
+    rows('veterinary_records', (q) =>
+      q
+        .select(
+          'id, kind, title, site, batch_or_lote, sample_point, result, result_status, product_name, dose, units, recorded_at, created_by, created_at',
+        )
+        .eq('org_id', orgId)
+        .gte('recorded_at', daysAgo(60).toISOString())
+        .order('recorded_at', { ascending: false })
+        .limit(600),
+    ),
+    rows('hatch_events', (q) =>
+      q
+        .select('id, lote, status, scheduled_at, started_at, created_at')
+        .eq('org_id', orgId)
+        .gte('scheduled_at', daysAgo(1).toISOString())
+        .lte('scheduled_at', daysAhead(3).toISOString())
+        .limit(100),
+    ),
+    rows('organization_members', (q) =>
+      q
+        .select('user_id, role, area, profiles ( full_name, email )')
+        .eq('org_id', orgId)
+        .in('role', ['plant_veterinarian', 'vaccination_auxiliary', 'barn_operator', 'coordinator']),
+    ),
+  ])
+  const team = members.data
+    .filter(
+      (m) =>
+        ['plant_veterinarian', 'vaccination_auxiliary', 'barn_operator'].includes(m.role) ||
+        (m.role === 'coordinator' && ['veterinary', 'farm'].includes(m.area)),
+    )
+    .map((m) => ({
+      id: m.user_id,
+      name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
+      roleLabel: ROLE_LABEL[m.role] || m.role,
+    }))
+  return {
+    records: records.data,
+    hatches: hatches.data,
+    team,
+    errors: [records, hatches, members].map((r) => r.error).filter(Boolean),
+  }
+}
+
 const LOADERS = {
   plant: loadPlant,
   maintenance: loadMaintenance,
   sst: loadSst,
   environmental: loadEnvironmental,
   logistics: loadLogistics,
+  veterinary: loadVeterinary,
 }
 
 export function useLeaderHome({ kind, orgId }) {

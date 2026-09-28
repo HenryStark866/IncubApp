@@ -11,6 +11,7 @@ export function leaderKind(area) {
   const a = String(area || '').toLowerCase()
   if (a === 'maintenance') return 'maintenance'
   if (a === 'sst' || a === 'hse') return 'sst'
+  if (a === 'veterinary' || a === 'farm') return 'veterinary'
   if (a === 'environmental') return 'environmental'
   if (a === 'logistics' || a === 'sales_logistics') return 'logistics'
   if (!a || a === 'plant' || a === 'general' || a === 'quality') return 'plant'
@@ -699,5 +700,151 @@ export function logisticsLeaderBoard({
       state: r.status === 'delivered' ? 'Entregada' : r.status === 'dispatched' ? 'Despachada' : 'Por despachar',
       tone: r.status === 'delivered' ? 'ok' : r.status === 'dispatched' ? 'info' : 'warn',
     }))
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Sanidad veterinaria ─────────────────────────────── */
+
+const VET_LABEL = {
+  vaccination: 'Vacunación',
+  medicine: 'Tratamiento',
+  fertility: 'Fertilidad',
+  wet_tunnel_lab: 'Muestra wet tunnel',
+  other_lab: 'Muestra de laboratorio',
+}
+const LAB_KINDS = new Set(['fertility', 'wet_tunnel_lab', 'other_lab'])
+const normLote = (v) =>
+  String(v || '')
+    .trim()
+    .toLowerCase()
+
+/** «91,8 %», «88.5» → 91.8 / 88.5; sin número → null. */
+function percentOf(text) {
+  const m = String(text || '')
+    .replace(',', '.')
+    .match(/\d+(\.\d+)?/)
+  const n = m ? Number(m[0]) : NaN
+  return Number.isFinite(n) && n > 0 && n <= 100 ? n : null
+}
+
+export function veterinaryLeaderBoard({ records = [], hatches = [], team: members = [], now = new Date() }) {
+  const today = localDate(now)
+  const recent = records.filter((r) => now - new Date(r.recorded_at || r.created_at) < 30 * DAY_MS)
+  const label = (r) =>
+    [VET_LABEL[r.kind] || 'Registro', r.batch_or_lote ? `lote ${r.batch_or_lote}` : null, r.site]
+      .filter(Boolean)
+      .join(' · ')
+  const decisions = []
+
+  // 1. Resultados fuera de lo esperado.
+  for (const r of recent.filter((x) => x.result_status === 'fail' || x.result_status === 'alert')) {
+    decisions.push({
+      id: `vet-${r.id}`,
+      tone: r.result_status === 'fail' ? 'danger' : 'warn',
+      title: `${label(r)}: ${r.result || (r.result_status === 'fail' ? 'resultado no conforme' : 'en alerta')}`,
+      detail: [
+        r.title,
+        r.sample_point,
+        new Date(r.recorded_at || r.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'veterinaria', label: 'Revisar' },
+    })
+  }
+
+  // 2. Nacimientos de hoy y mañana sin vacunación registrada del lote.
+  const vaccinated = new Set(
+    records
+      .filter((r) => r.kind === 'vaccination' && now - new Date(r.recorded_at || r.created_at) < 3 * DAY_MS)
+      .map((r) => normLote(r.batch_or_lote)),
+  )
+  const tomorrow = localDate(new Date(now.getTime() + DAY_MS))
+  const upcoming = hatches
+    .filter((h) => h.status !== 'cancelled')
+    .map((h) => ({ ...h, when: h.scheduled_at || h.started_at || h.created_at }))
+    .filter((h) => [today, tomorrow].includes(localDate(h.when)))
+    .sort((a, b) => String(a.when).localeCompare(String(b.when)))
+  for (const h of upcoming) {
+    if (!h.lote || vaccinated.has(normLote(h.lote))) continue
+    decisions.push({
+      id: `hatch-${h.id}`,
+      tone: localDate(h.when) === today ? 'warn' : 'info',
+      title: `Nacimiento lote ${h.lote} ${localDate(h.when) === today ? 'hoy' : 'mañana'} a las ${clock(h.when)} · sin vacunación registrada`,
+      detail: 'Confirme biológico, dosis y quién vacuna',
+      action: { kind: 'nav', tab: 'veterinaria', label: 'Registrar vacunación' },
+    })
+  }
+
+  // 3. Muestras de laboratorio que siguen sin resultado.
+  for (const r of records.filter(
+    (x) => LAB_KINDS.has(x.kind) && (x.result_status === 'pending' || (!x.result_status && !x.result)),
+  )) {
+    const days = Math.floor((now - new Date(r.recorded_at || r.created_at)) / DAY_MS)
+    if (days < 2) continue
+    decisions.push({
+      id: `lab-${r.id}`,
+      tone: days >= 7 ? 'warn' : 'info',
+      title: `${label(r)} sin resultado hace ${days} días`,
+      detail: [r.title, r.sample_point].filter(Boolean).join(' · ') || 'Enviada al laboratorio',
+      action: { kind: 'nav', tab: 'veterinaria', label: 'Registrar resultado' },
+    })
+  }
+
+  const week = records.filter((r) => now - new Date(r.recorded_at || r.created_at) < 7 * DAY_MS)
+  const fert = recent
+    .filter((r) => r.kind === 'fertility')
+    .map((r) => percentOf(r.result))
+    .filter((n) => n != null)
+  const avgFert = fert.length ? fert.reduce((a, b) => a + b, 0) / fert.length : null
+  const pendingLab = records.filter(
+    (x) => LAB_KINDS.has(x.kind) && (x.result_status === 'pending' || (!x.result_status && !x.result)),
+  ).length
+  const alerts = recent.filter((x) => x.result_status === 'fail' || x.result_status === 'alert').length
+  const kpis = [
+    {
+      label: 'Vacunaciones semana',
+      value: String(week.filter((r) => r.kind === 'vaccination').length),
+      sub: 'registros de 7 días',
+      tone: null,
+    },
+    {
+      label: 'Fertilidad promedio',
+      value: avgFert == null ? '—' : `${avgFert.toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`,
+      sub: fert.length ? `${fert.length} pruebas en 30 días` : 'sin pruebas en 30 días',
+      tone: avgFert != null && avgFert < 90 ? 'warn' : null,
+    },
+    {
+      label: 'Muestras sin resultado',
+      value: String(pendingLab),
+      sub: 'laboratorio y fertilidad',
+      tone: pendingLab ? 'warn' : null,
+    },
+    { label: 'Alertas del mes', value: String(alerts), sub: 'resultados no conformes', tone: alerts ? 'danger' : null },
+  ]
+
+  const todays = records.filter((r) => localDate(r.recorded_at || r.created_at) === today)
+  const team = members.map((m) => {
+    const mine = todays.filter((r) => r.created_by === m.id)
+    const last = mine.sort((a, b) => String(b.recorded_at).localeCompare(String(a.recorded_at)))[0]
+    return {
+      id: m.id,
+      name: m.name,
+      role: m.roleLabel,
+      doing: last ? `${label(last)} · ${clock(last.recorded_at || last.created_at)}` : 'Sin registros hoy',
+      value: `${mine.length} registro${mine.length === 1 ? '' : 's'} hoy`,
+      tone: mine.length ? 'ok' : null,
+      count: mine.length,
+    }
+  })
+  team.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+
+  const plan = upcoming.map((h) => ({
+    id: h.id,
+    at: `${localDate(h.when) === today ? '' : 'Mañ. '}${clock(h.when)}`,
+    text: `Nacimiento lote ${h.lote || '—'}`,
+    state: h.lote && vaccinated.has(normLote(h.lote)) ? 'Vacunado' : 'Por vacunar',
+    tone: h.lote && vaccinated.has(normLote(h.lote)) ? 'ok' : 'warn',
+  }))
   return { decisions: decisions.sort(byTone), kpis, team, plan }
 }

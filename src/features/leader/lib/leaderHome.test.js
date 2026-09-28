@@ -6,6 +6,7 @@ import {
   maintenanceLeaderBoard,
   plantLeaderBoard,
   sstLeaderBoard,
+  veterinaryLeaderBoard,
 } from './leaderHome'
 
 const now = new Date(2026, 8, 28, 15, 40)
@@ -17,6 +18,7 @@ describe('leaderKind', () => {
     expect(leaderKind('maintenance')).toBe('maintenance')
     expect(leaderKind('sst')).toBe('sst')
     expect(leaderKind('sales_logistics')).toBe('logistics')
+    expect(leaderKind('farm')).toBe('veterinary')
     expect(leaderKind('hr')).toBe(null)
   })
 })
@@ -281,5 +283,51 @@ describe('logisticsLeaderBoard', () => {
     expect(b.decisions.some((d) => d.id === 'route-rt')).toBe(true)
     expect(b.decisions.find((d) => d.id === 'gps-d1').title).toContain('hace 40 min')
     expect(b.plan[0]).toMatchObject({ at: 'Hoy', state: 'Despachada' })
+  })
+})
+
+describe('veterinaryLeaderBoard', () => {
+  it('avisa el resultado no conforme, el nacimiento sin vacuna y la muestra sin resultado', () => {
+    const at = (d, h) => new Date(2026, 8, d, h).toISOString()
+    const b = veterinaryLeaderBoard({
+      now,
+      records: [
+        {
+          id: 'f1',
+          kind: 'fertility',
+          batch_or_lote: '2381',
+          result: '86,9 %',
+          result_status: 'fail',
+          recorded_at: at(28, 13),
+          created_by: 'v1',
+        },
+        {
+          id: 'f2',
+          kind: 'fertility',
+          batch_or_lote: '2379',
+          result: '91.8%',
+          result_status: 'ok',
+          recorded_at: at(27, 10),
+        },
+        { id: 'l1', kind: 'wet_tunnel_lab', title: 'Sala 2', result_status: 'pending', recorded_at: at(23, 9) },
+        { id: 'v1', kind: 'vaccination', batch_or_lote: '2360', recorded_at: at(28, 11), created_by: 'a1' },
+      ],
+      hatches: [
+        { id: 'h1', lote: '2355', status: 'planned', scheduled_at: at(28, 18) },
+        { id: 'h2', lote: '2360', status: 'planned', scheduled_at: at(29, 6) },
+      ],
+      team: [
+        { id: 'v1', name: 'Julián', roleLabel: 'Veterinario' },
+        { id: 'a1', name: 'Sofía', roleLabel: 'Aux. de vacunación' },
+        { id: 'a2', name: 'Diana', roleLabel: 'Aux. de vacunación' },
+      ],
+    })
+    expect(b.decisions[0]).toMatchObject({ id: 'vet-f1', tone: 'danger' })
+    expect(b.decisions.find((d) => d.id === 'hatch-h1').title).toContain('lote 2355 hoy a las 18:00')
+    expect(b.decisions.some((d) => d.id === 'hatch-h2')).toBe(false)
+    expect(b.decisions.find((d) => d.id === 'lab-l1').title).toContain('sin resultado hace 5 días')
+    expect(b.kpis[1].value).toBe('89,4 %')
+    expect(b.plan.map((p) => p.state)).toEqual(['Por vacunar', 'Vacunado'])
+    expect(b.team[2]).toMatchObject({ name: 'Diana', value: '0 registros hoy' })
   })
 })

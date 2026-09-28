@@ -19,6 +19,7 @@ import {
   maintenanceLeaderBoard,
   plantLeaderBoard,
   sstLeaderBoard,
+  veterinaryLeaderBoard,
 } from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import './LeaderAreaHome.css'
@@ -59,7 +60,16 @@ const TITLES = {
   },
 }
 
+TITLES.veterinary = {
+  team: 'Equipo de sanidad',
+  teamSub: 'registros de hoy',
+  plan: 'Calendario sanitario',
+  planSub: 'nacimientos de hoy y mañana',
+  empty: 'No hay veterinarios ni auxiliares de vacunación registrados.',
+}
+
 const BOARDS = {
+  veterinary: veterinaryLeaderBoard,
   maintenance: maintenanceLeaderBoard,
   sst: sstLeaderBoard,
   environmental: environmentalLeaderBoard,
