@@ -1,0 +1,3 @@
+# Rama de GitHub de donde 7-ACTUALIZAR-APP.bat trae las versiones nuevas.
+# Cambiarla solo si soporte lo indica (por ejemplo, cuando se unan las ramas en main).
+claude/blissful-pasteur-pwx5gl
