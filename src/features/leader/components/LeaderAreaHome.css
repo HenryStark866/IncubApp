@@ -265,6 +265,9 @@
   height: 100%;
   background: var(--ok);
 }
+.lh-mini > span.is-over {
+  background: var(--danger);
+}
 .lh-mini > span.is-low {
   background: var(--amber);
 }

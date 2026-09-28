@@ -12,6 +12,9 @@ export function leaderKind(area) {
   if (a === 'maintenance') return 'maintenance'
   if (a === 'sst' || a === 'hse') return 'sst'
   if (a === 'veterinary' || a === 'farm') return 'veterinary'
+  if (a === 'hr') return 'hr'
+  if (a === 'accounting') return 'accounting'
+  if (a === 'sales') return 'sales'
   if (a === 'environmental') return 'environmental'
   if (a === 'logistics' || a === 'sales_logistics') return 'logistics'
   if (!a || a === 'plant' || a === 'general' || a === 'quality') return 'plant'
@@ -846,5 +849,416 @@ export function veterinaryLeaderBoard({ records = [], hatches = [], team: member
     state: h.lote && vaccinated.has(normLote(h.lote)) ? 'Vacunado' : 'Por vacunar',
     tone: h.lote && vaccinated.has(normLote(h.lote)) ? 'ok' : 'warn',
   }))
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Recursos humanos ────────────────────────────────── */
+
+const SHIFT_START = { 1: 6, 2: 14, 3: 22 }
+const AREA_NAME = {
+  plant: 'Planta de incubación',
+  maintenance: 'Mantenimiento',
+  farm: 'Granjas',
+  veterinary: 'Sanidad',
+  logistics: 'Logística',
+  sales: 'Ventas',
+  sales_logistics: 'Ventas y logística',
+  accounting: 'Contabilidad',
+  hr: 'Recursos humanos',
+  sst: 'SST',
+  environmental: 'Gestión ambiental',
+  management: 'Gerencia',
+  quality: 'Producción',
+  general: 'General',
+}
+
+export function hrLeaderBoard({ members = [], assignments = [], punches = [], supplies = [], now = new Date() }) {
+  const today = localDate(now)
+  const tomorrow = localDate(new Date(now.getTime() + DAY_MS))
+  const firstIn = new Map()
+  for (const p of punches) {
+    if (p.punch_type !== 'in' || localDate(p.punched_at) !== today) continue
+    const prev = firstIn.get(p.user_id)
+    if (!prev || String(p.punched_at) < String(prev.punched_at)) firstIn.set(p.user_id, p)
+  }
+  const workingToday = assignments.filter((a) => String(a.work_date).slice(0, 10) === today && !a.is_rest)
+  const workingTomorrow = assignments.filter((a) => String(a.work_date).slice(0, 10) === tomorrow && !a.is_rest)
+  const nameOf = new Map(members.map((m) => [m.id, m.name]))
+  const decisions = []
+
+  // 1. Mañana: horario sin publicar o turnos sin nadie.
+  const usesSchedule = assignments.some((a) => String(a.work_date).slice(0, 10) === today)
+  if (usesSchedule && !assignments.some((a) => String(a.work_date).slice(0, 10) === tomorrow)) {
+    decisions.push({
+      id: 'no-schedule',
+      tone: 'danger',
+      title: 'El horario de mañana no está publicado',
+      detail: 'Nadie tiene turno asignado para mañana',
+      action: { kind: 'nav', tab: 'horarios', label: 'Programar turnos' },
+    })
+  } else if (usesSchedule) {
+    for (const shift of [1, 2, 3]) {
+      if (workingTomorrow.some((a) => Number(a.shift_number) === shift)) continue
+      decisions.push({
+        id: `empty-${shift}`,
+        tone: 'danger',
+        title: `Turno ${shift} de mañana sin personal`,
+        detail: `Empieza a las ${String(SHIFT_START[shift]).padStart(2, '0')}:00`,
+        action: { kind: 'nav', tab: 'horarios', label: 'Asignar' },
+      })
+    }
+  }
+
+  // 2. Hoy: programados que no marcaron ingreso (15 min después de empezar su turno) y llegadas tarde.
+  const missing = []
+  const late = []
+  for (const a of workingToday) {
+    const start = new Date(now)
+    start.setHours(SHIFT_START[a.shift_number] ?? 6, 0, 0, 0)
+    const inP = firstIn.get(a.user_id)
+    if (!inP && now - start > 15 * 60000 && Number(a.shift_number) !== 3) missing.push(a)
+    if (inP && new Date(inP.punched_at) - start > 10 * 60000) late.push({ a, inP })
+  }
+  if (missing.length) {
+    decisions.push({
+      id: 'missing',
+      tone: 'warn',
+      title: `${missing.length} persona${missing.length === 1 ? '' : 's'} con turno hoy sin marcar ingreso`,
+      detail: missing
+        .slice(0, 4)
+        .map((a) => `${nameOf.get(a.user_id) || 'Sin nombre'} (T${a.shift_number})`)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'asistencia', label: 'Ver asistencia' },
+    })
+  }
+  if (late.length) {
+    decisions.push({
+      id: 'late',
+      tone: 'info',
+      title: `${late.length} llegada${late.length === 1 ? '' : 's'} tarde hoy`,
+      detail: late
+        .slice(0, 4)
+        .map(({ a, inP }) => `${nameOf.get(a.user_id) || 'Sin nombre'} ${clock(inP.punched_at)}`)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'asistencia', label: 'Ver asistencia' },
+    })
+  }
+
+  // 3. Dotación por debajo del mínimo.
+  const low = supplies.filter((x) => x.min_qty != null && Number(x.qty_on_hand) < Number(x.min_qty))
+  for (const i of low) {
+    decisions.push({
+      id: `dot-${i.id}`,
+      tone: 'warn',
+      title: `Dotación bajo el mínimo: ${i.item_name}`,
+      detail: `Hay ${num(i.qty_on_hand)} ${i.unit || ''} · mínimo ${num(i.min_qty)}`,
+      action: { kind: 'nav', tab: 'inventarios', label: 'Ver dotación' },
+    })
+  }
+
+  const present = workingToday.filter((a) => firstIn.has(a.user_id)).length
+  const kpis = [
+    { label: 'Plantilla', value: String(members.length), sub: 'personas en la empresa', tone: null },
+    {
+      label: 'Asistencia hoy',
+      value: workingToday.length ? `${Math.round((present / workingToday.length) * 100)} %` : '—',
+      sub: `${present} de ${workingToday.length} con turno`,
+      tone: missing.length ? 'warn' : null,
+    },
+    {
+      label: 'Turnos de mañana',
+      value: String(workingTomorrow.length),
+      sub: 'personas programadas',
+      tone: workingTomorrow.length ? null : 'danger',
+    },
+    {
+      label: 'Dotación bajo mínimo',
+      value: String(low.length),
+      sub: `${supplies.length} ítems`,
+      tone: low.length ? 'warn' : null,
+    },
+  ]
+
+  // Cobertura por área: presentes hoy contra programados.
+  const byArea = new Map()
+  const scheduled = new Set(workingToday.map((a) => a.user_id))
+  for (const m of members) {
+    const key = m.area || 'general'
+    if (!byArea.has(key)) byArea.set(key, { total: 0, scheduled: 0, present: 0 })
+    const g = byArea.get(key)
+    g.total += 1
+    if (scheduled.has(m.id)) g.scheduled += 1
+    if (scheduled.has(m.id) && firstIn.has(m.id)) g.present += 1
+  }
+  const team = [...byArea.entries()]
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([area, g]) => ({
+      id: `area-${area}`,
+      name: AREA_NAME[area] || area,
+      role: `${g.total} persona${g.total === 1 ? '' : 's'}`,
+      doing: g.scheduled ? `${g.present} de ${g.scheduled} con turno hoy presentes` : 'Nadie con turno hoy',
+      pct: g.scheduled ? Math.round((g.present / g.scheduled) * 100) : null,
+      value: g.scheduled ? `${Math.round((g.present / g.scheduled) * 100)} %` : '—',
+    }))
+
+  const plan = [1, 2, 3].map((shift) => {
+    const n = workingTomorrow.filter((a) => Number(a.shift_number) === shift).length
+    return {
+      id: `t${shift}`,
+      at: `${String(SHIFT_START[shift]).padStart(2, '0')}:00`,
+      text: `Mañana · turno ${shift}`,
+      state: n ? `${n} persona${n === 1 ? '' : 's'}` : 'Sin personal',
+      tone: n ? 'ok' : 'warn',
+    }
+  })
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Contabilidad ────────────────────────────────────── */
+
+const money = (n) => `$ ${Math.round(Number(n) || 0).toLocaleString('es-CO')}`
+
+export function accountingLeaderBoard({
+  remittances = [],
+  syncLog = [],
+  workOrders = [],
+  team: members = [],
+  now = new Date(),
+}) {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const live = remittances.filter((r) => r.status !== 'cancelled' && r.status !== 'draft')
+  const notExported = live.filter((r) => !r.accounting_exported_at)
+  const notSynced = live.filter((r) => !r.siesa_synced_at)
+  const lastErr = syncLog.find((l) => Number(l.count_errors) > 0 && now - new Date(l.created_at) < 7 * DAY_MS)
+  const decisions = []
+
+  if (lastErr) {
+    decisions.push({
+      id: `siesa-${lastErr.id}`,
+      tone: 'danger',
+      title: `${lastErr.count_errors} documento${Number(lastErr.count_errors) === 1 ? '' : 's'} con error al enviar a Siesa`,
+      detail: `Envío del ${new Date(lastErr.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} a las ${clock(lastErr.created_at)} · ${lastErr.count_synced} de ${lastErr.count_total} sincronizados`,
+      action: { kind: 'nav', tab: 'contabilidad', label: 'Revisar y reenviar' },
+    })
+  }
+  if (notExported.length) {
+    const oldest = notExported.map((r) => String(r.dispatch_date || '')).sort()[0]
+    decisions.push({
+      id: 'not-exported',
+      tone: 'warn',
+      title: `${notExported.length} remisi${notExported.length === 1 ? 'ón' : 'ones'} despachada${notExported.length === 1 ? '' : 's'} sin exportar a contabilidad`,
+      detail: `${num(notExported.reduce((s, r) => s + (Number(r.qty_females) || 0) + (Number(r.qty_males) || 0), 0))} pollitos${oldest ? ` · la más antigua del ${oldest}` : ''}`,
+      action: { kind: 'nav', tab: 'ventas', label: 'Exportar' },
+    })
+  }
+  if (notSynced.length) {
+    decisions.push({
+      id: 'not-synced',
+      tone: 'info',
+      title: `${notSynced.length} remisi${notSynced.length === 1 ? 'ón' : 'ones'} pendiente${notSynced.length === 1 ? '' : 's'} de enviar a Siesa`,
+      detail: 'Cola de sincronización',
+      action: { kind: 'nav', tab: 'contabilidad', label: 'Enviar a Siesa' },
+    })
+  }
+  const costedMonth = workOrders.filter(
+    (w) => w.status === 'completed' && Number(w.cost) > 0 && w.completed_at && new Date(w.completed_at) >= monthStart,
+  )
+  const monthRem = live.filter(
+    (r) => r.dispatch_date && new Date(`${String(r.dispatch_date).slice(0, 10)}T12:00:00`) >= monthStart,
+  )
+  const lastSync = syncLog[0]
+  const kpis = [
+    {
+      label: 'Remisiones del mes',
+      value: String(monthRem.length),
+      sub: `${num(monthRem.reduce((s, r) => s + (Number(r.qty_females) || 0) + (Number(r.qty_males) || 0), 0))} pollitos`,
+      tone: null,
+    },
+    {
+      label: 'Sin exportar',
+      value: String(notExported.length),
+      sub: 'a contabilidad',
+      tone: notExported.length ? 'warn' : null,
+    },
+    {
+      label: 'Siesa',
+      value: String(notSynced.length),
+      sub: lastSync
+        ? `pendientes · último envío ${new Date(lastSync.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`
+        : 'pendientes · sin envíos',
+      tone: lastErr ? 'danger' : null,
+    },
+    {
+      label: 'Costo OT del mes',
+      value: money(costedMonth.reduce((s, w) => s + Number(w.cost), 0)),
+      sub: `${costedMonth.length} OT con costo`,
+      tone: null,
+    },
+  ]
+  const team = members.map((m) => {
+    const mine = live.filter(
+      (r) =>
+        r.accounting_exported_by === m.id &&
+        r.accounting_exported_at &&
+        new Date(r.accounting_exported_at) >= monthStart,
+    )
+    return {
+      id: m.id,
+      name: m.name,
+      role: m.roleLabel,
+      doing: mine.length ? `Exportó ${mine.length} remisiones este mes` : 'Sin exportes este mes',
+      value: `${mine.length} en el mes`,
+    }
+  })
+  const plan = syncLog.slice(0, 6).map((l) => ({
+    id: l.id,
+    at: new Date(l.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', ''),
+    text: `Envío a Siesa${l.mode ? ` · ${l.mode}` : ''} · ${l.count_synced} de ${l.count_total}`,
+    state: Number(l.count_errors) ? `${l.count_errors} con error` : 'Completo',
+    tone: Number(l.count_errors) ? 'warn' : 'ok',
+  }))
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Ventas ─────────────────────────────────────────── */
+
+const chicksOf = (o) => (Number(o.qty_females) || 0) + (Number(o.qty_males) || 0)
+
+export function salesLeaderBoard({ orders = [], customers = [], hatches = [], now = new Date() }) {
+  const today = localDate(now)
+  const customerName = new Map(customers.map((c) => [c.id, c.name]))
+  const committed = orders.filter((o) => ['confirmed', 'scheduled'].includes(o.status))
+  const decisions = []
+
+  // 1. Días en que lo vendido supera el nacimiento proyectado.
+  const byDay = new Map()
+  for (const h of hatches) {
+    const d = localDate(h.scheduled_at || h.started_at || h.created_at)
+    if (d < today) continue
+    const g = byDay.get(d) || { projected: 0, sold: 0, lotes: [] }
+    g.projected += Number(h.estimated_chicks) || 0
+    if (h.lote) g.lotes.push(h.lote)
+    byDay.set(d, g)
+  }
+  for (const o of committed) {
+    const d = String(o.delivery_date || '').slice(0, 10)
+    if (byDay.has(d)) byDay.get(d).sold += chicksOf(o)
+  }
+  for (const [d, g] of [...byDay.entries()].sort()) {
+    if (!g.projected || g.sold <= g.projected) continue
+    decisions.push({
+      id: `over-${d}`,
+      tone: 'danger',
+      title: `Pedidos del ${new Date(`${d}T12:00:00`).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric' })} superan el nacimiento proyectado`,
+      detail: `Vendidos ${num(g.sold)} · proyectados ${num(g.projected)} · faltan ${num(g.sold - g.projected)} pollitos`,
+      action: { kind: 'nav', tab: 'ventas', label: 'Ajustar pedidos' },
+    })
+  }
+
+  // 2. Pedidos por confirmar, el más antiguo primero.
+  const requested = orders
+    .filter((o) => o.status === 'requested')
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+  for (const o of requested.slice(0, 6)) {
+    decisions.push({
+      id: `req-${o.id}`,
+      tone: 'warn',
+      title: `Pedido ${o.code || ''} por confirmar`,
+      detail: [
+        customerName.get(o.customer_id),
+        `${num(chicksOf(o))} pollitos`,
+        o.delivery_date ? `entrega ${o.delivery_date}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'ventas', label: 'Confirmar' },
+    })
+  }
+  if (requested.length > 6) {
+    decisions.push({
+      id: 'req-more',
+      tone: 'info',
+      title: `${requested.length - 6} pedidos más por confirmar`,
+      detail: 'En Ventas',
+      action: { kind: 'nav', tab: 'ventas', label: 'Ver todos' },
+    })
+  }
+
+  // 3. Clientes por verificar.
+  const prospects = customers.filter((c) => c.status === 'prospect')
+  if (prospects.length) {
+    decisions.push({
+      id: 'prospects',
+      tone: 'info',
+      title: `${prospects.length} cliente${prospects.length === 1 ? '' : 's'} nuevo${prospects.length === 1 ? '' : 's'} por verificar`,
+      detail: prospects
+        .slice(0, 3)
+        .map((c) => c.name)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'ventas', label: 'Verificar' },
+    })
+  }
+
+  const weekEnd = localDate(new Date(now.getTime() + 7 * DAY_MS))
+  const nextWeek = committed.filter((o) => {
+    const d = String(o.delivery_date || '').slice(0, 10)
+    return d >= today && d <= weekEnd
+  })
+  const monthStart = localDate(new Date(now.getFullYear(), now.getMonth(), 1))
+  const delivered = orders.filter((o) => o.status === 'delivered' && String(o.delivery_date || '') >= monthStart)
+  const kpis = [
+    {
+      label: 'Por confirmar',
+      value: String(requested.length),
+      sub: 'pedidos nuevos',
+      tone: requested.length ? 'warn' : null,
+    },
+    {
+      label: 'Pollitos 7 días',
+      value: num(nextWeek.reduce((s, o) => s + chicksOf(o), 0)),
+      sub: `${nextWeek.length} pedido${nextWeek.length === 1 ? '' : 's'} comprometido${nextWeek.length === 1 ? '' : 's'}`,
+      tone: null,
+    },
+    {
+      label: 'Clientes activos',
+      value: String(customers.filter((c) => c.status === 'active').length),
+      sub: `${prospects.length} por verificar`,
+      tone: null,
+    },
+    {
+      label: 'Entregados en el mes',
+      value: String(delivered.length),
+      sub: `${num(delivered.reduce((s, o) => s + chicksOf(o), 0))} pollitos`,
+      tone: null,
+    },
+  ]
+
+  // Disponibilidad por nacimiento: vendido contra proyectado.
+  const team = [...byDay.entries()]
+    .sort()
+    .slice(0, 6)
+    .map(([d, g]) => ({
+      id: `day-${d}`,
+      name: new Date(`${d}T12:00:00`).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' }),
+      role: g.lotes.length ? `Lote ${g.lotes.join(', ')}` : 'Nacimiento',
+      doing: `${num(g.sold)} vendidos de ${num(g.projected)} proyectados`,
+      pct: g.projected ? Math.min(100, Math.round((g.sold / g.projected) * 100)) : null,
+      value: g.projected ? `${Math.round((g.sold / g.projected) * 100)} %` : 'Sin proyección',
+      over: g.projected > 0 && g.sold > g.projected,
+    }))
+
+  const tomorrow = localDate(new Date(now.getTime() + DAY_MS))
+  const plan = committed
+    .filter((o) => [today, tomorrow].includes(String(o.delivery_date || '').slice(0, 10)))
+    .sort((a, b) => String(a.delivery_date).localeCompare(String(b.delivery_date)))
+    .map((o) => ({
+      id: o.id,
+      at: String(o.delivery_date).slice(0, 10) === today ? 'Hoy' : 'Mañ.',
+      text: [o.code || 'Pedido', customerName.get(o.customer_id), `${num(chicksOf(o))} pollitos`]
+        .filter(Boolean)
+        .join(' · '),
+      state: o.status === 'scheduled' ? 'Programado' : 'Confirmado',
+      tone: 'info',
+    }))
   return { decisions: decisions.sort(byTone), kpis, team, plan }
 }

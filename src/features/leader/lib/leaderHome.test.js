@@ -7,6 +7,9 @@ import {
   plantLeaderBoard,
   sstLeaderBoard,
   veterinaryLeaderBoard,
+  hrLeaderBoard,
+  accountingLeaderBoard,
+  salesLeaderBoard,
 } from './leaderHome'
 
 const now = new Date(2026, 8, 28, 15, 40)
@@ -19,7 +22,8 @@ describe('leaderKind', () => {
     expect(leaderKind('sst')).toBe('sst')
     expect(leaderKind('sales_logistics')).toBe('logistics')
     expect(leaderKind('farm')).toBe('veterinary')
-    expect(leaderKind('hr')).toBe(null)
+    expect(leaderKind('hr')).toBe('hr')
+    expect(leaderKind('management')).toBe(null)
   })
 })
 
@@ -329,5 +333,109 @@ describe('veterinaryLeaderBoard', () => {
     expect(b.kpis[1].value).toBe('89,4 %')
     expect(b.plan.map((p) => p.state)).toEqual(['Por vacunar', 'Vacunado'])
     expect(b.team[2]).toMatchObject({ name: 'Diana', value: '0 registros hoy' })
+  })
+})
+
+describe('hrLeaderBoard', () => {
+  it('avisa el turno de mañana vacío, quien no marcó y quien llegó tarde', () => {
+    const at = (d, h, m = 0) => new Date(2026, 8, d, h, m).toISOString()
+    const b = hrLeaderBoard({
+      now,
+      members: [
+        { id: 'u1', name: 'Ana', area: 'plant' },
+        { id: 'u2', name: 'Luis', area: 'plant' },
+        { id: 'u3', name: 'Marta', area: 'maintenance' },
+      ],
+      assignments: [
+        { user_id: 'u1', work_date: '2026-09-28', shift_number: 2 },
+        { user_id: 'u2', work_date: '2026-09-28', shift_number: 2 },
+        { user_id: 'u3', work_date: '2026-09-28', shift_number: 1 },
+        { user_id: 'u1', work_date: '2026-09-29', shift_number: 1 },
+        { user_id: 'u2', work_date: '2026-09-29', shift_number: 2 },
+      ],
+      punches: [
+        { user_id: 'u1', punch_type: 'in', punched_at: at(28, 14, 25) },
+        { user_id: 'u3', punch_type: 'in', punched_at: at(28, 5, 55) },
+      ],
+    })
+    expect(b.decisions[0]).toMatchObject({ id: 'empty-3', tone: 'danger' })
+    expect(b.decisions.find((d) => d.id === 'missing').detail).toBe('Luis (T2)')
+    expect(b.decisions.find((d) => d.id === 'late').detail).toBe('Ana 14:25')
+    expect(b.kpis[1].value).toBe('67 %')
+    expect(b.team[0]).toMatchObject({ name: 'Planta de incubación', value: '50 %' })
+  })
+})
+
+describe('accountingLeaderBoard', () => {
+  it('pone primero el error de Siesa y cuenta lo que falta exportar', () => {
+    const b = accountingLeaderBoard({
+      now,
+      remittances: [
+        { id: 'r1', status: 'dispatched', dispatch_date: '2026-09-26', qty_females: 100, siesa_synced_at: null },
+        {
+          id: 'r2',
+          status: 'delivered',
+          dispatch_date: '2026-09-20',
+          accounting_exported_at: '2026-09-21',
+          accounting_exported_by: 'c1',
+          siesa_synced_at: '2026-09-21',
+        },
+        { id: 'r3', status: 'draft', dispatch_date: '2026-09-27' },
+      ],
+      syncLog: [
+        {
+          id: 's1',
+          count_total: 14,
+          count_synced: 12,
+          count_errors: 2,
+          created_at: new Date(2026, 8, 28, 14, 30).toISOString(),
+        },
+      ],
+      workOrders: [{ id: 'w', status: 'completed', cost: 1500000, completed_at: new Date(2026, 8, 10).toISOString() }],
+      team: [{ id: 'c1', name: 'Camila', roleLabel: 'Aux. de contabilidad' }],
+    })
+    expect(b.decisions.map((d) => d.id)).toEqual(['siesa-s1', 'not-exported', 'not-synced'])
+    expect(b.kpis[3].value).toBe('$ 1.500.000')
+    expect(b.team[0].value).toBe('1 en el mes')
+  })
+})
+
+describe('salesLeaderBoard', () => {
+  it('detecta la sobreventa contra el nacimiento proyectado', () => {
+    const b = salesLeaderBoard({
+      now,
+      orders: [
+        {
+          id: 'o1',
+          code: 'P-1',
+          status: 'confirmed',
+          qty_females: 50000,
+          qty_males: 46000,
+          delivery_date: '2026-10-01',
+          customer_id: 'c1',
+        },
+        {
+          id: 'o2',
+          code: 'P-2',
+          status: 'requested',
+          qty_females: 1000,
+          delivery_date: '2026-10-03',
+          customer_id: 'c1',
+          created_at: '2026-09-27',
+        },
+      ],
+      customers: [
+        { id: 'c1', name: 'Granja San José', status: 'active' },
+        { id: 'c2', name: 'Pollos El Roble', status: 'prospect' },
+      ],
+      hatches: [
+        { id: 'h', lote: '2355', estimated_chicks: 88500, scheduled_at: new Date(2026, 9, 1, 6).toISOString() },
+      ],
+    })
+    expect(b.decisions[0]).toMatchObject({ id: 'over-2026-10-01', tone: 'danger' })
+    expect(b.decisions[0].detail).toContain('faltan 7.500')
+    expect(b.decisions.some((d) => d.id === 'req-o2')).toBe(true)
+    expect(b.decisions.some((d) => d.id === 'prospects')).toBe(true)
+    expect(b.team[0]).toMatchObject({ pct: 100, value: '108 %' })
   })
 })

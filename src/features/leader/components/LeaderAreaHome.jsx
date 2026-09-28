@@ -20,6 +20,9 @@ import {
   plantLeaderBoard,
   sstLeaderBoard,
   veterinaryLeaderBoard,
+  hrLeaderBoard,
+  accountingLeaderBoard,
+  salesLeaderBoard,
 } from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import './LeaderAreaHome.css'
@@ -68,7 +71,32 @@ TITLES.veterinary = {
   empty: 'No hay veterinarios ni auxiliares de vacunación registrados.',
 }
 
+TITLES.hr = {
+  team: 'Cobertura por área',
+  teamSub: 'presentes hoy contra quienes tienen turno',
+  plan: 'Turnos de mañana',
+  planSub: 'personas programadas',
+  empty: 'No hay personal registrado.',
+}
+TITLES.accounting = {
+  team: 'Equipo de contabilidad',
+  teamSub: 'exportes del mes',
+  plan: 'Envíos a Siesa',
+  planSub: 'últimos',
+  empty: 'No hay auxiliares de contabilidad registrados.',
+}
+TITLES.sales = {
+  team: 'Disponibilidad por nacimiento',
+  teamSub: 'pollitos vendidos contra proyectados',
+  plan: 'Entregas de hoy y mañana',
+  planSub: 'pedidos comprometidos',
+  empty: 'No hay nacimientos programados en los próximos días.',
+}
+
 const BOARDS = {
+  hr: hrLeaderBoard,
+  accounting: accountingLeaderBoard,
+  sales: salesLeaderBoard,
   veterinary: veterinaryLeaderBoard,
   maintenance: maintenanceLeaderBoard,
   sst: sstLeaderBoard,
@@ -140,7 +168,8 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
   const kind = leaderKind(area)
   const home = useLeaderHome({ kind, orgId })
   // Cumplimiento del turno (misma fuente que «Cumplimiento»); solo lo usa planta.
-  const perf = usePerformance({ orgId, userId, role, area })
+  // Optimización: los demás líderes no lo usan; sin orgId el hook no consulta nada.
+  const perf = usePerformance({ orgId: kind === 'plant' ? orgId : null, userId, role, area })
   const [busyId, setBusyId] = useState(null)
   const [msg, setMsg] = useState(null)
   const { data, slot } = home
@@ -313,7 +342,10 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
                     {p.pct != null ? (
                       <span className="lh-person-bar" title={p.value}>
                         <span className="lh-mini">
-                          <span style={{ width: `${p.pct}%` }} className={p.pct < 60 ? 'is-low' : ''} />
+                          <span
+                            style={{ width: `${p.pct}%` }}
+                            className={p.over ? 'is-over' : p.pct < 60 ? 'is-low' : ''}
+                          />
                         </span>
                         <b>{p.value}</b>
                       </span>

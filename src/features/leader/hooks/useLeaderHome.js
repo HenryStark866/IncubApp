@@ -292,6 +292,121 @@ async function loadVeterinary({ orgId }) {
   }
 }
 
+const teamOf = (members, roles, area) =>
+  members
+    .filter((m) => roles.includes(m.role) || (m.role === 'coordinator' && m.area === area))
+    .map((m) => ({
+      id: m.user_id,
+      name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
+      roleLabel: ROLE_LABEL[m.role] || m.role,
+    }))
+
+async function loadHr({ orgId }) {
+  const [members, assignments, punches, supplies] = await Promise.all([
+    rows('organization_members', (q) =>
+      q.select('user_id, role, area, profiles ( full_name, email )').eq('org_id', orgId),
+    ),
+    rows('shift_assignments', (q) =>
+      q
+        .select('user_id, work_date, shift_number, is_rest')
+        .eq('org_id', orgId)
+        .gte('work_date', ymd(new Date()))
+        .lte('work_date', ymd(daysAhead(1)))
+        .limit(1000),
+    ),
+    rows('attendance_punches', (q) =>
+      q
+        .select('user_id, punch_type, punched_at')
+        .eq('org_id', orgId)
+        .gte('punched_at', daysAgo(1).toISOString())
+        .limit(2000),
+    ),
+    rows('area_inventories', (q) =>
+      q.select('id, item_name, unit, qty_on_hand, min_qty').eq('org_id', orgId).eq('category', 'supplies').limit(300),
+    ),
+  ])
+  return {
+    members: members.data.map((m) => ({
+      id: m.user_id,
+      area: m.area,
+      role: m.role,
+      name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
+    })),
+    assignments: assignments.data,
+    punches: punches.data,
+    supplies: supplies.data,
+    errors: [members, assignments, punches, supplies].map((r) => r.error).filter(Boolean),
+  }
+}
+
+async function loadAccounting({ orgId }) {
+  const [remittances, syncLog, workOrders, members] = await Promise.all([
+    rows('sales_remittances', (q) =>
+      q
+        .select('*')
+        .eq('org_id', orgId)
+        .gte('dispatch_date', ymd(daysAgo(60)))
+        .limit(1000),
+    ),
+    rows('siesa_sync_log', (q) =>
+      q
+        .select('id, mode, count_total, count_synced, count_errors, created_at')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ),
+    rows('work_orders', (q) =>
+      q
+        .select('id, status, cost, completed_at')
+        .eq('org_id', orgId)
+        .eq('status', 'completed')
+        .gte('completed_at', daysAgo(40).toISOString())
+        .limit(500),
+    ),
+    rows('organization_members', (q) =>
+      q
+        .select('user_id, role, area, profiles ( full_name, email )')
+        .eq('org_id', orgId)
+        .in('role', ['accounting_auxiliary', 'coordinator']),
+    ),
+  ])
+  return {
+    remittances: remittances.data,
+    syncLog: syncLog.data,
+    workOrders: workOrders.data,
+    team: teamOf(members.data, ['accounting_auxiliary'], 'accounting'),
+    // Siesa puede no estar configurado: su bitácora no cuenta como falla.
+    errors: [remittances, workOrders, members].map((r) => r.error).filter(Boolean),
+  }
+}
+
+async function loadSales({ orgId }) {
+  const [orders, customers, hatches] = await Promise.all([
+    rows('sales_orders', (q) =>
+      q
+        .select('id, code, customer_id, status, qty_females, qty_males, delivery_date, created_at')
+        .eq('org_id', orgId)
+        .or(`status.in.(requested,confirmed,scheduled),delivery_date.gte.${ymd(daysAgo(40))}`)
+        .limit(1000),
+    ),
+    rows('customers', (q) => q.select('id, name, status').eq('org_id', orgId).limit(1000)),
+    rows('hatch_events', (q) =>
+      q
+        .select('id, lote, status, estimated_chicks, scheduled_at, started_at, created_at')
+        .eq('org_id', orgId)
+        .gte('scheduled_at', daysAgo(1).toISOString())
+        .lte('scheduled_at', daysAhead(10).toISOString())
+        .limit(100),
+    ),
+  ])
+  return {
+    orders: orders.data,
+    customers: customers.data,
+    hatches: hatches.data,
+    errors: [orders, customers, hatches].map((r) => r.error).filter(Boolean),
+  }
+}
+
 const LOADERS = {
   plant: loadPlant,
   maintenance: loadMaintenance,
@@ -299,6 +414,9 @@ const LOADERS = {
   environmental: loadEnvironmental,
   logistics: loadLogistics,
   veterinary: loadVeterinary,
+  hr: loadHr,
+  accounting: loadAccounting,
+  sales: loadSales,
 }
 
 export function useLeaderHome({ kind, orgId }) {
