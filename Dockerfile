@@ -5,7 +5,10 @@ WORKDIR /app
 
 # Copiar archivos de dependencias
 COPY package*.json ./
-RUN npm ci
+# Reintenta descargas lentas y guarda los paquetes en caché: la siguiente
+# actualización no vuelve a bajar lo que ya tiene.
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --fetch-timeout=300000
 
 # Copiar el resto del código
 COPY . .

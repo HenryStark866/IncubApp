@@ -1,6 +1,10 @@
 services:
   incubapp:
-    build: .
+    build:
+      context: .
+      # Dentro de WSL la red por defecto de `docker build` se cuelga al bajar paquetes
+      # de npm (ETIMEDOUT, 27-09-2026). Con la red del equipo sale como cualquier programa.
+      network: host
     ports:
       - "80:80"
     restart: always
