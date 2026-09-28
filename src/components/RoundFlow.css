@@ -1,0 +1,390 @@
+/*
+ * Ronda de supervisión (etapa 2 de la remodelación): avance de la hora, salas,
+ * registrar máquina (Sin novedad / Alerta / Falla / Apagada), reportar novedad
+ * con «Pedir OT» y resumen antes de terminar. Usa las variables de la app, así
+ * que respeta el modo oscuro. Todo bajo .rf-.
+ */
+.rf-progress {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg-1);
+  margin-bottom: 12px;
+}
+.rf-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.rf-progress-top strong {
+  color: var(--text);
+  font-size: 15px;
+}
+.rf-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.rf-big {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rf-big b {
+  font-size: 36px;
+  line-height: 1;
+}
+.rf-big span {
+  color: var(--text-dim);
+}
+.rf-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.rf-bar > div {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+}
+
+.rf-rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.rf-room {
+  min-height: 68px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+.rf-room strong {
+  font-size: 15px;
+}
+.rf-room span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.rf-room.is-here {
+  border: 2px solid var(--accent);
+}
+.rf-room.is-here span {
+  color: var(--accent-dim);
+  font-weight: 700;
+}
+.rf-room.is-done {
+  border: 2px solid var(--ok);
+}
+.rf-room.is-done span {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.rf-machines {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+.rf-machine {
+  border-top: 1px solid var(--line);
+}
+.rf-machine:first-child {
+  border-top: 0;
+}
+.rf-machine-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+}
+.rf-machine-main {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.rf-machine-main strong {
+  font-size: 15px;
+}
+.rf-machine-main span {
+  font-size: 13px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+.rf-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rf-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.rf-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.rf-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.rf-btn-ink {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-1);
+}
+.rf-btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+.rf-btn-block {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.rf-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 0;
+  margin-top: 12px;
+  background: linear-gradient(to top, var(--bg-0) 75%, transparent);
+}
+
+/* Captura */
+.rf-capture {
+  display: grid;
+  gap: 14px;
+  padding: 4px 14px 16px;
+}
+.rf-photo {
+  position: relative;
+}
+.rf-photo img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+.rf-photo .rf-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+.rf-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.rf-readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.rf-readings label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.rf-readings input,
+.rf-input {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  padding: 0 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+textarea.rf-input {
+  padding: 10px 12px;
+  min-height: 84px;
+  resize: vertical;
+}
+.rf-last {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.rf-conditions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rf-cond {
+  min-height: 76px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.rf-cond b {
+  font-size: 22px;
+  line-height: 1;
+}
+.rf-cond-ok {
+  background: var(--ok);
+  color: #ffffff;
+}
+.rf-cond-warn {
+  background: color-mix(in srgb, var(--amber) 14%, var(--bg-1));
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.rf-cond-fault {
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-1));
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.rf-cond:disabled {
+  opacity: 0.55;
+}
+.rf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rf-chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rf-chip[aria-pressed='true'] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-1);
+}
+.rf-toggle {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-1);
+  cursor: pointer;
+}
+.rf-toggle.is-on {
+  border-color: var(--danger);
+}
+.rf-toggle input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--danger);
+  flex-shrink: 0;
+}
+.rf-toggle span {
+  display: grid;
+  gap: 2px;
+}
+.rf-toggle small {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* Resumen de terminar ronda */
+.rf-summary {
+  display: grid;
+  gap: 12px;
+}
+.rf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rf-stat {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-1);
+  display: grid;
+  gap: 2px;
+}
+.rf-stat span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.rf-stat b {
+  font-size: 26px;
+}
+.rf-stat.is-warn {
+  border: 2px solid var(--amber);
+}
+.rf-box {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-1);
+  display: grid;
+  gap: 8px;
+}
+.rf-box p {
+  margin: 0;
+}
+.rf-dim {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.rf-fault {
+  color: var(--danger);
+}
+.rf-warn {
+  color: var(--amber);
+}

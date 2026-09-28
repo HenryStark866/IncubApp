@@ -21,6 +21,8 @@ import { IncidentReportView, WorkOrdersView, ShiftActivitiesView, MerchandiseVie
 import { conditionOf } from '../lib/machineCondition'
 import { roundMachines, roundRoomOf } from '../lib/roundRecords'
 import { openRoundFormat } from '../lib/roundFormat'
+import { minutesLeftInHour, requestWorkOrderFromRound, roundFinishSummary } from '../lib/roundActions'
+import './RoundFlow.css'
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
 import {
@@ -93,17 +95,6 @@ const MACHINE_TYPE_LABEL = {
   other: 'Otro equipo',
 }
 
-const ALARM_TYPES = [
-  '🌡️ Temperatura fuera de rango',
-  '💧 Humedad fuera de rango',
-  '🔄 Falla de volteo',
-  '⚡ Falla eléctrica',
-  '🔊 Ruido anormal',
-  '🚪 Puerta / sello',
-  '❄️ Refrigeración',
-  '⚠️ Otra novedad',
-]
-
 const SHIFT_LABEL = { 1: 'T1 (06–14)', 2: 'T2 (14–22)', 3: 'T3 (22–06)' }
 
 // La ronda del turno solo cubre salas de incubadoras, nacedoras y cuartos técnicos:
@@ -133,43 +124,53 @@ function PhotoThumb({ path, getPhotoUrl }) {
   )
 }
 
-/* ── Captura directa: cámara → foto → ✓ / ✗ ────────────────── */
-function MachineCapture({ machine, mc, onDone }) {
+/* ── Captura: cámara → foto → lecturas → Sin novedad / Alerta / Falla ──────
+ * Etapa 2 de la remodelación. La foto, la compresión, la cola sin conexión y las
+ * lecturas prellenadas se mantienen; se agregan «Alerta» (antes solo había falla),
+ * «Está apagada» (sin foto) y la opción de pedir la OT desde la novedad. */
+const NOVEDAD_TYPES = [
+  'Temperatura fuera de rango',
+  'Humedad fuera de rango',
+  'Falla de volteo',
+  'Falla eléctrica',
+  'Ruido anormal',
+  'Puerta / sello',
+  'Refrigeración',
+  'Otra novedad',
+]
+
+function MachineCapture({ machine, mc, orgId, userId, onDone, onMarkOff }) {
   const inputRef = useRef(null)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [askAlarm, setAskAlarm] = useState(false)
+  const [novedad, setNovedad] = useState(null) // null | 'warning' | 'fault'
   const [alarmType, setAlarmType] = useState('')
   const [alarmNote, setAlarmNote] = useState('')
+  const [askOT, setAskOT] = useState(false)
   const [busy, setBusy] = useState(false)
   const [compressing, setCompressing] = useState(false)
   const [err, setErr] = useState(null)
   const [statusMsg, setStatusMsg] = useState(null)
   const openedRef = useRef(false)
 
-  /* ── Lecturas de pantalla del FORMATO CONTROL DIARIO ──────────
-   * Opcionales: la ronda vale con la foto sola. Vienen prellenadas con la última
-   * toma de esa misma máquina para que el turnero solo corrija lo que se movió.
-   */
+  /* Lecturas de pantalla del FORMATO CONTROL DIARIO: opcionales, prellenadas con la
+   * última toma de la misma máquina para que solo se corrija lo que se movió. */
   const campos = readingFieldsFor(machine.type)
   const ultima = useMemo(
-    () =>
-      mc.checks.find(
-        (c) => c.machine_id === machine.id && READING_COLUMNS.some((k) => c[k] != null)
-      ),
+    () => mc.checks.find((c) => c.machine_id === machine.id && READING_COLUMNS.some((k) => c[k] != null)),
     [mc.checks, machine.id]
   )
   const [readings, setReadings] = useState(() => readingsFromCheck(ultima))
   const setReading = (key, value) => setReadings((prev) => ({ ...prev, [key]: value }))
+  const lastText = ultima
+    ? `Última ronda (${fmtTime(ultima.taken_at)}): ${campos.filter((c) => ultima[c.key] != null).map((c) => ultima[c.key]).join(' · ') || 'sin lecturas'}`
+    : null
 
-  // Abrir la cámara al montar (reintento corto si el input aún no está listo)
   useEffect(() => {
     const t = setTimeout(() => {
       if (!openedRef.current) {
         openedRef.current = true
-        try {
-          inputRef.current?.click()
-        } catch { /* */ }
+        try { inputRef.current?.click() } catch { /* */ }
       }
     }, 80)
     return () => clearTimeout(t)
@@ -190,24 +191,18 @@ function MachineCapture({ machine, mc, onDone }) {
     setPreview(null)
     setErr(null)
     setStatusMsg(null)
-    setAskAlarm(false)
-    setAlarmType('')
-    setAlarmNote('')
-    // reset input para permitir misma foto de nuevo
+    setNovedad(null)
     if (inputRef.current) inputRef.current.value = ''
     setTimeout(() => {
-      try {
-        inputRef.current?.click()
-      } catch { /* */ }
+      try { inputRef.current?.click() } catch { /* */ }
     }, 50)
   }
 
   const onFile = async (e) => {
     const f = e.target.files?.[0] ?? null
     if (!f) {
-      // Canceló la cámara: no cerrar de golpe — ofrecer reintentar
       setErr(null)
-      setStatusMsg('No se tomó foto. Pulsa «Tomar foto» para abrir la cámara.')
+      setStatusMsg('No se tomó foto. Pulsa «Tomar foto» para abrir la cámara, o marca la máquina como apagada.')
       return
     }
     if (!f.size) {
@@ -226,13 +221,12 @@ function MachineCapture({ machine, mc, onDone }) {
       }
       setFile(compressed)
     } catch {
-      // Usar original si falla compresión
       setFile(f)
     }
     setCompressing(false)
   }
 
-  const save = async (condition, notes) => {
+  const save = async (condition, notes, { requestOT = false, type = '' } = {}) => {
     if (!file || file.size === 0) {
       setErr('Falta la foto. Tómala de nuevo antes de confirmar.')
       return
@@ -241,23 +235,27 @@ function MachineCapture({ machine, mc, onDone }) {
     setErr(null)
     setStatusMsg('Guardando foto…')
     try {
-      const { error, offline } = await mc.createCheck({
-        plantId: machine.plant_id,
-        machineId: machine.id,
-        file,
-        condition,
-        notes,
-        readings,
-      })
+      const { error, offline } = await mc.createCheck({ plantId: machine.plant_id, machineId: machine.id, file, condition, notes, readings })
       if (error) {
         setErr(error)
         setStatusMsg(null)
         setBusy(false)
         return
       }
+      let otMsg = null
+      if (requestOT) {
+        const ot = await requestWorkOrderFromRound({ orgId, userId, machine, condition, alarmType: type, note: notes })
+        otMsg = ot.error ? `La novedad quedó guardada, pero la OT no: ${ot.error}` : null
+      }
+      if (otMsg) {
+        setStatusMsg(null)
+        setErr(otMsg)
+        setBusy(false)
+        setTimeout(() => onDone(true), 2600)
+        return
+      }
       if (offline) {
         setStatusMsg('Guardado en el dispositivo · se subirá al sincronizar')
-        // breve feedback y cerrar
         setTimeout(() => onDone(true), 450)
       } else {
         onDone(true)
@@ -269,54 +267,53 @@ function MachineCapture({ machine, mc, onDone }) {
     setBusy(false)
   }
 
-  const confirmOk = () => save('normal', 'Sin novedad reportada')
+  const openNovedad = (kind) => {
+    setNovedad(kind)
+    setAlarmType('')
+    setAlarmNote('')
+    setAskOT(kind === 'fault')
+  }
 
-  const confirmAlarm = () => {
+  const confirmNovedad = () => {
     if (!alarmType) return
-    save('fault', `${alarmType}${alarmNote.trim() ? ` — ${alarmNote.trim()}` : ''}`)
+    save(novedad, `${alarmType}${alarmNote.trim() ? ` — ${alarmNote.trim()}` : ''}`, { requestOT: askOT, type: alarmType })
+  }
+
+  const markOff = async () => {
+    setBusy(true)
+    setErr(null)
+    const res = await onMarkOff(machine)
+    setBusy(false)
+    if (res?.error) setErr(res.error)
+    else onDone(true)
   }
 
   return (
-    <div className="capture-panel">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: 'none' }}
-        onChange={onFile}
-      />
+    <div className="rf-capture">
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFile} />
 
       {!file && !compressing && (
-        <div style={{ display: 'grid', gap: 8 }}>
-          <p className="hint" style={{ margin: 0 }}>
-            {statusMsg || 'Abriendo la cámara…'}
-          </p>
-          <button type="button" className="primary" onClick={retake}>
-            Tomar foto
-          </button>
-          <button type="button" className="ghost" onClick={() => onDone(false)}>
-            Cancelar
-          </button>
-        </div>
-      )}
-      {compressing && <p className="hint" style={{ margin: 0 }}>Comprimiendo imagen…</p>}
-
-      {preview && !askAlarm && (
         <>
-          <img className="capture-preview" src={preview} alt="Vista previa" />
+          <p className="rf-dim" style={{ margin: 0 }}>{statusMsg || 'Abriendo la cámara…'}</p>
+          <button type="button" className="rf-btn rf-btn-primary rf-btn-block" onClick={retake}>📷 Tomar foto</button>
+          <button type="button" className="rf-btn rf-btn-block" onClick={markOff} disabled={busy}>Está apagada · no requiere foto</button>
+        </>
+      )}
+      {compressing && <p className="rf-dim" style={{ margin: 0 }}>Comprimiendo imagen…</p>}
+
+      {preview && !novedad && (
+        <>
+          <div className="rf-photo">
+            <img src={preview} alt={`Foto de la pantalla de ${machine.code || machine.name}`} />
+            <button type="button" className="rf-btn" onClick={retake} disabled={busy}>📷 Repetir</button>
+          </div>
           {campos.length > 0 && (
-            <div className="capture-readings">
-              <p className="hint" style={{ margin: '6px 0 4px' }}>
-                Lecturas de la pantalla <span style={{ opacity: 0.7 }}>(opcional — llenan el formato de control diario)</span>
-              </p>
-              <div className="readings-grid">
+            <div style={{ display: 'grid', gap: 8 }}>
+              <span className="rf-label">Lecturas de la pantalla · llenan el control diario</span>
+              <div className="rf-readings">
                 {campos.map((c) => (
-                  <label key={c.key} className="reading-field">
-                    <span>
-                      {c.label}
-                      {c.unidad ? ` (${c.unidad})` : ''}
-                    </span>
+                  <label key={c.key}>
+                    <span>{c.label}{c.unidad ? ` ${c.unidad}` : ''}</span>
                     <input
                       type={c.tipo === 'texto' ? 'text' : 'number'}
                       inputMode={c.tipo === 'entero' ? 'numeric' : c.tipo === 'numero' ? 'decimal' : 'text'}
@@ -328,75 +325,97 @@ function MachineCapture({ machine, mc, onDone }) {
                   </label>
                 ))}
               </div>
+              {lastText && <span className="rf-last">{lastText}</span>}
             </div>
           )}
-          <p className="hint" style={{ margin: '4px 0 0', textAlign: 'center' }}>
-            ¿La máquina está bien?
-          </p>
-          <div className="capture-actions">
-            <button className="capture-btn ok" onClick={confirmOk} disabled={busy} title="Sin novedad">
-              ✓
-            </button>
-            <button className="capture-btn bad" onClick={() => setAskAlarm(true)} disabled={busy} title="Reportar alarma">
-              ✗
-            </button>
+          <span className="rf-label">¿Cómo está la máquina?</span>
+          <div className="rf-conditions">
+            <button type="button" className="rf-cond rf-cond-ok" onClick={() => save('normal', 'Sin novedad reportada')} disabled={busy}><b>✓</b>Sin novedad</button>
+            <button type="button" className="rf-cond rf-cond-warn" onClick={() => openNovedad('warning')} disabled={busy}><b>!</b>Alerta</button>
+            <button type="button" className="rf-cond rf-cond-fault" onClick={() => openNovedad('fault')} disabled={busy}><b>✕</b>Falla</button>
           </div>
-          <button type="button" className="ghost" onClick={retake} disabled={busy} style={{ marginTop: 6 }}>
-            Volver a tomar foto
+          <button type="button" className="rf-btn rf-btn-block" onClick={markOff} disabled={busy} style={{ minHeight: 46, fontSize: 15 }}>
+            Está apagada · no requiere foto
           </button>
-          {(busy || statusMsg) && (
-            <p className="hint" style={{ textAlign: 'center' }}>
-              {statusMsg || 'Guardando…'}
-            </p>
-          )}
         </>
       )}
 
-      {preview && askAlarm && (
+      {preview && novedad && (
         <>
-          <img className="capture-preview small" src={preview} alt="Vista previa" />
-          <p className="hint" style={{ margin: '4px 0 2px' }}>¿Qué tipo de alarma registras?</p>
-          <div className="alarm-grid">
-            {ALARM_TYPES.map((t) => (
-              <button
-                key={t}
-                className={alarmType === t ? 'chip active' : 'chip'}
-                onClick={() => setAlarmType(t)}
-              >
-                {t}
-              </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <img src={preview} alt="" style={{ width: 88, height: 66, objectFit: 'cover', borderRadius: 10 }} />
+            <span className="rf-dim">Reportar {novedad === 'fault' ? 'falla' : 'alerta'} de {machine.code || machine.name}. La foto y las lecturas ya quedaron.</span>
+          </div>
+          <span className="rf-label">¿Qué pasa?</span>
+          <div className="rf-chips" role="group" aria-label="Tipo de novedad">
+            {NOVEDAD_TYPES.map((t) => (
+              <button key={t} type="button" className="rf-chip" aria-pressed={alarmType === t} onClick={() => setAlarmType(t)}>{t}</button>
             ))}
           </div>
-          <input
-            type="text"
-            className="alarm-note"
-            value={alarmNote}
-            onChange={(e) => setAlarmNote(e.target.value)}
-            placeholder="Detalle adicional (opcional)"
-          />
-          <div className="actions row">
-            <button className="primary" onClick={confirmAlarm} disabled={busy || !alarmType}>
-              {busy ? 'Guardando…' : '🚨 Registrar alarma'}
-            </button>
-            <button className="ghost" onClick={() => setAskAlarm(false)} disabled={busy}>
-              Volver
-            </button>
-          </div>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="rf-label">Detalle</span>
+            <textarea className="rf-input" value={alarmNote} onChange={(e) => setAlarmNote(e.target.value)} placeholder="Qué viste, desde cuándo…" />
+          </label>
+          <label className={`rf-toggle${askOT ? ' is-on' : ''}`}>
+            <input type="checkbox" checked={askOT} onChange={(e) => setAskOT(e.target.checked)} />
+            <span><strong>Pedir orden de trabajo</strong><small>Avisa a mantenimiento y al supervisor ya</small></span>
+          </label>
+          <button type="button" className={`rf-btn rf-btn-block ${novedad === 'fault' ? 'rf-btn-danger' : 'rf-btn-primary'}`} onClick={confirmNovedad} disabled={busy || !alarmType}>
+            {busy ? 'Guardando…' : novedad === 'fault' ? 'Registrar falla' : 'Registrar alerta'}
+          </button>
+          <button type="button" className="rf-btn rf-btn-block" onClick={() => setNovedad(null)} disabled={busy}>Volver</button>
         </>
       )}
 
-      {err && <p className="msg error">{err}</p>}
+      {statusMsg && file && <p className="rf-dim" style={{ margin: 0, textAlign: 'center' }}>{statusMsg}</p>}
+      {err && <p className="msg error" style={{ margin: 0 }}>{err}</p>}
       {!busy && (
-        <button className="ghost" style={{ justifySelf: 'center' }} onClick={() => onDone(false)}>
-          Cancelar
-        </button>
+        <button type="button" className="rf-btn" style={{ justifySelf: 'center', border: 0 }} onClick={() => onDone(false)}>Cancelar</button>
       )}
     </div>
   )
 }
 
+/* ── Resumen antes de terminar la ronda ─────────────────────────────────── */
+function FinishRoundSummary({ summary, hour, busy, onBack, onConfirm }) {
+  return (
+    <div className="rf-summary">
+      <div className="rf-progress-top"><strong>Terminar ronda {String(hour).padStart(2, '0')}:00</strong><span>Revisa antes de cerrar</span></div>
+      <div className="rf-stats">
+        <div className="rf-stat"><span>Con foto</span><b>{summary.withPhoto}</b></div>
+        <div className="rf-stat"><span>Novedades</span><b className={summary.issues.length ? 'rf-fault' : undefined}>{summary.issues.length}</b></div>
+        <div className={`rf-stat${summary.pending.length ? ' is-warn' : ''}`}><span>Sin reportar</span><b className={summary.pending.length ? 'rf-warn' : undefined}>{summary.pending.length}</b></div>
+      </div>
+      {summary.pending.length > 0 ? (
+        <div className="rf-box">
+          <strong>Estas {summary.pending.length} quedarán como apagadas, sin foto</strong>
+          <p>{summary.pending.map((p) => p.code).join(' · ')}</p>
+          <p className="rf-dim">Si alguna está encendida, vuelve y regístrala antes de terminar.</p>
+        </div>
+      ) : (
+        <div className="rf-box"><strong>Todas las máquinas de la ronda están reportadas.</strong></div>
+      )}
+      {summary.issues.length > 0 && (
+        <div className="rf-box">
+          <strong>Novedades de esta ronda</strong>
+          {summary.issues.map((i) => (
+            <p key={i.code}><b className={i.condition === 'fault' ? 'rf-fault' : 'rf-warn'}>{i.code}</b> · {i.notes || (i.condition === 'fault' ? 'falla' : 'alerta')}</p>
+          ))}
+        </div>
+      )}
+      <div className="rf-box">
+        <p>Al terminar se genera el <b>FOMAT04</b> con las {summary.total} máquinas, sus fotos y lecturas{summary.people > 1 ? `, registradas por ${summary.people} personas` : ''}.</p>
+      </div>
+      <div className="rf-footer">
+        <button type="button" className="rf-btn rf-btn-block" onClick={onBack} disabled={busy}>Volver a la ronda</button>
+        <button type="button" className="rf-btn rf-btn-primary rf-btn-block" onClick={onConfirm} disabled={busy}>{busy ? 'Cerrando…' : 'Terminar y generar formato'}</button>
+      </div>
+    </div>
+  )
+}
+
 /* ── Vista de ronda del turno actual ───────────────────────── */
-function RoundView({ orgId, mc, plants, rooms, machines }) {
+function RoundView({ orgId, userId, mc, plants, rooms, machines }) {
   const { hour, shift, shiftDate } = currentSlot()
   // Recordar dónde iba la ronda (misma hora/turno) si el operario sale de la app un momento
   const saved = (() => {
@@ -408,6 +427,7 @@ function RoundView({ orgId, mc, plants, rooms, machines }) {
   const [plantId, setPlantId] = useState(saved?.plantId ?? null)
   const [roomId, setRoomId] = useState(saved?.roomId ?? null)
   const [captureId, setCaptureId] = useState(null)
+  const [finishing, setFinishing] = useState(false)
   const [closing, setClosing] = useState(false)
   const [formatBusy, setFormatBusy] = useState(false)
   const [formatMsg, setFormatMsg] = useState(null)
@@ -420,41 +440,18 @@ function RoundView({ orgId, mc, plants, rooms, machines }) {
     if (!plantId && plants.length > 0) setPlantId(plants[0].id)
   }, [plants, plantId])
 
-  // La ronda solo cubre salas de incubadoras/nacedoras/cuartos técnicos QUE tengan
-  // máquinas que revisar; así los cuartos vacíos (bodegas, pasillos, sexaje…) no aparecen.
-  //
-  // La sala de la RONDA no es siempre donde está montado el equipo: los chillers
-  // viven en la plataforma exterior pero sus tableros —donde se hace la lectura y
-  // la foto— están en la sala técnica. Para eso está `panel_room_id`; sin él la
-  // sala se quedaba sin equipos y desaparecía de la lista del operario.
+  // Salas y máquinas de la ronda: la misma regla del FOMAT04 (lib/roundRecords).
   const { rooms: plantRooms, machines: plantMachines } = roundMachines({ machines, rooms, plantId })
-
   const roomMachines = plantMachines.filter((m) => roundRoomOf(m) === roomId)
 
-  const checksNow = mc.checks.filter(
-    (c) => c.shift_date === shiftDate && Number(c.hour_slot) === Number(hour)
-  )
+  const checksNow = mc.checks.filter((c) => c.shift_date === shiftDate && Number(c.hour_slot) === Number(hour))
   const checkOf = (machineId) => checksNow.find((c) => c.machine_id === machineId)
   const pendingPlant = plantMachines.filter((m) => !checkOf(m.id))
   const doneInRoom = (rid) => plantMachines.filter((m) => roundRoomOf(m) === rid && checkOf(m.id)).length
   const totalInRoom = (rid) => plantMachines.filter((m) => roundRoomOf(m) === rid).length
-
-  const finishRound = async () => {
-    const n = pendingPlant.length
-    const ok = window.confirm(
-      n === 0
-        ? '¿Terminar la ronda? Todas las máquinas fueron reportadas.'
-        : `¿Terminar la ronda?\n\n${n} máquina(s) NO fueron reportadas y quedarán registradas como APAGADAS en el reporte de esta ronda.`
-    )
-    if (!ok) return
-    setClosing(true)
-    const res = await mc.closeRound(plantId, pendingPlant.map((m) => m.id))
-    setClosing(false)
-    setRoomId(null)
-    // La ronda terminada queda en su FOMAT04: todas las fotos de la hora, las
-    // lecturas de cada máquina y las apagadas (sin foto).
-    if (!res?.error) await openFormat()
-  }
+  const done = plantMachines.length - pendingPlant.length
+  const people = new Set(checksNow.map((c) => c.taken_by).filter(Boolean)).size
+  const summary = roundFinishSummary({ plantMachines, checksNow })
 
   const openFormat = async () => {
     setFormatMsg(null)
@@ -468,122 +465,141 @@ function RoundView({ orgId, mc, plants, rooms, machines }) {
     if (error) setFormatMsg(error)
   }
 
+  const markOff = (machine) =>
+    mc.closeRound(machine.plant_id || plantId, [machine.id], { notes: 'Apagada — marcada en la ronda' })
+
+  const finishRound = async () => {
+    setClosing(true)
+    const res = await mc.closeRound(plantId, pendingPlant.map((m) => m.id))
+    setClosing(false)
+    setFinishing(false)
+    setRoomId(null)
+    // La ronda terminada queda en su FOMAT04: todas las fotos de la hora, las
+    // lecturas de cada máquina y las apagadas (sin foto).
+    if (!res?.error) await openFormat()
+    else setFormatMsg(res.error)
+  }
+
+  if (finishing) {
+    return (
+      <FinishRoundSummary
+        summary={summary}
+        hour={hour}
+        busy={closing}
+        onBack={() => setFinishing(false)}
+        onConfirm={finishRound}
+      />
+    )
+  }
+
   return (
     <>
-      <div className="round-banner">
-        <span>
-          Turno <strong>{SHIFT_LABEL[shift]}</strong> · Hora <strong>{String(hour).padStart(2, '0')}:00</strong>
-        </span>
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          <span className={pendingPlant.length === 0 ? 'pill status ok' : 'pill status warn'}>
-            {pendingPlant.length === 0 ? 'Ronda completa' : `${pendingPlant.length} pendiente(s)`}
-          </span>
-          <button className="chip ghost" onClick={finishRound} disabled={closing || plantMachines.length === 0}>
-            {closing ? 'Cerrando…' : '🏁 Terminar ronda'}
-          </button>
-          {checksNow.some((c) => !c.offline) && (
-            <button className="chip ghost" onClick={openFormat} disabled={formatBusy}>
-              {formatBusy ? 'Generando…' : '📄 Formato de la ronda'}
-            </button>
-          )}
-        </span>
+      <div className="rf-progress">
+        <div className="rf-progress-top">
+          <strong>Ronda {String(hour).padStart(2, '0')}:00 – {String(hour).padStart(2, '0')}:59</strong>
+          <span className="rf-time">quedan {minutesLeftInHour()} min</span>
+        </div>
+        <div className="rf-progress-top">
+          <span>Turno {SHIFT_LABEL[shift]}{people ? ` · ${people} persona${people === 1 ? '' : 's'} en la ronda` : ''}</span>
+          <span>{pendingPlant.length === 0 && plantMachines.length ? 'Ronda completa' : `${pendingPlant.length} pendiente${pendingPlant.length === 1 ? '' : 's'}`}</span>
+        </div>
+        <div className="rf-big"><b>{done}</b><span>de {plantMachines.length} máquinas</span></div>
+        <div className="rf-bar" aria-hidden="true"><div style={{ width: `${plantMachines.length ? Math.round((done / plantMachines.length) * 100) : 0}%` }} /></div>
       </div>
-      {formatMsg && <p className="msg error" style={{ marginTop: 8 }}>{formatMsg}</p>}
 
       {plants.length > 1 && (
-        <div className="plant-chips">
+        <div className="rf-chips" style={{ marginBottom: 10 }}>
           {plants.map((p) => (
-            <button
-              key={p.id}
-              className={p.id === plantId ? 'chip active' : 'chip'}
-              onClick={() => { setPlantId(p.id); setRoomId(null); setCaptureId(null) }}
-            >
+            <button key={p.id} type="button" className="rf-chip" aria-pressed={p.id === plantId} onClick={() => { setPlantId(p.id); setRoomId(null); setCaptureId(null) }}>
               {p.name}
             </button>
           ))}
         </div>
       )}
 
-      {/* Selección de sala */}
-      <p className="hint" style={{ margin: '10px 0 6px' }}>
-        {roomId ? 'Sala actual — toca otra para cambiar:' : 'Selecciona la sala a la que vas a entrar:'}
+      <p className="rf-label" style={{ margin: '4px 4px 8px' }}>
+        {roomId ? 'Sala actual — toca otra para cambiar' : 'Elige la sala a la que vas a entrar'}
       </p>
-      <div className="room-grid">
+      <div className="rf-rooms">
         {plantRooms.map((r) => {
-          const done = doneInRoom(r.id)
-          const total = totalInRoom(r.id)
-          const complete = total > 0 && done === total
+          const d = doneInRoom(r.id)
+          const t = totalInRoom(r.id)
+          const complete = t > 0 && d === t
+          const here = roomId === r.id
           return (
             <button
               key={r.id}
-              className={`room-pick${roomId === r.id ? ' active' : ''}${complete ? ' complete' : ''}`}
+              type="button"
+              className={`rf-room${complete ? ' is-done' : here ? ' is-here' : ''}`}
               onClick={() => { setRoomId(r.id); setCaptureId(null) }}
             >
               <strong>{r.name}</strong>
-              <span>{complete ? '✓ Completa' : `${done}/${total} registradas`}</span>
+              <span>{complete ? `✓ Completa ${d}/${t}` : here ? `${d}/${t} · aquí estás` : d ? `${d}/${t}` : `0/${t} · sin empezar`}</span>
             </button>
           )
         })}
-        {plantRooms.length === 0 && (
-          <p className="hint">No hay salas de incubadoras, nacedoras o cuartos técnicos en esta planta.</p>
-        )}
+        {plantRooms.length === 0 && <p className="hint">No hay salas de incubadoras, nacedoras o cuartos técnicos en esta planta.</p>}
       </div>
 
-      {/* Máquinas de la sala seleccionada */}
       {roomId && (
-        <div className="admin-list" style={{ marginTop: 12 }}>
-          {roomMachines.length === 0 && <p className="hint">Esta sala no tiene máquinas.</p>}
-          {roomMachines.map((m) => {
-            const check = checkOf(m.id)
-            const cond = check ? conditionOf(check.condition) : null
-            return (
-              <div key={m.id} className={`admin-card${check ? ' check-done' : ''}`}>
-                <div className="admin-row">
-                  <div className="admin-row-main">
-                    <strong>{m.name}</strong>
-                    <span className="hint" style={{ margin: 0 }}>
-                      {m.code} · {MACHINE_TYPE_LABEL[m.type] ?? m.type}
-                      {check?.notes ? ` · ${check.notes}` : ''}
-                    </span>
+        <>
+          <p className="rf-label" style={{ margin: '14px 4px 0' }}>
+            {plantRooms.find((r) => r.id === roomId)?.name || 'Sala'} · faltan {roomMachines.filter((m) => !checkOf(m.id)).length}
+          </p>
+          <div className="rf-machines">
+            {roomMachines.length === 0 && <p className="hint" style={{ padding: 14 }}>Esta sala no tiene máquinas.</p>}
+            {[...roomMachines].sort((a, b) => Number(!!checkOf(a.id)) - Number(!!checkOf(b.id))).map((m) => {
+              const check = checkOf(m.id)
+              const cond = check ? conditionOf(check.condition) : null
+              return (
+                <div key={m.id} className="rf-machine">
+                  <div className="rf-machine-row">
+                    <div className="rf-machine-main">
+                      <strong>{m.code || m.name}</strong>
+                      <span>{m.name} · {MACHINE_TYPE_LABEL[m.type] ?? m.type}{check?.notes && check.condition !== 'normal' ? ` · ${check.notes}` : ''}</span>
+                    </div>
+                    {check ? (
+                      <span
+                        className={`pill status ${cond.cls}`}
+                        title={check.offline ? (check.has_local_photo ? 'Foto guardada en este teléfono — se sube sola al sincronizar' : 'Guardado en el teléfono — se sube al volver la señal') : undefined}
+                      >
+                        {cond.label}
+                        {check.offline ? (check.has_local_photo ? ' · 📷 en cola' : ' · ⏳ por subir') : ''}
+                      </span>
+                    ) : (
+                      captureId !== m.id && (
+                        <span className="rf-actions">
+                          <button type="button" className="rf-btn rf-btn-ink" onClick={() => setCaptureId(m.id)}>📷 Registrar</button>
+                        </span>
+                      )
+                    )}
                   </div>
-                  {check ? (
-                    <span
-                      className={`pill status ${cond.cls}`}
-                      title={
-                        check.offline
-                          ? check.has_local_photo
-                            ? 'Foto guardada en este teléfono — se sube sola al sincronizar'
-                            : 'Guardado en el teléfono — se sube al volver la señal'
-                          : undefined
-                      }
-                    >
-                      {cond.label}
-                      {check.offline
-                        ? check.has_local_photo
-                          ? ' · 📷 en cola'
-                          : ' · ⏳ por subir'
-                        : ''}
-                    </span>
-                  ) : (
-                    captureId !== m.id && (
-                      <button className="primary" onClick={() => setCaptureId(m.id)}>
-                        📷 Registrar
-                      </button>
-                    )
+                  {captureId === m.id && !check && (
+                    <MachineCapture
+                      machine={m}
+                      mc={mc}
+                      orgId={orgId}
+                      userId={userId}
+                      onMarkOff={markOff}
+                      onDone={() => setCaptureId(null)}
+                    />
                   )}
                 </div>
-                {captureId === m.id && !check && (
-                  <MachineCapture
-                    machine={m}
-                    mc={mc}
-                    onDone={() => setCaptureId(null)}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </>
       )}
+
+      {formatMsg && <p className="msg error" style={{ marginTop: 8 }}>{formatMsg}</p>}
+      <div className="rf-footer">
+        <button type="button" className="rf-btn rf-btn-block" onClick={openFormat} disabled={formatBusy || !checksNow.some((c) => !c.offline)}>
+          {formatBusy ? 'Generando…' : 'Formato de la ronda'}
+        </button>
+        <button type="button" className="rf-btn rf-btn-primary rf-btn-block" onClick={() => setFinishing(true)} disabled={plantMachines.length === 0}>
+          Terminar ronda
+        </button>
+      </div>
     </>
   )
 }
@@ -1564,7 +1580,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
       ) : mc.loading && mc.checks.length === 0 ? (
         <p className="hint">Cargando…</p>
       ) : view === 'ronda' ? (
-        <RoundView orgId={orgId} mc={mc} plants={plants} rooms={rooms} machines={machines} />
+        <RoundView orgId={orgId} userId={userId} mc={mc} plants={plants} rooms={rooms} machines={machines} />
       ) : (
         <HistoryView mc={mc} machines={machines} team={team} canDelete={['owner', 'admin'].includes(role)} />
       )}
