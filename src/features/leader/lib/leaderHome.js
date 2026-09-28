@@ -10,6 +10,9 @@ import { localDate, clock, machineHealth, productionDay, shiftHoursElapsed } fro
 export function leaderKind(area) {
   const a = String(area || '').toLowerCase()
   if (a === 'maintenance') return 'maintenance'
+  if (a === 'sst' || a === 'hse') return 'sst'
+  if (a === 'environmental') return 'environmental'
+  if (a === 'logistics' || a === 'sales_logistics') return 'logistics'
   if (!a || a === 'plant' || a === 'general' || a === 'quality') return 'plant'
   return null
 }
@@ -333,5 +336,368 @@ export function maintenanceLeaderBoard({ workOrders = [], machines = [], technic
       }
     })
 
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Preoperacionales de vehículos (SST y logística) ─── */
+
+const hasFindings = (r) => r?.compliant === false
+const preopLabel = (r) => [r.vehicle_plate || 'Vehículo', r.driver_name].filter(Boolean).join(' · ')
+
+/** Preoperacional de hoy de cada conductor activo: hecho, con hallazgo o pendiente. */
+export function driversPreopToday({ drivers = [], preops = [], now = new Date() }) {
+  const today = localDate(now)
+  const todays = preops.filter((r) => String(r.inspection_date || r.created_at || '').slice(0, 10) === today)
+  return drivers
+    .filter((d) => d.active !== false)
+    .map((d) => {
+      const plate = String(d.plate || '')
+        .trim()
+        .toUpperCase()
+      const r = todays.find(
+        (x) =>
+          (d.user_id && x.driver_user_id === d.user_id) ||
+          (plate &&
+            String(x.vehicle_plate || '')
+              .trim()
+              .toUpperCase() === plate),
+      )
+      return { driver: d, report: r || null, state: !r ? 'pending' : hasFindings(r) ? 'findings' : 'ok' }
+    })
+}
+
+/* ─── SST ─────────────────────────────────────────────── */
+
+export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now = new Date() }) {
+  const today = localDate(now)
+  const recent = preops.filter((r) => now - new Date(r.inspection_date || r.created_at) < 7 * DAY_MS)
+  const decisions = []
+
+  // 1. Preoperacionales con hallazgo sin revisar: el vehículo no debería salir.
+  for (const r of recent.filter((x) => hasFindings(x) && x.status !== 'reviewed')) {
+    decisions.push({
+      id: `preop-${r.id}`,
+      tone: 'danger',
+      title: `Preoperacional ${preopLabel(r)} con hallazgos`,
+      detail: [r.inspection_date ? `del ${String(r.inspection_date).slice(0, 10)}` : null, r.commitments]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'preoperacional', label: 'Revisar' },
+    })
+  }
+
+  // 2. Dotación / EPP por debajo del mínimo.
+  for (const i of supplies.filter((x) => x.min_qty != null && Number(x.qty_on_hand) < Number(x.min_qty))) {
+    decisions.push({
+      id: `epp-${i.id}`,
+      tone: Number(i.qty_on_hand) <= 0 ? 'danger' : 'warn',
+      title: `Dotación / EPP bajo el mínimo: ${i.item_name}`,
+      detail: `Hay ${num(i.qty_on_hand)} ${i.unit || ''} · mínimo ${num(i.min_qty)}${i.location ? ` · ${i.location}` : ''}`,
+      action: { kind: 'nav', tab: 'inventarios', label: 'Ver inventario' },
+    })
+  }
+
+  // 3. Preoperacionales sin hallazgo esperando el sello de revisión.
+  const toReview = recent.filter((x) => !hasFindings(x) && x.status !== 'reviewed')
+  if (toReview.length) {
+    decisions.push({
+      id: 'preop-review',
+      tone: 'info',
+      title: `${toReview.length} preoperacional${toReview.length === 1 ? '' : 'es'} por revisar`,
+      detail: 'Sin hallazgos · falta el sello del líder',
+      action: { kind: 'nav', tab: 'preoperacional', label: 'Revisar' },
+    })
+  }
+
+  const todays = preops.filter((r) => String(r.inspection_date || r.created_at || '').slice(0, 10) === today)
+  const lastFinding = preops
+    .filter(hasFindings)
+    .map((r) => new Date(r.inspection_date || r.created_at))
+    .sort((a, b) => b - a)[0]
+  const daysClean = lastFinding ? Math.max(0, Math.floor((now - lastFinding) / DAY_MS)) : null
+  const low = supplies.filter((x) => x.min_qty != null && Number(x.qty_on_hand) < Number(x.min_qty)).length
+  const fleet = driversPreopToday({ drivers, preops, now })
+  const kpis = [
+    {
+      label: 'Preoperacionales hoy',
+      value: fleet.length ? `${fleet.filter((f) => f.report).length} de ${fleet.length}` : String(todays.length),
+      sub: `${todays.filter(hasFindings).length} con hallazgo`,
+      tone: todays.some(hasFindings) ? 'danger' : null,
+    },
+    {
+      label: 'Días sin hallazgos',
+      value: daysClean == null ? '—' : String(daysClean),
+      sub: 'en preoperacionales',
+      tone: null,
+    },
+    {
+      label: 'Por revisar',
+      value: String(recent.filter((x) => x.status !== 'reviewed').length),
+      sub: 'últimos 7 días',
+      tone: null,
+    },
+    {
+      label: 'EPP bajo mínimo',
+      value: String(low),
+      sub: `${supplies.length} ítems de dotación`,
+      tone: low ? 'warn' : null,
+    },
+  ]
+  const team = fleet.map(({ driver, report, state }) => ({
+    id: driver.id,
+    name: driver.full_name || 'Conductor',
+    role: [driver.vehicle, driver.plate].filter(Boolean).join(' · ') || 'Conductor',
+    doing:
+      state === 'pending'
+        ? 'Sin preoperacional hoy'
+        : `Preoperacional ${clock(report.created_at) || ''} · ${state === 'ok' ? 'sin hallazgos' : 'con hallazgos'}`,
+    value: state === 'pending' ? 'Pendiente' : state === 'ok' ? 'Al día' : 'Hallazgo',
+    tone: state === 'ok' ? 'ok' : state === 'pending' ? 'warn' : 'danger',
+  }))
+  const plan = todays
+    .slice()
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    .map((r) => ({
+      id: r.id,
+      at: clock(r.created_at) || '—',
+      text: `Preoperacional ${preopLabel(r)}`,
+      state: r.status === 'reviewed' ? 'Revisado' : hasFindings(r) ? 'Con hallazgo' : 'Sin hallazgos',
+      tone: hasFindings(r) && r.status !== 'reviewed' ? 'warn' : 'ok',
+    }))
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Gestión ambiental ───────────────────────────────── */
+
+export function environmentalLeaderBoard({ sensors = [], readings = [], now = new Date() }) {
+  const latest = new Map()
+  for (const r of readings) {
+    const prev = latest.get(r.sensor_id)
+    if (!prev || String(r.recorded_at) > String(prev.recorded_at)) latest.set(r.sensor_id, r)
+  }
+  const active = sensors.filter((s) => s.status !== 'inactive' && s.status !== 'retired')
+  const out = (s, v) =>
+    v != null &&
+    ((s.min_threshold != null && v < Number(s.min_threshold)) ||
+      (s.max_threshold != null && v > Number(s.max_threshold)))
+  const decisions = []
+  const rows = active.map((s) => {
+    const r = latest.get(s.id) || null
+    const v = r ? Number(r.value) : null
+    const stale = !r || now - new Date(r.recorded_at) > DAY_MS
+    return { s, r, v, stale, out: !stale && out(s, v) }
+  })
+  for (const x of rows.filter((x) => x.out)) {
+    const lo = x.s.min_threshold
+    const hi = x.s.max_threshold
+    const range =
+      lo != null && hi != null
+        ? `rango ${num(lo)} a ${num(hi)}`
+        : hi != null
+          ? `máximo ${num(hi)}`
+          : `mínimo ${num(lo)}`
+    decisions.push({
+      id: `sensor-${x.s.id}`,
+      tone: 'warn',
+      title: `Sensor ${x.s.code} fuera de rango: ${num(x.v)} ${x.s.unit || ''}`.trim(),
+      detail: `${x.s.kind || 'Lectura'} · ${range} · ${clock(x.r.recorded_at)}`,
+      action: { kind: 'nav', tab: 'iot', label: 'Ver sensor' },
+    })
+  }
+  for (const x of rows.filter((x) => x.stale)) {
+    decisions.push({
+      id: `stale-${x.s.id}`,
+      tone: 'info',
+      title: `Sensor ${x.s.code} sin datos ${x.r ? 'desde hace más de un día' : 'todavía'}`,
+      detail: x.r
+        ? `Última lectura ${new Date(x.r.recorded_at).toLocaleString('es-CO')}`
+        : 'Revise la conexión del equipo',
+      action: { kind: 'nav', tab: 'iot', label: 'Revisar' },
+    })
+  }
+  const today = localDate(now)
+  const readingsToday = readings.filter((r) => localDate(r.recorded_at) === today)
+  const kpis = [
+    { label: 'Sensores activos', value: String(active.length), sub: `${sensors.length} registrados`, tone: null },
+    {
+      label: 'Fuera de rango',
+      value: String(rows.filter((x) => x.out).length),
+      sub: 'según su última lectura',
+      tone: rows.some((x) => x.out) ? 'warn' : null,
+    },
+    { label: 'Sin datos', value: String(rows.filter((x) => x.stale).length), sub: 'más de 24 horas', tone: null },
+    { label: 'Lecturas de hoy', value: num(readingsToday.length), sub: 'todas las sedes', tone: null },
+  ]
+  const team = rows.map((x) => ({
+    id: x.s.id,
+    name: x.s.code,
+    role: x.s.kind || 'Sensor',
+    doing: x.r ? `${num(x.v)} ${x.s.unit || ''} · ${clock(x.r.recorded_at)}` : 'Sin lecturas',
+    value: x.out ? 'Fuera de rango' : x.stale ? 'Sin datos' : 'En rango',
+    tone: x.out ? 'warn' : x.stale ? 'info' : 'ok',
+  }))
+  const byId = new Map(sensors.map((s) => [s.id, s]))
+  const plan = readingsToday
+    .filter((r) => byId.has(r.sensor_id) && out(byId.get(r.sensor_id), Number(r.value)))
+    .sort((a, b) => String(b.recorded_at).localeCompare(String(a.recorded_at)))
+    .slice(0, 8)
+    .map((r) => {
+      const s = byId.get(r.sensor_id)
+      return {
+        id: `${r.sensor_id}-${r.recorded_at}`,
+        at: clock(r.recorded_at),
+        text: `${s.code} · ${num(r.value)} ${s.unit || ''}`,
+        state: 'Fuera de rango',
+        tone: 'warn',
+      }
+    })
+  return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ─── Logística ───────────────────────────────────────── */
+
+const routeName = (r) => {
+  const c = String(r?.code || r?.name || '').trim()
+  return /^ruta\b/i.test(c) ? c : `Ruta ${c}`.trim()
+}
+
+export function logisticsLeaderBoard({
+  orders = [],
+  remittances = [],
+  routes = [],
+  deliveries = [],
+  drivers = [],
+  preops = [],
+  customers = [],
+  now = new Date(),
+}) {
+  const today = localDate(now)
+  const customerName = new Map(customers.map((c) => [c.id, c.name || c.business_name || c.full_name]))
+  const withRemittance = new Set(remittances.filter((r) => r.status !== 'cancelled').map((r) => r.order_id))
+  const decisions = []
+
+  const fleet = driversPreopToday({ drivers, preops, now })
+  for (const f of fleet.filter((x) => x.state === 'findings')) {
+    decisions.push({
+      id: `preop-${f.report.id}`,
+      tone: 'danger',
+      title: `${f.report.vehicle_plate || 'Vehículo'} con hallazgos en el preoperacional`,
+      detail: `${f.driver.full_name || ''}${f.report.commitments ? ` · ${f.report.commitments}` : ''} · reasigne la ruta si no puede salir`,
+      action: { kind: 'nav', tab: 'preoperacional', label: 'Ver preoperacional' },
+    })
+  }
+
+  const pendingOrders = orders.filter((o) => ['confirmed', 'scheduled'].includes(o.status) && !withRemittance.has(o.id))
+  pendingOrders.sort((a, b) => String(a.delivery_date || '9').localeCompare(String(b.delivery_date || '9')))
+  for (const o of pendingOrders) {
+    const soon = o.delivery_date && String(o.delivery_date) <= localDate(new Date(now.getTime() + DAY_MS))
+    decisions.push({
+      id: `order-${o.id}`,
+      tone: soon ? 'warn' : 'info',
+      title: `Pedido ${o.code || ''} ${o.status === 'scheduled' ? 'programado' : 'confirmado'} sin remisión`,
+      detail: [
+        customerName.get(o.customer_id),
+        `${num((Number(o.qty_females) || 0) + (Number(o.qty_males) || 0))} pollitos`,
+        o.delivery_date ? `entrega ${o.delivery_date}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'logistica', label: 'Crear remisión' },
+    })
+  }
+
+  for (const r of routes.filter((x) => x.status === 'planned' && !x.driver_id)) {
+    decisions.push({
+      id: `route-${r.id}`,
+      tone: 'warn',
+      title: `${routeName(r)} sin conductor`,
+      detail: r.name || 'Planeada',
+      action: { kind: 'nav', tab: 'logistica', label: 'Asignar conductor' },
+    })
+  }
+
+  for (const d of drivers.filter((x) => x.active !== false && x.on_route)) {
+    const mins = d.last_location_at ? Math.round((now - new Date(d.last_location_at)) / 60000) : null
+    if (mins != null && mins < 20) continue
+    decisions.push({
+      id: `gps-${d.id}`,
+      tone: 'info',
+      title: `Sin ubicación de ${d.full_name || 'conductor'} ${mins == null ? 'desde que salió' : `hace ${mins} min`}`,
+      detail: [d.vehicle, d.plate].filter(Boolean).join(' · ') || 'En ruta',
+      action: { kind: 'nav', tab: 'logistica', label: 'Ver en el mapa' },
+    })
+  }
+
+  const dispatchToday = remittances.filter(
+    (r) => String(r.dispatch_date || '').slice(0, 10) === today && r.status !== 'cancelled',
+  )
+  const delivToday = deliveries.filter(
+    (d) => localDate(d.arrived_at || d.departed_at || d.created_at) === today && d.operation_type !== 'pickup',
+  )
+  const kpis = [
+    {
+      label: 'Despachos hoy',
+      value: String(dispatchToday.length),
+      sub: `${dispatchToday.filter((r) => r.status === 'delivered').length} entregados`,
+      tone: null,
+    },
+    {
+      label: 'Rutas en curso',
+      value: String(routes.filter((r) => r.status === 'en_route').length),
+      sub: `${drivers.filter((d) => d.on_route).length} en ruta ahora`,
+      tone: null,
+    },
+    {
+      label: 'Paradas de hoy',
+      value: `${delivToday.filter((d) => d.status === 'arrived').length} de ${delivToday.length}`,
+      sub: 'entregas cumplidas',
+      tone: null,
+    },
+    {
+      label: 'Preoperacionales',
+      value: `${fleet.filter((f) => f.report).length} de ${fleet.length}`,
+      sub: `${fleet.filter((f) => f.state === 'findings').length} con hallazgo`,
+      tone: fleet.some((f) => f.state === 'findings')
+        ? 'danger'
+        : fleet.some((f) => f.state === 'pending')
+          ? 'warn'
+          : null,
+    },
+  ]
+  const routeByDriver = new Map(
+    routes.filter((r) => r.status === 'en_route' || r.status === 'planned').map((r) => [r.driver_id, r]),
+  )
+  const team = fleet.map(({ driver, state }) => {
+    const r = routeByDriver.get(driver.id)
+    return {
+      id: driver.id,
+      name: driver.full_name || 'Conductor',
+      role: [driver.vehicle, driver.plate].filter(Boolean).join(' · ') || 'Conductor',
+      doing: r
+        ? `${routeName(r)} · ${r.status === 'en_route' ? 'en ruta' : 'planeada'}`
+        : driver.on_route
+          ? 'En ruta'
+          : 'Sin ruta asignada',
+      value: state === 'pending' ? 'Preop. pendiente' : state === 'ok' ? 'Preop. al día' : 'Preop. con hallazgo',
+      tone: state === 'ok' ? 'ok' : state === 'pending' ? 'warn' : 'danger',
+    }
+  })
+  const tomorrow = localDate(new Date(now.getTime() + DAY_MS))
+  const plan = remittances
+    .filter((r) => r.status !== 'cancelled' && [today, tomorrow].includes(String(r.dispatch_date || '').slice(0, 10)))
+    .sort((a, b) => String(a.dispatch_date).localeCompare(String(b.dispatch_date)))
+    .map((r) => ({
+      id: r.id,
+      at: String(r.dispatch_date).slice(0, 10) === today ? 'Hoy' : 'Mañ.',
+      text: [
+        r.code || 'Remisión',
+        customerName.get(r.customer_id),
+        `${num((Number(r.qty_females) || 0) + (Number(r.qty_males) || 0))} pollitos`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      state: r.status === 'delivered' ? 'Entregada' : r.status === 'dispatched' ? 'Despachada' : 'Por despachar',
+      tone: r.status === 'delivered' ? 'ok' : r.status === 'dispatched' ? 'info' : 'warn',
+    }))
   return { decisions: decisions.sort(byTone), kpis, team, plan }
 }

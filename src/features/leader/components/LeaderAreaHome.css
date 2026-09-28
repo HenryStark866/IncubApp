@@ -305,6 +305,9 @@
 .lh-st.tone-warn {
   color: var(--amber);
 }
+.lh-st.tone-danger {
+  color: var(--danger);
+}
 .lh-st.tone-info {
   color: var(--text);
 }

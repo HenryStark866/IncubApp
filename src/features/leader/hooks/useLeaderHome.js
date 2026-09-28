@@ -134,7 +134,125 @@ async function loadMaintenance({ orgId }) {
   }
 }
 
-const LOADERS = { plant: loadPlant, maintenance: loadMaintenance }
+const daysAhead = (n) => new Date(Date.now() + n * 86400000)
+const ymd = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const loadPreops = (orgId) =>
+  rows('vehicle_preop_reports', (q) =>
+    q
+      .select(
+        'id, driver_user_id, driver_name, vehicle_plate, route_name, inspection_date, compliant, commitments, status, created_at',
+      )
+      .eq('org_id', orgId)
+      .gte('inspection_date', ymd(daysAgo(10)))
+      .order('created_at', { ascending: false })
+      .limit(300),
+  )
+const loadDrivers = (orgId) =>
+  rows('logistics_drivers', (q) =>
+    q
+      .select('id, full_name, vehicle, plate, user_id, active, on_route, last_location_at')
+      .eq('org_id', orgId)
+      .limit(100),
+  )
+
+async function loadSst({ orgId }) {
+  const [preops, supplies, drivers] = await Promise.all([
+    loadPreops(orgId),
+    rows('area_inventories', (q) =>
+      q
+        .select('id, item_name, unit, qty_on_hand, min_qty, location')
+        .eq('org_id', orgId)
+        .eq('category', 'supplies')
+        .limit(300),
+    ),
+    loadDrivers(orgId),
+  ])
+  return {
+    preops: preops.data,
+    supplies: supplies.data,
+    drivers: drivers.data,
+    errors: [preops, supplies, drivers].map((r) => r.error).filter(Boolean),
+  }
+}
+
+async function loadEnvironmental({ orgId }) {
+  const [sensors, readings] = await Promise.all([
+    rows('sensors', (q) =>
+      q.select('id, code, kind, unit, min_threshold, max_threshold, status').eq('org_id', orgId).limit(200),
+    ),
+    rows('sensor_readings', (q) =>
+      q
+        .select('sensor_id, value, recorded_at')
+        .eq('org_id', orgId)
+        .gte('recorded_at', daysAgo(3).toISOString())
+        .order('recorded_at', { ascending: false })
+        .limit(2000),
+    ),
+  ])
+  return {
+    sensors: sensors.data,
+    readings: readings.data,
+    errors: [sensors, readings].map((r) => r.error).filter(Boolean),
+  }
+}
+
+async function loadLogistics({ orgId }) {
+  const [orders, remittances, routes, deliveries, drivers, preops, customers] = await Promise.all([
+    rows('sales_orders', (q) =>
+      q
+        .select('id, code, customer_id, status, qty_females, qty_males, delivery_date')
+        .eq('org_id', orgId)
+        .in('status', ['confirmed', 'scheduled'])
+        .limit(200),
+    ),
+    rows('sales_remittances', (q) =>
+      q
+        .select('id, code, order_id, customer_id, dispatch_date, status, qty_females, qty_males')
+        .eq('org_id', orgId)
+        .gte('dispatch_date', ymd(daysAgo(30)))
+        .lte('dispatch_date', ymd(daysAhead(7)))
+        .limit(400),
+    ),
+    rows('logistics_routes', (q) =>
+      q
+        .select('id, code, name, driver_id, status, started_at')
+        .eq('org_id', orgId)
+        .in('status', ['planned', 'en_route'])
+        .limit(100),
+    ),
+    rows('logistics_deliveries', (q) =>
+      q
+        .select('id, route_id, operation_type, status, departed_at, arrived_at, created_at')
+        .eq('org_id', orgId)
+        .gte('created_at', daysAgo(2).toISOString())
+        .limit(400),
+    ),
+    loadDrivers(orgId),
+    loadPreops(orgId),
+    rows('customers', (q) => q.select('id, name').eq('org_id', orgId).limit(500)),
+  ])
+  const all = [orders, remittances, routes, deliveries, drivers, preops, customers]
+  return {
+    orders: orders.data,
+    remittances: remittances.data,
+    routes: routes.data,
+    deliveries: deliveries.data,
+    drivers: drivers.data,
+    preops: preops.data,
+    customers: customers.data,
+    errors: all.map((r) => r.error).filter(Boolean),
+  }
+}
+
+const LOADERS = {
+  plant: loadPlant,
+  maintenance: loadMaintenance,
+  sst: loadSst,
+  environmental: loadEnvironmental,
+  logistics: loadLogistics,
+}
 
 export function useLeaderHome({ kind, orgId }) {
   const [state, setState] = useState({

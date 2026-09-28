@@ -12,7 +12,14 @@ import { bogotaDate } from '../../../lib/complianceEngine'
 import { requestWorkOrderFromRound } from '../../../lib/roundActions'
 import { openEvidenceFormat, workOrderRecordItem } from '../../../lib/sigRecordDocuments'
 import { clock, initials, teamOnShift } from '../../shift/lib/shiftHome'
-import { leaderKind, maintenanceLeaderBoard, plantLeaderBoard } from '../lib/leaderHome'
+import {
+  environmentalLeaderBoard,
+  leaderKind,
+  logisticsLeaderBoard,
+  maintenanceLeaderBoard,
+  plantLeaderBoard,
+  sstLeaderBoard,
+} from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import './LeaderAreaHome.css'
 
@@ -29,6 +36,34 @@ const TITLES = {
     plan: 'Programado en la semana',
     planSub: 'preventivos y calibraciones',
   },
+  sst: {
+    team: 'Conductores',
+    teamSub: 'preoperacional del vehículo hoy',
+    plan: 'Preoperacionales de hoy',
+    planSub: 'FOSST22',
+    empty: 'No hay conductores activos registrados.',
+  },
+  environmental: {
+    team: 'Sensores de ambiente',
+    teamSub: 'última lectura de cada uno',
+    plan: 'Fuera de rango hoy',
+    planSub: 'lecturas de los sensores',
+    empty: 'No hay sensores registrados. Se agregan en IoT.',
+  },
+  logistics: {
+    team: 'Conductores',
+    teamSub: 'ruta y preoperacional de hoy',
+    plan: 'Despachos de hoy y mañana',
+    planSub: 'remisiones',
+    empty: 'No hay conductores activos registrados.',
+  },
+}
+
+const BOARDS = {
+  maintenance: maintenanceLeaderBoard,
+  sst: sstLeaderBoard,
+  environmental: environmentalLeaderBoard,
+  logistics: logisticsLeaderBoard,
 }
 
 function Decision({ d, busy, onAction, technicians }) {
@@ -103,12 +138,12 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
 
   const board = useMemo(() => {
     if (!data) return null
-    if (kind === 'maintenance') return maintenanceLeaderBoard({ ...data })
+    if (BOARDS[kind]) return BOARDS[kind]({ ...data })
     return plantLeaderBoard({ ...data, slot })
   }, [data, kind, slot])
 
   const team = useMemo(() => {
-    if (kind === 'maintenance') return board?.team || []
+    if (kind !== 'plant') return board?.team || []
     const roundsByUser = {}
     for (const r of perf.rounds || []) {
       if (String(r.shift_date || '').startsWith(today)) roundsByUser[r.user_id] = (roundsByUser[r.user_id] || 0) + 1
@@ -252,7 +287,7 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
                 <p className="lh-empty">
                   {kind === 'maintenance'
                     ? 'No hay técnicos de mantenimiento en la empresa.'
-                    : 'Nadie programado ni con ingreso en este turno.'}
+                    : titles.empty || 'Nadie programado ni con ingreso en este turno.'}
                 </p>
               ) : (
                 team.map((p) => (
@@ -273,7 +308,7 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
                         <b>{p.value}</b>
                       </span>
                     ) : (
-                      <span className="lh-person-value">{p.value}</span>
+                      <span className={`lh-person-value${p.tone ? ` lh-st tone-${p.tone}` : ''}`}>{p.value}</span>
                     )}
                   </div>
                 ))
