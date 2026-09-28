@@ -19,6 +19,8 @@ import { useNotifications } from '../hooks/useNotifications'
 import ListControls, { useListControls } from './ListControls'
 import { IncidentReportView, WorkOrdersView, ShiftActivitiesView, MerchandiseView } from './ShiftOpsPanels'
 import { conditionOf } from '../lib/machineCondition'
+import { roundMachines, roundRoomOf } from '../lib/roundRecords'
+import { openRoundFormat } from '../lib/roundFormat'
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
 import {
@@ -104,8 +106,8 @@ const ALARM_TYPES = [
 
 const SHIFT_LABEL = { 1: 'T1 (06–14)', 2: 'T2 (14–22)', 3: 'T3 (22–06)' }
 
-// La ronda del turno solo cubre salas de incubadoras, nacedoras y cuartos técnicos
-const ROUND_ROOM_TYPES = ['incubation', 'hatching', 'technical']
+// La ronda del turno solo cubre salas de incubadoras, nacedoras y cuartos técnicos:
+// esa regla vive en lib/roundRecords (roundMachines), la misma del FOMAT04.
 
 const fmtTime = (iso) =>
   new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
@@ -394,7 +396,7 @@ function MachineCapture({ machine, mc, onDone }) {
 }
 
 /* ── Vista de ronda del turno actual ───────────────────────── */
-function RoundView({ mc, plants, rooms, machines }) {
+function RoundView({ orgId, mc, plants, rooms, machines }) {
   const { hour, shift, shiftDate } = currentSlot()
   // Recordar dónde iba la ronda (misma hora/turno) si el operario sale de la app un momento
   const saved = (() => {
@@ -407,6 +409,8 @@ function RoundView({ mc, plants, rooms, machines }) {
   const [roomId, setRoomId] = useState(saved?.roomId ?? null)
   const [captureId, setCaptureId] = useState(null)
   const [closing, setClosing] = useState(false)
+  const [formatBusy, setFormatBusy] = useState(false)
+  const [formatMsg, setFormatMsg] = useState(null)
 
   useEffect(() => {
     try { localStorage.setItem('round_ui_state', JSON.stringify({ shiftDate, hour, plantId, roomId })) } catch { /* sin almacenamiento */ }
@@ -423,16 +427,7 @@ function RoundView({ mc, plants, rooms, machines }) {
   // viven en la plataforma exterior pero sus tableros —donde se hace la lectura y
   // la foto— están en la sala técnica. Para eso está `panel_room_id`; sin él la
   // sala se quedaba sin equipos y desaparecía de la lista del operario.
-  const roundRoomOf = (m) => m.panel_room_id || m.room_id
-  const eligibleMachines = machines.filter(
-    (m) => m.plant_id === plantId && m.status !== 'decommissioned' && roundRoomOf(m)
-  )
-  const roomsWithMachine = new Set(eligibleMachines.map(roundRoomOf))
-  const plantRooms = rooms.filter(
-    (r) => r.plant_id === plantId && ROUND_ROOM_TYPES.includes(r.type) && roomsWithMachine.has(r.id)
-  )
-  const roundRoomIds = new Set(plantRooms.map((r) => r.id))
-  const plantMachines = eligibleMachines.filter((m) => roundRoomIds.has(roundRoomOf(m)))
+  const { rooms: plantRooms, machines: plantMachines } = roundMachines({ machines, rooms, plantId })
 
   const roomMachines = plantMachines.filter((m) => roundRoomOf(m) === roomId)
 
@@ -453,9 +448,24 @@ function RoundView({ mc, plants, rooms, machines }) {
     )
     if (!ok) return
     setClosing(true)
-    await mc.closeRound(plantId, pendingPlant.map((m) => m.id))
+    const res = await mc.closeRound(plantId, pendingPlant.map((m) => m.id))
     setClosing(false)
     setRoomId(null)
+    // La ronda terminada queda en su FOMAT04: todas las fotos de la hora, las
+    // lecturas de cada máquina y las apagadas (sin foto).
+    if (!res?.error) await openFormat()
+  }
+
+  const openFormat = async () => {
+    setFormatMsg(null)
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setFormatMsg('Sin conexión: el formato de la ronda se genera cuando las fotos se suban al servidor.')
+      return
+    }
+    setFormatBusy(true)
+    const { error } = await openRoundFormat({ orgId, shiftDate, shiftNumber: shift, hour, plantId })
+    setFormatBusy(false)
+    if (error) setFormatMsg(error)
   }
 
   return (
@@ -471,8 +481,14 @@ function RoundView({ mc, plants, rooms, machines }) {
           <button className="chip ghost" onClick={finishRound} disabled={closing || plantMachines.length === 0}>
             {closing ? 'Cerrando…' : '🏁 Terminar ronda'}
           </button>
+          {checksNow.some((c) => !c.offline) && (
+            <button className="chip ghost" onClick={openFormat} disabled={formatBusy}>
+              {formatBusy ? 'Generando…' : '📄 Formato de la ronda'}
+            </button>
+          )}
         </span>
       </div>
+      {formatMsg && <p className="msg error" style={{ marginTop: 8 }}>{formatMsg}</p>}
 
       {plants.length > 1 && (
         <div className="plant-chips">
@@ -1548,7 +1564,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
       ) : mc.loading && mc.checks.length === 0 ? (
         <p className="hint">Cargando…</p>
       ) : view === 'ronda' ? (
-        <RoundView mc={mc} plants={plants} rooms={rooms} machines={machines} />
+        <RoundView orgId={orgId} mc={mc} plants={plants} rooms={rooms} machines={machines} />
       ) : (
         <HistoryView mc={mc} machines={machines} team={team} canDelete={['owner', 'admin'].includes(role)} />
       )}

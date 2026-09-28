@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { groupChecksIntoRounds } from '../../../lib/roundRecords';
+import { READING_COLUMNS } from '../../../lib/machineReadings';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
 import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
@@ -1345,7 +1347,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .order('created_at', { ascending: false })),
         safeRows('las rondas', supabase
           .from('machine_checks')
-          .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
+          .select(`id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path, ${READING_COLUMNS.join(', ')}`)
           .eq('org_id', orgId)
           .order('taken_at', { ascending: false })
           .limit(2000)),
@@ -1363,7 +1365,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .order('created_at', { ascending: false })
           .limit(1000)),
         // Sin filtro de org, como en el resto de la app: la RLS ya limita las máquinas visibles.
-        safeRows('las máquinas', supabase.from('machines').select('id, code, name')),
+        safeRows('las máquinas', supabase.from('machines').select('id, code, name, type')),
         paginatedRows('el registro SIG', () => supabase
           .from('sig_evidence')
           .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
@@ -1468,47 +1470,24 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         url: registryUrls.get(file.file_path) || null,
       }));
       const withAuthor = (reports = []) => reports.map((report) => ({ ...report, authorName: personName(report.user_id) }));
-      const checksByRound = new Map();
-      for (const check of checksResult.rows) {
-        const rawShift = check.shift_number || 'T?';
-        const shiftCode = String(rawShift).startsWith('T') ? rawShift : `T${rawShift}`;
-        const key = `${check.shift_date || 'sin-fecha'}|${shiftCode}|${check.hour_slot || 'H?'}`;
-        checksByRound.set(key, [...(checksByRound.get(key) || []), check]);
-      }
       const reportsByRound = new Map();
       for (const report of reportsResult.rows) {
         const key = `${report.shift_date || 'sin-fecha'}|${report.shift_code || 'T?'}`;
         reportsByRound.set(key, [...(reportsByRound.get(key) || []), report]);
       }
-      const rounds = Array.from(checksByRound.entries()).map(([key, checks]) => {
-        const [shiftDate, shiftNumber, hourSlot] = key.split('|');
-        const items = checks.map((check) => ({
-          ...check,
-          url: check.photo_path ? checkUrls.get(check.photo_path) || null : null,
-          machine: machineMap[check.machine_id] || null,
-          takenByName: personName(check.taken_by),
-        }));
-        const latest = checks.reduce((date, check) => check.taken_at > date ? check.taken_at : date, checks[0]?.taken_at || null);
-        return {
-          id: `round-${key}`,
-          file_name: `Ronda ${shiftDate} · ${shiftNumber} · ${hourSlot}`,
-          file_type: 'round',
-          formatCode: 'FOMAT04',
-          workOrderTitle: 'Ronda de inspección',
-          note: `${checks.length} máquinas reportadas en una sola ronda`,
-          created_at: latest,
-          source: 'incubapp',
-          kind: 'round',
-          shiftDate,
-          shiftCode: shiftNumber,
-          hourSlot,
-          items,
-          reports: withAuthor(reportsByRound.get(`${shiftDate}|${shiftNumber}`)),
-          url: items.find((item) => item.url)?.url || null,
-        };
-      });
+      // Una ronda = una hora del turno en la planta, con todas sus fotos (lib/roundRecords).
+      const rounds = groupChecksIntoRounds(checksResult.rows, {
+        machinesById: machineMap,
+        nameOf: personName,
+        urlOf: (path) => checkUrls.get(path) || null,
+      }).map((round) => ({
+        ...round,
+        source: 'incubapp',
+        reports: withAuthor(reportsByRound.get(`${round.shiftDate}|${round.shiftCode}`)),
+      }));
+      const shiftsWithChecks = new Set(rounds.map((round) => `${round.shiftDate}|${round.shiftCode}`));
       for (const [key, reports] of reportsByRound.entries()) {
-        if (Array.from(checksByRound.keys()).some((checkKey) => checkKey.startsWith(`${key}|`))) continue;
+        if (shiftsWithChecks.has(key)) continue;
         const [shiftDate, shiftNumber] = key.split('|');
         rounds.push({
           id: `round-report-${key}`,

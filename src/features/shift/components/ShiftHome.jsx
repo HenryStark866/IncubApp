@@ -7,11 +7,13 @@
  * El líder de área conserva su LeaderDashboard: no pasa por aquí.
  * Henry Stark Desarrollador · CDH Maker
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ROLE_LABEL } from '../../../lib/roles'
 import { usePerformance } from '../../../hooks/usePerformance'
 import { bogotaDate } from '../../../lib/complianceEngine'
 import { useShiftHome } from '../hooks/useShiftHome'
+import { groupChecksIntoRounds } from '../../../lib/roundRecords'
+import { openRoundFormat } from '../../../lib/roundFormat'
 import {
   SHIFT_WINDOWS,
   assignmentKind,
@@ -47,6 +49,7 @@ const Icon = {
   truck: (s) => svg(<><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17.5" r="1.5" /><circle cx="17" cy="17.5" r="1.5" /></>, s),
   plant: (s) => svg(<><path d="M3 21V8l9-5 9 5v13" /><path d="M8 21v-7h8v7" /></>, s),
   wrench: (s) => svg(<path d="M14 3l7 7-11 11H3v-7z" />, s),
+  doc: (s) => svg(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></>, s),
   refresh: (s) => svg(<><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></>, s),
 }
 
@@ -109,8 +112,72 @@ function Note({ error }) {
   return error ? <p className="sh-note" role="status">{error}</p> : null
 }
 
+/* ── Rondas del turno con su FOMAT04 ────────────────────────────────────── */
+function ShiftRounds({ orgId, slot, checks, onlyUser = null, loading }) {
+  const [busy, setBusy] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const rounds = useMemo(() => {
+    const all = groupChecksIntoRounds(checks || [])
+    return onlyUser ? all.filter((r) => r.takenBy.includes(onlyUser)) : all
+  }, [checks, onlyUser])
+
+  const open = async (round) => {
+    setMsg(null)
+    if (navigator.onLine === false) {
+      setMsg('Sin conexión: el formato se genera cuando las fotos estén en el servidor.')
+      return
+    }
+    setBusy(round.key)
+    const { error } = await openRoundFormat({
+      orgId,
+      shiftDate: round.shiftDate,
+      shiftNumber: round.shiftNumber,
+      hour: round.hour,
+      plantId: round.plantId,
+    })
+    setBusy(null)
+    if (error) setMsg(error)
+  }
+
+  return (
+    <>
+      <div className="sh-section-head">
+        <h2 className="sh-h2">Rondas del turno</h2>
+        <span className="sh-count">{rounds.length} ronda{rounds.length === 1 ? '' : 's'}</span>
+      </div>
+      {msg ? <p className="sh-note" role="status">{msg}</p> : null}
+      <div className="sh-card">
+        {rounds.length === 0 ? (
+          <p className="sh-empty">
+            {loading ? 'Cargando…' : `Aún no hay rondas en el turno ${slot.shift}. Cada hora con fotos de máquinas es una ronda.`}
+          </p>
+        ) : (
+          <ul className="sh-list">
+            {rounds.map((r) => (
+              <li key={r.key}>
+                <button type="button" className="sh-row" onClick={() => open(r)} disabled={busy === r.key}>
+                  <span className="sh-badge sh-badge-blue">{Icon.doc(18)}</span>
+                  <span className="sh-row-main">
+                    <span className="sh-row-title">{r.hourSlot || 'Ronda'}</span>
+                    <span className="sh-row-sub">
+                      {r.photos} foto{r.photos === 1 ? '' : 's'}
+                      {r.off ? ` · ${r.off} apagada${r.off === 1 ? '' : 's'}` : ''}
+                      {r.takenBy.length > 1 ? ` · ${r.takenBy.length} personas` : ''}
+                    </span>
+                  </span>
+                  <span className="sh-tag sh-tag-accent">{busy === r.key ? 'Generando…' : 'Ver formato'}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  )
+}
+
 /* ── Operario / auxiliar de turno ───────────────────────────────────────── */
-function OperatorView({ home, perf, first, go }) {
+function OperatorView({ home, perf, first, go, orgId, userId }) {
   const { slot, data, loading } = home
   const done = perf.myRoundsToday.length
   const min = perf.minRounds
@@ -145,13 +212,15 @@ function OperatorView({ home, perf, first, go }) {
             ))}
           </div>
           <p className="sh-hero-sub">
-            {data ? `${data.myPhotos} foto${data.myPhotos === 1 ? '' : 's'} de máquinas tuyas en este turno` : 'Cargando fotos del turno…'}
+            {data
+              ? `Cada hora con fotos de máquinas cuenta como una ronda · ${data.myPhotos} foto${data.myPhotos === 1 ? '' : 's'} tuya${data.myPhotos === 1 ? '' : 's'} este turno`
+              : 'Cargando fotos del turno…'}
           </p>
           <button type="button" className="sh-btn sh-btn-hero" onClick={() => go('supervision')}>
             {Icon.camera(22)}Tomar foto de ronda
           </button>
           <button type="button" className="sh-link" onClick={() => go('cumplimiento')}>
-            Enviar reporte de ronda
+            Agregar un reporte escrito
           </button>
         </section>
 
@@ -192,6 +261,8 @@ function OperatorView({ home, perf, first, go }) {
             </ul>
           )}
         </div>
+
+        <ShiftRounds orgId={orgId} slot={slot} checks={data?.checks} onlyUser={userId} loading={loading && !data} />
 
         <div className="sh-grid-2">
           <button type="button" className="sh-card sh-tile" onClick={() => go('monitoreo')}>
@@ -458,7 +529,7 @@ function ReceptionView({ home, perf, go }) {
 /* ── Supervisor ─────────────────────────────────────────────────────────── */
 const DOT = { fault: 'var(--sh-fault)', warning: 'var(--sh-warn-dot)' }
 
-function SupervisorView({ home, perf, go }) {
+function SupervisorView({ home, perf, go, orgId }) {
   const { slot, data, loading } = home
   const today = bogotaDate()
   const health = machineHealth(data?.checks || [], data?.machines || [])
@@ -594,6 +665,8 @@ function SupervisorView({ home, perf, go }) {
           )}
         </div>
 
+        <ShiftRounds orgId={orgId} slot={slot} checks={data?.checks} loading={loading && !data} />
+
         <div className="sh-grid-2">
           <button type="button" className="sh-btn sh-btn-primary" style={{ fontSize: 15 }} onClick={() => go('supervision')}>
             Asignar actividad
@@ -628,7 +701,7 @@ export default function ShiftHome({ orgId, userId, role, area, userName, onNavig
   const View = kind === 'supervisor' ? SupervisorView : kind === 'production' ? ProductionView : kind === 'reception' ? ReceptionView : OperatorView
   return (
     <div className="sh-root" data-kind={kind || 'operator'}>
-      <View home={home} perf={perf} first={first} go={go} />
+      <View home={home} perf={perf} first={first} go={go} orgId={orgId} userId={userId} />
     </div>
   )
 }

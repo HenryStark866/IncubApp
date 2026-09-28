@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { photoRoundsByUser, roundsForCompliance } from '../lib/roundRecords'
 import {
   BONUS_FUND_NOTE,
   BONUS_MIN_CONTINUOUS_DAYS,
@@ -103,14 +104,18 @@ export function usePerformance({ orgId, userId, role, area }) {
       .order('punched_at', { ascending: false })
       .limit(3000)
 
-    const [mem, tgt, rnd, lab, use, att] = await Promise.all([
+    const [mem, tgt, rnd, lab, use, att, photoChecks] = await Promise.all([
       memP,
       tgtP,
       rndP,
       labP,
       useP,
       attP,
+      loadPhotoChecks(orgId, daysAgo(35)),
     ])
+    // Las fotos de Supervisión cuentan como ronda: cada hora del turno en que
+    // alguien tomó fotos es una ronda para esa persona (lib/roundRecords).
+    const photoRounds = photoRoundsByUser(photoChecks)
 
     if (!mem.error) {
       setMembers(
@@ -139,7 +144,7 @@ export function usePerformance({ orgId, userId, role, area }) {
       setLocalMode(true)
       setError(cloudFail ? null : tgt.error?.message || rnd.error?.message || null)
       setTargets(localListTargets(orgId))
-      setRounds(localListRounds(orgId))
+      setRounds(roundsForCompliance(localListRounds(orgId), photoRounds))
       setLabors(localListLabors(orgId))
       // usage map local
       const um = {}
@@ -157,10 +162,12 @@ export function usePerformance({ orgId, userId, role, area }) {
       setLocalMode(false)
       setError(null)
       setTargets(tgt.data ?? [])
-      setRounds([
-        ...(rnd.data ?? []),
-        ...localListRounds(orgId).filter((r) => r._local),
-      ])
+      setRounds(
+        roundsForCompliance(
+          [...(rnd.data ?? []), ...localListRounds(orgId).filter((r) => r._local)],
+          photoRounds
+        )
+      )
       setLabors([
         ...(lab.data ?? []),
         ...localListLabors(orgId).filter((r) => r._local),
@@ -506,6 +513,31 @@ export function usePerformance({ orgId, userId, role, area }) {
     role,
     area,
   }
+}
+
+/**
+ * Fotos de máquinas (sin las marcas de «apagada») desde `since`, por páginas:
+ * el servidor entrega máximo 1.000 filas por consulta. Si la tabla no responde
+ * se sigue sin ellas (el cumplimiento usa entonces solo los reportes escritos).
+ */
+async function loadPhotoChecks(orgId, since) {
+  const PAGE = 1000
+  const out = []
+  for (let page = 0; page < 30; page += 1) {
+    const { data, error } = await supabase
+      .from('machine_checks')
+      .select('taken_by, taken_at, shift_date, shift_number, hour_slot, plant_id, condition, photo_path')
+      .eq('org_id', orgId)
+      .gte('shift_date', since)
+      .not('photo_path', 'is', null)
+      .neq('condition', 'off')
+      .order('taken_at', { ascending: true })
+      .range(page * PAGE, page * PAGE + PAGE - 1)
+    if (error || !data) break
+    out.push(...data)
+    if (data.length < PAGE) break
+  }
+  return out
 }
 
 function daysAgo(n) {

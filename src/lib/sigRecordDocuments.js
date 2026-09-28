@@ -17,8 +17,9 @@
  */
 
 import { escapeHtml, footerHtml, letterheadCss, letterheadHtml } from './corporateBrand'
+import { readingFieldsFor } from './machineReadings'
 
-const CONDITION_LABEL = { normal: 'Normal', warning: 'Alerta', fault: 'Falla', off: 'Apagada' }
+const CONDITION_LABEL = { normal: 'Normal', warning: 'Alerta', fault: 'Falla', off: 'Apagada', unreported: 'Sin reportar' }
 const SCOPE_LABEL = { temperature: 'Temperatura', humidity: 'Humedad relativa', both: 'Temperatura y humedad' }
 const REASON_LABEL = { inc_window: 'Ventana de incubación', post_hatch: 'Después del nacimiento', pre_transfer: 'Antes de la transferencia', manual: 'Manual' }
 const STATUS_LABEL = { open: 'Abierta', pending: 'Pendiente', in_progress: 'En curso', completed: 'Cerrada', cancelled: 'Cancelada' }
@@ -52,7 +53,7 @@ function photosBlock(photos = []) {
   const valid = photos.filter((photo) => photo?.url)
   if (!valid.length) return ''
   const figures = valid.map((photo) => `<figure><img src="${escapeHtml(photo.url)}" alt="${escapeHtml(photo.label || 'Foto')}"><figcaption>${escapeHtml(photo.label || '')}</figcaption></figure>`).join('')
-  return `<h2>Fotos del registro</h2><div class="record-photos">${figures}</div><p class="record-hint">Las fotos se ven mientras su enlace firmado siga vigente (una hora desde que se abrió el Centro SIG).</p>`
+  return `<h2>Fotos del registro</h2><div class="record-photos">${figures}</div><p class="record-hint">Las fotos se ven mientras su enlace firmado siga vigente (una hora desde que se abrió el formato).</p>`
 }
 
 function documentHtml({ meta, title, body }) {
@@ -62,30 +63,58 @@ function documentHtml({ meta, title, body }) {
 
 const machineLabel = (machine = {}) => [machine.code, machine.name].filter(Boolean).join(' · ')
 
+/** Lecturas de la pantalla de la máquina en una línea: «Temp. aire 99.5 °F · Humedad relativa 55». */
+function readingsText(item = {}) {
+  // Sin tipo de máquina se consideran todas las lecturas posibles (las de incubadora).
+  const own = readingFieldsFor(item.machine?.type)
+  const keys = own.length ? own : readingFieldsFor('setter')
+  const parts = keys
+    .filter((f) => item[f.key] != null && item[f.key] !== '')
+    .map((f) => `${f.label} ${item[f.key]}${f.unidad ? ` ${f.unidad}` : ''}`)
+  return parts.length ? parts.join(' · ') : null
+}
+
+function photoCell(item = {}) {
+  if (item.condition === 'unreported') return 'Sin reportar'
+  if (item.condition === 'off' && !item.photo_path) return 'No aplica (apagada)'
+  if (!item.photo_path) return 'Sin foto'
+  return item.url ? 'Adjunta' : 'Adjunta, no se pudo abrir'
+}
+
 export function roundRecordHtml(round = {}) {
   const items = round.items || []
   const reports = round.reports || []
+  const reported = items.filter((item) => item.condition !== 'unreported')
   const flagged = items.filter((item) => item.condition === 'warning' || item.condition === 'fault').length
+  const off = items.filter((item) => item.condition === 'off').length
+  const unreported = items.length - reported.length
+  const photos = items.filter((item) => item.photo_path && item.condition !== 'off').length
+  const people = [...new Set(reported.map((item) => item.takenByName).filter(Boolean))]
   const body = [
     fieldsTable([
       ['Fecha del turno', round.shiftDate],
       ['Turno', round.shiftCode],
       ['Franja horaria', round.hourSlot],
-      ['Equipos inspeccionados', items.length ? String(items.length) : null],
+      ['Registraron', people.length ? people.join(', ') : null],
+      ['Equipos en la ronda', items.length ? String(items.length) : null],
+      ['Con foto', items.length ? String(photos) : null],
       ['Con alerta o falla', items.length ? String(flagged) : null],
+      ['Apagadas', items.length ? String(off) : null],
+      ...(unreported ? [['Sin reportar', String(unreported)]] : []),
     ]),
     '<h2>Resultado por equipo</h2>',
-    listTable(['Equipo', 'Condición', 'Observaciones', 'Hora', 'Registró', 'Foto'], items.map((item) => [
+    listTable(['Equipo', 'Condición', 'Lecturas', 'Observaciones', 'Hora', 'Registró', 'Foto'], items.map((item) => [
       item.machine?.code || item.machine?.name || item.machine_id,
       CONDITION_LABEL[item.condition] || item.condition,
+      item.condition === 'unreported' || item.condition === 'off' ? '—' : readingsText(item),
       item.notes,
-      formatDateTime(item.taken_at),
-      item.takenByName,
-      item.photo_path ? (item.url ? 'Adjunta' : 'Adjunta, no se pudo abrir') : 'Sin foto',
+      item.condition === 'unreported' ? '—' : formatDateTime(item.taken_at),
+      item.condition === 'unreported' ? '—' : item.takenByName,
+      photoCell(item),
     ]), 'La ronda no tiene equipos reportados.'),
     reports.length ? '<h2>Reportes de la ronda</h2>' : '',
     reports.length ? listTable(['Título', 'Detalle', 'Reportó', 'Hora'], reports.map((report) => [report.title, report.body, report.authorName, formatDateTime(report.created_at)])) : '',
-    photosBlock(items.map((item) => ({ url: item.url, label: item.machine?.code || item.machine?.name || 'Equipo' }))),
+    photosBlock(items.map((item) => ({ url: item.url, label: [item.machine?.code || item.machine?.name || 'Equipo', CONDITION_LABEL[item.condition]].filter(Boolean).join(' · ') }))),
   ].join('')
   return documentHtml({ meta: { fomatCode: 'FOMAT04' }, title: `FOMAT04 · ${round.file_name || 'Ronda'}`, body })
 }

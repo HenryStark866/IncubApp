@@ -43,7 +43,7 @@ async function loadOperator({ orgId, userId, slot }) {
     ),
     rows('machine_checks', (q) =>
       q
-        .select('id, machine_id, taken_by, taken_at, hour_slot, condition, notes')
+        .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
         .eq('org_id', orgId)
         .eq('shift_date', slot.shiftDate)
         .eq('shift_number', slot.shift)
@@ -142,7 +142,7 @@ async function loadSupervisor({ orgId, slot }) {
     ),
     rows('machine_checks', (q) =>
       q
-        .select('id, machine_id, taken_by, taken_at, hour_slot, condition, notes')
+        .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
         .eq('org_id', orgId)
         .eq('shift_date', slot.shiftDate)
         .eq('shift_number', slot.shift)
