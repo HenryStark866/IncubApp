@@ -47,6 +47,7 @@ export const PlatformDevTools = panelLoader(() => import('./PlatformDevTools'))
 
 // —— Operación diaria ——
 export const TodayBoard = panelLoader(() => import('./TodayBoard'))
+export const ShiftHome = panelLoader(() => import('../features/shift/components/ShiftHome'))
 export const LeaderDashboard = panelLoader(() => import('./LeaderDashboard'))
 export const LeaderOpsMap = panelLoader(() => import('./LeaderOpsMap'))
 export const SiloReportsPanel = panelLoader(() => import('./SiloReportsPanel'))

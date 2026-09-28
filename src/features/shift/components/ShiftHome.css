@@ -1,0 +1,673 @@
+/*
+ * Pantallas de inicio de la operación de planta (etapa 1 de la remodelación).
+ * Todo va bajo .sh-root para no tocar el resto de la app. Paleta propia con
+ * modo oscuro (html[data-theme="dark"]); las fuentes son las de la app.
+ */
+.sh-root {
+  --sh-ground: #f6f3ee;
+  --sh-surface: #ffffff;
+  --sh-line: #e4ded4;
+  --sh-line-soft: #efeae2;
+  --sh-ink: #1b2233;
+  --sh-muted: #5b6474;
+  --sh-accent: #a8520c;
+  --sh-accent-hover: #7e3d08;
+  --sh-accent-soft: #fcebda;
+  --sh-on-accent: #ffffff;
+  --sh-amber: #f0a45a;
+  --sh-ok: #2f7d4f;
+  --sh-ok-soft: #e6f2ea;
+  --sh-warn: #8a5a0b;
+  --sh-warn-dot: #b7791f;
+  --sh-warn-soft: #fbf1dc;
+  --sh-fault: #b42318;
+  --sh-fault-soft: #fde8e6;
+  --sh-blue: #2c4a86;
+  --sh-blue-soft: #e7ecf6;
+  --sh-hero: #1b2233;
+  --sh-hero-muted: #c9cfda;
+  --sh-hero-track: #3a4458;
+  --sh-hero-tile: #2a3347;
+
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--sh-ground);
+  color: var(--sh-ink);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 140px);
+  overflow: hidden;
+}
+
+html[data-theme='dark'] .sh-root {
+  --sh-ground: #12161f;
+  --sh-surface: #1a202c;
+  --sh-line: #2a3242;
+  --sh-line-soft: #232a38;
+  --sh-ink: #eef1f6;
+  --sh-muted: #a7b0c0;
+  --sh-accent: #f0a45a;
+  --sh-accent-hover: #f6c08a;
+  --sh-accent-soft: #3a2a1c;
+  --sh-on-accent: #1b2233;
+  --sh-ok: #6cc08f;
+  --sh-ok-soft: #173024;
+  --sh-warn: #e2b25a;
+  --sh-warn-dot: #e2b25a;
+  --sh-warn-soft: #33291a;
+  --sh-fault: #f07a6e;
+  --sh-fault-soft: #3a1c1a;
+  --sh-blue: #9db5e8;
+  --sh-blue-soft: #1e2a44;
+  --sh-hero: #0b0e14;
+  --sh-hero-track: #2a3347;
+  --sh-hero-tile: #1a2130;
+}
+
+.sh-root *,
+.sh-root *::before,
+.sh-root *::after {
+  box-sizing: border-box;
+}
+
+.sh-header {
+  padding: 20px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sh-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.sh-eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sh-muted);
+}
+.sh-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sh-ink);
+}
+.sh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.sh-chip-ok {
+  color: var(--sh-ok);
+  background: var(--sh-ok-soft);
+}
+.sh-chip-warn {
+  color: var(--sh-warn);
+  background: var(--sh-warn-soft);
+}
+.sh-chip-neutral {
+  color: var(--sh-muted);
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-line);
+}
+.sh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+.sh-icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--sh-line);
+  background: var(--sh-surface);
+  color: var(--sh-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sh-icon-btn:hover {
+  color: var(--sh-ink);
+}
+.sh-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.sh-spin {
+  animation: sh-spin 1s linear infinite;
+}
+@keyframes sh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sh-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sh-note {
+  margin: 0;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--sh-warn-soft);
+  color: var(--sh-warn);
+}
+
+.sh-card {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-line);
+  border-radius: 16px;
+}
+.sh-card-pad {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sh-card-accent {
+  border: 2px solid var(--sh-accent);
+}
+.sh-card-alert {
+  border: 2px solid var(--sh-fault);
+}
+.sh-card-calm {
+  border: 2px solid var(--sh-ok);
+}
+
+.sh-hero {
+  background: var(--sh-hero);
+  border: 1px solid var(--sh-hero);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+html[data-theme='dark'] .sh-hero {
+  border-color: var(--sh-line);
+}
+.sh-hero-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--sh-hero-muted);
+}
+.sh-hero-label {
+  font-weight: 600;
+}
+.sh-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sh-hero .sh-kicker {
+  color: var(--sh-amber);
+}
+.sh-big {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.sh-big-num {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+}
+.sh-big-unit {
+  font-size: 18px;
+  color: var(--sh-hero-muted);
+}
+.sh-segments {
+  display: grid;
+  gap: 6px;
+}
+.sh-segment {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sh-hero-track);
+}
+.sh-segment-on {
+  background: var(--sh-amber);
+}
+.sh-hero-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sh-hero-muted);
+}
+.sh-hero-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sh-hero-tile {
+  background: var(--sh-hero-tile);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sh-hero-tile span:first-child {
+  font-size: 11px;
+  color: var(--sh-hero-muted);
+  font-weight: 600;
+}
+.sh-hero-tile span:last-child {
+  font-size: 15px;
+  font-weight: 700;
+}
+.sh-hero-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sh-btn {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 0;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+.sh-btn-primary {
+  background: var(--sh-accent);
+  color: var(--sh-on-accent);
+}
+.sh-btn-primary:hover {
+  background: var(--sh-accent-hover);
+}
+.sh-btn-hero {
+  background: var(--sh-amber);
+  color: #1b2233;
+}
+.sh-btn-hero:hover {
+  background: #f6c08a;
+}
+.sh-btn-outline {
+  background: var(--sh-surface);
+  color: var(--sh-ink);
+  border: 1.5px solid var(--sh-ink);
+}
+.sh-link {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  min-height: 32px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sh-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sh-hero .sh-link {
+  color: var(--sh-amber);
+}
+.sh-link:hover {
+  color: var(--sh-accent-hover);
+}
+
+.sh-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 4px 0;
+}
+.sh-h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.sh-count {
+  font-size: 13px;
+  color: var(--sh-muted);
+}
+
+.sh-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sh-list > li + li {
+  border-top: 1px solid var(--sh-line-soft);
+}
+.sh-row {
+  width: 100%;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--sh-ink);
+  text-align: left;
+  cursor: pointer;
+  min-height: 56px;
+}
+.sh-row:hover {
+  background: var(--sh-line-soft);
+}
+.sh-row-static {
+  cursor: default;
+}
+.sh-row-static:hover {
+  background: none;
+}
+.sh-row-main {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sh-row-title {
+  font-weight: 700;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.sh-row-sub {
+  font-size: 13px;
+  color: var(--sh-muted);
+  overflow-wrap: anywhere;
+}
+.sh-row-time {
+  width: 44px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sh-muted);
+}
+.sh-tag {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.sh-tag-ok {
+  color: var(--sh-ok);
+}
+.sh-tag-warn {
+  color: var(--sh-warn);
+}
+.sh-tag-fault {
+  color: var(--sh-fault);
+}
+.sh-tag-accent {
+  color: var(--sh-accent);
+}
+.sh-tag-muted {
+  color: var(--sh-muted);
+}
+.sh-empty {
+  margin: 0;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--sh-muted);
+}
+
+.sh-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sh-badge-accent {
+  background: var(--sh-accent-soft);
+  color: var(--sh-accent);
+}
+.sh-badge-blue {
+  background: var(--sh-blue-soft);
+  color: var(--sh-blue);
+}
+.sh-badge-warn {
+  background: var(--sh-warn-soft);
+  color: var(--sh-warn);
+}
+.sh-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--sh-blue-soft);
+  color: var(--sh-blue);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sh-avatar-off {
+  background: var(--sh-line-soft);
+  color: var(--sh-muted);
+}
+
+.sh-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.sh-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sh-tile {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font: inherit;
+  color: var(--sh-ink);
+  cursor: pointer;
+  min-height: 44px;
+}
+.sh-tile:hover {
+  border-color: var(--sh-muted);
+}
+.sh-tile-label {
+  font-size: 13px;
+  color: var(--sh-muted);
+  font-weight: 600;
+}
+.sh-tile-value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.sh-stat {
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sh-stat .sh-tile-label {
+  font-size: 12px;
+}
+/* Cada tarjeta toma el ancho de su palabra («Transferencias» es la más larga)
+   y reparten el sobrante, para que ninguna etiqueta se corte en celular. */
+.sh-stats {
+  display: flex;
+  gap: 8px;
+}
+.sh-stats > .sh-stat {
+  flex: 1 1 auto;
+}
+.sh-stats .sh-tile-label {
+  white-space: nowrap;
+}
+.sh-stat-num {
+  font-size: 26px;
+  font-weight: 700;
+}
+.sh-stat-of {
+  font-size: 15px;
+  color: var(--sh-muted);
+  font-weight: 600;
+}
+
+.sh-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sh-step {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+.sh-step-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sh-step-done .sh-step-mark {
+  background: var(--sh-ok);
+  color: #ffffff;
+}
+.sh-step-current .sh-step-mark {
+  background: var(--sh-ink);
+  color: var(--sh-surface);
+}
+.sh-step-next {
+  color: var(--sh-muted);
+}
+.sh-step-next .sh-step-mark {
+  border: 2px solid var(--sh-line);
+}
+
+.sh-attention {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+.sh-attention-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sh-attention-main {
+  flex-grow: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sh-attention .sh-link {
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.sh-spacer {
+  flex-grow: 1;
+}
+.sh-tabbar {
+  position: sticky;
+  bottom: 0;
+  height: 72px;
+  background: var(--sh-surface);
+  border-top: 1px solid var(--sh-line);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  z-index: 2;
+}
+.sh-tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sh-muted);
+  cursor: pointer;
+}
+.sh-tabbar button[aria-current='page'] {
+  color: var(--sh-accent);
+  font-weight: 700;
+}
+
+.sh-loading {
+  opacity: 0.55;
+}
+
+@media (min-width: 721px) {
+  .sh-root {
+    min-height: 0;
+  }
+  /* En escritorio el menú de la app ya está a la vista. */
+  .sh-tabbar {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .sh-root {
+    border-radius: 0;
+  }
+}

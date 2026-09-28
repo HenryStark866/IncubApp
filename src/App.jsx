@@ -49,6 +49,7 @@ import {
   PlatformDevTools,
   AccessRegistryPanel,
   TodayBoard,
+  ShiftHome,
   LeaderDashboard,
   LeaderOpsMap,
   SiloReportsPanel,
@@ -88,6 +89,7 @@ import {
   ProfileCard,
 } from './components/lazyPanels'
 import { useOrgPresence } from './hooks/useOrgPresence'
+import { shiftHomeKind } from './features/shift/lib/shiftHome'
 import { useAccessControl } from './hooks/useAccessControl'
 import {
   defaultHomeTab,
@@ -672,6 +674,20 @@ function Workspace({
               }}
               presence={presence}
               can={can}
+            />
+          ) : tab === 'hoy' && org && shiftHomeKind(role) ? (
+            // Operación de planta (operario, auxiliares de turno y producción, recepción,
+            // supervisor): inicio «qué me toca ahora». El líder de área sigue arriba.
+            <ShiftHome
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={(t) => {
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
+              }}
             />
           ) : tab === 'hoy' && org ? (
             <TodayBoard
