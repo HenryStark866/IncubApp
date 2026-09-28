@@ -1,7 +1,7 @@
 {
   "name": "IncubApp · Operación de planta y granja",
   "short_name": "IncubApp",
-  "description": "IncubApp — SaaS multi-empresa para incubación y granja. Operado por CDH Maker.",
+  "description": "IncubApp — SaaS multi-empresa para incubación y granja.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -12,18 +12,6 @@
   "prefer_related_applications": false,
   "categories": ["business", "productivity"],
   "icons": [
-    {
-      "src": "/brand/incubapp-favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/brand/incubapp-mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

@@ -1,0 +1,325 @@
+/* Inicio del líder de área (etapa 3). Usa las variables de la app: respeta el modo oscuro. */
+.lh-root {
+  margin: 4px 0 20px;
+}
+.lh-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .lh-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.lh-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.lh-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+.lh-sec-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.lh-sec-head span,
+.lh-updated {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.lh-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.lh-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.lh-msg {
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.lh-msg.is-ok {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+.lh-msg.is-error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+/* Decisiones */
+.lh-dec {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.lh-dec:first-child {
+  border-top: 0;
+}
+.lh-sev {
+  width: 6px;
+  align-self: stretch;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: var(--text-dim);
+}
+.lh-dec.tone-danger .lh-sev {
+  background: var(--danger);
+}
+.lh-dec.tone-warn .lh-sev {
+  background: var(--amber);
+}
+.lh-dec.tone-info .lh-sev {
+  background: var(--text);
+}
+.lh-dec-main {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lh-dec-main b {
+  font-size: 15px;
+  color: var(--text);
+}
+.lh-dec-main span {
+  font-size: 13px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+.lh-dec-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.lh-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.lh-btn-p {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.lh-select {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 0 10px;
+  max-width: 200px;
+}
+.lh-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Indicadores */
+.lh-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 700px) {
+  .lh-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.lh-kpi {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lh-kpi span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.lh-kpi b {
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text);
+}
+.lh-kpi small {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.lh-kpi.tone-danger {
+  border: 2px solid var(--danger);
+}
+.lh-kpi.tone-warn {
+  border: 2px solid var(--amber);
+}
+
+/* Equipo */
+.lh-person {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.lh-person:first-child {
+  border-top: 0;
+}
+.lh-av {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.lh-av.is-on {
+  box-shadow:
+    0 0 0 2px var(--bg-1),
+    0 0 0 4px var(--ok);
+}
+.lh-person-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  flex: 0 1 190px;
+}
+.lh-person-main b {
+  font-size: 14px;
+  color: var(--text);
+}
+.lh-person-main span,
+.lh-person-value {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.lh-person-doing {
+  flex: 1 1 180px;
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lh-person-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.lh-mini {
+  width: 80px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  overflow: hidden;
+  display: block;
+}
+.lh-mini > span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+.lh-mini > span.is-low {
+  background: var(--amber);
+}
+
+/* Plan del día */
+.lh-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--text);
+}
+.lh-row:first-child {
+  border-top: 0;
+}
+.lh-t {
+  width: 44px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-top: 2px;
+}
+.lh-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.lh-st {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lh-st.tone-ok {
+  color: var(--ok);
+}
+.lh-st.tone-warn {
+  color: var(--amber);
+}
+.lh-st.tone-info {
+  color: var(--text);
+}
+.lh-updated {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.lh-link {
+  border: 0;
+  background: none;
+  color: var(--accent-dim);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 32px;
+}
