@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS incubapp_ops.migraciones (nombre text PRIMARY KEY, ap
 SQL
 
 aplicadas=0
-while IFS= read -r linea || [ -n "$linea" ]; do
+while IFS= read -r linea <&3 || [ -n "$linea" ]; do
   nombre="$(echo "$linea" | tr -d '\r' | sed 's/#.*//' | xargs)"
   [ -z "$nombre" ] && continue
   archivo="$RAIZ/supabase/migrations/$nombre"
@@ -27,5 +27,5 @@ while IFS= read -r linea || [ -n "$linea" ]; do
   echo "Aplicando $nombre…"
   { echo 'BEGIN;'; cat "$archivo"; echo; echo "INSERT INTO incubapp_ops.migraciones(nombre) VALUES ('$nombre');"; echo 'COMMIT;'; } | psql_db
   aplicadas=$((aplicadas + 1))
-done < "$LISTA"
+done 3< "$LISTA"
 echo "Migraciones nuevas aplicadas: $aplicadas"
