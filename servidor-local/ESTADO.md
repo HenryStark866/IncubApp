@@ -172,3 +172,22 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 - **Migraciones automáticas**: 7-ACTUALIZAR-APP aplica las de
   `servidor-local/migraciones.txt` que falten (anotadas en `incubapp_ops.migraciones`),
   cada una en una transacción.
+
+## Actualización 29-09-2026 — inicios por rol, puntualidad y velocidad
+
+- **Puntualidad**: la adherencia al turno compara ingreso/salida con T1/T2/T3 y la
+  tolerancia que fija el coordinador en Cumplimiento → Metas (se guarda en
+  `performance_targets`, claves `margin_in_min` / `margin_out_min`; sin migración).
+- **Velocidad**: el historial de OT de Mantum (6,4 MB) va en `mantum-historial-*.js` y
+  se baja solo al abrir un equipo o los registros del plan; xlsx se carga al exportar.
+- **Inicio del auxiliar de mantenimiento**: Plan AM de la semana, ejecutar tareas con
+  lista de chequeo y fotos (OT cerrada → FOMAT01 / FOMAT04), reportes del turno.
+  Migración `20260929_work_orders_checklist.sql` (columnas `checklist`, `format_code`).
+- **Inicio del operario de turno**: asistencia con selfie, ronda de la hora, actividades,
+  reportar falla (OT → FOMAT06), novedad / entrega de turno.
+- **Tablero del supervisor**: semáforo, «pide atención» con acciones, mapa salas × horas
+  de la ronda, equipo, actividades, informe del turno (FOINC02). Se actualiza en vivo
+  con Supabase Realtime (`machine_checks`, `shift_activities`, `attendance_punches`,
+  `work_orders`, `round_reports`).
+- Si 7-ACTUALIZAR-APP falla con `Wsl/Service/0x8007274c` (WSL no respondió), volver a
+  correrlo: fue un corte momentáneo del servicio de WSL, no un error de la app.
