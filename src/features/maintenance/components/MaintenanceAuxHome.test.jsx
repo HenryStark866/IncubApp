@@ -77,7 +77,7 @@ describe('inicio del auxiliar de mantenimiento', () => {
     expect(host.textContent).toMatch(/Falta marcar/)
     expect(saveWork).not.toHaveBeenCalled()
 
-    for (const b of host.querySelectorAll('.ma-seg-ok')) click(b)
+    for (const b of host.querySelectorAll('.sf-seg-ok')) click(b)
     await act(async () => save.dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(saveWork).toHaveBeenCalledTimes(1)
     const { row } = saveWork.mock.calls[0][0]
@@ -91,7 +91,7 @@ describe('inicio del auxiliar de mantenimiento', () => {
     click(byText('button', /Reportar trabajo del turno/))
     expect(host.textContent).toContain('¿Qué hiciste?')
     type(host.querySelector('input[placeholder^="Ej.: Cambio"]'), 'Cambio de rodamiento')
-    for (const b of host.querySelectorAll('.ma-seg-ok')) click(b)
+    for (const b of host.querySelectorAll('.sf-seg-ok')) click(b)
     await act(async () => byText('button', /Guardar y llenar FOMAT01/).dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(saveWork).toHaveBeenCalledTimes(1)
     expect(saveWork.mock.calls[0][0].row).toMatchObject({ title: 'Cambio de rodamiento', type: 'corrective', source: 'shift_report' })

@@ -27,19 +27,29 @@ async function loadMachines(orgId) {
   const plants = await rows('plants', (q) => q.select('id').eq('org_id', orgId))
   const ids = plants.data.map((p) => p.id)
   if (!ids.length) return { data: [], error: plants.error }
-  return rows('machines', (q) => q.select('id, code, name, type, room_id, plant_id').in('plant_id', ids))
+  return rows('machines', (q) => q.select('id, code, name, type, status, room_id, panel_room_id, plant_id').in('plant_id', ids))
+}
+
+const startOfToday = () => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
 async function loadOperator({ orgId, userId, slot }) {
-  const [acts, checks, machines] = await Promise.all([
+  const today = startOfToday().toISOString()
+  const weekAhead = new Date()
+  weekAhead.setDate(weekAhead.getDate() + 7)
+  const [acts, checks, machines, plants, rooms, assignments, incidents] = await Promise.all([
+    // Asignadas por hacer + las que cerró hoy (para «Hecho hoy»).
     rows('shift_activities', (q) =>
       q
-        .select('id, title, description, machine_id, status, created_at, started_at')
+        .select('id, title, description, machine_id, room_id, status, created_at, started_at, completed_at, completion, result_qty, result_note, photo_path, assigned_to')
         .eq('org_id', orgId)
         .eq('assigned_to', userId)
-        .in('status', ['pending', 'in_progress'])
+        .or(`status.in.(pending,assigned,in_progress),completed_at.gte.${today}`)
         .order('created_at', { ascending: true })
-        .limit(40)
+        .limit(60)
     ),
     rows('machine_checks', (q) =>
       q
@@ -51,11 +61,30 @@ async function loadOperator({ orgId, userId, slot }) {
         .limit(600)
     ),
     loadMachines(orgId),
+    rows('plants', (q) => q.select('id, name, code').eq('org_id', orgId).order('created_at')),
+    rows('rooms', (q) => q.select('id, plant_id, name, code, type').order('code')),
+    rows('shift_assignments', (q) =>
+      q
+        .select('user_id, work_date, shift_number, is_rest')
+        .eq('org_id', orgId)
+        .eq('user_id', userId)
+        .gte('work_date', localDate())
+        .lte('work_date', localDate(weekAhead))
+    ),
+    // Fallas e incidencias que la persona reportó hoy (quedan como OT abiertas).
+    rows('work_orders', (q) =>
+      q.select('*').eq('org_id', orgId).eq('created_by', userId).eq('source', 'incident').gte('created_at', today).order('created_at', { ascending: false }).limit(20)
+    ),
   ])
+  const plantIds = new Set(plants.data.map((p) => p.id))
   return {
     acts: acts.data,
     checks: checks.data,
     machines: machines.data,
+    plants: plants.data,
+    rooms: rooms.data.filter((r) => plantIds.has(r.plant_id)),
+    assignments: assignments.data,
+    incidents: incidents.data,
     myPhotos: checks.data.filter((c) => c.taken_by === userId).length,
     errors: [acts.error, checks.error, machines.error].filter(Boolean),
   }

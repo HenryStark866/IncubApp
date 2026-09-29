@@ -338,34 +338,5 @@ export function buildFindingOrderRow({ parent, checklist = [], orgId, userId }) 
   }
 }
 
-/* ── Guardado tolerante a columnas faltantes ─────────────────────────── */
-
-const MISSING_COLUMN = /Could not find the '([a-z_]+)' column|column "?([a-z_]+)"? of relation "?[a-z_]+"? does not exist/i
-
-/**
- * Inserta y, si la base no tiene alguna columna nueva, la quita y reintenta.
- * @returns {Promise<{ error: string|null, dropped: string[] }>}
- */
-export async function insertDroppingMissingColumns(client, table, row, { maxTries = 8 } = {}) {
-  const current = { ...row }
-  const dropped = []
-  for (let i = 0; i < maxTries; i++) {
-    const { error } = await client.from(table).insert(current)
-    if (!error) return { error: null, dropped }
-    const m = String(error.message || '').match(MISSING_COLUMN)
-    const col = m && (m[1] || m[2])
-    if (!col || !(col in current)) return { error: error.message, dropped }
-    delete current[col]
-    dropped.push(col)
-  }
-  return { error: 'No se pudo guardar la orden', dropped }
-}
-
-/** Columnas de work_orders presentes en todas las instalaciones (para la cola sin conexión). */
-export const BASE_ORDER_COLUMNS = [
-  'id', 'org_id', 'plant_id', 'machine_id', 'location_type', 'location_name', 'title', 'description', 'type',
-  'priority', 'status', 'source', 'assigned_to', 'created_by', 'started_at', 'completed_at', 'downtime_minutes', 'resolution',
-]
-
-export const pickColumns = (row, cols = BASE_ORDER_COLUMNS) =>
-  Object.fromEntries(Object.entries(row).filter(([k]) => cols.includes(k)))
+/* ── Guardado tolerante a columnas faltantes (vive en lib/workOrderSave) ── */
+export { BASE_ORDER_COLUMNS, insertDroppingMissingColumns, pickColumns } from '../../../lib/workOrderSave'

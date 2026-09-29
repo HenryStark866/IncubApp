@@ -6,7 +6,7 @@
  * Usa el estilo de los inicios de planta (ShiftHome.css, prefijo sh-).
  * Henry Stark Desarrollador · CDH Maker
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMaintenanceAuxHome } from '../hooks/useMaintenanceAuxHome'
 import {
   REPORT_KINDS,
@@ -26,7 +26,9 @@ import {
 import { SIG_FORMATS } from '../../../lib/corporateBrand'
 import { isoWeekOf } from '../../../lib/planCompliance'
 import PlanTaskInstructions from './PlanTaskInstructions'
+import { EvidencePicker } from '../../shift/components/ShiftForms'
 import '../../shift/components/ShiftHome.css'
+import '../../shift/components/ShiftForms.css'
 import './MaintenanceAuxHome.css'
 
 const svg = (children, size = 22) => (
@@ -76,16 +78,16 @@ function Checklist({ items, onChange }) {
       {items.map((it, i) => (
         <li key={it.id} className={`ma-check ma-check-${it.result || 'none'}`}>
           <span className="ma-check-label">{it.label}</span>
-          <div className="ma-seg" role="group" aria-label={it.label}>
+          <div className="sf-seg" role="group" aria-label={it.label}>
             {['ok', 'fail', 'na'].map((r) => (
-              <button key={r} type="button" aria-pressed={it.result === r} className={`ma-seg-${r}`} onClick={() => set(i, { result: r })}>
+              <button key={r} type="button" aria-pressed={it.result === r} className={`sf-seg-${r}`} onClick={() => set(i, { result: r })}>
                 {RESULT_LABEL[r]}
               </button>
             ))}
           </div>
           {(it.result === 'fail' || it.note) && (
             <input
-              className="ma-input"
+              className="sf-input"
               type="text"
               value={it.note}
               placeholder={it.result === 'fail' ? '¿Qué encontraste? (obligatorio)' : 'Observación'}
@@ -98,52 +100,16 @@ function Checklist({ items, onChange }) {
   )
 }
 
-function Evidence({ files, onChange }) {
-  const input = useRef(null)
-  const previews = useMemo(() => files.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : null)), [files])
-  useEffect(() => () => previews.forEach((u) => u && URL.revokeObjectURL(u)), [previews])
-  return (
-    <div className="ma-evidence">
-      <div className="ma-thumbs">
-        {files.map((f, i) => (
-          <figure key={`${f.name}-${i}`} className="ma-thumb">
-            {previews[i] ? <img src={previews[i]} alt={f.name} /> : <span className="ma-thumb-doc">{Icon.doc(26)}</span>}
-            <figcaption>{f.name}</figcaption>
-            <button type="button" aria-label={`Quitar ${f.name}`} onClick={() => onChange(files.filter((_, j) => j !== i))}>×</button>
-          </figure>
-        ))}
-        <button type="button" className="ma-thumb ma-thumb-add" onClick={() => input.current?.click()}>
-          {Icon.camera(26)}
-          <span>Foto o archivo</span>
-        </button>
-      </div>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
-        multiple
-        hidden
-        onChange={(e) => {
-          const picked = [...(e.target.files || [])]
-          if (picked.length) onChange([...files, ...picked])
-          e.target.value = ''
-        }}
-      />
-      <p className="ma-hint">Las fotos y documentos quedan adjuntos a la OT y salen en su formato.</p>
-    </div>
-  )
-}
-
 function WorkFields({ form, setForm, now }) {
   return (
-    <div className="ma-grid-2">
-      <label className="ma-field">
+    <div className="sf-grid-2">
+      <label className="sf-field">
         <span>Empecé a las</span>
-        <input className="ma-input" type="time" value={form.startTime} max={hhmm(now)} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+        <input className="sf-input" type="time" value={form.startTime} max={hhmm(now)} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
       </label>
-      <label className="ma-field">
+      <label className="sf-field">
         <span>Parada del equipo (min)</span>
-        <input className="ma-input" type="number" min="0" inputMode="numeric" value={form.downtime} onChange={(e) => setForm({ ...form, downtime: e.target.value })} />
+        <input className="sf-input" type="number" min="0" inputMode="numeric" value={form.downtime} onChange={(e) => setForm({ ...form, downtime: e.target.value })} />
       </label>
     </div>
   )
@@ -153,10 +119,10 @@ function Saved({ result, onOpenFormat, onBack }) {
   const fmt = formatOfOrder(result.order)
   return (
     <div className="sh-body">
-      <section className={`sh-card sh-card-pad ma-saved${result.offline ? ' ma-saved-offline' : ''}`}>
+      <section className={`sh-card sh-card-pad sf-saved${result.offline ? ' sf-saved-offline' : ''}`}>
         <span className="sh-badge sh-badge-accent">{Icon.check(22)}</span>
         <h2 className="sh-h2">{result.offline ? 'Guardado en el teléfono' : 'Trabajo registrado'}</h2>
-        <p className="ma-hint">
+        <p className="sf-hint">
           {result.offline
             ? 'No hay conexión: la OT y sus evidencias suben solas cuando vuelva la red.'
             : `OT ${result.order.code || ''} cerrada. Su ${fmt} quedó diligenciado con la lista de chequeo y las evidencias.`}
@@ -266,9 +232,9 @@ function TaskScreen({ item, api, userId, userName, orgId, go, onBack }) {
         )}
 
         {options.length > 0 && (
-          <label className="ma-field">
+          <label className="sf-field">
             <span>Equipo intervenido</span>
-            <select className="ma-input" value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })}>
+            <select className="sf-input" value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })}>
               <option value="">{options.length > 1 ? `Todos los de la tarea (${options.length})` : 'Sin elegir'}</option>
               {options.map((m) => (
                 <option key={m.id} value={m.id}>{machineLabel(m)}</option>
@@ -283,23 +249,23 @@ function TaskScreen({ item, api, userId, userName, orgId, go, onBack }) {
         </div>
         <Checklist items={checklist} onChange={setChecklist} />
         {summary.fail > 0 && (
-          <label className="ma-toggle">
+          <label className="sf-toggle">
             <input type="checkbox" checked={openFinding} onChange={(e) => setOpenFinding(e.target.checked)} />
             Abrir una OT correctiva por lo que quedó No OK
           </label>
         )}
 
         <WorkFields form={form} setForm={setForm} now={now} />
-        <label className="ma-field">
+        <label className="sf-field">
           <span>Observaciones</span>
-          <textarea className="ma-input" rows={3} value={form.notes} placeholder="Repuestos, mediciones, lo que quedó pendiente…" onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <textarea className="sf-input" rows={3} value={form.notes} placeholder="Repuestos, mediciones, lo que quedó pendiente…" onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </label>
 
         <div className="sh-section-head"><h2 className="sh-h2">Evidencias</h2><span className="sh-count">{files.length}</span></div>
-        <Evidence files={files} onChange={setFiles} />
+        <EvidencePicker files={files} onChange={setFiles} />
 
         {error ? <p className="sh-note" role="alert">{error}</p> : null}
-        <button type="button" className="sh-btn sh-btn-primary ma-save" disabled={api.saving} onClick={save}>
+        <button type="button" className="sh-btn sh-btn-primary sf-save" disabled={api.saving} onClick={save}>
           {Icon.check(20)}{api.saving ? 'Guardando…' : `Guardar y llenar ${format.code === 'FOMAT08' ? 'FOMAT01' : format.code}`}
         </button>
       </div>
@@ -363,22 +329,22 @@ function ReportScreen({ api, userId, userName, orgId, onBack }) {
     <>
       <Back onBack={onBack} eyebrow={`Turno ${api.shift.shiftNumber} · reporte de trabajo`} title="¿Qué hiciste?" />
       <div className="sh-body">
-        <label className="ma-field">
+        <label className="sf-field">
           <span>Tipo de trabajo</span>
-          <select className="ma-input" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+          <select className="sf-input" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
             {REPORT_KINDS.map((k) => (
               <option key={k.value} value={k.value}>{k.label} · {k.format}</option>
             ))}
           </select>
         </label>
-        <label className="ma-field">
+        <label className="sf-field">
           <span>Trabajo realizado</span>
-          <input className="ma-input" type="text" value={form.title} placeholder="Ej.: Cambio de rodamiento del ventilador" onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <input className="sf-input" type="text" value={form.title} placeholder="Ej.: Cambio de rodamiento del ventilador" onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </label>
-        <div className="ma-grid-2">
-          <label className="ma-field">
+        <div className="sf-grid-2">
+          <label className="sf-field">
             <span>Equipo</span>
-            <select className="ma-input" value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })}>
+            <select className="sf-input" value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })}>
               <option value="">Otro lugar / sin equipo</option>
               {machines.map((m) => (
                 <option key={m.id} value={m.id}>{machineLabel(m)}</option>
@@ -386,30 +352,30 @@ function ReportScreen({ api, userId, userName, orgId, onBack }) {
             </select>
           </label>
           {!form.machineId && (
-            <label className="ma-field">
+            <label className="sf-field">
               <span>Lugar</span>
-              <input className="ma-input" type="text" value={form.place} placeholder="Ej.: Cuarto de máquinas" onChange={(e) => setForm({ ...form, place: e.target.value })} />
+              <input className="sf-input" type="text" value={form.place} placeholder="Ej.: Cuarto de máquinas" onChange={(e) => setForm({ ...form, place: e.target.value })} />
             </label>
           )}
         </div>
-        <label className="ma-field">
+        <label className="sf-field">
           <span>Qué pasaba y qué hiciste</span>
-          <textarea className="ma-input" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <textarea className="sf-input" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </label>
 
         <div className="sh-section-head"><h2 className="sh-h2">Cierre</h2></div>
         <Checklist items={checklist} onChange={setChecklist} />
         <WorkFields form={form} setForm={setForm} now={now} />
-        <label className="ma-field">
+        <label className="sf-field">
           <span>Observaciones</span>
-          <textarea className="ma-input" rows={2} value={form.notes} placeholder="Repuestos usados, pendientes…" onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <textarea className="sf-input" rows={2} value={form.notes} placeholder="Repuestos usados, pendientes…" onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </label>
 
         <div className="sh-section-head"><h2 className="sh-h2">Evidencias</h2><span className="sh-count">{files.length}</span></div>
-        <Evidence files={files} onChange={setFiles} />
+        <EvidencePicker files={files} onChange={setFiles} />
 
         {error ? <p className="sh-note" role="alert">{error}</p> : null}
-        <button type="button" className="sh-btn sh-btn-primary ma-save" disabled={api.saving} onClick={save}>
+        <button type="button" className="sh-btn sh-btn-primary sf-save" disabled={api.saving} onClick={save}>
           {Icon.check(20)}{api.saving ? 'Guardando…' : `Guardar y llenar ${kind.format}`}
         </button>
       </div>
@@ -428,7 +394,7 @@ function PlanRow({ item, onOpen }) {
           {format.code === 'FOMAT08' ? Icon.calibrate(18) : format.code === 'FOMAT04' ? Icon.check(18) : Icon.wrench(18)}
         </span>
         <span className="sh-row-main">
-          <span className="sh-row-title ma-clamp">{readableText(task.description)}</span>
+          <span className="sh-row-title sf-clamp">{readableText(task.description)}</span>
           <span className="sh-row-sub">
             {[task.code, readableText(task.system), task.equipmentClass, task.frequency].filter(Boolean).join(' · ')}
           </span>
@@ -539,7 +505,7 @@ export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate
             <span className={`sh-big-num${api.loading && !api.compliance ? ' sh-loading' : ''}`}>{weekPending}</span>
             <span className="sh-big-unit">por hacer de {weekItems.length} esta semana</span>
           </div>
-          <div className="ma-progress" aria-hidden="true">
+          <div className="sf-progress" aria-hidden="true">
             <div style={{ width: `${weekItems.length ? Math.round((weekDone / weekItems.length) * 100) : 0}%` }} />
           </div>
           <p className="sh-hero-sub">
@@ -550,21 +516,21 @@ export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate
           </button>
         </section>
 
-        <div className="ma-filters">
-          <div className="ma-pills" role="group" aria-label="Especialidad">
+        <div className="sf-filters">
+          <div className="sf-pills" role="group" aria-label="Especialidad">
             {['', ...SPECIALTIES].map((s) => (
               <button key={s || 'all'} type="button" aria-pressed={specialty === s} onClick={() => setSpecialty(s)}>
                 {s || 'Todas'}
               </button>
             ))}
           </div>
-          <div className="ma-grid-2">
-            <select className="ma-input" value={sede} onChange={(e) => setSede(e.target.value)} aria-label="Sede">
+          <div className="sf-grid-2">
+            <select className="sf-input" value={sede} onChange={(e) => setSede(e.target.value)} aria-label="Sede">
               {SEDES.map((s) => (
                 <option key={s.label} value={s.value}>{s.label}</option>
               ))}
             </select>
-            <input className="ma-input" type="search" value={query} placeholder="Buscar tarea o equipo" onChange={(e) => setQuery(e.target.value)} />
+            <input className="sf-input" type="search" value={query} placeholder="Buscar tarea o equipo" onChange={(e) => setQuery(e.target.value)} />
           </div>
         </div>
 

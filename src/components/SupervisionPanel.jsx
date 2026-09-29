@@ -21,6 +21,7 @@ import { IncidentReportView, WorkOrdersView, ShiftActivitiesView, MerchandiseVie
 import { conditionOf } from '../lib/machineCondition'
 import { roundMachines, roundRoomOf } from '../lib/roundRecords'
 import { openRoundFormat } from '../lib/roundFormat'
+import { takeRequestedSupervisionView } from '../lib/supervisionView'
 import { minutesLeftInHour, requestWorkOrderFromRound, roundFinishSummary } from '../lib/roundActions'
 import './RoundFlow.css'
 import { compressImage } from '../lib/image'
@@ -1465,10 +1466,13 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
   const [rooms, setRooms] = useState([])
   const [machines, setMachines] = useState([])
   const [team, setTeam] = useState([])
-  // Gerencia / coord. planta entran por ronda (tomar fotos) o historial
-  const [view, setView] = useState(
-    isShiftAux ? 'actividades' : canSupervise ? 'ronda' : 'ronda'
-  )
+  // Gerencia / coord. planta entran por ronda (tomar fotos) o historial.
+  // El inicio del turno puede pedir una sección (cargue, mercancía…) con openSupervisionView().
+  const [view, setView] = useState(() => {
+    const asked = takeRequestedSupervisionView()
+    if (asked && (!isShiftAux || asked === 'actividades')) return asked
+    return isShiftAux ? 'actividades' : 'ronda'
+  })
 
   useEffect(() => {
     if (!orgId) return

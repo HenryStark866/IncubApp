@@ -696,6 +696,7 @@ function Workspace({
               role={role}
               area={area}
               userName={profileApi.profile?.full_name ?? session.user.email}
+              can={can}
               onNavigate={(t) => {
                 if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
                 else setTab('hoy')

@@ -7,32 +7,13 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { compressImage } from '../../../lib/image'
-import { isNetworkError, isOnline } from '../../../lib/network'
-import { enqueueInsert, enqueueStorageUpload } from '../../../lib/offlineQueue'
+import { isOnline } from '../../../lib/network'
+import { EVIDENCE_BUCKET, saveWorkOrderWithEvidence } from '../../../lib/workOrderSave'
 import { computePlanCompliance, knownKeysOf } from '../../../lib/planCompliance'
 import { openEvidenceFormat, workOrderRecordItem } from '../../../lib/sigRecordDocuments'
 import annualPlan from '../../../data/annualMaintenancePlanData.json'
 import { useMaintenanceRecords } from './useMaintenanceRecords'
-import {
-  buildFindingOrderRow,
-  insertDroppingMissingColumns,
-  ordersInShift,
-  pickColumns,
-  shiftWindowAt,
-} from '../lib/maintenanceShift'
-
-const BUCKET = 'wo-evidence'
-
-const newId = () =>
-  typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0
-        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-      })
-
-const safeName = (name) => String(name || 'archivo').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80)
+import { buildFindingOrderRow, ordersInShift, shiftWindowAt } from '../lib/maintenanceShift'
 
 export function useMaintenanceAuxHome({ orgId, userId, userName }) {
   const rec = useMaintenanceRecords(orgId)
@@ -96,7 +77,7 @@ export function useMaintenanceAuxHome({ orgId, userId, userName }) {
           .order('created_at')
         files = await Promise.all(
           (data || []).map(async (f) => {
-            const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(f.file_path, 3600)
+            const { data: signed } = await supabase.storage.from(EVIDENCE_BUCKET).createSignedUrl(f.file_path, 3600)
             return { ...f, url: signed?.signedUrl || null, uploadedByName: rec.data?.people?.[f.uploaded_by]?.name || null }
           })
         )
@@ -124,80 +105,13 @@ export function useMaintenanceAuxHome({ orgId, userId, userName }) {
     async ({ row, files = [], openFinding = false }) => {
       if (!orgId || !userId) return { error: 'Sesión inválida' }
       setSaving(true)
-      const warnings = []
-      const order = { ...row, id: row.id || newId() }
-      const prepared = await Promise.all(files.map((f) => compressImage(f)))
-      const evidenceRows = prepared.map((file, i) => ({
-        file,
-        path: `${orgId}/${order.id}/${Date.now()}-${i}-${safeName(file.name)}`,
-        row: {
-          org_id: orgId,
-          work_order_id: order.id,
-          uploaded_by: userId,
-          file_name: file.name,
-          file_type: file.type?.startsWith('image/') ? 'image' : 'document',
-          note: `Evidencia de ${order.format_code || 'la OT'} · ${order.title}`,
-        },
-      }))
-      const finding = openFinding ? buildFindingOrderRow({ parent: order, checklist: order.checklist || [], orgId, userId }) : null
-
-      const queueAll = async () => {
-        await enqueueInsert('work_orders', pickColumns(order))
-        for (const ev of evidenceRows) {
-          await enqueueStorageUpload(BUCKET, ev.path, ev.file, ev.file.type)
-          await enqueueInsert('wo_evidence', { ...ev.row, file_path: ev.path })
-        }
-        if (finding) await enqueueInsert('work_orders', pickColumns(finding))
-      }
-
       try {
-        if (!isOnline()) {
-          await queueAll()
-          setLocalDone((l) => [order, ...l])
-          return { error: null, order, offline: true, finding: !!finding }
-        }
-        const ins = await insertDroppingMissingColumns(supabase, 'work_orders', order)
-        if (ins.error) {
-          if (isNetworkError(ins.error)) {
-            await queueAll()
-            setLocalDone((l) => [order, ...l])
-            return { error: null, order, offline: true, finding: !!finding }
-          }
-          return { error: ins.error }
-        }
-        for (const ev of evidenceRows) {
-          const up = await supabase.storage.from(BUCKET).upload(ev.path, ev.file, { contentType: ev.file.type, upsert: false })
-          if (up.error) {
-            if (isNetworkError(up.error.message)) {
-              await enqueueStorageUpload(BUCKET, ev.path, ev.file, ev.file.type)
-              await enqueueInsert('wo_evidence', { ...ev.row, file_path: ev.path })
-              warnings.push(`«${ev.file.name}» quedó en cola y sube al volver la red.`)
-            } else warnings.push(`No se pudo subir «${ev.file.name}»: ${up.error.message}`)
-            continue
-          }
-          const { error: evErr } = await supabase.from('wo_evidence').insert({ ...ev.row, file_path: ev.path })
-          if (evErr) {
-            await supabase.storage.from(BUCKET).remove([ev.path])
-            warnings.push(`No se pudo anotar «${ev.file.name}»: ${evErr.message}`)
-          }
-        }
-        if (finding) {
-          const f = await insertDroppingMissingColumns(supabase, 'work_orders', finding)
-          if (f.error) warnings.push(`No se pudo abrir la OT del hallazgo: ${f.error}`)
-        }
-        // El código de la OT lo pone la base.
-        const { data: saved } = await supabase.from('work_orders').select('*').eq('id', order.id).maybeSingle()
-        const full = saved || order
-        setLocalDone((l) => [full, ...l])
-        rec.reload()
-        return { error: null, order: full, finding: !!finding, warnings }
-      } catch (e) {
-        if (isNetworkError(e?.message)) {
-          await queueAll()
-          setLocalDone((l) => [order, ...l])
-          return { error: null, order, offline: true, finding: !!finding }
-        }
-        return { error: e?.message || String(e) }
+        const finding = openFinding ? buildFindingOrderRow({ parent: row, checklist: row.checklist || [], orgId, userId }) : null
+        const res = await saveWorkOrderWithEvidence({ orgId, userId, order: row, files, extraOrders: finding ? [finding] : [] })
+        if (res.error) return res
+        setLocalDone((l) => [res.order, ...l])
+        if (!res.offline) rec.reload()
+        return { ...res, finding: !!finding }
       } finally {
         setSaving(false)
       }

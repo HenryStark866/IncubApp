@@ -143,10 +143,15 @@ export function calibrationRecordHtml(item = {}) {
 
 const CHECK_LABEL = { ok: 'OK', fail: 'No OK', na: 'No aplica' }
 
-/** Formato de la OT: el que quedó anotado al guardarla; si no, FOMAT04 para la inspección con chequeo. */
+/**
+ * Formato de la OT: el que quedó anotado al guardarla; si no, FOMAT04 para la
+ * inspección con chequeo y FOMAT06 (solicitud de mantenimiento) para la falla que
+ * reportó la operación mientras mantenimiento no la cierre.
+ */
 export function workOrderFormatCode(order = {}) {
   if (order.format_code === 'FOMAT04' || order.format_code === 'FOMAT01') return order.format_code
   if (order.type === 'inspection' && Array.isArray(order.checklist) && order.checklist.length) return 'FOMAT04'
+  if (order.source === 'incident' && order.status !== 'completed' && order.status !== 'cancelled') return 'FOMAT06'
   return 'FOMAT01'
 }
 
