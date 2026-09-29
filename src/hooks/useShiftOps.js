@@ -24,6 +24,21 @@ async function uploadPhoto(orgId, folder, file) {
   return { path, error }
 }
 
+/** Crear una actividad del turno (la asigna supervisión o coordinación). `row` ya trae org_id, assigned_to, assigned_by. */
+export async function createShiftActivity(row) {
+  const { error } = await supabase.from('shift_activities').insert({ status: 'pending', ...row, title: String(row.title || '').trim() })
+  return { error: error ? error.message : null }
+}
+
+/** Pasar una actividad a otra persona (vuelve a quedar pendiente). */
+export async function reassignShiftActivity(id, assignedTo) {
+  const { error } = await supabase
+    .from('shift_activities')
+    .update({ assigned_to: assignedTo, status: 'pending', started_at: null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  return { error: error ? error.message : null }
+}
+
 /** Iniciar una actividad asignada. */
 export async function startShiftActivity(id) {
   const now = new Date().toISOString()

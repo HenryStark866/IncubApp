@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { currentSlot } from '../../../hooks/useMachineChecks'
 import { localDate } from '../lib/shiftHome'
+import { uniqueChannel } from '../../../lib/realtimeChannel'
 
 async function rows(table, build) {
   const { data, error } = await build(supabase.from(table))
@@ -161,13 +162,17 @@ async function loadReception({ orgId }) {
 }
 
 async function loadSupervisor({ orgId, slot }) {
-  const [acts, checks, machines, assignments, workOrders] = await Promise.all([
+  const today = startOfToday().toISOString()
+  const since = daysAgo(1).toISOString()
+  const [acts, checks, machines, assignments, workOrders, plants, rooms, catalog, loads, transfers, hatches, punches] = await Promise.all([
+    // Abiertas + las cerradas hoy (columna «Hechas»).
     rows('shift_activities', (q) =>
       q
-        .select('id, title, status, assigned_to, machine_id, created_at')
+        .select('id, title, description, status, assigned_to, assigned_by, machine_id, room_id, created_at, started_at, completed_at, completion, result_note')
         .eq('org_id', orgId)
-        .in('status', ['pending', 'in_progress'])
-        .limit(120)
+        .or(`status.in.(pending,assigned,in_progress),completed_at.gte.${today}`)
+        .order('created_at', { ascending: true })
+        .limit(200)
     ),
     rows('machine_checks', (q) =>
       q
@@ -176,7 +181,7 @@ async function loadSupervisor({ orgId, slot }) {
         .eq('shift_date', slot.shiftDate)
         .eq('shift_number', slot.shift)
         .order('taken_at', { ascending: false })
-        .limit(800)
+        .limit(1500)
     ),
     loadMachines(orgId),
     rows('shift_assignments', (q) =>
@@ -186,15 +191,44 @@ async function loadSupervisor({ orgId, slot }) {
         .eq('work_date', slot.shiftDate)
     ),
     rows('work_orders', (q) =>
-      q.select('id, machine_id, status').eq('org_id', orgId).in('status', ['open', 'in_progress']).limit(200)
+      q
+        .select('*')
+        .eq('org_id', orgId)
+        .in('status', ['open', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(200)
+    ),
+    rows('plants', (q) => q.select('id, name, code').eq('org_id', orgId).order('created_at')),
+    rows('rooms', (q) => q.select('id, plant_id, name, code, type').order('code')),
+    rows('shift_activity_catalog', (q) => q.select('id, name, description').eq('org_id', orgId).eq('active', true).order('name')),
+    rows('setter_loads', (q) => q.select('id, machine_id, lote, loaded_at, created_at').eq('org_id', orgId).gte('created_at', since).limit(200)),
+    rows('transfers', (q) => q.select('id, lote, mode, transferred_at, created_at').eq('org_id', orgId).gte('created_at', since).limit(200)),
+    rows('hatch_events', (q) =>
+      q.select('id, lote, mode, status, scheduled_at, started_at, ended_at, created_at').eq('org_id', orgId).or(`scheduled_at.gte.${since},started_at.gte.${since},created_at.gte.${since}`).limit(200)
+    ),
+    // Marcas del turno (para el tablero en vivo; usePerformance trae el historial largo).
+    rows('attendance_punches', (q) =>
+      q.select('id, user_id, punch_type, punched_at, shift_date, site_name').eq('org_id', orgId).gte('punched_at', since).order('punched_at').limit(600)
     ),
   ])
+  const plantIds = new Set(plants.data.map((p) => p.id))
+  const openOrdersByMachine = new Map()
+  for (const w of workOrders.data) if (w.machine_id && !openOrdersByMachine.has(w.machine_id)) openOrdersByMachine.set(w.machine_id, w)
   return {
     acts: acts.data,
     checks: checks.data,
     machines: machines.data,
     assignments: assignments.data,
-    openWorkOrderMachines: new Set(workOrders.data.map((w) => w.machine_id).filter(Boolean)),
+    workOrders: workOrders.data,
+    openOrdersByMachine,
+    openWorkOrderMachines: new Set(openOrdersByMachine.keys()),
+    plants: plants.data,
+    rooms: rooms.data.filter((r) => plantIds.has(r.plant_id)),
+    catalog: catalog.data,
+    loads: loads.data,
+    transfers: transfers.data,
+    hatches: hatches.data,
+    punches: punches.data,
     errors: [acts.error, checks.error, machines.error, assignments.error].filter(Boolean),
   }
 }
@@ -209,6 +243,7 @@ const LOADERS = {
 export function useShiftHome({ kind, orgId, userId }) {
   const [state, setState] = useState({ loading: true, data: null, error: null, updatedAt: null })
   const [slot, setSlot] = useState(() => currentSlot())
+  const [live, setLive] = useState(false)
   const busy = useRef(false)
 
   const load = useCallback(async () => {
@@ -238,6 +273,27 @@ export function useShiftHome({ kind, orgId, userId }) {
     }
   }, [kind, orgId, userId])
 
+  // Supervisor: se recarga solo cuando el equipo registra algo (fotos, actividades,
+  // marcas, OT). Varios cambios seguidos se juntan en una sola recarga.
+  useEffect(() => {
+    if (kind !== 'supervisor' || !orgId) return undefined
+    let timer = null
+    const soon = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => load(), 2500)
+    }
+    const channel = supabase.channel(uniqueChannel(`shift-home:${orgId}`))
+    for (const table of ['machine_checks', 'shift_activities', 'attendance_punches', 'work_orders', 'round_reports']) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `org_id=eq.${orgId}` }, soon)
+    }
+    channel.subscribe((status) => setLive(status === 'SUBSCRIBED'))
+    return () => {
+      clearTimeout(timer)
+      setLive(false)
+      supabase.removeChannel(channel)
+    }
+  }, [kind, orgId, load])
+
   useEffect(() => {
     load()
     const onChange = () => load()
@@ -253,5 +309,5 @@ export function useShiftHome({ kind, orgId, userId }) {
     }
   }, [load])
 
-  return { ...state, slot, reload: load }
+  return { ...state, slot, live, reload: load }
 }

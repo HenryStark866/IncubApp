@@ -4,7 +4,7 @@
  * una sola vez al montarse.
  */
 const KEY = 'incubapp:supervision-view'
-export const SUPERVISION_VIEWS = ['ronda', 'cargue', 'transferencia', 'incidencias', 'ot', 'actividades', 'mercancia']
+export const SUPERVISION_VIEWS = ['ronda', 'cargue', 'transferencia', 'nacimiento', 'incidencias', 'ot', 'actividades', 'mercancia', 'historial']
 
 export function requestSupervisionView(view) {
   if (!SUPERVISION_VIEWS.includes(view)) return

@@ -8,24 +8,13 @@
  * Henry Stark Desarrollador · CDH Maker
  */
 import { useMemo } from 'react'
-import { ROLE_LABEL } from '../../../lib/roles'
 import { usePerformance } from '../../../hooks/usePerformance'
-import { bogotaDate } from '../../../lib/complianceEngine'
 import { useShiftHome } from '../hooks/useShiftHome'
-import {
-  SHIFT_WINDOWS,
-  clock,
-  initials,
-  machineHealth,
-  productionDay,
-  receptionDay,
-  shiftHomeKind,
-  shiftTimeLeft,
-  teamOnShift,
-} from '../lib/shiftHome'
-import { AttendanceChip, Header, Note, RoundsChip, ShiftRounds, TabBar } from './ShiftHomeUi'
+import { clock, productionDay, receptionDay, shiftHomeKind } from '../lib/shiftHome'
+import { AttendanceChip, Header, Note, RoundsChip, TabBar } from './ShiftHomeUi'
 import { Icon } from './shiftIcons'
 import OperatorHome from './OperatorHome'
+import SupervisorHome from './SupervisorHome'
 import './ShiftHome.css'
 
 /* ── Auxiliar de producción ─────────────────────────────────────────────── */
@@ -256,170 +245,6 @@ function ReceptionView({ home, perf, go }) {
   )
 }
 
-/* ── Supervisor ─────────────────────────────────────────────────────────── */
-const DOT = { fault: 'var(--sh-fault)', warning: 'var(--sh-warn-dot)' }
-
-function SupervisorView({ home, perf, go, orgId }) {
-  const { slot, data, loading } = home
-  const today = bogotaDate()
-  const health = machineHealth(data?.checks || [], data?.machines || [])
-
-  const team = useMemo(() => {
-    const roundsByUser = {}
-    for (const r of perf.rounds || []) {
-      if (String(r.shift_date || '').startsWith(today)) roundsByUser[r.user_id] = (roundsByUser[r.user_id] || 0) + 1
-    }
-    const attendance = (perf.attendanceHistory || []).filter(
-      (a) => String(a.shift_date || '').startsWith(today) || String(a.punched_at || '').startsWith(today)
-    )
-    return teamOnShift({
-      members: perf.members || [],
-      assignments: data?.assignments || [],
-      attendance,
-      roundsByUser,
-      shift: slot.shift,
-      shiftDate: slot.shiftDate,
-      minRounds: perf.minRounds,
-    })
-  }, [perf.rounds, perf.attendanceHistory, perf.members, perf.minRounds, data, slot.shift, slot.shiftDate, today])
-
-  const pendingActs = (data?.acts || []).filter((a) => a.status === 'pending')
-  const openWO = data?.openWorkOrderMachines || new Set()
-
-  const attention = [
-    ...health.attention.map((m) => ({
-      key: `m-${m.machineId}`,
-      tone: m.condition,
-      text: (
-        <>
-          <b>{m.code} {m.condition === 'fault' ? 'en falla' : 'en alerta'}</b>
-          {m.condition === 'fault' ? (openWO.has(m.machineId) ? ' · OT abierta' : ' · sin OT abierta') : m.notes ? ` · ${m.notes}` : ' · en la ronda'}
-        </>
-      ),
-      action: m.condition === 'fault' ? (openWO.has(m.machineId) ? 'Ver OT' : 'Crear OT') : 'Asignar',
-      tab: m.condition === 'fault' ? 'mantenimiento' : 'supervision',
-    })),
-    ...team.absent.map((p) => ({
-      key: `a-${p.id}`,
-      tone: 'warning',
-      text: (<><b>{p.name}</b> · sin marca de ingreso</>),
-      action: 'Horarios',
-      tab: 'horarios',
-    })),
-    ...team.behind.map((p) => ({
-      key: `b-${p.id}`,
-      tone: 'warning',
-      text: (<><b>{p.name}</b> · {p.rounds} de {team.expectedNow} rondas a esta hora</>),
-      action: 'Ver',
-      tab: 'cumplimiento',
-    })),
-    ...(pendingActs.length
-      ? [{
-          key: 'acts',
-          tone: 'warning',
-          text: (<><b>{pendingActs.length} actividad{pendingActs.length === 1 ? '' : 'es'}</b> sin iniciar</>),
-          action: 'Revisar',
-          tab: 'supervision',
-        }]
-      : []),
-  ]
-  const hasFault = attention.some((a) => a.tone === 'fault')
-
-  return (
-    <>
-      <Header
-        eyebrow={`Turno ${slot.shift} · ${SHIFT_WINDOWS[slot.shift]?.label || ''} · ${shiftTimeLeft(slot.shift)}`}
-        title="Tablero del turno"
-        onRefresh={() => {
-          home.reload()
-          perf.reload?.()
-        }}
-        loading={loading}
-      />
-      <div className="sh-body">
-        <Note error={home.error} />
-        <section
-          className={`sh-card sh-card-pad ${attention.length ? (hasFault ? 'sh-card-alert' : 'sh-card-accent') : 'sh-card-calm'}`}
-          aria-label="Pide atención"
-        >
-          <span className="sh-kicker" style={{ color: attention.length ? (hasFault ? 'var(--sh-fault)' : 'var(--sh-accent)') : 'var(--sh-ok)' }}>
-            {attention.length ? `Pide atención · ${attention.length}` : 'Todo en orden por ahora'}
-          </span>
-          {attention.length === 0 ? (
-            <span className="sh-row-sub">
-              {loading && !data ? 'Cargando…' : 'Sin máquinas en falla ni alerta, sin ausencias ni atrasos en rondas.'}
-            </span>
-          ) : (
-            attention.slice(0, 6).map((a) => (
-              <div key={a.key} className="sh-attention">
-                <span className="sh-attention-dot" style={{ background: DOT[a.tone] || DOT.warning }} />
-                <span className="sh-attention-main">{a.text}</span>
-                <button type="button" className="sh-link" onClick={() => go(a.tab)}>{a.action}</button>
-              </div>
-            ))
-          )}
-        </section>
-
-        <div className="sh-section-head">
-          <h2 className="sh-h2">Mi equipo</h2>
-          <span className="sh-count">{team.present} de {team.total} presentes</span>
-        </div>
-        <div className="sh-card">
-          {team.people.length === 0 ? (
-            <p className="sh-empty">
-              {perf.loading ? 'Cargando…' : 'Nadie programado en este turno. Asigna el turno en Horarios.'}
-            </p>
-          ) : (
-            <ul className="sh-list">
-              {team.people.map((p) => (
-                <li key={p.id}>
-                  <div className="sh-row sh-row-static">
-                    <span className={`sh-avatar${p.present ? '' : ' sh-avatar-off'}`} aria-hidden="true">{initials(p.name)}</span>
-                    <span className="sh-row-main">
-                      <span className="sh-row-title" style={{ fontSize: 14, color: p.present ? undefined : 'var(--sh-muted)' }}>{p.name}</span>
-                      <span className="sh-row-sub" style={{ fontSize: 12 }}>
-                        {ROLE_LABEL[p.role] || p.role} · {p.present ? `ingreso ${p.inAt}` : 'sin marca de ingreso'}
-                      </span>
-                    </span>
-                    {p.present ? (
-                      <span className={`sh-tag ${p.behind ? 'sh-tag-warn' : 'sh-tag-ok'}`} style={{ fontSize: 14 }}>
-                        {p.rounds}/{perf.minRounds}
-                      </span>
-                    ) : (
-                      <span className="sh-tag sh-tag-fault">Ausente</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <ShiftRounds orgId={orgId} slot={slot} checks={data?.checks} loading={loading && !data} />
-
-        <div className="sh-grid-2">
-          <button type="button" className="sh-btn sh-btn-primary" style={{ fontSize: 15 }} onClick={() => go('supervision')}>
-            Asignar actividad
-          </button>
-          <button type="button" className="sh-btn sh-btn-outline" style={{ fontSize: 15 }} onClick={() => go('supervision')}>
-            Terminar ronda
-          </button>
-        </div>
-      </div>
-      <div className="sh-spacer" />
-      <TabBar
-        go={go}
-        items={[
-          { label: 'Turno', tab: 'hoy', icon: Icon.clock, current: true },
-          { label: 'Planta', tab: 'monitoreo', icon: Icon.plant },
-          { label: 'OT', tab: 'mantenimiento', icon: Icon.wrench },
-          { label: 'Reportes', tab: 'cumplimiento', icon: Icon.bars },
-        ]}
-      />
-    </>
-  )
-}
-
 /* ── Entrada ────────────────────────────────────────────────────────────── */
 export default function ShiftHome({ orgId, userId, role, area, userName, onNavigate, can = () => true }) {
   const kind = shiftHomeKind(role)
@@ -428,7 +253,7 @@ export default function ShiftHome({ orgId, userId, role, area, userName, onNavig
   const first = (userName || '').trim().split(/\s+/)[0] || ''
   const go = (tab) => onNavigate?.(tab)
 
-  const View = kind === 'supervisor' ? SupervisorView : kind === 'production' ? ProductionView : kind === 'reception' ? ReceptionView : OperatorHome
+  const View = kind === 'supervisor' ? SupervisorHome : kind === 'production' ? ProductionView : kind === 'reception' ? ReceptionView : OperatorHome
   return (
     <div className="sh-root" data-kind={kind || 'operator'}>
       <View home={home} perf={perf} first={first} go={go} orgId={orgId} userId={userId} role={role} userName={userName} can={can} />
