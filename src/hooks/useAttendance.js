@@ -10,6 +10,7 @@ import { isNetworkError, isOnline } from '../lib/network'
 import { enqueueInsert, enqueueStorageUpload } from '../lib/offlineQueue'
 import { distanceMeters } from './useOrgPresence'
 import { DEFAULT_SITE_RADIUS_M } from '../lib/geoMap'
+import { MARGIN_KEYS, buildPunctuality, readMargins } from '../lib/shiftPunctuality'
 
 /** Margen de tolerancia (m) que se suma al radio para absorber el error del GPS. */
 const ACCURACY_TOLERANCE_CAP_M = 100
@@ -69,6 +70,43 @@ export function useAttendance({ orgId, userId, userName = '' }) {
   const [localMode, setLocalMode] = useState(false)
   const [busy, setBusy] = useState(false)
   const [sites, setSites] = useState([])
+  const [shiftCtx, setShiftCtx] = useState({ assignments: [], targets: [], role: null })
+
+  // Turnos asignados y márgenes del coordinador, para decirle a la persona si llegó/salió a tiempo.
+  useEffect(() => {
+    if (!orgId || !userId) {
+      setShiftCtx({ assignments: [], targets: [], role: null })
+      return
+    }
+    let cancelled = false
+    const from = new Date()
+    from.setDate(from.getDate() - 3)
+    Promise.all([
+      supabase
+        .from('shift_assignments')
+        .select('user_id, work_date, shift_number, is_rest')
+        .eq('org_id', orgId)
+        .eq('user_id', userId)
+        .gte('work_date', from.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })),
+      supabase
+        .from('performance_targets')
+        .select('labor_key, expected, role, user_id, active')
+        .eq('org_id', orgId)
+        .eq('active', true)
+        .in('labor_key', [MARGIN_KEYS.in, MARGIN_KEYS.out]),
+      supabase.from('organization_members').select('role').eq('org_id', orgId).eq('user_id', userId).maybeSingle(),
+    ]).then(([asg, tgt, mem]) => {
+      if (cancelled) return
+      setShiftCtx({
+        assignments: asg.error ? [] : asg.data ?? [],
+        targets: tgt.error ? [] : tgt.data ?? [],
+        role: mem.error ? null : mem.data?.role ?? null,
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [orgId, userId])
 
   // Sedes (plantas/granjas) del org con su calibración GPS, para validar que la marca
   // de ingreso/salida ocurra dentro del radio calibrado.
@@ -148,6 +186,24 @@ export function useAttendance({ orgId, userId, userName = '' }) {
       ),
     [rows, today]
   )
+
+  const margins = useMemo(
+    () => readMargins(shiftCtx.targets, { id: userId, role: shiftCtx.role }),
+    [shiftCtx, userId]
+  )
+
+  // Turno más reciente (el que está en curso o el último que terminó) con su puntualidad.
+  const punctuality = useMemo(() => {
+    const from = new Date()
+    from.setDate(from.getDate() - 2)
+    const list = buildPunctuality({
+      punches: rows.map((r) => ({ ...r, user_id: userId })),
+      assignments: shiftCtx.assignments,
+      marginsFor: () => margins,
+      from: from.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }),
+    }).filter((r) => r.inAt)
+    return list.length ? list[list.length - 1] : null
+  }, [rows, shiftCtx.assignments, margins, userId])
 
   const lastPunch = rows[0] || null
   const isInside = lastPunch?.punch_type === 'in'
@@ -367,6 +423,9 @@ export function useAttendance({ orgId, userId, userName = '' }) {
     openSession,
     punch,
     signedUrl,
+    /** Último turno con ingreso: llegada/salida vs horario (lib/shiftPunctuality) */
+    punctuality,
+    margins,
     reload: load,
     sitesCalibrated: sites.some((s) => s.geo_origin_lat != null && s.geo_origin_lng != null),
   }

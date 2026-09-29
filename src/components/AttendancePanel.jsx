@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAttendance } from '../hooks/useAttendance'
 import { applyAttendanceWatermark } from '../lib/watermark'
+import { SHIFT_WINDOWS, describeShiftResult } from '../lib/shiftPunctuality'
 
 const fmt = (iso) =>
   iso
@@ -202,6 +203,28 @@ export default function AttendancePanel({
           <div className="exec-panel-head">
             <h3 className="exec-group-title">Hoy</h3>
           </div>
+          {att.punctuality ? (
+            <p
+              className={`msg ${att.punctuality.inStatus === 'late' || att.punctuality.outStatus === 'early' || att.punctuality.outStatus === 'missing' ? 'warn' : 'ok'}`}
+              style={{ marginTop: 0 }}
+            >
+              <strong>
+                Turno {att.punctuality.shiftNumber} ({SHIFT_WINDOWS[att.punctuality.shiftNumber].start}–
+                {SHIFT_WINDOWS[att.punctuality.shiftNumber].end}):
+              </strong>{' '}
+              {describeShiftResult(att.punctuality, { withShift: false })}
+              <br />
+              <span className="hint" style={{ margin: 0 }}>
+                Tolerancia {att.margins.inMin} min al llegar y {att.margins.outMin} min al salir
+                {att.punctuality.inferred ? ' · turno según la hora (no estás en el calendario)' : ''}
+              </span>
+            </p>
+          ) : (
+            <p className="hint" style={{ marginTop: 0 }}>
+              Tolerancia del coordinador: {att.margins.inMin} min al llegar y {att.margins.outMin}{' '}
+              min al salir.
+            </p>
+          )}
           {att.loading ? (
             <p className="hint">Cargando…</p>
           ) : att.todayPunches.length === 0 ? (

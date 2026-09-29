@@ -160,7 +160,7 @@ Ese es el **respaldo real** del plan de expansión.
 ## 7. Pendiente / roadmap cercano
 
 - Periodos de liquidación de bono (semanal/mensual) y bolsa contable SaaS.  
-- Márgenes exactos de llegada/salida vs horario de turno.  
+- ~~Márgenes exactos de llegada/salida vs horario de turno.~~ Hecho (sept. 2026): el coordinador fija la tolerancia en *Cumplimiento → Metas*; la adherencia compara cada marca con T1/T2/T3 (`src/lib/shiftPunctuality.js`).  
 - Onboarding multi-tenant comercial (precios, facturación).  
 - Telemetría IoT en vivo (hoy checklist operativo por sede).  
 - Liveness / anti-fraude facial opcional.  

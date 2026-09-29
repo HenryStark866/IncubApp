@@ -9,6 +9,7 @@ import {
   defaultTargetsForRole,
   isShiftWorkerRole,
 } from './complianceEngine'
+import { buildPunctuality, describeShiftResult, isMarginKey, readMargins } from './shiftPunctuality'
 
 export const PERIODS = [
   { id: 'day', label: 'Día' },
@@ -71,6 +72,7 @@ function targetsFor(member, targets) {
   const global = targets.filter((t) => !t.user_id && !t.role)
   const map = new Map()
   for (const t of [...global, ...byRole, ...byUser]) {
+    if (isMarginKey(t.labor_key)) continue
     map.set(t.labor_key, {
       labor_key: t.labor_key,
       label: t.label || LABOR_LABEL[t.labor_key] || t.labor_key,
@@ -99,9 +101,11 @@ export function buildFactRows({
   rounds = [],
   labors = [],
   attendance = [],
+  assignments = [],
   targets = [],
   fromDate,
   toDate,
+  now = new Date(),
 }) {
   const from = fromDate || daysAgoStr(90)
   const to = toDate || bogotaDate()
@@ -146,9 +150,31 @@ export function buildFactRows({
     cell.labors += Number(l.qty) || 1
   }
 
+  // Puntualidad: llegada/salida contra el horario del turno y los márgenes del coordinador.
+  // El turno cuenta en el día en que inicia (el T3 de las 22:00 no se parte en dos días).
+  const punctuality = buildPunctuality({
+    punches: attendance,
+    assignments,
+    marginsFor: (uid) => readMargins(targets, memberMap[uid] || { id: uid }),
+    now,
+    from,
+    to,
+    userIds,
+  })
+  const punctBy = new Map()
+  const punchDay = new Map()
+  for (const r of punctuality) {
+    const k = `${r.userId}|${r.date}`
+    if (!punctBy.has(k)) punctBy.set(k, [])
+    punctBy.get(k).push(r)
+    touch(r.userId, r.date)
+    for (const t of r.punchTimes) punchDay.set(`${r.userId}|${t}`, r.date)
+  }
+
   for (const a of attendance) {
     if (!a.user_id || !userIds.has(a.user_id)) continue
-    const day = String(a.shift_date || a.punched_at || '').slice(0, 10)
+    const day =
+      punchDay.get(`${a.user_id}|${a.punched_at}`) || String(a.shift_date || a.punched_at || '').slice(0, 10)
     if (!day || day < from || day > to) continue
     const cell = touch(a.user_id, day)
     cell.attTotal += 1
@@ -166,9 +192,12 @@ export function buildFactRows({
     const expAtt = tg.find((t) => t.labor_key === 'attendance_punches')?.expected ?? 2
     const expAdh = tg.find((t) => t.labor_key === 'shift_adherence')?.expected ?? 100
 
-    let adherence = 0
-    if (cell.attIn && cell.attOut) adherence = 100
-    else if (cell.attIn || cell.attOut) adherence = 50
+    const dayShifts = punctBy.get(`${cell.userId}|${cell.day}`) || []
+    // Sin turno ese día (p. ej. una salida suelta) la adherencia no se mide.
+    const adherence = dayShifts.length
+      ? Math.round(dayShifts.reduce((s, r) => s + r.adherence, 0) / dayShifts.length)
+      : 0
+    const expAdhDay = dayShifts.length ? expAdh : 0
 
     const activities = [
       {
@@ -195,12 +224,13 @@ export function buildFactRows({
       {
         activity: 'shift_adherence',
         label: LABOR_LABEL.shift_adherence || 'Adherencia',
-        expected: expAdh,
+        expected: expAdhDay,
         actual: adherence,
         unit: '%',
       },
     ]
 
+    for (const r of dayShifts) cell.shifts.add(`T${r.shiftNumber}`)
     const shiftCode =
       cell.shifts.size === 1
         ? [...cell.shifts][0]
@@ -237,7 +267,9 @@ export function buildFactRows({
         evidence:
           a.activity === 'attendance_punches'
             ? `${cell.attIn} in / ${cell.attOut} out`
-            : a.activity === 'rounds'
+            : a.activity === 'shift_adherence' && dayShifts.length
+              ? dayShifts.map(describeShiftResult).join(' | ')
+              : a.activity === 'rounds'
               ? `${cell.rounds} reportes`
               : `${a.actual} ${a.unit}`,
       })
