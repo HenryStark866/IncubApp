@@ -50,6 +50,7 @@ import {
   AccessRegistryPanel,
   TodayBoard,
   ShiftHome,
+  MaintenanceAuxHome,
   LeaderDashboard,
   LeaderOpsMap,
   SiloReportsPanel,
@@ -674,6 +675,17 @@ function Workspace({
               }}
               presence={presence}
               can={can}
+            />
+          ) : tab === 'hoy' && org && role === 'maintenance_auxiliary' ? (
+            // Auxiliar de mantenimiento: Plan AM de la semana, reportes del turno y sus formatos.
+            <MaintenanceAuxHome
+              orgId={org.id}
+              userId={session.user.id}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={(t) => {
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
+              }}
             />
           ) : tab === 'hoy' && org && shiftHomeKind(role) ? (
             // Operación de planta (operario, auxiliares de turno y producción, recepción,

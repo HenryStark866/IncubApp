@@ -141,15 +141,32 @@ export function calibrationRecordHtml(item = {}) {
   return documentHtml({ meta: { fomatCode: 'FOMAT08' }, title: `FOMAT08 · ${item.file_name || 'Calibración'}`, body })
 }
 
+const CHECK_LABEL = { ok: 'OK', fail: 'No OK', na: 'No aplica' }
+
+/** Formato de la OT: el que quedó anotado al guardarla; si no, FOMAT04 para la inspección con chequeo. */
+export function workOrderFormatCode(order = {}) {
+  if (order.format_code === 'FOMAT04' || order.format_code === 'FOMAT01') return order.format_code
+  if (order.type === 'inspection' && Array.isArray(order.checklist) && order.checklist.length) return 'FOMAT04'
+  return 'FOMAT01'
+}
+
+function checklistBlock(order = {}) {
+  const list = Array.isArray(order.checklist) ? order.checklist : []
+  if (!list.length) return ''
+  return `<h2>Lista de chequeo</h2>${listTable(['Punto', 'Resultado', 'Observación'], list.map((it) => [it.label, CHECK_LABEL[it.result] || it.result, it.note]))}`
+}
+
 export function workOrderRecordHtml(item = {}) {
   const order = item.order || {}
   const files = item.orderFiles || []
+  const formatCode = workOrderFormatCode(order)
   const isImage = (file) => file.file_type === 'image' || /\.(png|jpe?g|webp|gif)$/i.test(file.file_name || '')
   const body = [
     fieldsTable([
       ['Orden de trabajo', order.code || item.workOrderCode],
       ['Título', order.title || item.workOrderTitle],
       ['Equipo', machineLabel(item.orderMachine)],
+      ...(order.maintenance_plan_code ? [['Tarea del Plan AM', order.maintenance_plan_code]] : []),
       ['Estado', STATUS_LABEL[order.status] || order.status],
       ['Prioridad', order.priority],
       ['Creada', formatDateTime(order.created_at)],
@@ -157,14 +174,16 @@ export function workOrderRecordHtml(item = {}) {
       ['Cierre', formatDateTime(order.completed_at)],
       ['Solicitó', item.orderPeople?.createdBy],
       ['Responsable', item.orderPeople?.assignedTo || order.technician_name],
+      ['Parada del equipo', order.downtime_minutes != null ? `${order.downtime_minutes} min` : null],
       ['Descripción', order.description],
       ['Resolución / cierre', order.resolution],
     ]),
+    checklistBlock(order),
     '<h2>Evidencias adjuntas</h2>',
     listTable(['Archivo', 'Nota', 'Subió', 'Fecha'], files.map((file) => [file.file_name, file.note, file.uploadedByName, formatDateTime(file.created_at)])),
     photosBlock(files.filter(isImage).map((file) => ({ url: file.url, label: file.file_name }))),
   ].join('')
-  return documentHtml({ meta: { fomatCode: 'FOMAT01' }, title: `FOMAT01 · ${order.code || item.workOrderCode || 'OT'}`, body })
+  return documentHtml({ meta: { fomatCode: formatCode }, title: `${formatCode} · ${order.code || item.workOrderCode || 'OT'}`, body })
 }
 
 export function productionRecordHtml(item = {}) {
@@ -246,7 +265,7 @@ export function workOrderRecordItem({ order = {}, files = [], machine = null, cr
   return {
     id: `work-order-${order.id}`,
     kind: 'work-order',
-    formatCode: 'FOMAT01',
+    formatCode: workOrderFormatCode(order),
     file_name: `OT ${order.code || 'sin código'}`,
     created_at: order.completed_at || order.created_at || null,
     workOrderCode: order.code || null,

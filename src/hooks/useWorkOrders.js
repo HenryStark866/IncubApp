@@ -74,7 +74,8 @@ export function useWorkOrders(orgId, userId) {
     const [o, m] = await Promise.all([
       supabase
         .from('work_orders')
-        .select('id, org_id, code, title, description, type, priority, status, source, machine_id, room_id, plant_id, location_type, location_name, assigned_to, created_by, scheduled_for, started_at, completed_at, downtime_minutes, cost, resolution, created_at')
+        // select('*'): las columnas nuevas (checklist, format_code, maintenance_plan_code…) no existen en todas las instalaciones.
+        .select('*')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false }),
       supabase
