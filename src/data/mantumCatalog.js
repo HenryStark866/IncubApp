@@ -9,7 +9,7 @@ import inventoryMap from './mantumInventory.json'
 import equiposMap from './mantumEquipos.json'
 import componentsMap from './mantumComponents.json'
 import plansMap from './mantumMaintenancePlans.json'
-import historicalOTsMap from './mantumHistoricalOTs.json'
+import { mantumHistoryLoaded } from './mantumHistory'
 import { mediaForCode } from './mantumMedia'
 
 function enrichEquipment(equipo, machine = {}) {
@@ -213,7 +213,6 @@ export {
   equiposMap as MANTUM_EQUIPOS,
   componentsMap as MANTUM_COMPONENTS,
   plansMap as MANTUM_PLANS,
-  historicalOTsMap as MANTUM_HISTORICAL_OTS,
 }
 
 /**
@@ -289,9 +288,11 @@ export function resolveMantumKeys(machine = {}) {
 }
 
 /**
- * Encuentra todo el expediente Mantum para un equipo dado
+ * Encuentra todo el expediente Mantum para un equipo dado.
+ * `historicalOTsMap` = historial de OT (src/data/mantumHistory.js); mientras no se
+ * haya descargado, el expediente sale sin OT reales (solo las programadas sin registro).
  */
-export function getMantumDataForMachine(machine) {
+export function getMantumDataForMachine(machine, historicalOTsMap = mantumHistoryLoaded() || {}) {
   if (!machine) return null
   const candidates = resolveMantumKeys(machine)
 

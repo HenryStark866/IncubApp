@@ -15,10 +15,15 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Datos fijos de Mantum (historial de OT ~6,5 MB, planes AM): casi nunca
+          // Datos fijos de Mantum (planes AM, historial de OT): casi nunca
           // cambian. En su propio archivo el navegador los conserva entre versiones
           // y no los vuelve a bajar cada vez que se publica un cambio de código.
-          if (/src[\\/]data[\\/](mantumHistoricalOTs|mantumMaintenancePlans|annualMaintenancePlanData)\.json$/.test(id)) {
+          // El historial de OT (~6,5 MB) va aparte y se carga bajo demanda
+          // (src/data/mantumHistory.js): abrir mantenimiento no lo descarga.
+          if (/src[\\/]data[\\/]mantumHistoricalOTs\.json$/.test(id)) {
+            return 'mantum-historial'
+          }
+          if (/src[\\/]data[\\/](mantumMaintenancePlans|annualMaintenancePlanData)\.json$/.test(id)) {
             return 'mantum-datos'
           }
           if (id.includes('node_modules')) {

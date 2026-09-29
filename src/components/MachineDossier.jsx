@@ -151,7 +151,7 @@ export default function MachineDossier({
       mantum,
       stats,
       assetEvidence,
-    })
+    }).catch((err) => console.warn('No se pudo exportar el FOMAT03:', err?.message || err))
   }
 
   const handleCreateAutoOt = async (planTask) => {

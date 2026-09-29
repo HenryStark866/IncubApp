@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { loadMantumHistory } from '../../../data/mantumHistory';
 import { LOCAL_DOCUMENT_LIBRARY } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import {
@@ -21,6 +22,11 @@ import {
     safeRows,
     paginatedRows,
 } from './MachineAssetHub';
+
+// El historial de OT Mantum se carga bajo demanda; las pruebas lo cargan una vez.
+beforeAll(async () => {
+    await loadMantumHistory();
+});
 
 describe('load map local persistence', () => {
     beforeEach(() => {

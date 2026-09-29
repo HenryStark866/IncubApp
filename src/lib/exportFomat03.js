@@ -4,14 +4,15 @@
  * Estructura oficial del Sistema Integrado de Gestión (SIG) · Antioqueña de Incubación S.A.S.
  */
 
-import * as XLSX from 'xlsx'
 import { excelLetterheadRows, excelFooterRows, CORP_SLOGAN } from './corporateBrand'
 
 const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
 
-export function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {}, assetEvidence = [] }) {
+export async function exportFomat03Excel({ machine, room, plant, calibrations = [], workOrders = [], mantum = {}, stats = {}, assetEvidence = [] }) {
   if (!machine) return
 
+  // xlsx (~425 kB) solo se descarga al exportar, no al abrir la ficha.
+  const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
 
   // ─────────────────────────────────────────────────────────────────────────────

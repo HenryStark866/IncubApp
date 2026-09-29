@@ -4,7 +4,9 @@ import { groupChecksIntoRounds } from '../../../lib/roundRecords';
 import { READING_COLUMNS } from '../../../lib/machineReadings';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { MANTUM_EQUIPOS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { loadMantumHistory, mantumHistoryLoaded } from '../../../data/mantumHistory';
+import { useMantumHistory } from '../../../hooks/useMantumHistory';
 import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES, LOCAL_SIG_2026_EVIDENCE } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
@@ -266,10 +268,19 @@ function splitMantumOrderFeedback(feedback = '', machineCode = '', orderCode = '
   });
 }
 
-function mantumHistoricalEvidence() {
+const NO_HISTORY = {};
+// El historial no cambia una vez cargado: sus evidencias se arman una sola vez.
+const historicalEvidenceCache = new WeakMap();
+
+function mantumHistoricalEvidence(history = mantumHistoryLoaded() || NO_HISTORY) {
+  if (!historicalEvidenceCache.has(history)) historicalEvidenceCache.set(history, buildMantumHistoricalEvidence(history));
+  return historicalEvidenceCache.get(history);
+}
+
+function buildMantumHistoricalEvidence(history) {
   const originalFormat = LOCAL_SIG_2026_EVIDENCE.find((file) => /FOMAT01/i.test(file.file_name || file.formatCode || '')) || null;
 
-  return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+  return Object.entries(history).flatMap(([machineCode, orders]) =>
     (orders || []).flatMap((order) => {
       const segments = splitMantumOrderFeedback(order.feedback, machineCode, order.code);
       if (segments.length === 0) {
@@ -312,11 +323,11 @@ function mantumHistoricalEvidence() {
   );
 }
 
-export function mantumHistoricalEvidenceForMachine(machine = {}) {
+export function mantumHistoricalEvidenceForMachine(machine = {}, history) {
   const machineCode = String(machine.code || machine.mantum_code || machine.machine_id || '').trim().toUpperCase();
   if (!machineCode) return [];
 
-  return mantumHistoricalEvidence().filter((entry) => {
+  return mantumHistoricalEvidence(history).filter((entry) => {
     const entryCode = String(entry.machineCode || '').trim().toUpperCase();
     return entryCode === machineCode || entryCode.includes(machineCode) || machineCode.includes(entryCode);
   });
@@ -864,6 +875,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [planTypeFilter, setPlanTypeFilter] = useState('all');
   const [planSearchText, setPlanSearchText] = useState('');
   const [selectedTaskCode, setSelectedTaskCode] = useState(null);
+  // Historial de OT Mantum: se descarga al abrir un equipo o los registros del plan.
+  const mantumHistory = useMantumHistory(!!selectedMachineId || annualPlanSubTab === 'registros');
   const [selectedRegistroFileId, setSelectedRegistroFileId] = useState(null);
   const [instructionTask, setInstructionTask] = useState(null);
   // Registros del último año (OT, calibraciones, rondas, Mántum): solo se piden al abrir
@@ -963,7 +976,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const filteredAnnualRegistros = useMemo(() => {
     const query = planSearchText.trim().toLowerCase();
     // Aplanar todas las OTs de Mantum en un mapa por código para hacer lookup rápido
-    const mantumFlat = Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+    const mantumFlat = Object.entries(mantumHistory || NO_HISTORY).flatMap(([machineCode, orders]) =>
       (orders || []).map((ot) => ({ ...ot, machineCode }))
     );
     const mantumByCode = Object.fromEntries(mantumFlat.map((ot) => [String(ot.code || '').toUpperCase(), ot]));
@@ -999,7 +1012,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         }) : null;
         return { ...f, fileUrl, recordHtml, mantumOt: ot || null };
       });
-  }, [planSearchText, registroFileUrls]);
+  }, [planSearchText, registroFileUrls, mantumHistory]);
 
 
   useEffect(() => {
@@ -1169,7 +1182,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
-    const mantum = getMantumDataForMachine(selectedMachine);
+    const mantum = getMantumDataForMachine(selectedMachine, mantumHistory || NO_HISTORY);
     const code = String(selectedMachine.code || selectedMachine.mantum_code || '').trim().toUpperCase();
     const name = String(selectedMachine.name || '').trim().toUpperCase();
     const matchedOfficialPlan = (annualPlanData.tasks || []).filter((task) => {
@@ -1194,7 +1207,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       images: mantum.images || [],
       mantum,
     };
-  }, [selectedMachine]);
+  }, [selectedMachine, mantumHistory]);
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
@@ -1308,7 +1321,9 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           kind: 'sig-registry',
         };
       }));
-      const historicalOrders = selectedMachine?.source !== 'remote' ? mantumHistoricalEvidenceForMachine(selectedMachine) : [];
+      const historicalOrders = selectedMachine?.source !== 'remote'
+        ? mantumHistoricalEvidenceForMachine(selectedMachine, await loadMantumHistory().catch(() => NO_HISTORY))
+        : [];
       const combined = sortEvidence([...resolved, ...resolvedRegistry, ...historicalOrders]);
       setDocuments(combined);
       setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
@@ -1546,7 +1561,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...rounds,
         ...calibrations,
         ...production,
-        ...mantumHistoricalEvidence(),
+        ...mantumHistoricalEvidence(await loadMantumHistory().catch(() => NO_HISTORY)),
         ...LOCAL_DOCUMENT_LIBRARY,
       ]);
       setAllEvidence(combined);
