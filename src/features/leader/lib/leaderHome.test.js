@@ -226,7 +226,7 @@ describe('environmentalLeaderBoard', () => {
     })
     expect(b.decisions[0].title).toBe('Sensor CO2-RES fuera de rango: 1.450 ppm')
     expect(b.decisions.some((d) => d.id === 'stale-s3')).toBe(true)
-    expect(b.kpis.map((k) => k.value)).toEqual(['3', '1', '1', '3'])
+    expect(b.kpis.slice(0, 4).map((k) => k.value)).toEqual(['3', '1', '1', '3'])
     expect(b.plan).toHaveLength(1)
   })
 })
@@ -437,5 +437,178 @@ describe('salesLeaderBoard', () => {
     expect(b.decisions.some((d) => d.id === 'req-o2')).toBe(true)
     expect(b.decisions.some((d) => d.id === 'prospects')).toBe(true)
     expect(b.team[0]).toMatchObject({ pct: 100, value: '108 %' })
+  })
+})
+
+describe('sstLeaderBoard · incidentes e inspecciones', () => {
+  // now = lunes 28 de septiembre de 2026, 15:40
+  const incidents = [
+    {
+      id: 'i1',
+      kind: 'accident',
+      severity: 'medium',
+      status: 'reported',
+      affected_person: 'Luis Gómez',
+      site: 'Planta 1',
+      description: 'Se cortó la mano con una bandeja',
+      has_disability: true,
+      disability_days: 3,
+      occurred_at: new Date(2026, 8, 25, 10, 0).toISOString(),
+    },
+    {
+      id: 'i2',
+      kind: 'unsafe_condition',
+      severity: 'low',
+      status: 'investigating',
+      description: 'Piso mojado en la sala de nacedoras',
+      corrective_action: 'Instalar rejilla de desagüe',
+      action_owner: 'Mantenimiento',
+      action_due: '2026-09-26',
+      occurred_at: new Date(2026, 8, 20, 8, 0).toISOString(),
+    },
+    {
+      id: 'i3',
+      kind: 'near_miss',
+      severity: 'low',
+      status: 'investigating',
+      corrective_action: 'Señalizar el paso de montacargas',
+      action_due: '2026-10-01',
+      occurred_at: new Date(2026, 8, 22, 8, 0).toISOString(),
+    },
+    {
+      id: 'i4',
+      kind: 'incident',
+      severity: 'low',
+      status: 'closed',
+      corrective_action: 'Ya hecha',
+      action_due: '2026-09-01',
+      occurred_at: new Date(2026, 7, 20, 8, 0).toISOString(),
+    },
+  ]
+  const inspections = [
+    { id: 'n1', kind: 'extinguishers', site: 'Planta 1', scheduled_for: '2026-09-24', responsible_name: 'Ana' },
+    { id: 'n2', kind: 'epp', scheduled_for: '2026-09-30' },
+    { id: 'n3', kind: 'first_aid', scheduled_for: '2026-10-08' },
+    {
+      id: 'n4',
+      kind: 'housekeeping',
+      scheduled_for: '2026-09-28',
+      done_at: new Date(2026, 8, 28, 9, 0).toISOString(),
+      result: 'findings',
+    },
+  ]
+  const b = sstLeaderBoard({ now, incidents, inspections })
+
+  it('pide investigar el accidente reportado y lo pone arriba', () => {
+    const d = b.decisions.find((x) => x.id === 'incident-i1')
+    expect(d).toMatchObject({ tone: 'danger', title: 'Accidente sin investigar · Luis Gómez' })
+    expect(d.detail).toContain('incapacidad 3 días')
+    expect(b.decisions.some((x) => x.id === 'incident-i2')).toBe(false)
+    expect(b.decisions[0].tone).toBe('danger')
+  })
+
+  it('avisa la acción correctiva vencida y la que vence pronto, no la del incidente cerrado', () => {
+    expect(b.decisions.find((x) => x.id === 'action-i2')).toMatchObject({ tone: 'danger' })
+    expect(b.decisions.find((x) => x.id === 'action-i2').detail).toContain('venció hace 2 días')
+    expect(b.decisions.find((x) => x.id === 'action-i3')).toMatchObject({ tone: 'warn' })
+    expect(b.decisions.find((x) => x.id === 'action-i3').detail).toContain('vence en 3 días')
+    expect(b.decisions.some((x) => x.id === 'action-i4')).toBe(false)
+  })
+
+  it('trae la inspección vencida y la de esta semana, no la de la otra semana ni la hecha', () => {
+    expect(b.decisions.find((x) => x.id === 'inspection-n1')).toMatchObject({
+      tone: 'danger',
+      title: 'Inspección de extintores vencida',
+    })
+    expect(b.decisions.find((x) => x.id === 'inspection-n2').title).toBe('Inspección de EPP esta semana')
+    expect(b.decisions.some((x) => x.id === 'inspection-n3')).toBe(false)
+    expect(b.decisions.some((x) => x.id === 'inspection-n4')).toBe(false)
+  })
+
+  it('cuenta los días sin accidente y los demás indicadores nuevos', () => {
+    const k = Object.fromEntries(b.kpis.map((x) => [x.label, x]))
+    expect(k['Días sin accidente'].value).toBe('3')
+    expect(k['Incidentes abiertos']).toMatchObject({ value: '3', sub: '1 sin investigar' })
+    expect(k['Inspecciones de la semana'].value).toBe('1 de 2')
+    expect(k['Acciones correctivas']).toMatchObject({ value: '2', sub: '1 vencida', tone: 'danger' })
+    // Los cuatro indicadores de antes siguen primero.
+    expect(b.kpis[0].label).toBe('Preoperacionales hoy')
+  })
+
+  it('el plan muestra las inspecciones de la semana y la vencida', () => {
+    const ids = b.plan.map((p) => p.id)
+    expect(ids).toEqual(['insp-n1', 'insp-n4', 'insp-n2'])
+    expect(b.plan.find((p) => p.id === 'insp-n4')).toMatchObject({ at: 'Hoy', state: 'Con hallazgos' })
+    expect(b.plan.find((p) => p.id === 'insp-n1').state).toBe('Vencida')
+  })
+
+  it('sin accidentes registrados muestra un guion y sin tablas nuevas no rompe', () => {
+    const empty = sstLeaderBoard({ now })
+    expect(empty.kpis.find((x) => x.label === 'Días sin accidente').value).toBe('—')
+    expect(empty.decisions).toEqual([])
+  })
+})
+
+describe('environmentalLeaderBoard · residuos, medidores y obligaciones', () => {
+  // Agua: semana anterior 10 m³/día, esta semana 12 m³/día (+20 %). Energía estable.
+  const meterReadings = [
+    { id: 'w0', meter: 'water', site: 'Planta 1', read_on: '2026-09-14', reading: 1000, unit: 'm³' },
+    { id: 'w1', meter: 'water', site: 'Planta 1', read_on: '2026-09-21', reading: 1070, unit: 'm³' },
+    { id: 'w2', meter: 'water', site: 'Planta 1', read_on: '2026-09-28', reading: 1154, unit: 'm³' },
+    { id: 'e0', meter: 'energy', site: 'Planta 1', read_on: '2026-09-14', reading: 5000, unit: 'kWh' },
+    { id: 'e1', meter: 'energy', site: 'Planta 1', read_on: '2026-09-21', reading: 5700, unit: 'kWh' },
+    { id: 'e2', meter: 'energy', site: 'Planta 1', read_on: '2026-09-28', reading: 6400, unit: 'kWh' },
+  ]
+  const waste = [
+    { id: 'r1', kind: 'organic', kg: 300, recovered: true, status: 'delivered', recorded_on: '2026-09-10' },
+    { id: 'r2', kind: 'ordinary', kg: 100, recovered: false, status: 'delivered', recorded_on: '2026-09-15' },
+    { id: 'r3', kind: 'hazardous', kg: 40, recovered: false, status: 'delivered', recorded_on: '2026-08-30' },
+    { id: 'r4', kind: 'hazardous', kg: 20, status: 'scheduled', recorded_on: '2026-10-01', manager: 'Ecoservicios' },
+    { id: 'r5', kind: 'recyclable', kg: 0, status: 'scheduled', recorded_on: '2026-09-25' },
+    { id: 'r6', kind: 'organic', kg: 0, status: 'scheduled', recorded_on: '2026-10-20' },
+  ]
+  const obligations = [
+    { id: 'o1', name: 'Informe de aprovechamiento', due_on: '2026-10-05', status: 'pending' },
+    { id: 'o2', name: 'Permiso de vertimientos', due_on: '2026-09-27', status: 'in_progress' },
+    { id: 'o3', name: 'Caracterización', due_on: '2026-11-30', status: 'pending' },
+    { id: 'o4', name: 'PGIRS', due_on: '2026-10-01', status: 'done' },
+  ]
+  const b = environmentalLeaderBoard({ now, meterReadings, waste, obligations })
+
+  it('avisa el agua +20 % y no la energía estable', () => {
+    const d = b.decisions.find((x) => x.id === 'meter-water')
+    expect(d).toMatchObject({ tone: 'warn', title: 'Consumo de agua +20 % frente a la semana anterior' })
+    expect(d.detail).toContain('12 m³/día contra 10 m³/día')
+    expect(b.decisions.some((x) => x.id === 'meter-energy')).toBe(false)
+  })
+
+  it('trae las obligaciones de los próximos 15 días y la vencida, no la cumplida ni la lejana', () => {
+    expect(b.decisions.find((x) => x.id === 'obligation-o2')).toMatchObject({ tone: 'danger' })
+    expect(b.decisions.find((x) => x.id === 'obligation-o1').title).toBe('Informe de aprovechamiento: vence en 7 días')
+    expect(b.decisions.some((x) => x.id === 'obligation-o3')).toBe(false)
+    expect(b.decisions.some((x) => x.id === 'obligation-o4')).toBe(false)
+  })
+
+  it('muestra los retiros programados y el que pasó sin confirmar', () => {
+    expect(b.decisions.find((x) => x.id === 'pickup-r4')).toMatchObject({ tone: 'info' })
+    expect(b.decisions.find((x) => x.id === 'pickup-r5').title).toBe('Retiro sin confirmar: reciclable')
+    expect(b.decisions.some((x) => x.id === 'pickup-r6')).toBe(false)
+    expect(b.plan.some((p) => p.id === 'pickup-r4')).toBe(true)
+  })
+
+  it('calcula residuos del mes con % aprovechado y el consumo por día', () => {
+    const k = Object.fromEntries(b.kpis.map((x) => [x.label, x]))
+    expect(k['Residuos del mes']).toMatchObject({ value: '400 kg', sub: '75 % aprovechado' })
+    expect(k['Agua por día']).toMatchObject({ value: '12 m³', tone: 'warn' })
+    expect(k['Energía por día'].value).toBe('100 kWh')
+    expect(k['Obligaciones por vencer']).toMatchObject({ value: '2', tone: 'danger' })
+  })
+
+  it('sin lecturas ni registros no rompe y lo dice', () => {
+    const empty = environmentalLeaderBoard({ now })
+    const k = Object.fromEntries(empty.kpis.map((x) => [x.label, x]))
+    expect(k['Agua por día']).toMatchObject({ value: '—', sub: 'faltan lecturas del medidor' })
+    expect(k['Residuos del mes'].sub).toBe('sin entregas registradas')
+    expect(empty.decisions).toEqual([])
   })
 })

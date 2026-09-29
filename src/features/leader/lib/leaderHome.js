@@ -5,6 +5,24 @@
  * Henry Stark Desarrollador
  */
 import { localDate, clock, machineHealth, productionDay, shiftHoursElapsed } from '../../shift/lib/shiftHome'
+import {
+  actionPending,
+  daysSinceAccident,
+  daysUntil,
+  dayStart,
+  incidentKindLabel,
+  inspectionKindLabel,
+  inspectionResultLabel,
+  severityLabel,
+  weekBounds,
+} from '../../sst/lib/sstRecords'
+import {
+  meterLabel,
+  obligationsDue,
+  wasteKindLabel,
+  wasteOfMonth,
+  weekOverWeek,
+} from '../../environmental/lib/envRecords'
 
 /** Qué inicio de líder corresponde a su área. Las demás áreas llegan en orden. */
 export function leaderKind(area) {
@@ -211,6 +229,18 @@ export function plantLeaderBoard({
 /* ─── Mantenimiento ───────────────────────────────────── */
 
 const DAY_MS = 86400000
+/** Minúscula inicial sin dañar siglas (EPP, RESPEL). */
+const lc = (t) => {
+  const v = String(t || '')
+  return /^[A-ZÁÉÍÓÚÑ]{2,}\b/.test(v) ? v : v.charAt(0).toLowerCase() + v.slice(1)
+}
+const shortDay = (v) => (v ? new Date(v).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) : '')
+const longDay = (d) => d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })
+const weekdayShort = (d) => d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' }).replace('.', '')
+const clip = (t, n = 90) => {
+  const v = String(t || '').trim()
+  return v.length > n ? `${v.slice(0, n - 1)}…` : v
+}
 
 export function maintenanceLeaderBoard({ workOrders = [], machines = [], technicians = [], now = new Date() }) {
   const codeOf = new Map(machines.map((m) => [m.id, m.code || m.name]))
@@ -372,7 +402,14 @@ export function driversPreopToday({ drivers = [], preops = [], now = new Date() 
 
 /* ─── SST ─────────────────────────────────────────────── */
 
-export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now = new Date() }) {
+export function sstLeaderBoard({
+  preops = [],
+  supplies = [],
+  drivers = [],
+  incidents = [],
+  inspections = [],
+  now = new Date(),
+}) {
   const today = localDate(now)
   const recent = preops.filter((r) => now - new Date(r.inspection_date || r.created_at) < 7 * DAY_MS)
   const decisions = []
@@ -413,6 +450,74 @@ export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now =
     })
   }
 
+  // 4. Incidentes reportados que nadie ha empezado a investigar.
+  const uninvestigated = incidents
+    .filter((x) => x.status === 'reported')
+    .sort((a, b) => String(a.occurred_at).localeCompare(String(b.occurred_at)))
+  for (const x of uninvestigated) {
+    const serious = x.kind === 'accident' || x.severity === 'high' || x.severity === 'critical'
+    decisions.push({
+      id: `incident-${x.id}`,
+      tone: serious ? 'danger' : 'warn',
+      title: `${incidentKindLabel(x.kind)} sin investigar${x.affected_person ? ` · ${x.affected_person}` : ''}`,
+      detail: [
+        x.occurred_at ? `${shortDay(x.occurred_at)} ${clock(x.occurred_at)}` : null,
+        [x.site, x.area].filter(Boolean).join(' / ') || null,
+        `gravedad ${lc(severityLabel(x.severity))}`,
+        x.has_disability ? `incapacidad ${x.disability_days || 0} días` : null,
+        clip(x.description),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'sst', label: 'Investigar' },
+    })
+  }
+
+  // 5. Acciones correctivas vencidas o que vencen en los próximos 7 días.
+  const pendingActions = incidents.filter(actionPending).map((x) => ({ x, left: daysUntil(x.action_due, now) }))
+  for (const { x, left } of pendingActions.filter((a) => a.left <= 7).sort((a, b) => a.left - b.left)) {
+    decisions.push({
+      id: `action-${x.id}`,
+      tone: left < 0 ? 'danger' : 'warn',
+      title: `Acción correctiva ${left < 0 ? 'vencida' : 'por vencer'}: ${clip(x.corrective_action, 70) || incidentKindLabel(x.kind)}`,
+      detail: [
+        left < 0
+          ? `venció hace ${-left} día${left === -1 ? '' : 's'}`
+          : left === 0
+            ? 'vence hoy'
+            : `vence en ${left} día${left === 1 ? '' : 's'}`,
+        x.action_owner ? `responsable ${x.action_owner}` : 'sin responsable',
+        `${lc(incidentKindLabel(x.kind))} del ${shortDay(x.occurred_at)}`,
+      ].join(' · '),
+      action: { kind: 'nav', tab: 'sst', label: 'Ver acción' },
+    })
+  }
+
+  // 6. Inspecciones programadas vencidas o de esta semana que no se han hecho.
+  const week = weekBounds(now)
+  const todayStart = dayStart(now)
+  const pendingInsp = inspections
+    .filter((x) => !x.done_at && x.scheduled_for)
+    .map((x) => ({ x, d: dayStart(x.scheduled_for) }))
+    .filter(({ d }) => d && d <= week.end)
+    .sort((a, b) => a.d - b.d)
+  for (const { x, d } of pendingInsp) {
+    const late = d < todayStart
+    decisions.push({
+      id: `inspection-${x.id}`,
+      tone: late ? 'danger' : 'info',
+      title: `Inspección de ${lc(inspectionKindLabel(x))} ${late ? 'vencida' : d.getTime() === todayStart.getTime() ? 'para hoy' : 'esta semana'}`,
+      detail: [
+        `programada para el ${longDay(d)}`,
+        x.site,
+        x.responsible_name ? `responsable ${x.responsible_name}` : 'sin responsable',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'sst', label: 'Registrar' },
+    })
+  }
+
   const todays = preops.filter((r) => String(r.inspection_date || r.created_at || '').slice(0, 10) === today)
   const lastFinding = preops
     .filter(hasFindings)
@@ -421,6 +526,18 @@ export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now =
   const daysClean = lastFinding ? Math.max(0, Math.floor((now - lastFinding) / DAY_MS)) : null
   const low = supplies.filter((x) => x.min_qty != null && Number(x.qty_on_hand) < Number(x.min_qty)).length
   const fleet = driversPreopToday({ drivers, preops, now })
+  const accidentDays = daysSinceAccident(incidents, now)
+  const lastAccident = incidents
+    .filter((x) => x.kind === 'accident' && x.occurred_at)
+    .sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)))[0]
+  const openIncidents = incidents.filter((x) => x.status !== 'closed')
+  const lateActions = pendingActions.filter((a) => a.left < 0).length
+  const inWeek = (x) => {
+    const d = dayStart(x.scheduled_for || x.done_at)
+    return d && d >= week.start && d <= week.end
+  }
+  const weekInsp = inspections.filter(inWeek)
+  const lateInsp = pendingInsp.filter(({ d }) => d < todayStart).length
   const kpis = [
     {
       label: 'Preoperacionales hoy',
@@ -446,6 +563,30 @@ export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now =
       sub: `${supplies.length} ítems de dotación`,
       tone: low ? 'warn' : null,
     },
+    {
+      label: 'Días sin accidente',
+      value: accidentDays == null ? '—' : num(accidentDays),
+      sub: lastAccident ? `último: ${shortDay(lastAccident.occurred_at)}` : 'sin accidentes registrados',
+      tone: accidentDays === 0 ? 'danger' : null,
+    },
+    {
+      label: 'Incidentes abiertos',
+      value: String(openIncidents.length),
+      sub: `${uninvestigated.length} sin investigar`,
+      tone: uninvestigated.length ? 'warn' : null,
+    },
+    {
+      label: 'Inspecciones de la semana',
+      value: `${weekInsp.filter((x) => x.done_at).length} de ${weekInsp.length}`,
+      sub: `${lateInsp} vencida${lateInsp === 1 ? '' : 's'} sin hacer`,
+      tone: lateInsp ? 'warn' : null,
+    },
+    {
+      label: 'Acciones correctivas',
+      value: String(pendingActions.length),
+      sub: `${lateActions} vencida${lateActions === 1 ? '' : 's'}`,
+      tone: lateActions ? 'danger' : null,
+    },
   ]
   const team = fleet.map(({ driver, report, state }) => ({
     id: driver.id,
@@ -468,12 +609,48 @@ export function sstLeaderBoard({ preops = [], supplies = [], drivers = [], now =
       state: r.status === 'reviewed' ? 'Revisado' : hasFindings(r) ? 'Con hallazgo' : 'Sin hallazgos',
       tone: hasFindings(r) && r.status !== 'reviewed' ? 'warn' : 'ok',
     }))
+  // Inspecciones de la semana (y las vencidas sin hacer), en orden de fecha.
+  const planInsp = inspections
+    .filter((x) => inWeek(x) || (!x.done_at && x.scheduled_for && dayStart(x.scheduled_for) < todayStart))
+    .map((x) => ({ x, d: dayStart(x.scheduled_for || x.done_at) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 10)
+  for (const { x, d } of planInsp) {
+    const late = !x.done_at && d < todayStart
+    plan.push({
+      id: `insp-${x.id}`,
+      at: d.getTime() === todayStart.getTime() ? 'Hoy' : weekdayShort(d),
+      text: `Inspección ${lc(inspectionKindLabel(x))}${x.site ? ` · ${x.site}` : ''}${x.responsible_name ? ` · ${x.responsible_name}` : ''}`,
+      state: x.done_at ? inspectionResultLabel(x.result) || 'Hecha' : late ? 'Vencida' : 'Programada',
+      tone: x.done_at ? (x.result === 'findings' ? 'warn' : 'ok') : late ? 'danger' : 'info',
+    })
+  }
   return { decisions: decisions.sort(byTone), kpis, team, plan }
 }
 
 /* ─── Gestión ambiental ───────────────────────────────── */
 
-export function environmentalLeaderBoard({ sensors = [], readings = [], now = new Date() }) {
+const dec = (n) => Number(n || 0).toLocaleString('es-CO', { maximumFractionDigits: 1 })
+const usageKpi = (label, w) => ({
+  label,
+  value: w?.current ? `${dec(w.current.perDay)} ${w.current.unit}` : '—',
+  sub:
+    w?.change != null
+      ? `${w.change >= 0 ? '+' : ''}${Math.round(w.change * 100)} % frente a la semana anterior`
+      : w?.current
+        ? 'últimos 7 días'
+        : 'faltan lecturas del medidor',
+  tone: w?.change != null && w.change > 0.15 ? 'warn' : null,
+})
+
+export function environmentalLeaderBoard({
+  sensors = [],
+  readings = [],
+  waste = [],
+  meterReadings = [],
+  obligations = [],
+  now = new Date(),
+}) {
   const latest = new Map()
   for (const r of readings) {
     const prev = latest.get(r.sensor_id)
@@ -519,8 +696,65 @@ export function environmentalLeaderBoard({ sensors = [], readings = [], now = ne
       action: { kind: 'nav', tab: 'iot', label: 'Revisar' },
     })
   }
+  // Consumo de agua y energía que subió más de 15 % frente a la semana anterior.
+  const usage = {}
+  for (const m of ['water', 'energy']) {
+    const w = weekOverWeek(meterReadings, m, now)
+    usage[m] = w
+    if (w.change != null && w.change > 0.15) {
+      decisions.push({
+        id: `meter-${m}`,
+        tone: w.change > 0.3 ? 'danger' : 'warn',
+        title: `Consumo de ${lc(meterLabel(m))} +${Math.round(w.change * 100)} % frente a la semana anterior`,
+        detail: `${dec(w.current.perDay)} ${w.current.unit}/día contra ${dec(w.previous.perDay)} ${w.previous.unit}/día · revise fugas o equipos encendidos`,
+        action: { kind: 'nav', tab: 'ambiental', label: 'Ver lecturas' },
+      })
+    }
+  }
+
+  // Obligaciones (vertimientos, informes, permisos) que vencen en 15 días o ya vencieron.
+  const due = obligationsDue(obligations, now, 15)
+  for (const { o, left } of due) {
+    decisions.push({
+      id: `obligation-${o.id}`,
+      tone: left < 0 ? 'danger' : left <= 5 ? 'warn' : 'info',
+      title: `${o.name}: ${left < 0 ? `venció hace ${-left} día${left === -1 ? '' : 's'}` : left === 0 ? 'vence hoy' : `vence en ${left} día${left === 1 ? '' : 's'}`}`,
+      detail: [
+        `fecha límite ${longDay(dayStart(o.due_on))}`,
+        o.status === 'in_progress' ? 'en trámite' : 'pendiente',
+        clip(o.notes, 60),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'ambiental', label: 'Ver obligación' },
+    })
+  }
+
+  // Retiros de residuos programados (próximos 7 días) y los que pasaron sin confirmar.
+  const pickups = waste
+    .filter((w) => w.status === 'scheduled' && w.recorded_on)
+    .map((w) => ({ w, left: daysUntil(w.recorded_on, now) }))
+    .filter((x) => x.left != null && x.left <= 7)
+    .sort((a, b) => a.left - b.left)
+  for (const { w, left } of pickups) {
+    decisions.push({
+      id: `pickup-${w.id}`,
+      tone: left < 0 ? 'warn' : 'info',
+      title: `${left < 0 ? 'Retiro sin confirmar' : 'Retiro programado'}: ${lc(wasteKindLabel(w.kind))}`,
+      detail: [
+        left === 0 ? 'hoy' : longDay(dayStart(w.recorded_on)),
+        w.manager ? `gestor ${w.manager}` : 'sin gestor',
+        Number(w.kg) > 0 ? `unos ${num(w.kg)} kg` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { kind: 'nav', tab: 'ambiental', label: left < 0 ? 'Confirmar retiro' : 'Ver retiro' },
+    })
+  }
+
   const today = localDate(now)
   const readingsToday = readings.filter((r) => localDate(r.recorded_at) === today)
+  const month = wasteOfMonth(waste, now)
   const kpis = [
     { label: 'Sensores activos', value: String(active.length), sub: `${sensors.length} registrados`, tone: null },
     {
@@ -531,6 +765,20 @@ export function environmentalLeaderBoard({ sensors = [], readings = [], now = ne
     },
     { label: 'Sin datos', value: String(rows.filter((x) => x.stale).length), sub: 'más de 24 horas', tone: null },
     { label: 'Lecturas de hoy', value: num(readingsToday.length), sub: 'todas las sedes', tone: null },
+    {
+      label: 'Residuos del mes',
+      value: `${num(Math.round(month.kg))} kg`,
+      sub: month.pct == null ? 'sin entregas registradas' : `${month.pct} % aprovechado`,
+      tone: null,
+    },
+    usageKpi('Agua por día', usage.water),
+    usageKpi('Energía por día', usage.energy),
+    {
+      label: 'Obligaciones por vencer',
+      value: String(due.length),
+      sub: `${due.filter((d) => d.left < 0).length} vencidas · próximos 15 días`,
+      tone: due.some((d) => d.left < 0) ? 'danger' : due.length ? 'warn' : null,
+    },
   ]
   const team = rows.map((x) => ({
     id: x.s.id,
@@ -555,6 +803,24 @@ export function environmentalLeaderBoard({ sensors = [], readings = [], now = ne
         tone: 'warn',
       }
     })
+  for (const { w, left } of pickups.filter((x) => x.left >= 0)) {
+    plan.push({
+      id: `pickup-${w.id}`,
+      at: left === 0 ? 'Hoy' : weekdayShort(dayStart(w.recorded_on)),
+      text: `Retiro de ${lc(wasteKindLabel(w.kind))}${w.manager ? ` · ${w.manager}` : ''}`,
+      state: 'Programado',
+      tone: 'info',
+    })
+  }
+  for (const { o, left } of due.filter((x) => x.left >= 0 && x.left <= 7)) {
+    plan.push({
+      id: `obl-${o.id}`,
+      at: left === 0 ? 'Hoy' : weekdayShort(dayStart(o.due_on)),
+      text: o.name,
+      state: 'Vence',
+      tone: left <= 2 ? 'danger' : 'warn',
+    })
+  }
   return { decisions: decisions.sort(byTone), kpis, team, plan }
 }
 

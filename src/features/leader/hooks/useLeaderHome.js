@@ -8,10 +8,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { currentSlot } from '../../../hooks/useMachineChecks'
 import { ROLE_LABEL } from '../../../lib/roles'
+import { isMissingTable } from '../../../lib/missingTable'
 
 async function rows(table, build) {
   const { data, error } = await build(supabase.from(table))
   if (error) return { data: [], error: error.message }
+  return { data: data ?? [] }
+}
+
+/** Como rows(), pero si la tabla no existe devuelve vacío sin marcar error: lo demás sigue. */
+async function optionalRows(table, build) {
+  const { data, error } = await build(supabase.from(table))
+  if (error) return isMissingTable(error) ? { data: [], missing: true } : { data: [], error: error.message }
   return { data: data ?? [] }
 }
 
@@ -158,7 +166,7 @@ const loadDrivers = (orgId) =>
   )
 
 async function loadSst({ orgId }) {
-  const [preops, supplies, drivers] = await Promise.all([
+  const [preops, supplies, drivers, incidents, inspections, accident] = await Promise.all([
     loadPreops(orgId),
     rows('area_inventories', (q) =>
       q
@@ -168,17 +176,47 @@ async function loadSst({ orgId }) {
         .limit(300),
     ),
     loadDrivers(orgId),
+    // Abiertos (cualquier fecha) y cerrados recientes.
+    optionalRows('sst_incidents', (q) =>
+      q
+        .select(
+          'id, occurred_at, site, area, kind, affected_person, description, severity, has_disability, disability_days, status, corrective_action, action_owner, action_due, action_done_at, closed_at, created_at',
+        )
+        .eq('org_id', orgId)
+        .or(`status.neq.closed,occurred_at.gte.${daysAgo(60).toISOString()}`)
+        .order('occurred_at', { ascending: false })
+        .limit(300),
+    ),
+    optionalRows('sst_inspections', (q) =>
+      q
+        .select('id, kind, kind_other, site, scheduled_for, done_at, responsible_name, result, findings')
+        .eq('org_id', orgId)
+        .or(`done_at.is.null,scheduled_for.gte.${ymd(daysAgo(14))},done_at.gte.${daysAgo(14).toISOString()}`)
+        .order('scheduled_for', { ascending: true })
+        .limit(300),
+    ),
+    // El último accidente, aunque sea viejo, para «Días sin accidente».
+    optionalRows('sst_incidents', (q) =>
+      q
+        .select('id, occurred_at, kind, status')
+        .eq('org_id', orgId)
+        .eq('kind', 'accident')
+        .order('occurred_at', { ascending: false })
+        .limit(1),
+    ),
   ])
   return {
     preops: preops.data,
     supplies: supplies.data,
     drivers: drivers.data,
-    errors: [preops, supplies, drivers].map((r) => r.error).filter(Boolean),
+    incidents: [...new Map([...accident.data, ...incidents.data].map((x) => [x.id, { ...x }])).values()],
+    inspections: inspections.data,
+    errors: [preops, supplies, drivers, incidents, inspections].map((r) => r.error).filter(Boolean),
   }
 }
 
 async function loadEnvironmental({ orgId }) {
-  const [sensors, readings] = await Promise.all([
+  const [sensors, readings, waste, meterReadings, obligations] = await Promise.all([
     rows('sensors', (q) =>
       q.select('id, code, kind, unit, min_threshold, max_threshold, status').eq('org_id', orgId).limit(200),
     ),
@@ -190,11 +228,34 @@ async function loadEnvironmental({ orgId }) {
         .order('recorded_at', { ascending: false })
         .limit(2000),
     ),
+    // Mes en curso (residuos del mes) y retiros programados pendientes.
+    optionalRows('env_waste', (q) =>
+      q
+        .select('id, recorded_on, kind, kg, manager, recovered, status')
+        .eq('org_id', orgId)
+        .or(`status.eq.scheduled,recorded_on.gte.${ymd(daysAgo(40))}`)
+        .limit(1000),
+    ),
+    // Tres semanas: la actual, la anterior y la lectura base de la anterior.
+    optionalRows('env_meter_readings', (q) =>
+      q
+        .select('id, read_on, meter, site, reading, unit')
+        .eq('org_id', orgId)
+        .gte('read_on', ymd(daysAgo(35)))
+        .order('read_on', { ascending: true })
+        .limit(2000),
+    ),
+    optionalRows('env_obligations', (q) =>
+      q.select('id, name, due_on, status, notes').eq('org_id', orgId).neq('status', 'done').limit(300),
+    ),
   ])
   return {
     sensors: sensors.data,
     readings: readings.data,
-    errors: [sensors, readings].map((r) => r.error).filter(Boolean),
+    waste: waste.data,
+    meterReadings: meterReadings.data,
+    obligations: obligations.data,
+    errors: [sensors, readings, waste, meterReadings, obligations].map((r) => r.error).filter(Boolean),
   }
 }
 

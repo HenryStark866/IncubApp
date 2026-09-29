@@ -13,6 +13,8 @@ import { ROLE_LABEL, areaLabel } from '../lib/roles'
 import { useDepartmentStats } from '../hooks/useDepartmentStats'
 import ManagementCockpit from './ManagementCockpit'
 import SiesaAccountingPanel from './SiesaAccountingPanel'
+import SstRecordsPanel from '../features/sst/components/SstRecordsPanel'
+import EnvRecordsPanel from '../features/environmental/components/EnvRecordsPanel'
 
 /**
  * Panel de módulo corporativo con KPIs reales desde Supabase
@@ -159,8 +161,21 @@ export default function DepartmentModule({
         </>
       )}
 
-      {mod.id === 'contabilidad' && orgId && (
-        <SiesaAccountingPanel orgId={orgId} userId={userId} />
+      {mod.id === 'contabilidad' && orgId && <SiesaAccountingPanel orgId={orgId} userId={userId} />}
+
+      {mod.id === 'sst' && orgId && (
+        <SstRecordsPanel
+          orgId={orgId}
+          userId={userId}
+          role={role}
+          area={area}
+          userName={userName}
+          isOmniscient={isOmniscient}
+        />
+      )}
+
+      {mod.id === 'ambiental' && orgId && (
+        <EnvRecordsPanel orgId={orgId} userId={userId} role={role} area={area} isOmniscient={isOmniscient} />
       )}
 
       {!hasLive && (
@@ -215,12 +230,7 @@ export default function DepartmentModule({
           </h3>
           <div className="actions row" style={{ flexWrap: 'wrap', gap: 8 }}>
             {mod.quickLinks.map((l) => (
-              <button
-                key={l.tab}
-                type="button"
-                className="chip ghost"
-                onClick={() => onNavigate?.(l.tab)}
-              >
+              <button key={l.tab} type="button" className="chip ghost" onClick={() => onNavigate?.(l.tab)}>
                 {l.label}
               </button>
             ))}

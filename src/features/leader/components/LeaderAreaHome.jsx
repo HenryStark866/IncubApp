@@ -43,15 +43,15 @@ const TITLES = {
   sst: {
     team: 'Conductores',
     teamSub: 'preoperacional del vehículo hoy',
-    plan: 'Preoperacionales de hoy',
-    planSub: 'FOSST22',
+    plan: 'Hoy y esta semana',
+    planSub: 'preoperacionales (FOSST22) e inspecciones',
     empty: 'No hay conductores activos registrados.',
   },
   environmental: {
     team: 'Sensores de ambiente',
     teamSub: 'última lectura de cada uno',
-    plan: 'Fuera de rango hoy',
-    planSub: 'lecturas de los sensores',
+    plan: 'Hoy y próximos días',
+    planSub: 'sensores fuera de rango, retiros de residuos y vencimientos',
     empty: 'No hay sensores registrados. Se agregan en IoT.',
   },
   logistics: {

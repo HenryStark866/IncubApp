@@ -5,3 +5,4 @@
 20260927_fix_legal_acceptances_upsert.sql
 20260928_admin_set_password.sql
 20260929_lot_arrival_photos.sql
+20260929_sst_ambiental_registros.sql
