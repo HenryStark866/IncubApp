@@ -12,6 +12,18 @@ CREATE TABLE IF NOT EXISTS public.legal_acceptances (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Instalaciones antiguas: la tabla puede no tener llave primaria y, si está en una
+-- publicación (realtime) que publica borrados, Postgres no deja borrar sin «replica
+-- identity». Se usa FULL solo en ese caso para poder limpiar los duplicados.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_index WHERE indrelid = 'public.legal_acceptances'::regclass AND indisprimary
+  ) AND (SELECT relreplident FROM pg_class WHERE oid = 'public.legal_acceptances'::regclass) = 'd' THEN
+    ALTER TABLE public.legal_acceptances REPLICA IDENTITY FULL;
+  END IF;
+END $$;
+
 -- Conserva la aceptación más reciente cuando una instalación antigua tiene duplicados.
 WITH ranked AS (
   SELECT
