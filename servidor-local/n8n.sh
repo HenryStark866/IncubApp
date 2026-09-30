@@ -79,6 +79,7 @@ jq -n --arg db "$BOT_DB_PASSWORD" --arg sk "$SERVICE_KEY" --arg ck "$CLAUDE_VALO
    data:{name:"x-api-key", value:$ck}}
 ]' > "$TMP/credenciales.json"
 cp "$AQUI/n8n/flujo-lecturas.json" "$TMP/flujo.json"
+cp "$AQUI/n8n/flujo-asistente.json" "$TMP/flujo-asistente.json"
 chmod 644 "$TMP"/*.json; chmod 755 "$TMP"
 # La línea de comandos de n8n y el servidor no pueden abrir la base de n8n al
 # mismo tiempo (SQLite): se detiene, se importa y se vuelve a encender.
@@ -87,14 +88,17 @@ n8n_cli() { "${COMPOSE[@]}" run --rm --no-deps -T -v "$TMP:/importar:ro" n8n "$@
 "${COMPOSE[@]}" stop n8n
 n8n_cli import:credentials --input=/importar/credenciales.json
 
-paso "Flujo del bot"
+paso "Flujos: bot de lecturas y asistente de voz"
 n8n_cli import:workflow --input=/importar/flujo.json
+n8n_cli import:workflow --input=/importar/flujo-asistente.json
 if [ -n "$CLAUDE_KEY" ]; then
   n8n_cli publish:workflow --id=IncubAppLectura1
-  ESTADO="ENCENDIDO: lee las fotos nuevas cada 5 minutos."
+  n8n_cli publish:workflow --id=IncubAppAsisten1
+  ESTADO="ENCENDIDO: lee las fotos nuevas cada 5 minutos y el asistente de voz responde con Claude."
 else
   n8n_cli unpublish:workflow --id=IncubAppLectura1 || true
-  ESTADO="APAGADO: falta la clave de Claude. Vuelve a correr 10-INSTALAR-N8N.bat con la clave."
+  n8n_cli unpublish:workflow --id=IncubAppAsisten1 || true
+  ESTADO="APAGADO: falta la clave de Claude (el asistente de voz responde solo con lo que sabe sin conexión). Vuelve a correr 10-INSTALAR-N8N.bat con la clave."
 fi
 rm -f "$TMP/credenciales.json"
 "${COMPOSE[@]}" up -d

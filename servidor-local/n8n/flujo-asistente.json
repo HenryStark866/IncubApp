@@ -1,0 +1,279 @@
+[
+  {
+    "id": "IncubAppAsisten1",
+    "name": "IncubApp · Asistente de voz",
+    "active": false,
+    "nodes": [
+      {
+        "id": "a-hook",
+        "name": "Pregunta",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          100
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "asistente",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "6c1f8f0e-3b7a-4d1e-9a52-5b0e7c2a9d11"
+      },
+      {
+        "id": "a-sesion",
+        "name": "Validar sesión",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          240,
+          100
+        ],
+        "parameters": {
+          "url": "http://supabase-auth:9999/user",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ $json.headers.authorization || '' }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 8000
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "a-prep",
+        "name": "Preparar pregunta",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          100
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "/**\n * Asistente de labores de IncubApp (corre dentro de n8n, flujo «Asistente de voz»).\n *\n * El operario, el supervisor o el auxiliar le hablan a la app; la app transcribe y\n * manda la pregunta con un resumen de su turno (rol, pendientes, rondas). Aquí se\n * valida la entrada, se arma el pedido a Claude y se saca el texto que la app lee\n * en voz alta. Las respuestas son cortas y habladas: nada de listas ni símbolos.\n *\n * Seguridad: la sesión del usuario la valida el nodo anterior contra el servidor\n * de cuentas (no se confía en lo que diga el navegador sobre quién es). El\n * contexto lo arma la app con los datos del propio usuario; se limita de tamaño.\n *\n * Este archivo lo copia generar-flujo-asistente.mjs dentro de los nodos Code del\n * flujo; no usa import ni nada fuera de JavaScript puro.\n * Henry Stark Desarrollador · CDH Maker\n */\n\nconst MODELO = 'claude-opus-5-5'\nconst MAX_PREGUNTA = 600\nconst MAX_CONTEXTO = 5000\nconst MAX_TURNOS = 6\n\nconst INSTRUCCIONES = `Eres el asistente de voz de IncubApp, la app de operación de la planta de incubación de Antioqueña de Incubación (Incubant), en Colombia. Te hablan operarios de turno, auxiliares, supervisores, auxiliares de mantenimiento y líderes de área, casi siempre desde el celular y con las manos ocupadas. La app lee tu respuesta en voz alta.\n\nCómo respondes:\n- En español de Colombia, tuteando, con calidez y sin rodeos.\n- Corto: dos o tres frases (máximo unas 70 palabras) salvo que pidan el paso a paso. Primero lo que tiene que hacer, después el porqué si hace falta.\n- Texto para escuchar: sin listas con viñetas, sin asteriscos, sin emojis, sin tablas ni enlaces. Si das pasos, dilos en una frase: «primero…, luego…, y al final…».\n- Usa el contexto del turno que llega con la pregunta (rol, turno, pendientes, rondas, máquinas con novedad) para responder en concreto: nombres de máquinas, horas, cantidades. No inventes datos que no estén ahí; si no los tienes, dilo y di dónde verlos en la app.\n- Si la duda es de proceso o de la empresa y no la sabes con certeza, dilo y sugiere preguntarle al supervisor o al líder del área.\n- Seguridad primero: ante una alarma de temperatura, humedad o CO2 fuera de rango, olor a quemado, chispas, fuga de gas o de agua, o alguien lastimado, lo primero es la persona y avisar ya al supervisor; después, reportar la falla en la app.\n\nLo que se hace en IncubApp (para guiar):\n- Asistencia: en Inicio, «Selfie y marcar ingreso» al llegar y «marcar salida» al terminar; pide GPS y hay una tolerancia en minutos que fija el coordinador.\n- Ronda: cada hora del turno se toma foto a la pantalla de cada incubadora y nacedora (Inicio → «Continuar ronda»); por cada máquina se marca Sin novedad, Alerta o Falla, o «Está apagada». Las lecturas de la pantalla (temperatura ovoscan y de aire, humedad, CO2, volteos) las puede llenar el bot desde la foto; lo que digita el turnero nunca se reemplaza. Al terminar la ronda sale el formato FOMAT04. El mínimo es de seis rondas por turno.\n- Falla o incidencia: Inicio → «Reportar falla»: se elige qué pasa, la máquina o la sala, la urgencia y una foto; queda como OT para mantenimiento y sale en el formato FOMAT06 (solicitud de mantenimiento).\n- Novedad escrita y entrega de turno: Inicio → «Escribir novedad» o «Entrega de turno»; cuenta como reporte de ronda.\n- Actividades asignadas: en «Me asignaron», Iniciar y luego Terminar con cantidad, nota y foto.\n- Mantenimiento: el auxiliar ve el Plan AM de la semana, ejecuta cada tarea con su lista de chequeo (OK, No OK, No aplica) y fotos, y queda la OT cerrada con su formato FOMAT01 o FOMAT04; lo que queda No OK puede abrir una OT correctiva. Las calibraciones van en Calibración y llenan el FOMAT08.\n- Supervisor: su tablero muestra el semáforo del turno, lo que pide atención con su botón (crear OT, mandar a revisar, recordar la ronda, reasignar), el mapa de la ronda por sala y hora, el equipo y el informe del turno FOINC02.`\n\n/** Valida y limpia lo que manda la app. */\nfunction validarEntrada(cuerpo) {\n  const b = cuerpo && typeof cuerpo === 'object' ? cuerpo : {}\n  const pregunta = String(b.pregunta || '').replace(/\\s+/g, ' ').trim()\n  if (!pregunta) return { ok: false, codigo: 400, mensaje: 'Falta la pregunta.' }\n  if (pregunta.length > MAX_PREGUNTA) return { ok: false, codigo: 400, mensaje: 'La pregunta es muy larga.' }\n  let contexto = b.contexto && typeof b.contexto === 'object' ? b.contexto : {}\n  let texto = JSON.stringify(contexto)\n  if (texto.length > MAX_CONTEXTO) {\n    // Se conserva lo esencial y se recorta el resto: nunca se rechaza por el contexto.\n    contexto = { rol: contexto.rol, nombre: contexto.nombre, pantalla: contexto.pantalla, resumen: String(contexto.resumen || '').slice(0, 1500) }\n    texto = JSON.stringify(contexto)\n  }\n  const historial = (Array.isArray(b.historial) ? b.historial : [])\n    .filter((m) => m && (m.rol === 'usuario' || m.rol === 'asistente') && typeof m.texto === 'string' && m.texto.trim())\n    .slice(-MAX_TURNOS)\n    .map((m) => ({ rol: m.rol, texto: m.texto.slice(0, 800) }))\n  return { ok: true, pregunta, contexto, contextoTexto: texto, historial }\n}\n\n/** Resultado del nodo que consulta la sesión en el servidor de cuentas. */\nfunction validarSesion(respuesta) {\n  const r = respuesta && typeof respuesta === 'object' ? respuesta : {}\n  const codigo = Number(r.statusCode || 0)\n  const cuerpo = r.body && typeof r.body === 'object' ? r.body : {}\n  if (codigo === 200 && typeof cuerpo.id === 'string' && cuerpo.id) return { ok: true, userId: cuerpo.id }\n  return { ok: false, codigo: 401, mensaje: 'Tu sesión venció. Vuelve a entrar a IncubApp.' }\n}\n\n/** Cuerpo de la llamada a la API de mensajes de Claude. */\nfunction construirPedido({ pregunta, contextoTexto, historial = [] }) {\n  const mensajes = historial.map((m) => ({ role: m.rol === 'usuario' ? 'user' : 'assistant', content: m.texto }))\n  // La API pide que el primer mensaje sea del usuario y que se alternen.\n  while (mensajes.length && mensajes[0].role !== 'user') mensajes.shift()\n  const alternados = []\n  for (const m of mensajes) {\n    const prev = alternados[alternados.length - 1]\n    if (prev && prev.role === m.role) prev.content = `${prev.content}\\n${m.content}`\n    else alternados.push({ ...m })\n  }\n  if (alternados.length && alternados[alternados.length - 1].role === 'user') alternados.pop()\n  alternados.push({\n    role: 'user',\n    content: `Contexto de mi turno (datos de la app, JSON):\\n${contextoTexto || '{}'}\\n\\nMi pregunta: ${pregunta}`,\n  })\n  return {\n    model: MODELO,\n    max_tokens: 4000,\n    fallbacks: 'default',\n    // Respuesta hablada y rápida: el esfuerzo bajo alcanza para guiar y responde antes.\n    output_config: { effort: 'low' },\n    system: INSTRUCCIONES,\n    messages: alternados,\n  }\n}\n\n/** Limpia el texto para leerlo en voz alta (por si el modelo usó marcas). */\nfunction textoHablado(texto) {\n  return String(texto || '')\n    .replace(/\\*\\*|__|`/g, '')\n    .replace(/^\\s*[-*•]\\s+/gm, '')\n    .replace(/^\\s*#+\\s*/gm, '')\n    .replace(/\\n{2,}/g, '\\n')\n    .trim()\n}\n\n/** Saca el texto de la respuesta de la API. Devuelve { ok, texto } o { ok:false, codigo, mensaje }. */\nfunction leerRespuesta(respuesta) {\n  if (!respuesta || typeof respuesta !== 'object') return { ok: false, codigo: 502, mensaje: 'El asistente no respondió.' }\n  if (respuesta.error) return { ok: false, codigo: 503, mensaje: 'El asistente no está disponible ahora.' }\n  if (respuesta.stop_reason === 'refusal') {\n    return { ok: true, texto: 'Eso no te lo puedo responder. Pregúntale a tu supervisor.', modelo: respuesta.model || MODELO }\n  }\n  const texto = textoHablado((respuesta.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''))\n  if (!texto) return { ok: false, codigo: 502, mensaje: 'El asistente no respondió.' }\n  return { ok: true, texto, modelo: respuesta.model || MODELO }\n}\n\n// Para las pruebas en Node; en n8n este bloque no hace nada.\nif (typeof module !== 'undefined') {\n  module.exports = { MODELO, INSTRUCCIONES, validarEntrada, validarSesion, construirPedido, leerRespuesta, textoHablado }\n}\n\n// ── Nodo «Preparar pregunta»: sesión válida + pregunta válida → pedido a Claude ──\nconst entrada = $('Pregunta').first().json.body\nconst sesion = validarSesion($input.first().json)\nif (!sesion.ok) return [{ json: { listo: false, codigo: sesion.codigo, respuesta: { error: sesion.mensaje } } }]\nconst v = validarEntrada(entrada)\nif (!v.ok) return [{ json: { listo: false, codigo: v.codigo, respuesta: { error: v.mensaje } } }]\nreturn [{ json: { listo: true, userId: sesion.userId, body: construirPedido(v) } }]\n"
+        }
+      },
+      {
+        "id": "a-if",
+        "name": "¿Lista para Claude?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          720,
+          100
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "c-listo",
+                "leftValue": "={{ $json.listo === true }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "a-claude",
+        "name": "Claude responde",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          960,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "anthropic-beta",
+                "value": "server-side-fallback-2026-07-01"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {
+            "timeout": 45000
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "IncubAppClaude01",
+            "name": "IncubApp · Claude (Anthropic)"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "a-armar",
+        "name": "Armar respuesta",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "/**\n * Asistente de labores de IncubApp (corre dentro de n8n, flujo «Asistente de voz»).\n *\n * El operario, el supervisor o el auxiliar le hablan a la app; la app transcribe y\n * manda la pregunta con un resumen de su turno (rol, pendientes, rondas). Aquí se\n * valida la entrada, se arma el pedido a Claude y se saca el texto que la app lee\n * en voz alta. Las respuestas son cortas y habladas: nada de listas ni símbolos.\n *\n * Seguridad: la sesión del usuario la valida el nodo anterior contra el servidor\n * de cuentas (no se confía en lo que diga el navegador sobre quién es). El\n * contexto lo arma la app con los datos del propio usuario; se limita de tamaño.\n *\n * Este archivo lo copia generar-flujo-asistente.mjs dentro de los nodos Code del\n * flujo; no usa import ni nada fuera de JavaScript puro.\n * Henry Stark Desarrollador · CDH Maker\n */\n\nconst MODELO = 'claude-opus-5-5'\nconst MAX_PREGUNTA = 600\nconst MAX_CONTEXTO = 5000\nconst MAX_TURNOS = 6\n\nconst INSTRUCCIONES = `Eres el asistente de voz de IncubApp, la app de operación de la planta de incubación de Antioqueña de Incubación (Incubant), en Colombia. Te hablan operarios de turno, auxiliares, supervisores, auxiliares de mantenimiento y líderes de área, casi siempre desde el celular y con las manos ocupadas. La app lee tu respuesta en voz alta.\n\nCómo respondes:\n- En español de Colombia, tuteando, con calidez y sin rodeos.\n- Corto: dos o tres frases (máximo unas 70 palabras) salvo que pidan el paso a paso. Primero lo que tiene que hacer, después el porqué si hace falta.\n- Texto para escuchar: sin listas con viñetas, sin asteriscos, sin emojis, sin tablas ni enlaces. Si das pasos, dilos en una frase: «primero…, luego…, y al final…».\n- Usa el contexto del turno que llega con la pregunta (rol, turno, pendientes, rondas, máquinas con novedad) para responder en concreto: nombres de máquinas, horas, cantidades. No inventes datos que no estén ahí; si no los tienes, dilo y di dónde verlos en la app.\n- Si la duda es de proceso o de la empresa y no la sabes con certeza, dilo y sugiere preguntarle al supervisor o al líder del área.\n- Seguridad primero: ante una alarma de temperatura, humedad o CO2 fuera de rango, olor a quemado, chispas, fuga de gas o de agua, o alguien lastimado, lo primero es la persona y avisar ya al supervisor; después, reportar la falla en la app.\n\nLo que se hace en IncubApp (para guiar):\n- Asistencia: en Inicio, «Selfie y marcar ingreso» al llegar y «marcar salida» al terminar; pide GPS y hay una tolerancia en minutos que fija el coordinador.\n- Ronda: cada hora del turno se toma foto a la pantalla de cada incubadora y nacedora (Inicio → «Continuar ronda»); por cada máquina se marca Sin novedad, Alerta o Falla, o «Está apagada». Las lecturas de la pantalla (temperatura ovoscan y de aire, humedad, CO2, volteos) las puede llenar el bot desde la foto; lo que digita el turnero nunca se reemplaza. Al terminar la ronda sale el formato FOMAT04. El mínimo es de seis rondas por turno.\n- Falla o incidencia: Inicio → «Reportar falla»: se elige qué pasa, la máquina o la sala, la urgencia y una foto; queda como OT para mantenimiento y sale en el formato FOMAT06 (solicitud de mantenimiento).\n- Novedad escrita y entrega de turno: Inicio → «Escribir novedad» o «Entrega de turno»; cuenta como reporte de ronda.\n- Actividades asignadas: en «Me asignaron», Iniciar y luego Terminar con cantidad, nota y foto.\n- Mantenimiento: el auxiliar ve el Plan AM de la semana, ejecuta cada tarea con su lista de chequeo (OK, No OK, No aplica) y fotos, y queda la OT cerrada con su formato FOMAT01 o FOMAT04; lo que queda No OK puede abrir una OT correctiva. Las calibraciones van en Calibración y llenan el FOMAT08.\n- Supervisor: su tablero muestra el semáforo del turno, lo que pide atención con su botón (crear OT, mandar a revisar, recordar la ronda, reasignar), el mapa de la ronda por sala y hora, el equipo y el informe del turno FOINC02.`\n\n/** Valida y limpia lo que manda la app. */\nfunction validarEntrada(cuerpo) {\n  const b = cuerpo && typeof cuerpo === 'object' ? cuerpo : {}\n  const pregunta = String(b.pregunta || '').replace(/\\s+/g, ' ').trim()\n  if (!pregunta) return { ok: false, codigo: 400, mensaje: 'Falta la pregunta.' }\n  if (pregunta.length > MAX_PREGUNTA) return { ok: false, codigo: 400, mensaje: 'La pregunta es muy larga.' }\n  let contexto = b.contexto && typeof b.contexto === 'object' ? b.contexto : {}\n  let texto = JSON.stringify(contexto)\n  if (texto.length > MAX_CONTEXTO) {\n    // Se conserva lo esencial y se recorta el resto: nunca se rechaza por el contexto.\n    contexto = { rol: contexto.rol, nombre: contexto.nombre, pantalla: contexto.pantalla, resumen: String(contexto.resumen || '').slice(0, 1500) }\n    texto = JSON.stringify(contexto)\n  }\n  const historial = (Array.isArray(b.historial) ? b.historial : [])\n    .filter((m) => m && (m.rol === 'usuario' || m.rol === 'asistente') && typeof m.texto === 'string' && m.texto.trim())\n    .slice(-MAX_TURNOS)\n    .map((m) => ({ rol: m.rol, texto: m.texto.slice(0, 800) }))\n  return { ok: true, pregunta, contexto, contextoTexto: texto, historial }\n}\n\n/** Resultado del nodo que consulta la sesión en el servidor de cuentas. */\nfunction validarSesion(respuesta) {\n  const r = respuesta && typeof respuesta === 'object' ? respuesta : {}\n  const codigo = Number(r.statusCode || 0)\n  const cuerpo = r.body && typeof r.body === 'object' ? r.body : {}\n  if (codigo === 200 && typeof cuerpo.id === 'string' && cuerpo.id) return { ok: true, userId: cuerpo.id }\n  return { ok: false, codigo: 401, mensaje: 'Tu sesión venció. Vuelve a entrar a IncubApp.' }\n}\n\n/** Cuerpo de la llamada a la API de mensajes de Claude. */\nfunction construirPedido({ pregunta, contextoTexto, historial = [] }) {\n  const mensajes = historial.map((m) => ({ role: m.rol === 'usuario' ? 'user' : 'assistant', content: m.texto }))\n  // La API pide que el primer mensaje sea del usuario y que se alternen.\n  while (mensajes.length && mensajes[0].role !== 'user') mensajes.shift()\n  const alternados = []\n  for (const m of mensajes) {\n    const prev = alternados[alternados.length - 1]\n    if (prev && prev.role === m.role) prev.content = `${prev.content}\\n${m.content}`\n    else alternados.push({ ...m })\n  }\n  if (alternados.length && alternados[alternados.length - 1].role === 'user') alternados.pop()\n  alternados.push({\n    role: 'user',\n    content: `Contexto de mi turno (datos de la app, JSON):\\n${contextoTexto || '{}'}\\n\\nMi pregunta: ${pregunta}`,\n  })\n  return {\n    model: MODELO,\n    max_tokens: 4000,\n    fallbacks: 'default',\n    // Respuesta hablada y rápida: el esfuerzo bajo alcanza para guiar y responde antes.\n    output_config: { effort: 'low' },\n    system: INSTRUCCIONES,\n    messages: alternados,\n  }\n}\n\n/** Limpia el texto para leerlo en voz alta (por si el modelo usó marcas). */\nfunction textoHablado(texto) {\n  return String(texto || '')\n    .replace(/\\*\\*|__|`/g, '')\n    .replace(/^\\s*[-*•]\\s+/gm, '')\n    .replace(/^\\s*#+\\s*/gm, '')\n    .replace(/\\n{2,}/g, '\\n')\n    .trim()\n}\n\n/** Saca el texto de la respuesta de la API. Devuelve { ok, texto } o { ok:false, codigo, mensaje }. */\nfunction leerRespuesta(respuesta) {\n  if (!respuesta || typeof respuesta !== 'object') return { ok: false, codigo: 502, mensaje: 'El asistente no respondió.' }\n  if (respuesta.error) return { ok: false, codigo: 503, mensaje: 'El asistente no está disponible ahora.' }\n  if (respuesta.stop_reason === 'refusal') {\n    return { ok: true, texto: 'Eso no te lo puedo responder. Pregúntale a tu supervisor.', modelo: respuesta.model || MODELO }\n  }\n  const texto = textoHablado((respuesta.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''))\n  if (!texto) return { ok: false, codigo: 502, mensaje: 'El asistente no respondió.' }\n  return { ok: true, texto, modelo: respuesta.model || MODELO }\n}\n\n// Para las pruebas en Node; en n8n este bloque no hace nada.\nif (typeof module !== 'undefined') {\n  module.exports = { MODELO, INSTRUCCIONES, validarEntrada, validarSesion, construirPedido, leerRespuesta, textoHablado }\n}\n\n// ── Nodo «Armar respuesta»: texto para leer en voz alta ──\nconst r = leerRespuesta($input.first().json)\nreturn [{ json: r.ok ? { codigo: 200, respuesta: { texto: r.texto, modelo: r.modelo } } : { codigo: r.codigo, respuesta: { error: r.mensaje } } }]\n"
+        }
+      },
+      {
+        "id": "a-resp",
+        "name": "Responder",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1440,
+          100
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json.respuesta) }}",
+          "options": {
+            "responseCode": "={{ $json.codigo || 200 }}"
+          }
+        }
+      },
+      {
+        "id": "a-nota",
+        "name": "Nota",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -300
+        ],
+        "parameters": {
+          "width": 900,
+          "height": 250,
+          "content": "## Asistente de voz de IncubApp\nLa app transcribe lo que dice el usuario y manda la pregunta con un resumen de su turno (rol, pendientes, rondas). Aquí se valida la sesión contra el servidor de cuentas, se arma el pedido a Claude (respuesta corta, para leer en voz alta) y se responde.\n\nSi esto no responde (sin clave, sin internet), la app contesta con lo que sabe del turno y del manual sin conexión.\n\nLógica y pruebas: `servidor-local/n8n/asistente.cjs`. No edites los nodos Code aquí: cambia ese archivo y corre `generar-flujo-asistente.mjs`."
+        }
+      }
+    ],
+    "connections": {
+      "Pregunta": {
+        "main": [
+          [
+            {
+              "node": "Validar sesión",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validar sesión": {
+        "main": [
+          [
+            {
+              "node": "Preparar pregunta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar pregunta": {
+        "main": [
+          [
+            {
+              "node": "¿Lista para Claude?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Lista para Claude?": {
+        "main": [
+          [
+            {
+              "node": "Claude responde",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Responder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude responde": {
+        "main": [
+          [
+            {
+              "node": "Armar respuesta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Armar respuesta": {
+        "main": [
+          [
+            {
+              "node": "Responder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/Bogota",
+      "saveDataSuccessExecution": "none",
+      "saveManualExecutions": true
+    },
+    "pinData": {}
+  }
+]
