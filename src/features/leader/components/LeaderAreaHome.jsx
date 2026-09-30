@@ -6,7 +6,7 @@
  * Henry Stark Desarrollador
  */
 import { useMemo, useState } from 'react'
-import { ROLE_LABEL } from '../../../lib/roles'
+import { ROLE_LABEL, canSupervisePlant } from '../../../lib/roles'
 import { usePerformance } from '../../../hooks/usePerformance'
 import { bogotaDate } from '../../../lib/complianceEngine'
 import { requestWorkOrderFromRound } from '../../../lib/roundActions'
@@ -26,6 +26,7 @@ import {
   managementBoard,
 } from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
+import BotReadingsReview from './BotReadingsReview'
 import './LeaderAreaHome.css'
 
 const TITLES = {
@@ -323,6 +324,10 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
               )}
             </div>
           </Section>
+
+          {(kind === 'plant' || kind === 'management') && canSupervisePlant(role, area) && (
+            <BotReadingsReview orgId={orgId} peopleName={peopleName} />
+          )}
 
           {board && (
             <div className="lh-kpis">
