@@ -6,7 +6,7 @@
  * Usa el estilo de los inicios de planta (ShiftHome.css, prefijo sh-).
  * Henry Stark Desarrollador · CDH Maker
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMaintenanceAuxHome } from '../hooks/useMaintenanceAuxHome'
 import {
   REPORT_KINDS,
@@ -27,6 +27,8 @@ import { SIG_FORMATS } from '../../../lib/corporateBrand'
 import { isoWeekOf } from '../../../lib/planCompliance'
 import PlanTaskInstructions from './PlanTaskInstructions'
 import { EvidencePicker } from '../../shift/components/ShiftForms'
+import { setAssistantContext } from '../../../lib/assistantContext'
+import { maintenanceSnapshot } from '../../shift/lib/assistantSnapshots'
 import '../../shift/components/ShiftHome.css'
 import '../../shift/components/ShiftForms.css'
 import './MaintenanceAuxHome.css'
@@ -446,6 +448,23 @@ export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate
   const weekDone = weekItems.filter((w) => w.done).length
   const weekPending = weekItems.length - weekDone
   const lateAll = work.filter((w) => w.overdue).length
+
+  // Lo que el asistente de voz sabe del turno de mantenimiento.
+  useEffect(() => {
+    setAssistantContext(
+      maintenanceSnapshot({
+        nombre: first,
+        shift: api.shift,
+        thisWeek,
+        late,
+        weekItems: weekItems.length,
+        weekDone,
+        assigned: api.assigned,
+        doneInShift: api.myShiftOrders.length,
+        label: (t) => readableText(t.description),
+      })
+    )
+  })
 
   const openFormat = async (order) => {
     setBusyFormat(order.id)

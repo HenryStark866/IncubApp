@@ -38,6 +38,8 @@ import {
   teamBoard,
 } from '../lib/supervisorHome'
 import { Header, Note, ShiftRounds, TabBar } from './ShiftHomeUi'
+import { setAssistantContext } from '../../../lib/assistantContext'
+import { supervisorSnapshot } from '../lib/assistantSnapshots'
 import { Icon } from './shiftIcons'
 import './ShiftForms.css'
 import './SupervisorHome.css'
@@ -293,7 +295,7 @@ function PersonSheet({ person, minRounds, now, acts, onAssign, onRemind, go, onC
 
 /* ── Tablero ───────────────────────────────────────────────────────────── */
 
-export default function SupervisorHome({ home, perf, go, orgId, userId }) {
+export default function SupervisorHome({ home, perf, go, orgId, userId, first = '' }) {
   const { slot, data, loading } = home
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -412,6 +414,13 @@ export default function SupervisorHome({ home, perf, go, orgId, userId }) {
         .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
     [perf.rounds, slot.shiftDate, slot.shift]
   )
+
+  // Lo que el asistente de voz sabe del turno (se actualiza con el tablero).
+  useEffect(() => {
+    setAssistantContext(
+      supervisorSnapshot({ nombre: first, slot, timeLeft: shiftTimeLeft(slot.shift, now), status, feed: visible, team, cols, hourNow, total: matrix.total, attention: health.attention })
+    )
+  })
 
   const say = (text, kind = 'ok') => {
     setToast({ text, kind })

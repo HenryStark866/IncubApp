@@ -10,7 +10,7 @@
  *    a cargue, transferencia, calibración, mercancía, OT y máquinas.
  * Henry Stark Desarrollador · CDH Maker
  */
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAttendance } from '../../../hooks/useAttendance'
 import { completeShiftActivity, startShiftActivity } from '../../../hooks/useShiftOps'
 import { requestSupervisionView } from '../../../lib/supervisionView'
@@ -32,6 +32,8 @@ import {
 } from '../lib/operatorHome'
 import { Header, Note, ShiftRounds, TabBar } from './ShiftHomeUi'
 import { EvidencePicker, Segmented } from './ShiftForms'
+import { setAssistantContext } from '../../../lib/assistantContext'
+import { operatorSnapshot } from '../lib/assistantSnapshots'
 import { Icon } from './shiftIcons'
 import './ShiftForms.css'
 import './OperatorHome.css'
@@ -431,6 +433,28 @@ export default function OperatorHome({ home, perf, first, go, orgId, userId, rol
   const writtenToday = perf.myRoundsToday.filter((r) => r.source !== 'photos')
   const shortcuts = shortcutsFor({ role, can })
   const score = perf.myScore
+
+  // Lo que el asistente de voz sabe de este turno (se actualiza con la pantalla).
+  useEffect(() => {
+    setAssistantContext(
+      operatorSnapshot({
+        nombre: first,
+        rol: isAux ? 'Auxiliar de turno' : 'Operario de turno',
+        slot,
+        timeLeft: shiftTimeLeft(slot.shift),
+        stage,
+        lateMin: att.punctuality?.inStatus === 'late' ? att.punctuality.inDeltaMin : 0,
+        done,
+        min: perf.minRounds,
+        nextAt: pace.nextAt,
+        round,
+        acts,
+        attention: health.attention,
+        nextShift,
+        isAux,
+      })
+    )
+  })
 
   const home_ = () => {
     setScreen({ kind: 'home' })

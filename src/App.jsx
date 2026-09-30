@@ -39,6 +39,7 @@ import WorkspaceNav from './components/WorkspaceNav.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
 import ModuleBoundary from './components/ModuleBoundary.jsx'
 import RolePreviewBar from './components/RolePreviewBar.jsx'
+import VoiceAssistant from './components/VoiceAssistant.jsx'
 import {
   LazyPanel,
   BusinessModule,
@@ -1034,6 +1035,10 @@ function Workspace({
         <LazyPanel quiet>
           <ChatWidget orgId={org.id} userId={session.user.id} />
         </LazyPanel>
+      )}
+      {org && (
+        // Asistente de voz: responde lo del turno sin internet y lo demás con la IA (n8n).
+        <VoiceAssistant role={role} userName={profileApi.profile?.full_name ?? session.user.email} />
       )}
       {org && (
         <LazyPanel quiet>
