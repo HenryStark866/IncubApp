@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# IncubApp · servidor local — arranque automático y vigilante.
+#
+#   arranque.sh             levanta todo (Docker, Supabase, app, túnel) y espera a que responda
+#   arranque.sh --vigia     revisión de cada minuto: si algo no responde, lo vuelve a levantar
+#   arranque.sh --instalar  deja el arranque y el vigilante como servicios de Ubuntu (systemd)
+#
+# Por qué existe (30-09-2026): tras reiniciar el Lenovo, Cloudflare daba 502. Docker
+# arrancaba, pero nadie volvía a levantar Supabase ni el contenedor de la app si fallaban
+# al primer intento (p. ej. el puerto 80 todavía ocupado). Ahora systemd lo hace al
+# encender Ubuntu y lo revisa cada minuto, sin que nadie tenga que iniciar sesión.
+set -uo pipefail
+
+APP=/mnt/c/IncubApp
+SRV=/opt/incubapp/server
+LOG=/var/log/incubapp-arranque.log
+# Servicios de Supabase que no hacen falta en producción (tunel.sh ya los detenía).
+SOBRAN='^(studio|supavisor|imgproxy)$'
+
+log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
+
+instalar() {
+  local yo
+  yo="$(readlink -f "$0")"
+  cat > /etc/systemd/system/incubapp-arranque.service <<UNIT
+[Unit]
+Description=IncubApp: levanta Supabase, la app y el túnel al encender
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash $yo
+TimeoutStartSec=15min
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  cat > /etc/systemd/system/incubapp-vigia.service <<UNIT
+[Unit]
+Description=IncubApp: revisa que la app responda y levanta lo que se haya caído
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash $yo --vigia
+TimeoutStartSec=10min
+UNIT
+  cat > /etc/systemd/system/incubapp-vigia.timer <<UNIT
+[Unit]
+Description=IncubApp: vigilante cada minuto
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable docker >/dev/null 2>&1
+  systemctl enable incubapp-arranque.service incubapp-vigia.timer
+  systemctl start incubapp-vigia.timer
+  log "Servicios instalados: incubapp-arranque (al encender) e incubapp-vigia (cada minuto)."
+}
+
+esperar_docker() {
+  systemctl start docker >/dev/null 2>&1 || service docker start >/dev/null 2>&1 || true
+  for _ in $(seq 1 60); do
+    docker info >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  log "Docker no respondió en 2 minutos."
+  return 1
+}
+
+# ¿Responde la app de punta a punta? (nginx de la app + API de Supabase detrás)
+responde() {
+  local app api
+  app=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/ || true)
+  api=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/auth/v1/health || true)
+  # /auth/v1/health responde 200 (o 401 si pide apikey): ambos significan que Supabase está vivo.
+  [ "$app" = 200 ] && { [ "$api" = 200 ] || [ "$api" = 401 ]; }
+}
+
+levantar() {
+  if [ -d "$SRV" ]; then
+    local servicios
+    servicios=$(cd "$SRV" && docker compose config --services 2>/dev/null | grep -Ev "$SOBRAN" | tr '\n' ' ')
+    # shellcheck disable=SC2086
+    (cd "$SRV" && docker compose up -d --no-recreate $servicios) >>"$LOG" 2>&1 || log "Supabase: algún servicio no subió (ver arriba)."
+  fi
+  if [ -f "$APP/docker-compose.yml" ]; then
+    # Si el puerto 80 lo tiene otro programa, la app no puede arrancar: se deja dicho.
+    if ! docker ps --format '{{.Names}}' | grep -qx 'incubapp-incubapp-1' && ss -ltn 2>/dev/null | grep -q ':80 '; then
+      log "Aviso: el puerto 80 está ocupado por otro programa; la app no puede tomarlo."
+    fi
+    (cd "$APP" && docker compose up -d --no-recreate --no-build incubapp) >>"$LOG" 2>&1 || log "La app no subió (ver arriba)."
+  fi
+  docker start incubapp-tunel >/dev/null 2>&1 || true
+}
+
+case "${1:-}" in
+  --instalar)
+    instalar
+    exit 0
+    ;;
+  --vigia)
+    esperar_docker || exit 0
+    responde && exit 0
+    log "Vigilante: la app no responde; levantando lo que falte."
+    levantar
+    for _ in $(seq 1 24); do responde && { log "Vigilante: la app volvió a responder."; exit 0; }; sleep 5; done
+    log "Vigilante: sigue sin responder; se reintenta en el próximo minuto."
+    exit 0
+    ;;
+esac
+
+log "=== Arranque ==="
+esperar_docker || exit 1
+levantar
+for _ in $(seq 1 60); do
+  if responde; then
+    log "Listo: la app responde en este equipo."
+    exit 0
+  fi
+  sleep 5
+done
+log "La app todavía no responde tras 5 minutos; el vigilante seguirá intentando cada minuto."
+exit 0
