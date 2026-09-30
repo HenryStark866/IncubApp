@@ -1,6 +1,31 @@
 /* Inicio del líder de área (etapa 3). Usa las variables de la app: respeta el modo oscuro. */
 .lh-root {
   margin: 4px 0 20px;
+  /* Encima del fondo fijo de la app (.app-bg); sin capa propia quedaba invisible. */
+  position: relative;
+  z-index: 1;
+}
+/* Gerencia: va suelto sobre el tablero «Hoy», centrado. */
+.lh-root[data-kind='management'] {
+  width: min(1180px, 100%);
+  margin: 4px auto 18px;
+}
+.lh-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 14px;
+  margin: 0 0 12px;
+}
+.lh-head h1 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text);
+}
+.lh-head span {
+  font-size: 13px;
+  color: var(--text-dim);
 }
 .lh-grid {
   display: grid;
@@ -328,4 +353,31 @@
   font-weight: 700;
   cursor: pointer;
   min-height: 32px;
+}
+
+/* Gerencia: cada área es un botón que abre su módulo. */
+.lh-person-link {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.lh-person-link:first-child {
+  border-top: 0;
+}
+.lh-person-link:hover {
+  background: var(--bg-2);
+}
+.lh-person-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@media (max-width: 560px) {
+  .lh-root[data-kind='management'] {
+    padding: 0 10px;
+  }
 }

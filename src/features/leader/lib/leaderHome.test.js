@@ -10,6 +10,7 @@ import {
   hrLeaderBoard,
   accountingLeaderBoard,
   salesLeaderBoard,
+  managementBoard,
 } from './leaderHome'
 
 const now = new Date(2026, 8, 28, 15, 40)
@@ -23,7 +24,7 @@ describe('leaderKind', () => {
     expect(leaderKind('sales_logistics')).toBe('logistics')
     expect(leaderKind('farm')).toBe('veterinary')
     expect(leaderKind('hr')).toBe('hr')
-    expect(leaderKind('management')).toBe(null)
+    expect(leaderKind('management')).toBe('management')
   })
 })
 
@@ -610,5 +611,32 @@ describe('environmentalLeaderBoard · residuos, medidores y obligaciones', () =>
     expect(k['Agua por día']).toMatchObject({ value: '—', sub: 'faltan lecturas del medidor' })
     expect(k['Residuos del mes'].sub).toBe('sin entregas registradas')
     expect(empty.decisions).toEqual([])
+  })
+})
+
+describe('managementBoard', () => {
+  const maintenance = {
+    machines: [],
+    technicians: [{ id: 't1', name: 'Daniel' }],
+    workOrders: [{ id: 'b', code: 'OT-2', status: 'open', priority: 'high', created_at: '2026-09-28T14:12:00Z' }],
+  }
+  it('junta lo urgente de las áreas y cada decisión lleva al módulo del área', () => {
+    const b = managementBoard({ now, areas: { maintenance, accounting: {}, hr: { members: [] } } })
+    const ot = b.decisions.find((d) => d.id.startsWith('maintenance-'))
+    expect(ot.title.startsWith('Mantenimiento · ')).toBe(true)
+    // Gerencia no asigna técnicos: la decisión abre Mantenimiento.
+    expect(ot.action).toMatchObject({ kind: 'nav', tab: 'mantenimiento' })
+    const row = b.team.find((t) => t.id === 'maintenance')
+    expect(row).toMatchObject({ name: 'Mantenimiento', tab: 'mantenimiento' })
+    expect(['danger', 'warn']).toContain(row.tone)
+    expect(b.kpis[0].label).toBe('Áreas en orden')
+    expect(b.kpis.length).toBeLessThanOrEqual(4)
+  })
+  it('las áreas sin datos se muestran sin romper el tablero', () => {
+    const b = managementBoard({ now, areas: { plant: null } })
+    expect(b.team).toHaveLength(9)
+    expect(b.team.find((t) => t.id === 'plant').role).toBe('Sin datos')
+    expect(b.team.find((t) => t.id === 'sales').role).toBe('Cargando…')
+    expect(b.decisions).toEqual([])
   })
 })
