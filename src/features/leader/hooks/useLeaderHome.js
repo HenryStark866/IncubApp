@@ -468,7 +468,28 @@ async function loadSales({ orgId }) {
   }
 }
 
-const LOADERS = {
+/**
+ * Gerencia: carga las nueve áreas en paralelo con las mismas consultas del inicio de
+ * cada líder. Si un área falla, las demás se muestran y se avisa.
+ */
+async function loadManagement({ orgId, slot }) {
+  const kinds = ['plant', 'maintenance', 'veterinary', 'sst', 'environmental', 'logistics', 'sales', 'hr', 'accounting']
+  const results = await Promise.allSettled(kinds.map((k) => AREA_LOADERS[k]({ orgId, slot })))
+  const areas = {}
+  const errors = []
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      areas[kinds[i]] = r.value
+      if (r.value?.errors?.length) errors.push(...r.value.errors)
+    } else {
+      areas[kinds[i]] = null
+      errors.push(r.reason?.message || String(r.reason))
+    }
+  })
+  return { areas, errors }
+}
+
+const AREA_LOADERS = {
   plant: loadPlant,
   maintenance: loadMaintenance,
   sst: loadSst,
@@ -479,6 +500,8 @@ const LOADERS = {
   accounting: loadAccounting,
   sales: loadSales,
 }
+
+const LOADERS = { ...AREA_LOADERS, management: loadManagement }
 
 export function useLeaderHome({ kind, orgId }) {
   const [state, setState] = useState({
@@ -522,15 +545,18 @@ export function useLeaderHome({ kind, orgId }) {
     const onChange = () => load()
     window.addEventListener('online', onChange)
     window.addEventListener('incubapp:queue-changed', onChange)
-    const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') load()
-    }, 120000)
+    const timer = setInterval(
+      () => {
+        if (document.visibilityState === 'visible') load()
+      },
+      kind === 'management' ? 300000 : 120000,
+    )
     return () => {
       window.removeEventListener('online', onChange)
       window.removeEventListener('incubapp:queue-changed', onChange)
       clearInterval(timer)
     }
-  }, [load])
+  }, [load, kind])
 
   return { ...state, slot, reload: load }
 }

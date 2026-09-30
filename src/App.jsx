@@ -49,6 +49,7 @@ import {
   PlatformDevTools,
   AccessRegistryPanel,
   TodayBoard,
+  LeaderAreaHome,
   ShiftHome,
   MaintenanceAuxHome,
   LeaderDashboard,
@@ -702,6 +703,37 @@ function Workspace({
                 else setTab('hoy')
               }}
             />
+          ) : tab === 'hoy' && org && role === 'management' ? (
+            // Gerencia: arriba lo urgente de todas las áreas, un semáforo por área y el plan
+            // del día; debajo sigue el tablero «Hoy» de siempre (no se quita nada).
+            <>
+              <LeaderAreaHome
+                orgId={org.id}
+                userId={session.user.id}
+                role={role}
+                area="management"
+                userName={profileApi.profile?.full_name ?? session.user.email}
+                onNavigate={(t) => {
+                  if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                  else setTab('hoy')
+                }}
+              />
+              <TodayBoard
+                orgId={org.id}
+                userId={session.user.id}
+                role={role}
+                area={area}
+                userName={profileApi.profile?.full_name ?? session.user.email}
+                orgName={org.name}
+                onNavigate={(t) => {
+                  if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                  else setTab('hoy')
+                }}
+                presence={presence}
+                grantedScopeIds={access.grantedScopeIds}
+                isOmniscient={isOmniscient}
+              />
+            </>
           ) : tab === 'hoy' && org ? (
             <TodayBoard
               orgId={org.id}

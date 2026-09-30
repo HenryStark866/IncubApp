@@ -27,6 +27,7 @@ import {
 /** Qué inicio de líder corresponde a su área. Las demás áreas llegan en orden. */
 export function leaderKind(area) {
   const a = String(area || '').toLowerCase()
+  if (a === 'management') return 'management'
   if (a === 'maintenance') return 'maintenance'
   if (a === 'sst' || a === 'hse') return 'sst'
   if (a === 'veterinary' || a === 'farm') return 'veterinary'
@@ -1527,4 +1528,135 @@ export function salesLeaderBoard({ orders = [], customers = [], hatches = [], no
       tone: 'info',
     }))
   return { decisions: decisions.sort(byTone), kpis, team, plan }
+}
+
+/* ── Gerencia: todas las áreas en una sola vista ─────────────────────── */
+
+/** Áreas que ve gerencia, en el orden de la operación, y el módulo al que lleva cada una. */
+export const MANAGEMENT_AREAS = [
+  { kind: 'plant', label: 'Planta', tab: 'panel' },
+  { kind: 'maintenance', label: 'Mantenimiento', tab: 'mantenimiento' },
+  { kind: 'veterinary', label: 'Sanidad veterinaria', tab: 'veterinaria' },
+  { kind: 'sst', label: 'SST', tab: 'sst' },
+  { kind: 'environmental', label: 'Gestión ambiental', tab: 'ambiental' },
+  { kind: 'logistics', label: 'Logística', tab: 'logistica' },
+  { kind: 'sales', label: 'Ventas', tab: 'ventas' },
+  { kind: 'hr', label: 'Recursos humanos', tab: 'rrhh' },
+  { kind: 'accounting', label: 'Contabilidad', tab: 'contabilidad' },
+]
+
+const AREA_BOARDS = {
+  maintenance: maintenanceLeaderBoard,
+  sst: sstLeaderBoard,
+  environmental: environmentalLeaderBoard,
+  logistics: logisticsLeaderBoard,
+  veterinary: veterinaryLeaderBoard,
+  hr: hrLeaderBoard,
+  accounting: accountingLeaderBoard,
+  sales: salesLeaderBoard,
+}
+
+/** Indicador de la empresa que resume cada área en la fila de cuatro. */
+const MANAGEMENT_KPIS = [
+  { kind: 'plant', label: 'Rondas del turno' },
+  { kind: 'maintenance', label: 'OT abiertas' },
+  { kind: 'hr', label: 'Asistencia hoy' },
+  { kind: 'sales', label: 'Pollitos 7 días' },
+]
+
+/**
+ * Inicio de gerencia: lo urgente de todas las áreas, un semáforo por área y el plan
+ * del día. Gerencia no ejecuta lo del líder: cada decisión lleva al módulo del área.
+ * @param {{ areas: Record<string, object|null>, slot?: object, now?: Date }} p
+ *   areas: datos de cada área tal como los carga el inicio de su líder (null si no cargó)
+ */
+export function managementBoard({ areas = {}, slot = {}, now = new Date() }) {
+  const boards = {}
+  for (const a of MANAGEMENT_AREAS) {
+    const data = areas[a.kind]
+    if (!data) continue
+    try {
+      boards[a.kind] =
+        a.kind === 'plant' ? plantLeaderBoard({ ...data, slot, now }) : AREA_BOARDS[a.kind]({ ...data, now })
+    } catch {
+      boards[a.kind] = null
+    }
+  }
+
+  const toNav = (action, area) =>
+    action?.kind === 'nav' ? action : { kind: 'nav', tab: area.tab, label: `Ver en ${area.label}` }
+
+  const all = []
+  const team = []
+  for (const a of MANAGEMENT_AREAS) {
+    const b = boards[a.kind]
+    if (!b) {
+      team.push({
+        id: a.kind,
+        name: a.label,
+        role: areas[a.kind] === undefined ? 'Cargando…' : 'Sin datos',
+        doing: '',
+        value: '—',
+        tone: null,
+        tab: a.tab,
+      })
+      continue
+    }
+    const decs = b.decisions || []
+    const danger = decs.filter((d) => d.tone === 'danger').length
+    const warn = decs.filter((d) => d.tone === 'warn').length
+    for (const d of decs) {
+      all.push({
+        ...d,
+        id: `${a.kind}-${d.id}`,
+        title: `${a.label} · ${d.title}`,
+        action: toNav(d.action, a),
+        secondary: d.secondary?.kind === 'nav' ? d.secondary : null,
+      })
+    }
+    team.push({
+      id: a.kind,
+      name: a.label,
+      role: decs.length ? `${decs.length} pendiente${decs.length === 1 ? '' : 's'}` : 'Sin pendientes',
+      doing: decs[0]?.title || '',
+      value: danger ? 'Urgente' : warn ? 'Atención' : 'En orden',
+      tone: danger ? 'danger' : warn ? 'warn' : 'ok',
+      online: !danger && !warn,
+      tab: a.tab,
+    })
+  }
+
+  const decisions = all
+    .filter((d) => d.tone === 'danger' || d.tone === 'warn')
+    .sort(byTone)
+    .slice(0, 8)
+
+  const loaded = team.filter((t) => t.tone)
+  const inOrder = loaded.filter((t) => t.tone === 'ok').length
+  const urgent = all.filter((d) => d.tone === 'danger').length
+  const kpis = [
+    {
+      label: 'Áreas en orden',
+      value: `${inOrder} de ${loaded.length || MANAGEMENT_AREAS.length}`,
+      sub: urgent ? `${urgent} urgente${urgent === 1 ? '' : 's'} en la empresa` : 'nada urgente',
+      tone: urgent ? 'danger' : inOrder < loaded.length ? 'warn' : null,
+    },
+  ]
+  for (const k of MANAGEMENT_KPIS) {
+    const found = boards[k.kind]?.kpis?.find((x) => x.label === k.label)
+    if (found) kpis.push(found)
+  }
+
+  const plan = []
+  const planFrom = (kind, prefix, max) => {
+    for (const r of (boards[kind]?.plan || []).slice(0, max)) {
+      plan.push({ ...r, id: `${kind}-${r.id}`, text: `${prefix} · ${r.text}` })
+    }
+  }
+  planFrom('plant', 'Planta', 5)
+  planFrom('logistics', 'Despacho', 4)
+  planFrom('sales', 'Entrega', 4)
+  planFrom('veterinary', 'Sanidad', 3)
+
+  return { decisions, kpis: kpis.slice(0, 4), team, plan }
 }

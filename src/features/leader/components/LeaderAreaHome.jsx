@@ -23,6 +23,7 @@ import {
   hrLeaderBoard,
   accountingLeaderBoard,
   salesLeaderBoard,
+  managementBoard,
 } from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import './LeaderAreaHome.css'
@@ -91,6 +92,14 @@ TITLES.sales = {
   plan: 'Entregas de hoy y mañana',
   planSub: 'pedidos comprometidos',
   empty: 'No hay nacimientos programados en los próximos días.',
+}
+
+TITLES.management = {
+  team: 'Áreas de la empresa',
+  teamSub: 'lo pendiente de cada líder · toca un área para abrirla',
+  plan: 'Hoy en la empresa',
+  planSub: 'planta, despachos, entregas y sanidad',
+  empty: 'Sin datos de las áreas todavía.',
 }
 
 const BOARDS = {
@@ -177,6 +186,7 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
 
   const board = useMemo(() => {
     if (!data) return null
+    if (kind === 'management') return managementBoard({ areas: data.areas || {}, slot })
     if (BOARDS[kind]) return BOARDS[kind]({ ...data })
     return plantLeaderBoard({ ...data, slot })
   }, [data, kind, slot])
@@ -284,6 +294,12 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
   const decisions = board?.decisions || []
   return (
     <div className="lh-root" data-kind={kind}>
+      {kind === 'management' && (
+        <header className="lh-head">
+          <h1>La empresa hoy</h1>
+          <span>lo urgente de las nueve áreas, cómo va cada una y lo programado</span>
+        </header>
+      )}
       {home.error && <p className="lh-msg is-error">{home.error}</p>}
       {msg && <p className={`lh-msg ${msg.kind === 'error' ? 'is-error' : 'is-ok'}`}>{msg.text}</p>}
       <div className="lh-grid">
@@ -329,31 +345,48 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
                     : titles.empty || 'Nadie programado ni con ingreso en este turno.'}
                 </p>
               ) : (
-                team.map((p) => (
-                  <div key={p.id} className="lh-person">
-                    <span className={`lh-av${p.online ? ' is-on' : ''}`} aria-hidden="true">
-                      {initials(p.name)}
-                    </span>
-                    <span className="lh-person-main">
-                      <b>{p.name}</b>
-                      <span>{p.role}</span>
-                    </span>
-                    <span className="lh-person-doing">{p.doing}</span>
-                    {p.pct != null ? (
-                      <span className="lh-person-bar" title={p.value}>
-                        <span className="lh-mini">
-                          <span
-                            style={{ width: `${p.pct}%` }}
-                            className={p.over ? 'is-over' : p.pct < 60 ? 'is-low' : ''}
-                          />
-                        </span>
-                        <b>{p.value}</b>
+                team.map((p) => {
+                  const row = (
+                    <>
+                      <span className={`lh-av${p.online ? ' is-on' : ''}`} aria-hidden="true">
+                        {initials(p.name)}
                       </span>
-                    ) : (
-                      <span className={`lh-person-value${p.tone ? ` lh-st tone-${p.tone}` : ''}`}>{p.value}</span>
-                    )}
-                  </div>
-                ))
+                      <span className="lh-person-main">
+                        <b>{p.name}</b>
+                        <span>{p.role}</span>
+                      </span>
+                      <span className="lh-person-doing">{p.doing}</span>
+                      {p.pct != null ? (
+                        <span className="lh-person-bar" title={p.value}>
+                          <span className="lh-mini">
+                            <span
+                              style={{ width: `${p.pct}%` }}
+                              className={p.over ? 'is-over' : p.pct < 60 ? 'is-low' : ''}
+                            />
+                          </span>
+                          <b>{p.value}</b>
+                        </span>
+                      ) : (
+                        <span className={`lh-person-value${p.tone ? ` lh-st tone-${p.tone}` : ''}`}>{p.value}</span>
+                      )}
+                    </>
+                  )
+                  // Gerencia: cada área abre su módulo.
+                  return p.tab ? (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="lh-person lh-person-link"
+                      onClick={() => onNavigate?.(p.tab)}
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    <div key={p.id} className="lh-person">
+                      {row}
+                    </div>
+                  )
+                })
               )}
             </div>
           </Section>
