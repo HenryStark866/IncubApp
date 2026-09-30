@@ -191,3 +191,19 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   `work_orders`, `round_reports`).
 - Si 7-ACTUALIZAR-APP falla con `Wsl/Service/0x8007274c` (WSL no respondió), volver a
   correrlo: fue un corte momentáneo del servicio de WSL, no un error de la app.
+
+## Actualización 30-09-2026 — vuelve sola tras reiniciar
+
+- Tras reiniciar el Lenovo, Cloudflare daba **502**: la tarea «IncubApp Servidor» solo
+  arrancaba WSL y Docker al *iniciar sesión*, y nada volvía a levantar Supabase ni la app
+  si fallaban al primer intento.
+- **9-ARRANQUE-AUTOMATICO.bat** (una vez, como administrador):
+  1. Instala en Ubuntu `incubapp-arranque.service` (al encender: Docker → Supabase sin
+     studio/supavisor/imgproxy → app → túnel, y espera a que responda) e
+     `incubapp-vigia.timer` (cada minuto revisa `http://127.0.0.1/` y `/auth/v1/health`;
+     si no responden, levanta lo que falte). Script: `servidor-local/arranque.sh`.
+  2. Registra la tarea «IncubApp Servidor» para correr **al encender, sin iniciar sesión**
+     (pide la contraseña de Windows una vez; la guarda el Programador de tareas).
+  3. Si existe el servicio de Windows `cloudflared`, lo detiene y desactiva: desde Windows
+     no resuelve `incubapp:80` y Cloudflare le repartía visitas → 502 intermitentes.
+- Registro: `/var/log/incubapp-arranque.log` en Ubuntu y `servidor-local\logs\9-arranque.txt`.
