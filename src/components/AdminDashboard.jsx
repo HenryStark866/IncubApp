@@ -20,6 +20,7 @@ import {
   roleLabel,
 } from '../lib/roles'
 import { BRAND } from '../lib/brandIdentity'
+import { canSetPasswordFor } from '../lib/passwordScope'
 import {
   ExecEmpty,
   ExecGroup,
@@ -550,6 +551,10 @@ function UsersSection({ admin, myId }) {
             })
             .join(' · ')
           const needsRole = u.is_approved && memberships.length === 0 && u.platform_role !== 'admin'
+          // Líder de área: solo ve «Contraseña» en la gente de su área (la base aplica la misma regla).
+          const myMember = admin.tenantMode ? admin.members.find((m) => m.user_id === myId) : null
+          const canPassword =
+            !myMember || memberships.some((m) => m.org_id === myMember.org_id && canSetPasswordFor(myMember, m))
           const roleOpen = roleId === u.id || needsRole
           return (
             <div key={u.id} className="admin-card">
@@ -580,7 +585,7 @@ function UsersSection({ admin, myId }) {
                   <button className="ghost" onClick={() => setEditId(editId === u.id ? null : u.id)}>
                     Editar
                   </button>
-                  {!isMe && !(admin.tenantMode && u.platform_role === 'admin') && (
+                  {!isMe && canPassword && !(admin.tenantMode && u.platform_role === 'admin') && (
                     <button className="ghost" onClick={() => setPasswordId(passwordId === u.id ? null : u.id)}>
                       Contraseña
                     </button>

@@ -498,221 +498,224 @@ export default function OperatorHome({ home, perf, first, go, orgId, userId, rol
       />
       <div className="sh-body">
         <Note error={home.error} />
-        <AttendanceCard att={att} stage={stage} slot={slot} />
+        <div className="op-cols">
+          <div className="op-col">
+          <AttendanceCard att={att} stage={stage} slot={slot} />
 
-        {!isAux && (
-          <section className="sh-hero" aria-label="Ronda de la hora">
-            <div className="sh-hero-row">
-              <span className="sh-hero-label">Ronda {String(slot.hour).padStart(2, '0')}:00</span>
-              <span>{round.complete ? 'Completa' : `quedan ${60 - now.getMinutes()} min`}</span>
-            </div>
-            <div className="sh-big">
-              <span className={`sh-big-num${loading && !data ? ' sh-loading' : ''}`}>{round.done}</span>
-              <span className="sh-big-unit">de {round.total} máquinas{round.issues ? ` · ${round.issues} con novedad` : ''}</span>
-            </div>
-            <div className="sf-progress" aria-hidden="true">
-              <div style={{ width: `${round.total ? Math.round((round.done / round.total) * 100) : 0}%` }} />
-            </div>
-            {round.rooms.length > 0 && (
-              <div className="op-rooms">
-                {round.rooms.map((r) => (
-                  <span key={r.id} className={`op-room${r.done === r.total ? ' op-room-done' : ''}`}>{r.name} {r.done}/{r.total}</span>
+          {!isAux && (
+            <section className="sh-hero" aria-label="Ronda de la hora">
+              <div className="sh-hero-row">
+                <span className="sh-hero-label">Ronda {String(slot.hour).padStart(2, '0')}:00</span>
+                <span>{round.complete ? 'Completa' : `quedan ${60 - now.getMinutes()} min`}</span>
+              </div>
+              <div className="sh-big">
+                <span className={`sh-big-num${loading && !data ? ' sh-loading' : ''}`}>{round.done}</span>
+                <span className="sh-big-unit">de {round.total} máquinas{round.issues ? ` · ${round.issues} con novedad` : ''}</span>
+              </div>
+              <div className="sf-progress" aria-hidden="true">
+                <div style={{ width: `${round.total ? Math.round((round.done / round.total) * 100) : 0}%` }} />
+              </div>
+              {round.rooms.length > 0 && (
+                <div className="op-rooms">
+                  {round.rooms.map((r) => (
+                    <span key={r.id} className={`op-room${r.done === r.total ? ' op-room-done' : ''}`}>{r.name} {r.done}/{r.total}</span>
+                  ))}
+                </div>
+              )}
+              <p className="sh-hero-sub">
+                {[
+                  pace.complete ? 'Mínimo de rondas cumplido' : pace.nextAt ? `Próxima ronda sugerida ${pace.nextAt}` : null,
+                  data ? `${data.myPhotos} foto${data.myPhotos === 1 ? '' : 's'} tuya${data.myPhotos === 1 ? '' : 's'} en el turno` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              {health.normal + health.warning + health.fault + health.off > 0 && (
+                <div className="op-health" aria-label="Estado de las máquinas en el turno">
+                  <span className="op-health-ok">{health.normal} ok</span>
+                  {health.warning > 0 && <span className="op-health-warn">{health.warning} en alerta</span>}
+                  {health.fault > 0 && <span className="op-health-fault">{health.fault} en falla</span>}
+                  {health.off > 0 && <span>{health.off} apagada{health.off === 1 ? '' : 's'}</span>}
+                </div>
+              )}
+              <button type="button" className="sh-btn sh-btn-hero" onClick={continueRound}>
+                {Icon.camera(22)}{round.done ? 'Continuar ronda' : 'Empezar ronda'}
+              </button>
+            </section>
+          )}
+
+          <div className="sh-section-head">
+            <h2 className="sh-h2">Me asignaron</h2>
+            <span className="sh-count">{pendingActs.length} pendiente{pendingActs.length === 1 ? '' : 's'}</span>
+          </div>
+          {actMsg ? <p className="sh-note">{actMsg}</p> : null}
+          <div className="sh-card">
+            {pendingActs.length === 0 ? (
+              <p className="sh-empty">{loading && !data ? 'Cargando…' : 'Nada asignado por ahora.'}</p>
+            ) : (
+              <ul className="sh-list">
+                {pendingActs.map((a) => {
+                  const doing = a.status === 'in_progress'
+                  const m = machines.find((x) => x.id === a.machine_id)
+                  return (
+                    <li key={a.id} className="op-act">
+                      <div className="sh-row sh-row-static">
+                        <span className={`sh-badge ${doing ? 'sh-badge-accent' : 'sh-badge-warn'}`}>{Icon.task(18)}</span>
+                        <span className="sh-row-main">
+                          <span className="sh-row-title">{a.title || 'Actividad'}</span>
+                          <span className="sh-row-sub">
+                            {[m ? machineLabel(m) : null, doing ? (a.started_at ? `en curso desde ${clock(a.started_at)}` : 'en curso') : a.description].filter(Boolean).join(' · ')}
+                          </span>
+                        </span>
+                        {doing ? (
+                          <button type="button" className="op-act-btn op-act-btn-primary" onClick={() => setScreen({ kind: 'activity', act: a })}>Terminar</button>
+                        ) : (
+                          <button type="button" className="op-act-btn" disabled={busyAct === a.id} onClick={() => startAct(a)}>
+                            {busyAct === a.id ? '…' : 'Iniciar'}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          {health.attention.length > 0 && (
+            <>
+              <div className="sh-section-head">
+                <h2 className="sh-h2">Máquinas con novedad</h2>
+                <span className="sh-count">{health.attention.length}</span>
+              </div>
+              <div className="sh-card">
+                <ul className="sh-list">
+                  {health.attention.slice(0, 4).map((x) => (
+                    <li key={x.machineId}>
+                      <button
+                        type="button"
+                        className="sh-row"
+                        onClick={() => setScreen({ kind: 'incident', preset: { machineId: x.machineId, condition: x.condition, detail: x.notes } })}
+                      >
+                        <span className={`sh-badge ${x.condition === 'fault' ? 'sh-badge-warn' : 'sh-badge-accent'}`}>{Icon.alert(18)}</span>
+                        <span className="sh-row-main">
+                          <span className="sh-row-title">{x.code}</span>
+                          <span className="sh-row-sub">{x.notes || (x.condition === 'fault' ? 'Falla' : 'Alerta')} · {clock(x.at)}</span>
+                        </span>
+                        <span className={`sh-tag ${x.condition === 'fault' ? 'sh-tag-fault' : 'sh-tag-warn'}`}>Pedir OT</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          <div className="op-actions">
+            <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'incident' })}>
+              <span className="sh-badge sh-badge-warn">{Icon.alert(20)}</span>
+              <span><strong>Reportar falla</strong><small>OT para mantenimiento</small></span>
+            </button>
+            <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'report', preset: 'novedad' })}>
+              <span className="sh-badge sh-badge-blue">{Icon.pen(20)}</span>
+              <span><strong>Escribir novedad</strong><small>Cuenta como reporte de ronda</small></span>
+            </button>
+            <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'report', preset: 'entrega' })}>
+              <span className="sh-badge sh-badge-accent">{Icon.exit(20)}</span>
+              <span><strong>Entrega de turno</strong><small>Lo que recibe el siguiente</small></span>
+            </button>
+          </div>
+          </div>
+          <div className="op-col">
+          <div className="sh-grid-2">
+            <button type="button" className="sh-card sh-tile" onClick={() => go('cumplimiento')}>
+              <span className="sh-tile-label">Cumplimiento de hoy</span>
+              <span className="sh-tile-value">
+                {Math.round(score.scorePct)} %
+                <span className={score.eligibleScore ? 'sh-tag-ok' : 'sh-tag-muted'} style={{ fontWeight: 500 }}>
+                  {score.eligibleScore ? `· en meta (${score.minScore} %)` : `· meta ${score.minScore} %`}
+                </span>
+              </span>
+            </button>
+            <button type="button" className="sh-card sh-tile" onClick={() => (can('horarios') ? go('horarios') : null)}>
+              <span className="sh-tile-label">Próximo turno</span>
+              <span className="sh-tile-value">
+                {nextShift
+                  ? nextShift.isRest
+                    ? `${nextShift.label} · descanso`
+                    : `${nextShift.label} · T${nextShift.shiftNumber} ${SHIFT_WINDOWS[nextShift.shiftNumber]?.label.split(' – ')[0] || ''}`
+                  : 'Sin programar'}
+              </span>
+            </button>
+          </div>
+
+          {shortcuts.length > 0 && (
+            <>
+              <div className="sh-section-head">
+                <h2 className="sh-h2">Otros registros</h2>
+              </div>
+              <div className="op-shortcuts">
+                {shortcuts.map((s) => (
+                  <button key={s.id} type="button" className="sh-card op-shortcut" onClick={() => openShortcut(s)}>
+                    {(Icon[s.icon] || Icon.grid)(22)}
+                    <span>{s.label}</span>
+                  </button>
                 ))}
               </div>
-            )}
-            <p className="sh-hero-sub">
-              Rondas del turno: {done} de {perf.minRounds}
-              {pace.complete ? ' · mínimo cumplido' : pace.nextAt ? ` · próxima sugerida ${pace.nextAt}` : ''}
-              {data ? ` · ${data.myPhotos} foto${data.myPhotos === 1 ? '' : 's'} tuya${data.myPhotos === 1 ? '' : 's'}` : ''}
-            </p>
-            <button type="button" className="sh-btn sh-btn-hero" onClick={continueRound}>
-              {Icon.camera(22)}{round.done ? 'Continuar ronda' : 'Empezar ronda'}
-            </button>
-          </section>
-        )}
-
-        <div className="sh-section-head">
-          <h2 className="sh-h2">Me asignaron</h2>
-          <span className="sh-count">{pendingActs.length} pendiente{pendingActs.length === 1 ? '' : 's'}</span>
-        </div>
-        {actMsg ? <p className="sh-note">{actMsg}</p> : null}
-        <div className="sh-card">
-          {pendingActs.length === 0 ? (
-            <p className="sh-empty">{loading && !data ? 'Cargando…' : 'Nada asignado por ahora.'}</p>
-          ) : (
-            <ul className="sh-list">
-              {pendingActs.map((a) => {
-                const doing = a.status === 'in_progress'
-                const m = machines.find((x) => x.id === a.machine_id)
-                return (
-                  <li key={a.id} className="op-act">
-                    <div className="sh-row sh-row-static">
-                      <span className={`sh-badge ${doing ? 'sh-badge-accent' : 'sh-badge-warn'}`}>{Icon.task(18)}</span>
-                      <span className="sh-row-main">
-                        <span className="sh-row-title">{a.title || 'Actividad'}</span>
-                        <span className="sh-row-sub">
-                          {[m ? machineLabel(m) : null, doing ? `en curso desde ${clock(a.started_at)}` : a.description].filter(Boolean).join(' · ')}
-                        </span>
-                      </span>
-                      {doing ? (
-                        <button type="button" className="op-act-btn op-act-btn-primary" onClick={() => setScreen({ kind: 'activity', act: a })}>Terminar</button>
-                      ) : (
-                        <button type="button" className="op-act-btn" disabled={busyAct === a.id} onClick={() => startAct(a)}>
-                          {busyAct === a.id ? '…' : 'Iniciar'}
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+            </>
           )}
+          {(acts.doneToday.length > 0 || (data?.incidents || []).length > 0 || writtenToday.length > 0) && (
+            <>
+              <div className="sh-section-head">
+                <h2 className="sh-h2">Hecho hoy</h2>
+                <span className="sh-count">{acts.doneToday.length + (data?.incidents || []).length + writtenToday.length}</span>
+              </div>
+              <div className="sh-card">
+                <ul className="sh-list">
+                  {acts.doneToday.map((a) => (
+                    <li key={`a-${a.id}`}>
+                      <div className="sh-row sh-row-static">
+                        <span className="sh-row-time">{clock(a.completed_at)}</span>
+                        <span className="sh-row-main">
+                          <span className="sh-row-title">{a.title}</span>
+                          {a.result_note ? <span className="sh-row-sub">{a.result_note}</span> : null}
+                        </span>
+                        <span className={`sh-tag ${a.completion === 'partial' ? 'sh-tag-warn' : 'sh-tag-ok'}`}>{a.completion === 'partial' ? 'Parcial' : 'Hecha'}</span>
+                      </div>
+                    </li>
+                  ))}
+                  {(data?.incidents || []).map((o) => (
+                    <li key={`o-${o.id}`}>
+                      <button type="button" className="sh-row" onClick={() => openIncident(o)} disabled={openingId === o.id}>
+                        <span className="sh-row-time">{clock(o.created_at)}</span>
+                        <span className="sh-row-main">
+                          <span className="sh-row-title">{o.title}</span>
+                          <span className="sh-row-sub">{o.code || 'OT'} · {o.status === 'completed' ? 'atendida' : o.status === 'in_progress' ? 'en atención' : 'por atender'}</span>
+                        </span>
+                        <span className="sh-tag sh-tag-accent">{openingId === o.id ? 'Abriendo…' : `Ver ${workOrderFormatCode(o)}`}</span>
+                      </button>
+                    </li>
+                  ))}
+                  {writtenToday.map((r) => (
+                    <li key={`r-${r.id}`}>
+                      <div className="sh-row sh-row-static">
+                        <span className="sh-row-time">{clock(r.created_at)}</span>
+                        <span className="sh-row-main">
+                          <span className="sh-row-title">{r.title}</span>
+                          {r.body ? <span className="sh-row-sub op-clamp">{r.body}</span> : null}
+                        </span>
+                        <span className="sh-tag sh-tag-muted">Reporte</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {!isAux && <ShiftRounds orgId={orgId} slot={slot} checks={checks} onlyUser={userId} loading={loading && !data} />}
+          </div>
         </div>
-
-        {health.attention.length > 0 && (
-          <>
-            <div className="sh-section-head">
-              <h2 className="sh-h2">Máquinas con novedad</h2>
-              <span className="sh-count">{health.attention.length}</span>
-            </div>
-            <div className="sh-card">
-              <ul className="sh-list">
-                {health.attention.slice(0, 4).map((x) => (
-                  <li key={x.machineId}>
-                    <button
-                      type="button"
-                      className="sh-row"
-                      onClick={() => setScreen({ kind: 'incident', preset: { machineId: x.machineId, condition: x.condition, detail: x.notes } })}
-                    >
-                      <span className={`sh-badge ${x.condition === 'fault' ? 'sh-badge-warn' : 'sh-badge-accent'}`}>{Icon.alert(18)}</span>
-                      <span className="sh-row-main">
-                        <span className="sh-row-title">{x.code}</span>
-                        <span className="sh-row-sub">{x.notes || (x.condition === 'fault' ? 'Falla' : 'Alerta')} · {clock(x.at)}</span>
-                      </span>
-                      <span className={`sh-tag ${x.condition === 'fault' ? 'sh-tag-fault' : 'sh-tag-warn'}`}>Pedir OT</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        )}
-
-        <div className="op-actions">
-          <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'incident' })}>
-            <span className="sh-badge sh-badge-warn">{Icon.alert(20)}</span>
-            <span><strong>Reportar falla</strong><small>OT para mantenimiento</small></span>
-          </button>
-          <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'report', preset: 'novedad' })}>
-            <span className="sh-badge sh-badge-blue">{Icon.pen(20)}</span>
-            <span><strong>Escribir novedad</strong><small>Cuenta como reporte de ronda</small></span>
-          </button>
-          <button type="button" className="sh-card op-action" onClick={() => setScreen({ kind: 'report', preset: 'entrega' })}>
-            <span className="sh-badge sh-badge-accent">{Icon.exit(20)}</span>
-            <span><strong>Entrega de turno</strong><small>Lo que recibe el siguiente</small></span>
-          </button>
-        </div>
-
-        {(acts.doneToday.length > 0 || (data?.incidents || []).length > 0 || writtenToday.length > 0) && (
-          <>
-            <div className="sh-section-head">
-              <h2 className="sh-h2">Hecho hoy</h2>
-              <span className="sh-count">{acts.doneToday.length + (data?.incidents || []).length + writtenToday.length}</span>
-            </div>
-            <div className="sh-card">
-              <ul className="sh-list">
-                {acts.doneToday.map((a) => (
-                  <li key={`a-${a.id}`}>
-                    <div className="sh-row sh-row-static">
-                      <span className="sh-row-time">{clock(a.completed_at)}</span>
-                      <span className="sh-row-main">
-                        <span className="sh-row-title">{a.title}</span>
-                        {a.result_note ? <span className="sh-row-sub">{a.result_note}</span> : null}
-                      </span>
-                      <span className={`sh-tag ${a.completion === 'partial' ? 'sh-tag-warn' : 'sh-tag-ok'}`}>{a.completion === 'partial' ? 'Parcial' : 'Hecha'}</span>
-                    </div>
-                  </li>
-                ))}
-                {(data?.incidents || []).map((o) => (
-                  <li key={`o-${o.id}`}>
-                    <button type="button" className="sh-row" onClick={() => openIncident(o)} disabled={openingId === o.id}>
-                      <span className="sh-row-time">{clock(o.created_at)}</span>
-                      <span className="sh-row-main">
-                        <span className="sh-row-title">{o.title}</span>
-                        <span className="sh-row-sub">{o.code || 'OT'} · {o.status === 'completed' ? 'atendida' : o.status === 'in_progress' ? 'en atención' : 'por atender'}</span>
-                      </span>
-                      <span className="sh-tag sh-tag-accent">{openingId === o.id ? 'Abriendo…' : `Ver ${workOrderFormatCode(o)}`}</span>
-                    </button>
-                  </li>
-                ))}
-                {writtenToday.map((r) => (
-                  <li key={`r-${r.id}`}>
-                    <div className="sh-row sh-row-static">
-                      <span className="sh-row-time">{clock(r.created_at)}</span>
-                      <span className="sh-row-main">
-                        <span className="sh-row-title">{r.title}</span>
-                        {r.body ? <span className="sh-row-sub op-clamp">{r.body}</span> : null}
-                      </span>
-                      <span className="sh-tag sh-tag-muted">Reporte</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        )}
-
-        {!isAux && <ShiftRounds orgId={orgId} slot={slot} checks={checks} onlyUser={userId} loading={loading && !data} />}
-
-        <div className="sh-grid-2">
-          <button type="button" className="sh-card sh-tile" onClick={() => go('cumplimiento')}>
-            <span className="sh-tile-label">Cumplimiento de hoy</span>
-            <span className="sh-tile-value">
-              {Math.round(score.scorePct)} %
-              <span className={score.eligibleScore ? 'sh-tag-ok' : 'sh-tag-muted'} style={{ fontWeight: 500 }}>
-                {score.eligibleScore ? `· en meta (${score.minScore} %)` : `· meta ${score.minScore} %`}
-              </span>
-            </span>
-          </button>
-          <button type="button" className="sh-card sh-tile" onClick={() => (can('horarios') ? go('horarios') : null)}>
-            <span className="sh-tile-label">Próximo turno</span>
-            <span className="sh-tile-value">
-              {nextShift
-                ? nextShift.isRest
-                  ? `${nextShift.label} · descanso`
-                  : `${nextShift.label} · T${nextShift.shiftNumber} ${SHIFT_WINDOWS[nextShift.shiftNumber]?.label.split(' – ')[0] || ''}`
-                : 'Sin programar'}
-            </span>
-          </button>
-        </div>
-
-        {!isAux && (
-          <button type="button" className="sh-card sh-tile" onClick={() => go('monitoreo')}>
-            <span className="sh-tile-label">Máquinas en el turno</span>
-            <span className="sh-tile-value">
-              <span className="sh-tag-ok">{health.normal} ok</span>
-              <span className="sh-tag-warn">{health.warning} alerta</span>
-              <span className="sh-tag-fault">{health.fault} falla</span>
-              <span className="sh-tag-muted">{health.off} apagadas</span>
-            </span>
-          </button>
-        )}
-
-        {shortcuts.length > 0 && (
-          <>
-            <div className="sh-section-head">
-              <h2 className="sh-h2">Más del turno</h2>
-            </div>
-            <div className="op-shortcuts">
-              {shortcuts.map((s) => (
-                <button key={s.id} type="button" className="sh-card op-shortcut" onClick={() => openShortcut(s)}>
-                  {(Icon[s.icon] || Icon.grid)(22)}
-                  <span>{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
       </div>
       <div className="sh-spacer" />
       <TabBar
@@ -724,7 +727,7 @@ export default function OperatorHome({ home, perf, first, go, orgId, userId, rol
         items={[
           { label: 'Mi turno', tab: 'hoy', icon: Icon.clock, current: true },
           isAux ? { label: 'Actividades', tab: 'supervision', icon: Icon.task } : { label: 'Ronda', tab: 'supervision', icon: Icon.camera },
-          { label: 'Máquinas', tab: 'monitoreo', icon: Icon.grid },
+          { label: 'Cumplimiento', tab: 'cumplimiento', icon: Icon.bars },
           { label: 'Yo', tab: 'perfil', icon: Icon.user },
         ]}
       />

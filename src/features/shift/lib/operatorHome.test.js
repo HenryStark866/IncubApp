@@ -130,8 +130,8 @@ describe('novedades', () => {
 
 describe('accesos', () => {
   it('solo los que el rol puede abrir; el auxiliar no ve las secciones de supervisión', () => {
-    const can = (t) => ['supervision', 'calibracion', 'monitoreo'].includes(t)
-    expect(shortcutsFor({ role: 'operator', can }).map((s) => s.id)).toEqual(['cargue', 'transferencia', 'calibracion', 'mercancia', 'ot', 'monitoreo', 'cumplimiento'])
-    expect(shortcutsFor({ role: 'auxiliary', can }).map((s) => s.id)).toEqual(['calibracion', 'monitoreo', 'cumplimiento'])
+    const can = (t) => ['supervision', 'calibracion', 'historial'].includes(t)
+    expect(shortcutsFor({ role: 'operator', can }).map((s) => s.id)).toEqual(['cargue', 'transferencia', 'calibracion', 'mercancia', 'ot', 'historial'])
+    expect(shortcutsFor({ role: 'auxiliary', can }).map((s) => s.id)).toEqual(['calibracion', 'historial'])
   })
 })

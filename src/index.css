@@ -11621,6 +11621,14 @@ a.plant3d-link:hover {
     flex: 0 0 auto;
     gap: 4px;
     align-items: center;
+    /* La regla de ≤640px la ponía al 100 %: en la fila compacta aplastaba el logo
+       y el encabezado quedaba vacío a la izquierda (30-09-2026). */
+    width: auto;
+  }
+
+  .ws-social-actions {
+    flex: 0 0 auto;
+    gap: 6px;
   }
 
   /* Chips de meta (online, sync) — solo ícono, sin texto */
@@ -11987,6 +11995,16 @@ a.plant3d-link:hover {
   .ws-brand-text strong {
     max-width: 110px;
     font-size: 12px;
+  }
+
+  /* Celular angosto: el chip de cuenta queda solo con la foto (el nombre ya
+     está en el saludo) para que el logo quepa. */
+  .ws-profile-text {
+    display: none;
+  }
+
+  .ws-profile-chip {
+    padding: 4px;
   }
 
   .room-grid {

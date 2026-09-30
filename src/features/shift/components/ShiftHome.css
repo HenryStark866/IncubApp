@@ -40,6 +40,10 @@
   flex-direction: column;
   min-height: calc(100dvh - 140px);
   overflow: hidden;
+  /* Encima del fondo fijo de la app (.app-bg, position: fixed): sin capa propia el
+     fondo se pintaba sobre el inicio y el operario veía la pantalla en blanco. */
+  position: relative;
+  z-index: 1;
 }
 
 html[data-theme='dark'] .sh-root {
@@ -669,5 +673,22 @@ html[data-theme='dark'] .sh-hero {
 @media (max-width: 420px) {
   .sh-root {
     border-radius: 0;
+  }
+}
+
+/* Celular: la barra inferior queda fija abajo siempre (antes, al llegar al final de la
+   página subía con el contenido y el botón del chat tapaba «Yo»). */
+@media (max-width: 720px) {
+  .sh-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+  }
+  body:has(.sh-tabbar) {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }
