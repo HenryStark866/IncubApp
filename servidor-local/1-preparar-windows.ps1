@@ -99,16 +99,8 @@ if (-not (Get-NetFirewallRule -DisplayName 'IncubApp servidor local' -ErrorActio
 }
 try { Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow -ErrorAction Stop; Write-Host '  Firewall de WSL abierto a la red local' } catch { Write-Host "  (firewall de Hyper-V no disponible: $($_.Exception.Message))" }
 
-Paso 'Arranque automático al iniciar sesión'
-$vbs = "$env:ProgramData\IncubApp\mantener-servidor.vbs"
-New-Item -ItemType Directory -Force -Path (Split-Path $vbs) | Out-Null
-Set-Content -Path $vbs -Encoding ASCII -Value ('CreateObject("WScript.Shell").Run "wsl.exe -d ' + $distro + ' -u root -- sh -c ""exec sleep infinity""", 0, False')
-$accion = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$vbs`""
-$disparo = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
-$ajustes = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
-Register-ScheduledTask -TaskName 'IncubApp Servidor' -Action $accion -Trigger $disparo -Settings $ajustes -Description 'Mantiene encendido Ubuntu/WSL con Docker y Supabase de IncubApp' -Force | Out-Null
-Start-ScheduledTask -TaskName 'IncubApp Servidor'
-Write-Host '  Tarea «IncubApp Servidor» creada y en marcha'
+Paso 'Arranque automático (al encender el equipo y al iniciar sesión)'
+& "$PSScriptRoot\registrar-arranque.ps1"
 
 Paso 'Comprobación final'
 wsl.exe -l -v 2>&1 | Out-Host

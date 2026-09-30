@@ -107,3 +107,20 @@ los `.bat` directamente desde el Explorador de archivos (doble clic), en este
 orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 `2-INSTALAR-SERVIDOR.bat` → `3-RESTAURAR-BACKUP.bat`. O se puede recrear
 `tasks.json` a mano si se prefiere usar VS Code.
+## Actualización 29-09-2026 (noche) — arranque automático tras apagón/reinicio
+
+- **Falla**: tras reiniciar, la app y la API quedaron caídas. Causa: reglas `netsh
+  portproxy` (0.0.0.0:80/8000/4040 → 127.0.0.1) que había creado `ARREGLAR_RED.bat`.
+  Con la red de WSL en espejo, el servicio «Aplicación auxiliar IP» de Windows toma esos
+  puertos al encender, antes que Docker: `incubapp`, `supabase-envoy` y `ngrok` fallaban
+  con «address already in use». Además envoy quedaba sin red y un `docker start` lo dejaba
+  aislado (API 502). La tarea vieja solo corría al iniciar sesión y ya no arrancaba nada.
+- **Arreglo**: se borró `ARREGLAR_RED.bat` y las reglas portproxy. Nuevo
+  `9-ARRANQUE-AUTOMATICO.bat` (→ `registrar-arranque.ps1`) registra dos tareas que corren
+  `arranque-windows.ps1`: **IncubApp Arranque** (al encender, sin iniciar sesión, S4U) e
+  **IncubApp Servidor** (al iniciar sesión). Ese script quita portproxy de los puertos
+  de la app, corre `arranque.sh` (espera Docker, recrea con compose los contenedores
+  caídos por error o sin red, respeta los apagados a mano) y mantiene WSL encendido.
+  Registro en `servidor-local/logs/arranque.txt`. `1-preparar-windows.ps1` usa lo mismo.
+- Para que vuelva solo tras un apagón, la BIOS debe tener «encender al volver la
+  corriente» (Lenovo: F1 → Power → After Power Loss → Power On).
