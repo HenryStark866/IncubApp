@@ -179,9 +179,7 @@ export const OPERATOR_SHORTCUTS = [
   { id: 'calibracion', label: 'Calibración', tab: 'calibracion', icon: 'calibrate' },
   { id: 'mercancia', label: 'Mercancía recibida', tab: 'supervision', view: 'mercancia', icon: 'box' },
   { id: 'ot', label: 'Órdenes de trabajo', tab: 'supervision', view: 'ot', icon: 'wrench' },
-  { id: 'monitoreo', label: 'Máquinas', tab: 'monitoreo', icon: 'grid' },
-  { id: 'horarios', label: 'Mis horarios', tab: 'horarios', icon: 'clock' },
-  { id: 'cumplimiento', label: 'Mi cumplimiento', tab: 'cumplimiento', icon: 'bars' },
+  { id: 'historial', label: 'Mi historial', tab: 'historial', icon: 'doc' },
 ]
 
 /** Los accesos que el rol puede abrir (el auxiliar de turno solo tiene sus actividades en «Mis actividades»). */
@@ -189,6 +187,6 @@ export function shortcutsFor({ role, can = () => true }) {
   const auxOnlyActivities = role === 'auxiliary'
   return OPERATOR_SHORTCUTS.filter((s) => {
     if (auxOnlyActivities && s.tab === 'supervision') return false
-    return s.tab === 'cumplimiento' || can(s.tab)
+    return can(s.tab)
   })
 }

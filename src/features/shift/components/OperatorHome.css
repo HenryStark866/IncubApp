@@ -152,3 +152,53 @@
   flex-wrap: wrap;
   overflow: visible;
 }
+
+/* Estado de las máquinas del turno, dentro de la ronda (antes era una tarjeta aparte
+   que llevaba a Monitoreo, un tablero que el operario no puede abrir). */
+.op-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sh-hero-muted);
+}
+.op-health-ok {
+  color: #7fd19b;
+}
+.op-health-warn {
+  color: var(--sh-amber);
+}
+.op-health-fault {
+  color: #ff8a80;
+}
+
+/* Columnas del inicio: en el celular van una debajo de otra; en escritorio, lo del
+   momento (ingreso, ronda, asignado) a la izquierda y lo de consulta a la derecha. */
+.op-cols,
+.op-col {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .sh-root:has(.op-cols) {
+    max-width: 1120px;
+  }
+  .op-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* Botones flotantes (chat y avisos) por encima de la barra inferior del turno. */
+@media (max-width: 720px) {
+  body:has(.sh-tabbar) .chat-fab {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+  body:has(.sh-tabbar) .notif-fab {
+    bottom: calc(146px + env(safe-area-inset-bottom, 0px));
+  }
+}

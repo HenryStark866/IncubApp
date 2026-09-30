@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { ROLE_LABEL } from '../lib/roles'
+import { isShiftWorkerRole } from '../lib/privacyScopes'
 import { compressImage } from '../lib/image'
 import { getTheme, setTheme } from '../lib/theme'
 
@@ -433,9 +434,9 @@ export default function WorkspaceNav({
             type="button"
             className={`ws-icon-btn${tab === 'hoy' ? ' active' : ''}`}
             onClick={() => go('hoy')}
-            title="Hoy"
+            title={isShiftWorkerRole(role) ? 'Volver a Mi turno' : 'Hoy'}
           >
-            Hoy
+            {isShiftWorkerRole(role) ? 'Mi turno' : 'Hoy'}
           </button>
         )}
 

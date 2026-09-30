@@ -1510,7 +1510,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
   return (
     <div className="card wide">
       <div className="card-head">
-        <h2>{isShiftOperator ? 'Mis actividades' : 'Supervisión y monitoreo'}</h2>
+        <h2>{role === 'operator' ? 'Ronda y registros' : isShiftOperator ? 'Mis actividades' : 'Supervisión y monitoreo'}</h2>
       </div>
 
       <nav className="subtabs-rail" aria-label={isShiftOperator ? 'Herramientas del turno' : 'Secciones de supervisión'}>

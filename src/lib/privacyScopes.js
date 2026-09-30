@@ -94,11 +94,13 @@ export const PRIVACY_DOMAINS = [
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
-     * herramientas de ejecución (actividades, cargue, monitoreo, historial).
+     * herramientas de ejecución (actividades, cargue, historial). Sin «Monitoreo»:
+     * es un tablero de coordinación y al operario solo le mostraba un bloqueo; el
+     * estado de las máquinas lo ve en su inicio y en la ronda (30-09-2026).
      */
     tabsFor: (role, _area) => {
       if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production') {
-        return ['supervision', 'calibracion', 'horarios', 'monitoreo', 'cargue', 'historial']
+        return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
         return ['recepcion', 'cargue', 'supervision', 'horarios', 'historial']
@@ -375,6 +377,8 @@ export function nativeTabsFor(role, area) {
   const set = new Set(COMMON_TABS)
   // Cliente externo (portal comercial): sin módulos de operación interna
   if (role === 'customer') set.delete('cargue')
+  // Operario y auxiliares de turno no salen en vehículo: sin desplazamientos misionales.
+  if (['operator', 'auxiliary', 'auxiliary_production'].includes(role)) set.delete('misionales')
   for (const d of domainsMemberOf(role, area)) {
     for (const t of domainTabsForRole(d, role, area)) set.add(t)
   }

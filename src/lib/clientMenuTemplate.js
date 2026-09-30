@@ -156,8 +156,10 @@ const SHIFT_WORKER_ROLES = [
 /** Etiqueta del ítem según el rol (el operario habla de «sus» tareas, no de supervisión) */
 function navLabelFor(item, role) {
   const isShiftWorker = SHIFT_WORKER_ROLES.includes(role)
+  if (item.id === 'supervision' && role === 'operator') return 'Ronda y registros'
   if (item.id === 'supervision' && isShiftWorker) return 'Mis actividades'
   if (item.id === 'cargue' && isShiftWorker) return 'Órdenes de cargue'
+  if (item.id === 'hoy' && isShiftWorker) return 'Mi turno'
   // Líder de área: su home «Hoy» es el tablero combinado con monitoreo y widgets
   if (item.id === 'hoy' && role === 'coordinator') return 'Panel principal del líder'
   return item.label
