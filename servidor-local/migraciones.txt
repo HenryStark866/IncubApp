@@ -10,3 +10,4 @@
 20260929_work_orders_checklist.sql
 20260930_admin_set_password_por_area.sql
 20260930_espacios_confinados.sql
+20260930_bot_lecturas_fotos.sql

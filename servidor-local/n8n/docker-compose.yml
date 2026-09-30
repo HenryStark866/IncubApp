@@ -1,0 +1,42 @@
+# IncubApp · n8n (automatizaciones). Lo levanta servidor-local/n8n.sh (10-INSTALAR-N8N.bat).
+# Solo escucha en este equipo (127.0.0.1:5678): se abre en http://127.0.0.1:5678.
+# Entra a la red de Supabase para hablar con la base (supabase-db) y con el
+# almacenamiento de fotos (supabase-storage) sin salir a internet.
+# Secretos en /opt/incubapp/n8n/.env (fuera del repo).
+name: incubapp-n8n
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.41.3
+    container_name: incubapp-n8n
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    env_file: /opt/incubapp/n8n/.env
+    environment:
+      - GENERIC_TIMEZONE=America/Bogota
+      - TZ=America/Bogota
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      # Historial: se guardan las ejecuciones con error y 14 días de las buenas.
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      # Las fotos se guardan en disco mientras corre el flujo, no en la memoria.
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+    volumes:
+      - n8n_data:/home/node/.n8n
+    mem_limit: 1g
+    networks:
+      - supabase_default
+
+volumes:
+  n8n_data:
+
+networks:
+  supabase_default:
+    external: true
