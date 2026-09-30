@@ -207,3 +207,20 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   3. Si existe el servicio de Windows `cloudflared`, lo detiene y desactiva: desde Windows
      no resuelve `incubapp:80` y Cloudflare le repartía visitas → 502 intermitentes.
 - Registro: `/var/log/incubapp-arranque.log` en Ubuntu y `servidor-local\logs\9-arranque.txt`.
+
+## Actualización 29-09-2026 (noche) — causa raíz de la caída tras reiniciar
+
+- En el Lenovo, tras reiniciar, `incubapp`, `supabase-envoy` e `incubapp-ngrok` fallaban con
+  «address already in use» en 80/8000/4040: reglas `netsh portproxy` (0.0.0.0 → 127.0.0.1)
+  que había creado `ARREGLAR_RED.bat`. Con la red de WSL en espejo, el servicio «Aplicación
+  auxiliar IP» de Windows toma esos puertos al encender, antes que Docker, y el vigilante no
+  habría podido levantarlos nunca. Se borró `ARREGLAR_RED.bat` y
+  `9-arranque-automatico.ps1` ahora quita esas reglas.
+- Envoy quedaba «arriba» pero **sin red** (API 502) y `compose up --no-recreate` no lo
+  arregla: `arranque.sh` ahora recrea con compose los contenedores caídos por error o sin
+  red (`reparar_rotos`), respetando los apagados a mano.
+- La tarea «IncubApp Servidor» se registra en modo **S4U** (sin iniciar sesión y sin pedir
+  contraseña); probado en el Lenovo. Se quita la tarea «IncubApp Arranque» de un arreglo
+  paralelo del mismo día.
+- Para que vuelva sola tras un apagón, la BIOS debe tener «encender al volver la
+  corriente» (Lenovo: F1 → Power → After Power Loss → Power On).

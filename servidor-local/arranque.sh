@@ -85,7 +85,44 @@ responde() {
   [ "$app" = 200 ] && { [ "$api" = 200 ] || [ "$api" = 401 ]; }
 }
 
+# Contenedores que un arranque fallido dejó rotos (29-09-2026: con el puerto ocupado,
+# envoy quedó "arriba" pero SIN red y la API daba 502; `up --no-recreate` no lo arregla).
+# Se recrean con compose, que vuelve a armar sus redes. Los apagados a mano (código 0/143,
+# sin error) no se tocan.
+reparar_rotos() {
+  local c nombre estado error codigo modo redes proyecto servicio dir archivos f args
+  for c in $(docker ps -aq); do
+    case "$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$c")" in always|unless-stopped) ;; *) continue ;; esac
+    nombre=$(docker inspect -f '{{.Name}}' "$c" | sed 's#^/##')
+    estado=$(docker inspect -f '{{.State.Status}}' "$c")
+    error=$(docker inspect -f '{{.State.Error}}' "$c")
+    codigo=$(docker inspect -f '{{.State.ExitCode}}' "$c")
+    modo=$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$c")
+    redes=$(docker inspect -f '{{len .NetworkSettings.Networks}}' "$c")
+    case "$estado" in
+      running) [ "$redes" = 0 ] && [ "$modo" != host ] && [ "$modo" != none ] || continue ;;
+      exited|dead) [ -n "$error" ] || { [ "$codigo" != 0 ] && [ "$codigo" != 143 ]; } || continue ;;
+      *) continue ;;
+    esac
+    proyecto=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c")
+    servicio=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$c")
+    dir=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$c")
+    archivos=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.config_files"}}' "$c")
+    log "Reparando $nombre ($estado, redes=$redes${error:+, $error})"
+    if [ -n "$servicio" ] && [ -d "$dir" ]; then
+      args=()
+      IFS=',' read -ra lista <<< "$archivos"
+      for f in "${lista[@]}"; do args+=(-f "$f"); done
+      (cd "$dir" && docker compose -p "$proyecto" "${args[@]}" up -d --no-deps --no-build --force-recreate "$servicio") >>"$LOG" 2>&1 \
+        || log "  $nombre no se pudo recrear (ver arriba)."
+    else
+      docker start "$c" >/dev/null 2>&1 || true
+    fi
+  done
+}
+
 levantar() {
+  reparar_rotos
   if [ -d "$SRV" ]; then
     local servicios
     servicios=$(cd "$SRV" && docker compose config --services 2>/dev/null | grep -Ev "$SOBRAN" | tr '\n' ' ')

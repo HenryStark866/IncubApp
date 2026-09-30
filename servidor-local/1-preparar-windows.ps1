@@ -125,20 +125,9 @@ if (-not (Get-NetFirewallRule -DisplayName 'IncubApp servidor local' -ErrorActio
 }
 try { Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow -ErrorAction Stop; Write-Host '  Firewall de WSL abierto a la red local' } catch { Write-Host "  (firewall de Hyper-V no disponible: $($_.Exception.Message))" }
 
-Paso 'Arranque automático al iniciar sesión'
-$vbs = "$env:ProgramData\IncubApp\mantener-servidor.vbs"
-New-Item -ItemType Directory -Force -Path (Split-Path $vbs) | Out-Null
-$inicio = 'sleep 5; systemctl start docker; docker start incubapp-tunel >/dev/null 2>&1 || true; exec sleep infinity'
-Set-Content -Path $vbs -Encoding ASCII -Value ('CreateObject("WScript.Shell").Run "wsl.exe -d ' + $distro + ' -u root -- sh -c ""' + $inicio + '""", 0, False')
-$accion = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$vbs`""
-$disparos = @(
-  (New-ScheduledTaskTrigger -AtStartup),
-  (New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME")
-)
-$ajustes = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
-Register-ScheduledTask -TaskName 'IncubApp Servidor' -Action $accion -Trigger $disparos -Settings $ajustes -RunLevel Highest -Description 'Arranca WSL, Docker, Supabase y el tunel de IncubApp al iniciar Windows' -Force | Out-Null
-Start-ScheduledTask -TaskName 'IncubApp Servidor'
-Write-Host '  Tarea «IncubApp Servidor» creada y en marcha'
+# El arranque automático (al encender, sin iniciar sesión) lo deja 9-ARRANQUE-AUTOMATICO.bat,
+# que necesita Docker y Supabase ya instalados (paso 2).
+Write-Host '  Arranque automático: correr 9-ARRANQUE-AUTOMATICO.bat al terminar el paso 2' -ForegroundColor Yellow
 
 Paso 'Comprobación final'
 $hv = (Get-CimInstance Win32_ComputerSystem).HypervisorPresent

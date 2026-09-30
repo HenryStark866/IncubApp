@@ -4,9 +4,11 @@
 #   1. En Ubuntu: servicio que levanta Supabase, la app y el túnel al encender, y un
 #      vigilante que cada minuto revisa que la app responda y levanta lo que se caiga.
 #   2. En Windows: la tarea «IncubApp Servidor» arranca Ubuntu al encender (sin esperar
-#      a que alguien entre). Pide la contraseña de Windows UNA vez: la guarda Windows,
-#      no este script.
-#   3. Si hay un conector de Cloudflare instalado como servicio de Windows, lo apaga:
+#      a que alguien entre). Corre como el usuario en modo S4U: no pide contraseña.
+#   3. Quita reglas «portproxy» viejas de los puertos de la app (ARREGLAR_RED.bat): con la
+#      red de WSL en espejo, Windows se adueña de 80/8000/4040 al encender, antes que
+#      Docker, y la app y la API no pueden arrancar (29-09-2026).
+#   4. Si hay un conector de Cloudflare instalado como servicio de Windows, lo apaga:
 #      desde Windows no puede llegar a la app (incubapp:80) y daba 502 al turnarse
 #      con el conector bueno, el de Docker.
 # Henry Stark Desarrollador · 30-09-2026
@@ -46,26 +48,30 @@ $disparos = @(
 )
 $ajustes = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
   -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew
-Write-Host ''
-Write-Host "Escriba la contraseña con la que entra a Windows el usuario $usuario." -ForegroundColor Cyan
-Write-Host '(Si entra con cuenta Microsoft, es la contraseña de esa cuenta, no el PIN.)' -ForegroundColor Cyan
-Write-Host 'Windows la guarda para poder arrancar el servidor sin que nadie inicie sesión.' -ForegroundColor Cyan
-$sec = Read-Host 'Contraseña de Windows (no se muestra)' -AsSecureString
-$plano = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+# S4U: corre como este usuario aunque nadie haya iniciado sesión, sin guardar contraseña
+# (probado en el Lenovo el 29-09-2026: WSL y Docker arrancan bien así).
 $sinSesion = $false
 try {
   Register-ScheduledTask -TaskName 'IncubApp Servidor' -Action $accion -Trigger $disparos -Settings $ajustes `
-    -User $usuario -Password $plano -RunLevel Highest -Force `
+    -Principal (New-ScheduledTaskPrincipal -UserId $usuario -LogonType S4U -RunLevel Highest) -Force `
     -Description 'Arranca Ubuntu (WSL), Docker, Supabase, la app y el túnel de IncubApp al encender, sin iniciar sesión' -ErrorAction Stop | Out-Null
   $sinSesion = $true
   L '   Listo: arranca al encender el equipo, aunque nadie inicie sesión.' 'Green'
 } catch {
-  L "   Windows no aceptó la contraseña ($($_.Exception.Message))." 'Yellow'
-  L '   Se deja arrancando al iniciar sesión. Vuelva a correr este archivo para reintentar.' 'Yellow'
+  L "   No se pudo registrar sin sesión ($($_.Exception.Message))." 'Yellow'
+  L '   Se deja arrancando al iniciar sesión.' 'Yellow'
   Register-ScheduledTask -TaskName 'IncubApp Servidor' -Action $accion -Trigger $disparos[1] -Settings $ajustes `
     -RunLevel Highest -Force -Description 'Arranca IncubApp al iniciar sesión' | Out-Null
-} finally {
-  $plano = $null
+}
+# Tareas de un arreglo anterior (29-09-2026) que hacían lo mismo por otro camino.
+Unregister-ScheduledTask -TaskName 'IncubApp Arranque' -Confirm:$false -ErrorAction SilentlyContinue
+
+L '   Quitando reglas portproxy de los puertos de la app...'
+foreach ($p in 80, 443, 8000, 4040) {
+  if ((netsh interface portproxy show v4tov4) -match "\s$p\s") {
+    netsh interface portproxy delete v4tov4 listenport=$p listenaddress=0.0.0.0 | Out-Null
+    L "   portproxy del puerto $p eliminado (bloqueaba a Docker al encender)" 'Yellow'
+  }
 }
 
 # ── 3. Conector de Cloudflare instalado en Windows (sobra y causa 502) ─────────
