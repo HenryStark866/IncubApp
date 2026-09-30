@@ -137,7 +137,9 @@ export function localAnswer(question, ctx = {}) {
 export function knowledgeAnswer(question) {
   const chunk = retrieveKnowledge(question, 1)[0]
   if (!chunk?.text) return null
-  const frases = chunk.text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
+  // Para escuchar: sin viñetas ni saltos de línea del manual.
+  const limpio = chunk.text.replace(/(^|\n)\s*[-•*]\s+/g, '$1').replace(/\s*\n+\s*/g, '. ').replace(/\.\s*\./g, '.').replace(/:\./g, ':').replace(/\s+/g, ' ')
+  const frases = limpio.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
   return frases || null
 }
 
