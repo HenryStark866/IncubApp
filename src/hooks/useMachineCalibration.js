@@ -26,26 +26,38 @@ import {
   validateCalibReadings,
 } from '../lib/machineCalibration'
 
+// Fotos de la calibración. Van a wo-evidence (evidencia de la OT); si ese depósito falla
+// (el 30-09-2026 el servidor devolvía una página en vez de guardar la foto y la nacedora
+// calibrada no se podía registrar), se guardan en machine-checks, el mismo de las rondas.
+// El formato FOMAT08, el expediente y el centro de activos ya leen de los dos.
+// La fila de evidencia de la OT no frena la calibración si no se puede guardar.
 async function uploadWoPhoto(orgId, workOrderId, userId, file, note) {
   const safe = (file.name || 'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80)
   const path = `${orgId}/${workOrderId}/${Date.now()}-${safe}`
-  const { error: upErr } = await supabase.storage
-    .from('wo-evidence')
-    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false })
-  if (upErr && !/already exists|Duplicate|409/i.test(upErr.message || '')) {
-    return { error: upErr.message }
+  const opts = { contentType: file.type || 'image/jpeg', upsert: false }
+  const dup = (e) => /already exists|Duplicate|409/i.test(e?.message || '')
+  let bucket = 'wo-evidence'
+  const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, opts)
+  if (upErr && !dup(upErr)) {
+    const alt = await supabase.storage.from('machine-checks').upload(path, file, opts)
+    if (alt.error && !dup(alt.error)) {
+      return { error: `No se pudo subir la foto: ${upErr.message}` }
+    }
+    bucket = 'machine-checks'
   }
-  const { error: insErr } = await supabase.from('wo_evidence').insert({
-    org_id: orgId,
-    work_order_id: workOrderId,
-    uploaded_by: userId || null,
-    file_path: path,
-    file_name: file.name || 'photo.jpg',
-    file_type: 'image',
-    note: note || null,
-  })
-  if (insErr) return { error: insErr.message }
-  return { error: null, path }
+  if (bucket === 'wo-evidence') {
+    const { error: insErr } = await supabase.from('wo_evidence').insert({
+      org_id: orgId,
+      work_order_id: workOrderId,
+      uploaded_by: userId || null,
+      file_path: path,
+      file_name: file.name || 'photo.jpg',
+      file_type: 'image',
+      note: note || null,
+    })
+    if (insErr) console.warn('[calibración] evidencia de la OT sin registrar:', insErr.message)
+  }
+  return { error: null, path, bucket }
 }
 
 /**

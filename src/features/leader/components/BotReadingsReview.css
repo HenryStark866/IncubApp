@@ -1,0 +1,142 @@
+/* Lecturas por revisar (bot de fotos). Usa las variables de la app: respeta el modo oscuro. */
+.br-item + .br-item {
+  border-top: 1px solid var(--line);
+}
+.br-item .lh-dec {
+  border-top: 0;
+}
+.br-editor {
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) minmax(0, 1fr);
+  gap: 14px;
+  padding: 4px 14px 16px;
+}
+@media (max-width: 700px) {
+  .br-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.br-photo {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  align-self: start;
+}
+.br-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+}
+.br-nophoto {
+  margin: 0;
+  padding: 24px 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.br-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.br-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: var(--text);
+}
+.br-table th,
+.br-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+.br-table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.br-table tbody th {
+  font-weight: 600;
+}
+.br-table small {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.br-table tr.is-flagged th,
+.br-table tr.is-flagged td {
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}
+.br-reason {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.br-final {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.br-input,
+.br-note input {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 0 10px;
+}
+.br-input {
+  width: 88px;
+}
+.br-use {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.br-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+@media (max-width: 520px) {
+  .br-table thead {
+    display: none;
+  }
+  .br-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .br-table tbody th {
+    grid-column: 1 / -1;
+  }
+  .br-table td:nth-child(2)::before {
+    content: 'Turnero: ';
+    color: var(--text-dim);
+  }
+  .br-table td:nth-child(3)::before {
+    content: 'Foto: ';
+    color: var(--text-dim);
+  }
+  .br-table td:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}

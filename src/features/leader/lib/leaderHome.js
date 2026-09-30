@@ -409,11 +409,28 @@ export function sstLeaderBoard({
   drivers = [],
   incidents = [],
   inspections = [],
+  confinedPermits = [],
   now = new Date(),
 }) {
   const today = localDate(now)
   const recent = preops.filter((r) => now - new Date(r.inspection_date || r.created_at) < 7 * DAY_MS)
   const decisions = []
+
+  // 0. Espacios confinados: un permiso suspendido (hay que sacar a la gente) o por
+  //    autorizar (alguien espera para entrar a un túnel).
+  for (const p of confinedPermits.filter((x) => x.status === 'suspended' || x.status === 'draft')) {
+    const where = [p.space_code, p.space_name].filter(Boolean).join(' · ') || 'Túnel'
+    decisions.push({
+      id: `ec-${p.id}`,
+      tone: p.status === 'suspended' ? 'danger' : 'warn',
+      title:
+        p.status === 'suspended'
+          ? `Permiso de espacio confinado suspendido · ${where}`
+          : `Permiso de entrada por autorizar · ${where}`,
+      detail: p.status === 'suspended' ? p.suspended_reason || 'Todos afuera' : p.work_description,
+      action: { kind: 'nav', tab: 'sst', label: p.status === 'suspended' ? 'Ver permiso' : 'Revisar y autorizar' },
+    })
+  }
 
   // 1. Preoperacionales con hallazgo sin revisar: el vehículo no debería salir.
   for (const r of recent.filter((x) => hasFindings(x) && x.status !== 'reviewed')) {

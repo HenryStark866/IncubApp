@@ -11,15 +11,15 @@
   /**
    * Crea un sprite con texto legible desde cualquier ángulo.
    * @param {string} texto
-   * @param {{ color?:string, fondo?:string, tam?:number, alturaM?:number, sub?:string }} opts
+   * @param {{ color?:string, fondo?:string, tam?:number, alturaM?:number, sub?:string, colorSub?:string }} opts
    *   alturaM = altura del cartel en metros dentro de la escena.
    */
   function crearEtiqueta(texto, opts) {
     const o = Object.assign(
-      { color: '#eaf2ff', fondo: 'rgba(10,16,28,0.72)', borde: 'rgba(140,180,230,0.55)', tam: 64, alturaM: 1.1, sub: '' },
+      { color: '#eaf2ff', fondo: 'rgba(10,16,28,0.72)', borde: 'rgba(140,180,230,0.55)', tam: 64, alturaM: 1.1, sub: '', colorSub: 'rgba(200,220,245,0.85)' },
       opts || {}
     )
-    const clave = [texto, o.sub, o.color, o.fondo, o.borde, o.tam].join('|')
+    const clave = [texto, o.sub, o.color, o.fondo, o.borde, o.tam, o.colorSub].join('|')
     let tex = cache.get(clave)
 
     if (!tex) {
@@ -60,7 +60,7 @@
       ctx.fillText(texto, w / 2, o.sub ? h * 0.36 : h / 2)
       if (o.sub) {
         ctx.font = `500 ${o.tam * 0.62}px "Segoe UI", system-ui, sans-serif`
-        ctx.fillStyle = 'rgba(200,220,245,0.85)'
+        ctx.fillStyle = o.colorSub
         ctx.fillText(o.sub, w / 2, h * 0.72)
       }
 

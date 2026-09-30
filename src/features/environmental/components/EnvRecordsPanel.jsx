@@ -634,7 +634,7 @@ export default function EnvRecordsPanel({ orgId, userId, role, area, isOmniscien
   const pending = api.obligations.filter((o) => o.status !== 'done').length
 
   return (
-    <div className="card" style={{ margin: '16px 0 0', padding: '14px 16px' }}>
+    <div className="card wide" style={{ margin: '16px 0 0', padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <h3 className="section-title" style={{ margin: 0, flex: 1 }}>
           Registros ambientales
