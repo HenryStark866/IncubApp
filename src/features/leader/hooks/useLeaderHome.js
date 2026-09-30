@@ -4,23 +4,21 @@
  * pantalla visible. Si una consulta falla se muestra lo demás y se avisa.
  * Henry Stark Desarrollador
  */
+import { queryRows, loadWarning } from '../../../lib/queryRows'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { currentSlot } from '../../../hooks/useMachineChecks'
 import { ROLE_LABEL } from '../../../lib/roles'
 import { isMissingTable } from '../../../lib/missingTable'
 
-async function rows(table, build) {
-  const { data, error } = await build(supabase.from(table))
-  if (error) return { data: [], error: error.message }
-  return { data: data ?? [] }
-}
+// Reintenta una vez si la red o la base fallaron de forma momentánea (lib/queryRows).
+const rows = (table, build) => queryRows(table, build)
 
 /** Como rows(), pero si la tabla no existe devuelve vacío sin marcar error: lo demás sigue. */
 async function optionalRows(table, build) {
-  const { data, error } = await build(supabase.from(table))
-  if (error) return isMissingTable(error) ? { data: [], missing: true } : { data: [], error: error.message }
-  return { data: data ?? [] }
+  const res = await queryRows(table, build)
+  if (res.error && isMissingTable({ message: res.error })) return { data: [], missing: true }
+  return res
 }
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000)
@@ -55,7 +53,7 @@ async function loadPlant({ orgId, slot }) {
     ),
     rows('load_maps', (q) =>
       q
-        .select('id, machine_name, status, payload, approved_at, ordered_at, loaded_at, created_at')
+        .select('id, machine_name, status, payload, approved_at, ordered_at, created_at')
         .eq('org_id', orgId)
         .in('status', ['pending_approval', 'approved', 'ordered'])
         .order('created_at', { ascending: true })
@@ -538,7 +536,7 @@ export function useLeaderHome({ kind, orgId }) {
       setState({
         loading: false,
         data,
-        error: data.errors?.length ? 'Algunos datos no cargaron. Revisa la conexión y actualiza.' : null,
+        error: loadWarning(data.errors, { source: `inicio del líder (${kind})` }),
         updatedAt: new Date(),
       })
     } catch (e) {

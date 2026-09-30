@@ -61,7 +61,9 @@ function documentHtml({ meta, title, body }) {
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${css}</style></head><body>${letterheadHtml(meta)}${body}<p class="record-note">${escapeHtml(AUTO_NOTE)}</p>${footerHtml({})}</body></html>`
 }
 
-const machineLabel = (machine = {}) => [machine.code, machine.name].filter(Boolean).join(' · ')
+// null llega cuando la OT no tiene máquina cargada (regularizadas de Mántum, fallas por sala):
+// con el valor por defecto `= {}` eso rompía el formato y el botón «Ver FOMAT» no abría nada.
+const machineLabel = (machine) => [machine?.code, machine?.name].filter(Boolean).join(' · ')
 
 /** Lecturas de la pantalla de la máquina en una línea: «Temp. aire 99.5 °F · Humedad relativa 55». */
 function readingsText(item = {}) {

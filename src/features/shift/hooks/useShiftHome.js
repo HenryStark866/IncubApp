@@ -8,15 +8,13 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { queryRows, loadWarning } from '../../../lib/queryRows'
 import { currentSlot } from '../../../hooks/useMachineChecks'
 import { localDate } from '../lib/shiftHome'
 import { uniqueChannel } from '../../../lib/realtimeChannel'
 
-async function rows(table, build) {
-  const { data, error } = await build(supabase.from(table))
-  if (error) return { data: [], error: error.message }
-  return { data: data ?? [] }
-}
+// Reintenta una vez si la red o la base fallaron de forma momentánea (lib/queryRows).
+const rows = (table, build) => queryRows(table, build)
 
 const daysAgo = (n) => {
   const d = new Date()
@@ -48,7 +46,7 @@ async function loadOperator({ orgId, userId, slot }) {
         .select('id, title, description, machine_id, room_id, status, created_at, started_at, completed_at, completion, result_qty, result_note, photo_path, assigned_to')
         .eq('org_id', orgId)
         .eq('assigned_to', userId)
-        .or(`status.in.(pending,assigned,in_progress),completed_at.gte.${today}`)
+        .or(`status.in.(pending,in_progress),completed_at.gte.${today}`)
         .order('created_at', { ascending: true })
         .limit(60)
     ),
@@ -109,7 +107,7 @@ async function loadProduction({ orgId }) {
     ),
     rows('load_maps', (q) =>
       q
-        .select('id, machine_name, status, payload, approved_at, ordered_at, loaded_at, created_at')
+        .select('id, machine_name, status, payload, approved_at, ordered_at, created_at')
         .eq('org_id', orgId)
         .in('status', ['approved', 'ordered'])
         .order('created_at', { ascending: true })
@@ -170,7 +168,7 @@ async function loadSupervisor({ orgId, slot }) {
       q
         .select('id, title, description, status, assigned_to, assigned_by, machine_id, room_id, created_at, started_at, completed_at, completion, result_note')
         .eq('org_id', orgId)
-        .or(`status.in.(pending,assigned,in_progress),completed_at.gte.${today}`)
+        .or(`status.in.(pending,in_progress),completed_at.gte.${today}`)
         .order('created_at', { ascending: true })
         .limit(200)
     ),
@@ -258,8 +256,8 @@ export function useShiftHome({ kind, orgId, userId }) {
       setState({
         loading: false,
         data,
-        // Parcial: si una consulta falla se muestra lo demás y se avisa.
-        error: data.errors?.length ? 'Algunos datos no cargaron. Revisa la conexión y actualiza.' : null,
+        // Parcial: si una consulta falla se muestra lo demás; solo se avisa si es la conexión.
+        error: loadWarning(data.errors, { source: `inicio de turno (${kind})` }),
         updatedAt: new Date(),
       })
     } catch (e) {
