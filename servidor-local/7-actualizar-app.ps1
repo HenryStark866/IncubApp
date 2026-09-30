@@ -20,7 +20,18 @@ if (Test-Path $ramaTxt) {
 }
 if ($origen) {
   L "Trayendo cambios de GitHub (rama $origen)..."
-  git fetch origin $origen 2>&1 | ForEach-Object { L "  $_" }
+  # 01-10-2026: «fetching ref refs/remotes/origin/main failed: incorrect old value
+  # provided» cortaba la actualización. Pasa si otro git (p. ej. la sesión de Claude
+  # del equipo) trae cambios al mismo tiempo, o si la referencia quedó trabada. Se
+  # reintenta; al segundo intento se borra la referencia local de origin (se vuelve a
+  # crear sola con el fetch). No toca el código ni los cambios locales.
+  for ($intento = 1; $intento -le 3; $intento++) {
+    git fetch origin $origen 2>&1 | ForEach-Object { L "  $_" }
+    if ($LASTEXITCODE -eq 0) { break }
+    L "  Reintentando ($intento de 3)..." 'Yellow'
+    if ($intento -ge 2) { git update-ref -d "refs/remotes/origin/$origen" 2>&1 | Out-Null }
+    Start-Sleep 3
+  }
   if ($LASTEXITCODE -eq 0) { git merge --ff-only FETCH_HEAD 2>&1 | ForEach-Object { L "  $_" } }
 } else {
   L 'Trayendo cambios de GitHub...'
