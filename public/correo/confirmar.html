@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirme su correo en IncubApp</title>
+</head>
+<!-- Plantilla de correo de IncubApp para Supabase Auth (GoTrue). La lee el servicio de
+     cuentas desde https://incubapp.cdhmaker.com/correo/confirmar.html (ver
+     servidor-local/correo.sh). {{ .ConfirmationURL }} lo reemplaza Supabase. -->
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:'Segoe UI',Arial,sans-serif;color:#182333">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:24px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #d7dee5;border-radius:14px;overflow:hidden">
+        <tr><td style="padding:22px 28px 12px;border-bottom:3px solid #e0740a" align="left">
+          <img src="https://incubapp.cdhmaker.com/client-brands/incubant/logo_sig.png" alt="Incubant" height="46" style="display:block;height:46px;width:auto;border:0">
+        </td></tr>
+        <tr><td style="padding:24px 28px 8px">
+          <h1 style="margin:0 0 12px;font-size:21px;color:#0b1428">Confirme su correo en IncubApp</h1>
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.55">Su cuenta de IncubApp quedó creada. Confirme que este correo es suyo para poder entrar.</p>
+          <p style="margin:0 0 22px">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#e0740a;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:10px">Confirmar mi correo</a>
+          </p>
+          <p style="margin:0 0 6px;font-size:13px;color:#5f6d7b">Si el botón no abre, copie este enlace en el navegador:</p>
+          <p style="margin:0 0 18px;font-size:12px;word-break:break-all"><a href="{{ .ConfirmationURL }}" style="color:#b75b08">{{ .ConfirmationURL }}</a></p>
+          <p style="margin:0 0 18px;font-size:13px;color:#5f6d7b;line-height:1.5">El enlace sirve una sola vez.</p>
+        </td></tr>
+        <tr><td style="padding:14px 28px 22px;border-top:1px solid #eef1f4;font-size:12px;color:#5f6d7b;line-height:1.5">
+          Antioqueña de Incubación S.A.S. · IncubApp<br>
+          Este correo se envió a {{ .Email }}. Si usted no lo pidió, puede ignorarlo.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
