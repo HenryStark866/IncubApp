@@ -24,6 +24,15 @@ import { openRoundFormat } from '../lib/roundFormat'
 import { takeRequestedSupervisionView } from '../lib/supervisionView'
 import { minutesLeftInHour, requestWorkOrderFromRound, roundFinishSummary } from '../lib/roundActions'
 import './RoundFlow.css'
+import {
+  buildAllocations,
+  cartsFromMap,
+  distributeCarts,
+  lotsLabel,
+  occupiedHatchers,
+  pendingSetters,
+  unassignedCarts,
+} from '../lib/transferPlan'
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
 import {
@@ -35,7 +44,6 @@ import {
 // Incubadoras (cargue)
 const SETTER_TYPES = ['setter', 'combo']
 // Transferencia y nacimiento operan por SALÓN de nacedoras (rooms.type = hatching)
-const HATCHING_ROOM_TYPE = 'hatching'
 // Estimado de pollitos a nacer sobre el huevo incubable (ajustable)
 const HATCH_RATE = 0.82
 // Día 21 del ciclo (504 h): listo para nacimiento
@@ -917,11 +925,44 @@ function LoadView({ loads, machines, team, plants, onCreateLoad, getPhotoUrl }) 
   )
 }
 
-/* ── Reporte de transferencia (lote → salón de nacedoras) ──── */
-function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhotoUrl }) {
-  const [lote, setLote] = useState('')
-  const [mode, setMode] = useState('single')
-  const [roomIds, setRoomIds] = useState([])
+/* ── Transferencia: incubadora de origen → nacedoras en el orden del turnero ──── */
+const machineName = (m) => (m ? [m.code, m.name].filter(Boolean).join(' · ') : 'Máquina')
+
+/** Último mapa de cargue cerrado de la incubadora, del ciclo que se va a transferir. */
+function useLoadMapFor(machineId, loadedAt) {
+  const [state, setState] = useState({ map: null, loading: false })
+  useEffect(() => {
+    if (!machineId) {
+      setState({ map: null, loading: false })
+      return undefined
+    }
+    let alive = true
+    setState({ map: null, loading: true })
+    supabase
+      .from('load_maps')
+      .select('id, payload, status, created_at')
+      .eq('machine_id', machineId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (!alive) return
+        // El mapa del ciclo: el más reciente creado hasta 3 días antes del cargue.
+        const since = loadedAt ? new Date(loadedAt).getTime() - 3 * 86400000 : 0
+        const map = (data || []).find((m) => new Date(m.payload?.loaded_at || m.created_at).getTime() >= since) || null
+        setState({ map, loading: false })
+      })
+    return () => {
+      alive = false
+    }
+  }, [machineId, loadedAt])
+  return state
+}
+
+function TransferView({ loads, transfers, rooms, machines, team, onCreateTransfer, getPhotoUrl }) {
+  const [sourceId, setSourceId] = useState('')
+  const [hatcherIds, setHatcherIds] = useState([])
+  const [assignment, setAssignment] = useState({})
   const [weight, setWeight] = useState('')
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -930,171 +971,221 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
 
   const opName = (id) => team.find((t) => t.id === id)?.name ?? '—'
   const roomName = (id) => rooms.find((r) => r.id === id)?.name ?? 'Sala'
-  const expected = mode === 'double' ? 2 : 1
+  const machineById = useMemo(() => new Map(machines.map((m) => [m.id, m])), [machines])
 
-  // Lotes con cargue activo que aún no se han transferido (agregado por lote)
-  const pendingLotes = useMemo(() => {
-    const transferred = new Set(transfers.map((t) => t.lote))
-    const map = new Map()
-    for (const l of loads) {
-      if (transferred.has(l.lote)) continue
-      const cur = map.get(l.lote) ?? { lote: l.lote, batchId: l.batch_id ?? null, plantId: l.plant_id, cycleStart: l.cycle_start_at ?? null, loadedAt: l.loaded_at ?? null, loads: 0 }
-      cur.loads += 1
-      if (l.cycle_start_at && (!cur.cycleStart || new Date(l.cycle_start_at) < new Date(cur.cycleStart))) cur.cycleStart = l.cycle_start_at
-      if (l.loaded_at && (!cur.loadedAt || new Date(l.loaded_at) < new Date(cur.loadedAt))) cur.loadedAt = l.loaded_at
-      if (!cur.batchId && l.batch_id) cur.batchId = l.batch_id
-      map.set(l.lote, cur)
-    }
-    return [...map.values()]
-  }, [loads, transfers])
-
-  // Solo se habilitan para transferencia las máquinas con ≥ MIN_TRANSFER_DAYS días
-  // de incubación (evita transferir una incubadora recién cargada por error).
-  const incubationDays = (x) => {
-    const start = x.cycleStart || x.loadedAt
-    if (!start) return null
-    return (Date.now() - new Date(start).getTime()) / 86400000
-  }
-  const eligibleLotes = pendingLotes.filter((x) => {
-    const d = incubationDays(x)
-    return d != null && d >= MIN_TRANSFER_DAYS
-  })
-  const blockedCount = pendingLotes.length - eligibleLotes.length
-
-  const selected = eligibleLotes.find((x) => x.lote === lote) || null
-  const age = selected ? cycleAge(selected.cycleStart) : null
+  // 1. Incubadoras con huevo pendiente de transferir (lo cargado en cada una).
+  const setters = useMemo(() => pendingSetters({ loads, transfers, machines }), [loads, transfers, machines])
+  const source = setters.find((x) => x.machineId === sourceId) || null
+  const age = source ? cycleAge(source.cycleStart) : null
   const transferBadge = age ? milestoneBadge(age.hours) : null
 
-  // Salas de nacedoras de la planta del lote; marca las ocupadas por transferencias previas
-  const occupied = useMemo(() => {
-    const s = new Set()
-    for (const t of transfers) for (const rid of t.room_ids ?? []) s.add(rid)
-    return s
-  }, [transfers])
-  const hatchingRooms = rooms.filter(
-    (r) => r.type === HATCHING_ROOM_TYPE && (!selected || r.plant_id === selected.plantId)
+  // 2. Carros del mapa de cargue de esa incubadora.
+  const mapState = useLoadMapFor(sourceId, source?.loadedAt)
+  const carts = useMemo(() => cartsFromMap(mapState.map), [mapState.map])
+
+  // 3. Nacedoras de la planta, en el orden que indica el turnero.
+  const hatchers = useMemo(
+    () =>
+      machines
+        .filter((m) => m.type === 'hatcher' && m.status !== 'decommissioned' && (!source || m.plant_id === source.plantId))
+        .sort((a, b) => String(a.code || a.name).localeCompare(String(b.code || b.name), 'es', { numeric: true })),
+    [machines, source],
   )
+  const busyHatchers = useMemo(() => occupiedHatchers(transfers), [transfers])
 
-  const toggleRoom = (id) => {
-    setRoomIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id)
-      if (prev.length >= expected) return [...prev.slice(1), id] // reemplaza el más antiguo
-      return [...prev, id]
-    })
+  const pickSource = (id) => {
+    setSourceId(id)
+    setHatcherIds([])
+    setAssignment({})
+    setOk(false)
+    setErr(null)
   }
-  // Al cambiar de modo recorta la selección de salas
-  useEffect(() => { setRoomIds((prev) => prev.slice(0, mode === 'double' ? 2 : 1)) }, [mode])
+  const toggleHatcher = (id) => {
+    const next = hatcherIds.includes(id) ? hatcherIds.filter((x) => x !== id) : [...hatcherIds, id]
+    setHatcherIds(next)
+    setAssignment(distributeCarts(carts, next))
+  }
+  // Si el mapa llega después de elegir nacedoras, se reparte con el orden ya elegido.
+  useEffect(() => {
+    setAssignment(distributeCarts(carts, hatcherIds))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carts])
 
-  const pickLote = (v) => { setLote(v); setRoomIds([]) }
+  const allocations = buildAllocations({ carts, hatcherIds, assignment, lots: source?.lots || [] })
+  const missing = unassignedCarts(carts, assignment, hatcherIds)
 
   const submit = async () => {
-    setBusy(true); setErr(null); setOk(false)
+    setBusy(true)
+    setErr(null)
+    setOk(false)
     const { error } = await onCreateTransfer({
-      plantId: selected?.plantId,
-      batchId: selected?.batchId,
-      lote,
-      mode,
-      roomIds,
+      plantId: source?.plantId,
+      batchId: source?.batchId,
+      lote: lotsLabel(source?.lots || []),
+      sourceMachineId: sourceId,
+      hatcherIds,
+      hatcherRoomIds: hatcherIds.map((id) => machineById.get(id)?.room_id),
+      allocations,
+      loadMapId: mapState.map?.id || null,
       weightDiff: weight,
-      cycleStartAt: selected?.cycleStart,
+      cycleStartAt: source?.cycleStart,
       file,
     })
     setBusy(false)
     if (error) setErr(error)
-    else { setOk(true); setLote(''); setMode('single'); setRoomIds([]); setWeight(''); setFile(null) }
+    else {
+      setOk(true)
+      setSourceId('')
+      setHatcherIds([])
+      setAssignment({})
+      setWeight('')
+      setFile(null)
+    }
   }
 
   const recent = transfers.slice(0, 30)
+  const days = (x) => (x.days == null ? '—' : `${x.days.toFixed(1)} días`)
 
   return (
     <>
-      <div className="inline-form">
-        <label>
-          Lote a transferir
-          <select value={lote} onChange={(e) => pickLote(e.target.value)}>
-            <option value="">Selecciona un lote cargado…</option>
-            {eligibleLotes.map((x) => {
-              const d = incubationDays(x)
-              return (
-                <option key={x.lote} value={x.lote}>
-                  Lote {x.lote} — {x.loads} cargue{x.loads === 1 ? '' : 's'}{d != null ? ` · ${d.toFixed(1)} días` : ''}
-                </option>
-              )
-            })}
-          </select>
-        </label>
-        {pendingLotes.length === 0 && <p className="hint" style={{ margin: '2px 0 0' }}>No hay lotes pendientes de transferir.</p>}
-        {blockedCount > 0 && (
-          <p className="hint" style={{ margin: '2px 0 0' }}>
-            🔒 {blockedCount} lote{blockedCount === 1 ? '' : 's'} cargado{blockedCount === 1 ? '' : 's'} no aparece{blockedCount === 1 ? '' : 'n'} aún:
-            se habilitan al cumplir {MIN_TRANSFER_DAYS} días de incubación.
-          </p>
-        )}
-
-        {selected && (
-          <div className="report-prefill">
-            <span className="hint" style={{ margin: 0 }}>Datos del lote (automáticos):</span>
-            <div><strong>Lote {selected.lote}</strong> · {selected.loads} cargue{selected.loads === 1 ? '' : 's'}</div>
-            <span className="hint" style={{ margin: 0 }}>
-              {selected.cycleStart ? `Inicio ciclo: ${fmtDateTimeFull(selected.cycleStart)}` : 'Sin inicio de ciclo'}
-              {age ? ` · Edad: ${age.label}` : ''}
-            </span>
-            {transferBadge && <span className={transferBadge.cls} style={{ marginTop: 4 }}>{transferBadge.text}</span>}
-          </div>
-        )}
-
-        <label>
-          Modo de transferencia
-          <div className="actions row" style={{ marginTop: 4 }}>
-            {['single', 'double'].map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={mode === m ? 'chip active' : 'chip ghost'}
-                onClick={() => setMode(m)}
-              >
-                {MODE_LABEL[m]}
-              </button>
-            ))}
-          </div>
-        </label>
-
-        <label>
-          Sala(s) de nacedoras — elige {expected} ({roomIds.length}/{expected})
-          <div className="room-grid" style={{ marginTop: 4 }}>
-            {hatchingRooms.map((r) => {
-              const on = roomIds.includes(r.id)
-              const busyRoom = occupied.has(r.id) && !on
+      <div className="inline-form tr-flow">
+        <p className="tr-step">1 · Incubadora de origen</p>
+        {setters.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>No hay incubadoras con huevo pendiente de transferir.</p>
+        ) : (
+          <div className="room-grid">
+            {setters.map((x) => {
+              const ready = x.days != null && x.days >= MIN_TRANSFER_DAYS
               return (
                 <button
-                  key={r.id}
+                  key={x.machineId}
                   type="button"
-                  className={`room-pick${on ? ' active' : ''}`}
-                  onClick={() => toggleRoom(r.id)}
-                  disabled={!selected}
+                  className={`room-pick${x.machineId === sourceId ? ' active' : ''}`}
+                  onClick={() => pickSource(x.machineId)}
+                  disabled={!ready}
+                  title={ready ? '' : `Se habilita al cumplir ${MIN_TRANSFER_DAYS} días de incubación`}
                 >
-                  <strong>{r.name}</strong>
-                  <span>{on ? '✓ Seleccionada' : busyRoom ? '● Ocupada' : 'Libre'}</span>
+                  <strong>{machineName(x.machine)}</strong>
+                  <span>Lote{x.lots.length === 1 ? '' : 's'} {x.lots.join(', ')}</span>
+                  <span>{ready ? days(x) : `🔒 ${days(x)}`}</span>
                 </button>
               )
             })}
-            {hatchingRooms.length === 0 && <p className="hint">Esta planta no tiene salas de nacedoras.</p>}
           </div>
-        </label>
+        )}
 
-        <label>
-          Diferencia de peso (%) <span className="hint" style={{ margin: 0 }}>(opcional)</span>
-          <input type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Ej. 12.5" disabled={!selected} />
-        </label>
+        {source && (
+          <>
+            <p className="tr-step">2 · Lotes y carros (del mapa de cargue)</p>
+            <div className="report-prefill">
+              <div>
+                <strong>{machineName(source.machine)}</strong> · Lote{source.lots.length === 1 ? '' : 's'}{' '}
+                <strong>{source.lots.join(', ')}</strong>
+              </div>
+              <span className="hint" style={{ margin: 0 }}>
+                {source.cycleStart ? `Inicio ciclo: ${fmtDateTimeFull(source.cycleStart)}` : 'Sin inicio de ciclo'}
+                {age ? ` · Edad: ${age.label}` : ''}
+              </span>
+              {transferBadge && <span className={transferBadge.cls} style={{ marginTop: 4 }}>{transferBadge.text}</span>}
+              <span className="hint" style={{ margin: '4px 0 0' }}>
+                {mapState.loading
+                  ? 'Buscando el mapa de cargue…'
+                  : carts.length
+                    ? `${carts.length} carros según el mapa de cargue.`
+                    : 'Sin mapa de cargue cerrado: se transfiere la incubadora completa con sus lotes.'}
+              </span>
+            </div>
 
-        {selected && <PhotoCapture file={file} setFile={setFile} />}
+            <p className="tr-step">3 · Nacedoras en el orden que indica el turnero ({hatcherIds.length})</p>
+            <p className="hint" style={{ margin: 0 }}>
+              Toque las nacedoras en ese orden. Los carros se reparten así: primero la 1.ª, luego la 2.ª… Toque otra vez para quitarla.
+            </p>
+            <div className="room-grid">
+              {hatchers.map((m) => {
+                const pos = hatcherIds.indexOf(m.id)
+                const on = pos >= 0
+                return (
+                  <button key={m.id} type="button" className={`room-pick${on ? ' active' : ''}`} onClick={() => toggleHatcher(m.id)}>
+                    <strong>
+                      {on && <span className="tr-order">{pos + 1}</span>}
+                      {machineName(m)}
+                    </strong>
+                    <span>{on ? `${pos + 1}.ª en el orden` : busyHatchers.has(m.id) ? '● Recibió huevo hace poco' : 'Libre'}</span>
+                    {m.room_id && <span>{roomName(m.room_id)}</span>}
+                  </button>
+                )
+              })}
+              {hatchers.length === 0 && <p className="hint">Esta planta no tiene nacedoras registradas.</p>}
+            </div>
+
+            {hatcherIds.length > 0 && carts.length > 0 && (
+              <div className="tr-carts">
+                <p className="tr-step">Carros → nacedora</p>
+                {carts.map((c) => (
+                  <label key={c.key} className="tr-cart">
+                    <span className="tr-cart-no" style={c.color ? { borderColor: c.color } : null}>
+                      {c.cartNo}
+                    </span>
+                    <span className="tr-cart-lots">
+                      {c.lots.map((l) => `${l.lot}${l.trays ? ` (${l.trays} b)` : ''}`).join(' + ')}
+                    </span>
+                    <select
+                      value={assignment[c.key] || ''}
+                      onChange={(e) => setAssignment((a) => ({ ...a, [c.key]: e.target.value }))}
+                    >
+                      <option value="">Sin nacedora…</option>
+                      {hatcherIds.map((id, i) => (
+                        <option key={id} value={id}>
+                          {i + 1}. {machineById.get(id)?.code || machineName(machineById.get(id))}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {hatcherIds.length > 0 && (
+              <div className="report-prefill">
+                <span className="hint" style={{ margin: 0 }}>Queda así:</span>
+                {allocations.map((a) => (
+                  <div key={a.hatcher_id}>
+                    <strong>
+                      {a.order}. {machineName(machineById.get(a.hatcher_id))}
+                    </strong>
+                    {' · '}
+                    {a.carts.length ? `carros ${a.carts.join(', ')} · ` : ''}
+                    lote{a.lots.length === 1 ? '' : 's'} {a.lots.map((l) => l.lot).join(', ') || '—'}
+                    {a.trays ? ` · ${a.trays} bandejas` : ''}
+                  </div>
+                ))}
+                {missing.length > 0 && (
+                  <p className="msg error" style={{ margin: '4px 0 0' }}>
+                    Faltan {missing.length} carro{missing.length === 1 ? '' : 's'} por asignar.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <label>
+              Diferencia de peso (%) <span className="hint" style={{ margin: 0 }}>(opcional)</span>
+              <input type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Ej. 12.5" />
+            </label>
+            <PhotoCapture file={file} setFile={setFile} />
+          </>
+        )}
+
         <p className="hint" style={{ margin: '2px 0 0' }}>
           🕒 La fecha y hora de transferencia y tu nombre se registran automáticamente al guardar.
         </p>
         {err && <p className="msg error">{err}</p>}
         {ok && <p className="msg ok">Transferencia registrada.</p>}
         <div className="actions row">
-          <button className="primary" onClick={submit} disabled={busy || !selected || roomIds.length !== expected || !file}>
+          <button
+            className="primary"
+            onClick={submit}
+            disabled={busy || !source || hatcherIds.length === 0 || missing.length > 0 || !file}
+          >
             {busy ? 'Registrando…' : 'Registrar transferencia'}
           </button>
         </div>
@@ -1108,9 +1199,16 @@ function TransferView({ loads, transfers, rooms, team, onCreateTransfer, getPhot
           {recent.map((t) => (
             <div key={t.id} className="report-row">
               <div className="report-main">
-                <strong>Lote {t.lote}</strong>
+                <strong>
+                  {t.source_machine_id ? `${machineName(machineById.get(t.source_machine_id))} · ` : ''}Lote {t.lote}
+                </strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  ➡️ {(t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'} · {MODE_LABEL[t.mode] ?? t.mode} · {fmtDateTimeFull(t.transferred_at)}
+                  ➡️{' '}
+                  {(t.hatcher_ids ?? []).length
+                    ? t.hatcher_ids.map((id, i) => `${i + 1}. ${machineName(machineById.get(id))}`).join(' → ')
+                    : (t.room_ids ?? []).map(roomName).join(' + ') || 'Sin sala'}
+                  {' · '}
+                  {fmtDateTimeFull(t.transferred_at)}
                   {t.weight_diff != null ? ` · Δ peso: ${t.weight_diff}%` : ''}
                 </span>
               </div>
@@ -1570,7 +1668,7 @@ export default function SupervisionPanel({ orgId, userId, role, area }) {
       {view === 'cargue' ? (
         <LoadView loads={flow.loads} machines={machines} team={team} plants={plants} onCreateLoad={flow.createLoad} getPhotoUrl={flow.getPhotoUrl} />
       ) : view === 'transferencia' ? (
-        <TransferView loads={flow.loads} transfers={flow.transfers} rooms={rooms} team={team} onCreateTransfer={flow.createTransfer} getPhotoUrl={flow.getPhotoUrl} />
+        <TransferView loads={flow.loads} transfers={flow.transfers} rooms={rooms} machines={machines} team={team} onCreateTransfer={flow.createTransfer} getPhotoUrl={flow.getPhotoUrl} />
       ) : view === 'nacimiento' && canSupervise ? (
         <NacimientoView orgId={orgId} userId={userId} transfers={flow.transfers} hatch={hatch} rooms={rooms} team={team} />
       ) : view === 'incidencias' ? (

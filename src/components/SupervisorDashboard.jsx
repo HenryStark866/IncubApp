@@ -16,6 +16,7 @@ import { useWorkOrders } from '../hooks/useWorkOrders'
 import { useShiftOps } from '../hooks/useShiftOps'
 import { useLoads } from '../hooks/useLoads'
 import { useHatches } from '../hooks/useHatches'
+import { loadTransferred } from '../lib/transferPlan'
 
 /**
  * Panel del supervisor de planta (Jhon Piedrahíta). Tablero operativo de una
@@ -160,10 +161,10 @@ export default function SupervisorDashboard({ orgId, userId, coordinatorName, on
 
   // Ciclo: cargues activos por lote (no transferidos) de la sede
   const cycleLotes = useMemo(() => {
-    const transferred = new Set(flow.transfers.map((t) => t.lote))
     const map = new Map()
     for (const l of flow.loads) {
-      if (l.plant_id !== plantId || transferred.has(l.lote)) continue
+      // Transferido: por su incubadora de origen (o por lote en las transferencias viejas).
+      if (l.plant_id !== plantId || loadTransferred(l, flow.transfers)) continue
       const cur = map.get(l.lote) ?? { lote: l.lote, cycleStart: l.cycle_start_at ?? null, loads: 0 }
       cur.loads += 1
       if (l.cycle_start_at && (!cur.cycleStart || new Date(l.cycle_start_at) < new Date(cur.cycleStart))) cur.cycleStart = l.cycle_start_at

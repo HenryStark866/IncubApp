@@ -49,7 +49,7 @@ export function useLoads(orgId, userId) {
         .limit(400),
       supabase
         .from('transfers')
-        .select('id, plant_id, batch_id, lote, mode, room_ids, weight_diff, cycle_start_at, transferred_at, created_by, created_at, photo_path')
+        .select('*')
         .eq('org_id', orgId)
         .order('transferred_at', { ascending: false })
         .limit(400),
@@ -137,55 +137,69 @@ export function useLoads(orgId, userId) {
     [orgId, userId]
   )
 
-  // Transferencia por salón: mueve un lote a 1 (sencilla) o 2 (doble) salas de
-  // nacedoras completas. El origen es el LOTE (agregado de cargues), no una máquina.
+  // Transferencia por incubadora (30-09-2026): el origen es la INCUBADORA; sus lotes y
+  // carros vienen del cargue y del mapa de cargue, y van a las nacedoras en el orden que
+  // indica el turnero. room_ids (salas de esas nacedoras), lote («41 + 43») y mode se
+  // siguen llenando para nacimientos y tableros.
   const createTransfer = useCallback(
-    async ({ plantId, batchId, lote, mode, roomIds, weightDiff, cycleStartAt, file }) => {
+    async ({ plantId, batchId, lote, sourceMachineId, hatcherIds, hatcherRoomIds, allocations, loadMapId, weightDiff, cycleStartAt, file }) => {
       if (!orgId || !userId) return { error: 'Sesión inválida' }
       if (!plantId) return { error: 'Falta la planta' }
-      if (!lote?.trim()) return { error: 'Selecciona el lote a transferir' }
-      const rooms = (roomIds ?? []).filter(Boolean)
-      const expected = mode === 'double' ? 2 : 1
-      if (rooms.length !== expected) {
-        return { error: `Selecciona ${expected} sala${expected > 1 ? 's' : ''} de nacedoras (${mode === 'double' ? 'doble' : 'sencilla'})` }
-      }
+      if (!sourceMachineId) return { error: 'Selecciona la incubadora de origen' }
+      if (!lote?.trim()) return { error: 'La incubadora no tiene lotes cargados' }
+      const hatchers = (hatcherIds ?? []).filter(Boolean)
+      if (!hatchers.length) return { error: 'Selecciona al menos una nacedora' }
+      const rooms = [...new Set((hatcherRoomIds ?? []).filter(Boolean))]
       if (!file) return { error: 'La foto de la pantalla es obligatoria' }
       setError(null)
 
-      const { path, error: upErr } = await uploadPhoto(orgId, 'transfers', batchId || 'lote', file)
+      const { path, error: upErr } = await uploadPhoto(orgId, 'transfers', sourceMachineId, file)
       if (upErr) {
         setError(upErr.message)
         return { error: upErr.message }
       }
 
       // Antes/al transferir: OT de calibración de nacedoras destino (si aún no hay abierta)
-      try {
-        const { generateHatcherCalibrationOrders } = await import('./useMachineCalibration')
-        const { CALIB_REASON } = await import('../lib/machineCalibration')
-        await generateHatcherCalibrationOrders({
-          orgId,
-          userId,
-          roomIds: rooms,
-          reason: CALIB_REASON.pre_transfer,
-          extra: `Pre-transferencia lote ${lote.trim()}`,
-        })
-      } catch {
-        /* no bloquear transferencia si falla la OT */
+      if (rooms.length) {
+        try {
+          const { generateHatcherCalibrationOrders } = await import('./useMachineCalibration')
+          const { CALIB_REASON } = await import('../lib/machineCalibration')
+          await generateHatcherCalibrationOrders({
+            orgId,
+            userId,
+            roomIds: rooms,
+            reason: CALIB_REASON.pre_transfer,
+            extra: `Pre-transferencia lote ${lote.trim()}`,
+          })
+        } catch {
+          /* no bloquear transferencia si falla la OT */
+        }
       }
 
-      const { error: err } = await supabase.from('transfers').insert({
+      const base = {
         org_id: orgId,
         plant_id: plantId,
         batch_id: batchId || null,
         lote: lote.trim(),
-        mode: mode === 'double' ? 'double' : 'single',
+        mode: rooms.length > 1 ? 'double' : 'single',
         room_ids: rooms,
         weight_diff: weightDiff === '' || weightDiff == null ? null : Number(weightDiff),
         cycle_start_at: cycleStartAt || null,
         // transferred_at lo pone la BD (now) automáticamente
         photo_path: path,
         created_by: userId,
+      }
+      let { error: err } = await supabase.from('transfers').insert({
+        ...base,
+        source_machine_id: sourceMachineId,
+        hatcher_ids: hatchers,
+        allocations: allocations ?? [],
+        load_map_id: loadMapId || null,
       })
+      // Servidor sin la migración 20260930: se guarda como antes para no perder la transferencia.
+      if (err && /source_machine_id|hatcher_ids|allocations|load_map_id/.test(err.message || '')) {
+        ;({ error: err } = await supabase.from('transfers').insert(base))
+      }
       if (err) {
         await supabase.storage.from('machine-checks').remove([path])
         setError(err.message)

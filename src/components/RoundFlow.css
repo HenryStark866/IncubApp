@@ -388,3 +388,53 @@ textarea.rf-input {
 .rf-warn {
   color: var(--amber);
 }
+
+/* Transferencia: incubadora → nacedoras en el orden del turnero (30-09-2026). */
+.tr-flow .tr-step {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.tr-order {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tr-carts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 6px 10px;
+}
+.tr-carts .tr-step {
+  grid-column: 1 / -1;
+}
+.tr-cart {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  font-size: 13px;
+}
+.tr-cart-no {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border: 3px solid var(--line);
+  border-radius: 8px;
+  font-weight: 800;
+}
+.tr-cart-lots {
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}

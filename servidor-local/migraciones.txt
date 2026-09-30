@@ -12,3 +12,4 @@
 20260930_espacios_confinados.sql
 20260930_bot_lecturas_fotos.sql
 20260930_bot_lecturas_revision.sql
+20260930_transferencia_por_incubadora.sql
