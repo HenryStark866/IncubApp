@@ -640,3 +640,26 @@ describe('managementBoard', () => {
     expect(b.decisions).toEqual([])
   })
 })
+
+describe('sstLeaderBoard · espacios confinados', () => {
+  it('un permiso suspendido va primero y uno por autorizar pide revisión', () => {
+    const b = sstLeaderBoard({
+      now,
+      confinedPermits: [
+        {
+          id: 'a',
+          status: 'draft',
+          space_code: 'S80',
+          space_name: 'TUNEL NACEDORAS No2',
+          work_description: 'Limpieza',
+        },
+        { id: 'b', status: 'suspended', space_code: 'S78', suspended_reason: 'O₂ 18 %' },
+        { id: 'c', status: 'active', space_code: 'S79' },
+      ],
+    })
+    const ec = b.decisions.filter((d) => d.id.startsWith('ec-'))
+    expect(ec.map((d) => d.id)).toEqual(['ec-b', 'ec-a'])
+    expect(ec[0]).toMatchObject({ tone: 'danger', detail: 'O₂ 18 %' })
+    expect(ec[1].title).toContain('S80')
+  })
+})

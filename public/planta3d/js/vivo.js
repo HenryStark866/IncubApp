@@ -274,6 +274,63 @@
     return fotosEnCurso
   }
 
+  // ── Espacios confinados en vivo ─────────────────────────────────────────
+  // Los túneles se pintan según su permiso de entrada (SST → Espacios confinados):
+  // libre, por autorizar, autorizado, gente adentro o suspendido. Se lee al abrir,
+  // cada minuto y cuando Realtime avisa de un permiso o de una entrada/salida. Si el
+  // servidor todavía no tiene las tablas, no pasa nada: quedan marcados como libres.
+  const hhmm = (iso) => (iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '')
+
+  async function traerConfinados(token) {
+    const espacios = await pedir(`sst_confined_spaces?plant_id=eq.${PLANTA}&active=is.true&select=id,room_id`, token)
+    const conSala = espacios.filter((e) => e.room_id)
+    const estados = {}
+    if (conSala.length) {
+      const ids = conSala.map((e) => e.id).join(',')
+      const permisos = await pedir(
+        `sst_confined_permits?space_id=in.(${ids})&status=in.(draft,authorized,active,suspended)` +
+        '&select=id,space_id,status,attendant_name,valid_until,suspended_reason&order=created_at.desc',
+        token
+      )
+      const adentro = permisos.length
+        ? await pedir(`sst_confined_entries?permit_id=in.(${permisos.map((p) => p.id).join(',')})&exited_at=is.null&select=permit_id,person_name`, token)
+        : []
+      for (const esp of conSala) {
+        const suyos = permisos.filter((p) => p.space_id === esp.id)
+        if (!suyos.length) continue
+        const gente = adentro.filter((a) => suyos.some((p) => p.id === a.permit_id)).map((a) => a.person_name)
+        const suspendido = suyos.find((p) => p.status === 'suspended')
+        const vivo = suyos.find((p) => p.status === 'active' || p.status === 'authorized')
+        const ref = suspendido || vivo || suyos[0]
+        estados[esp.room_id] = {
+          state: suspendido ? 'suspended' : gente.length ? 'occupied' : vivo ? 'authorized' : 'draft',
+          inside: gente,
+          attendant: ref.attendant_name || '',
+          until: hhmm(ref.valid_until),
+          reason: suspendido?.suspended_reason || '',
+        }
+      }
+    }
+    global.PLANTA.confinados = estados
+  }
+
+  let confinadosEnCurso = null
+  let sinConfinados = false
+  function refrescarConfinados() {
+    if (confinadosEnCurso || sinConfinados) return confinadosEnCurso
+    const token = tokenDeSesion()
+    if (!token) return Promise.resolve()
+    confinadosEnCurso = traerConfinados(token)
+      .then(() => global.PLANTA3D?.actualizarConfinados?.())
+      .catch((e) => {
+        // 404/400: el servidor aún no tiene espacios confinados; no se vuelve a pedir.
+        if (/^(400|404) /.test(e.message)) sinConfinados = true
+        else console.warn('[planta3d] no se pudieron leer los espacios confinados:', e.message)
+      })
+      .finally(() => { confinadosEnCurso = null })
+    return confinadosEnCurso
+  }
+
   // ── Realtime por WebSocket, sin librería ────────────────────────────────
   // El canal de Supabase habla el protocolo de Phoenix. Se pide `postgres_changes`
   // sobre rooms y machines de esta planta; cada aviso dispara una relectura.
@@ -304,6 +361,17 @@
           broadcast: { self: false },
           postgres_changes: [
             { event: 'INSERT', schema: 'public', table: 'machine_checks', filter: `plant_id=eq.${PLANTA}` },
+          ],
+        },
+        access_token: token,
+      })
+      // Permisos y entradas a los túneles (espacios confinados), también aparte.
+      env('realtime:planta3d-confinados', 'phx_join', {
+        config: {
+          broadcast: { self: false },
+          postgres_changes: [
+            { event: '*', schema: 'public', table: 'sst_confined_permits' },
+            { event: '*', schema: 'public', table: 'sst_confined_entries' },
           ],
         },
         access_token: token,
@@ -342,10 +410,18 @@
 
     refrescarFotos()
     setInterval(refrescarFotos, FOTOS_CADA_MS)
+    refrescarConfinados()
+    setInterval(refrescarConfinados, 60 * 1000)
 
     let pendiente = null
     let pendienteFotos = null
+    let pendienteConfinados = null
     escuchar(token, (tabla) => {
+      if (String(tabla || '').startsWith('sst_confined')) {
+        clearTimeout(pendienteConfinados)
+        pendienteConfinados = setTimeout(refrescarConfinados, 800)
+        return
+      }
       // Una ronda nueva solo cambia la pantalla de su equipo: no se reconstruye.
       if (tabla === 'machine_checks') {
         clearTimeout(pendienteFotos)

@@ -379,6 +379,25 @@
     return `<div class="dato"><span>${etq}</span><span><b>${val}</b></span></div>`
   }
 
+  // Los túneles son espacios confinados (Resolución 0491 de 2020): la ficha dice cómo
+  // está su permiso de entrada, con lo que trae vivo.js de SST en IncubApp.
+  const escHtml = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+  function avisoConfinado(sala) {
+    const e = (D.confinados || {})[sala.id]
+    const estado = !e ? 'Sin permiso abierto: nadie puede entrar.'
+      : e.state === 'suspended' ? `PERMISO SUSPENDIDO: todos afuera. ${escHtml(e.reason || '')}`
+        : e.state === 'occupied' ? `Adentro: ${escHtml(e.inside.join(', '))}. Vigía: ${escHtml(e.attendant || '—')}.`
+          : e.state === 'authorized' ? `Permiso autorizado hasta las ${escHtml(e.until || '')}; nadie adentro.`
+            : 'Permiso por autorizar: todavía no se puede entrar.'
+    return `<div class="avisoSala confinado${e?.state === 'suspended' ? ' suspendido' : ''}"><b>⚠ Espacio confinado</b> · solo se entra con permiso de entrada autorizado, medición de gases y vigía afuera (SST → Espacios confinados en IncubApp).<br>${estado}</div>`
+  }
+
+  // vivo.js trae el estado de los permisos: se repinta el túnel y su ficha, sin reconstruir.
+  function actualizarConfinados() {
+    mundo.actualizarConfinados?.(D.confinados)
+    if (seleccion?.tipo === 'sala' && /^T[UÚ]NEL\s/i.test((seleccion.sala.name || '').trim())) mostrarSala(seleccion.sala, false)
+  }
+
   function mostrarSala(sala, mover) {
     seleccion = { tipo: 'sala', sala }
     const cat = sala._cat
@@ -416,6 +435,7 @@
       (sala.proyectada
         ? `<div class="avisoSala proyectada">Proyectada · todavía no construida. Se dibuja como quedará.</div>`
         : '') +
+      (/^T[UÚ]NEL\s/i.test((sala.name || '').trim()) ? avisoConfinado(sala) : '') +
       (piezas.length
         ? fila('Cuerpos', [sala, ...piezas].map((p) => `${p.w} × ${p.h} m`).join('  +  '))
         : fila('Ancho × largo', `${sala.w} × ${sala.h} m`)) +
@@ -807,7 +827,9 @@
     })
 
     // 2) Cuando dos rótulos se pisan en pantalla, gana el área más grande
-    candidatos.sort((a, b) => b.sala._area - a.sala._area)
+    // Los espacios confinados (túneles) van primero: su aviso no lo tapa otro rótulo.
+    const confinado = (sala) => (/^T[UÚ]NEL\s/i.test((sala.name || '').trim()) ? 1 : 0)
+    candidatos.sort((a, b) => confinado(b.sala) - confinado(a.sala) || b.sala._area - a.sala._area)
     const puestos = []
     candidatos.forEach((c) => {
       posRotulo.copy(c.sp.position).project(camara)
@@ -1512,7 +1534,7 @@
     escena, camara, renderer, fps, orbita, opciones, reconstruir,
     get mundo() { return mundo },
     ponerVista, encuadrarPlanta, mostrarSala, mostrarEquipo, irCaminando, aplicarOpciones,
-    actualizarRotulos, pintarMini, actualizarTour, tour, actualizarPantallas,
+    actualizarRotulos, pintarMini, actualizarTour, tour, actualizarPantallas, actualizarConfinados,
     get vista() { return vista },
   }
 

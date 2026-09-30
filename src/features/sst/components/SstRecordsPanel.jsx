@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react'
 import { FileLinks, FilesPicker } from '../../../components/RecordFiles'
 import { useSstRecords } from '../hooks/useSstRecords'
+import ConfinedSpacesPanel from './ConfinedSpacesPanel'
 import {
   INCIDENT_KINDS,
   INCIDENT_STATUS,
@@ -598,7 +599,7 @@ export default function SstRecordsPanel({ orgId, userId, role, area, userName, i
   const [view, setView] = useState('report')
 
   return (
-    <div className="card" style={{ margin: '16px 0 0', padding: '14px 16px' }}>
+    <div className="card wide" style={{ margin: '16px 0 0', padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <h3 className="section-title" style={{ margin: 0, flex: 1 }}>
           Registros de SST
@@ -619,6 +620,7 @@ export default function SstRecordsPanel({ orgId, userId, role, area, userName, i
               ['report', 'Reportar incidente'],
               ['incidents', `Incidentes (${openCount} abiertos)`],
               ['inspections', `Inspecciones (${pendingInsp} programadas)`],
+              ['confined', 'Espacios confinados'],
             ].map(([v, l]) => (
               <button key={v} type="button" className={`chip${view === v ? '' : ' ghost'}`} onClick={() => setView(v)}>
                 {l}
@@ -629,6 +631,15 @@ export default function SstRecordsPanel({ orgId, userId, role, area, userName, i
           {view === 'report' && <IncidentForm api={api} />}
           {view === 'incidents' && <IncidentList api={api} canLead={canLead} />}
           {view === 'inspections' && <Inspections api={api} canInspect={canInspect} userName={userName} />}
+          {view === 'confined' && (
+            <ConfinedSpacesPanel
+              orgId={orgId}
+              role={role}
+              area={area}
+              isOmniscient={isOmniscient}
+              plantName={api.sites[0]}
+            />
+          )}
         </>
       )}
     </div>

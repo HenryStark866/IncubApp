@@ -166,7 +166,7 @@ const loadDrivers = (orgId) =>
   )
 
 async function loadSst({ orgId }) {
-  const [preops, supplies, drivers, incidents, inspections, accident] = await Promise.all([
+  const [preops, supplies, drivers, incidents, inspections, accident, confined] = await Promise.all([
     loadPreops(orgId),
     rows('area_inventories', (q) =>
       q
@@ -204,6 +204,14 @@ async function loadSst({ orgId }) {
         .order('occurred_at', { ascending: false })
         .limit(1),
     ),
+    // Permisos de espacio confinado por autorizar o suspendidos.
+    optionalRows('sst_confined_permits', (q) =>
+      q
+        .select('id, status, work_description, suspended_reason, sst_confined_spaces ( code, name )')
+        .eq('org_id', orgId)
+        .in('status', ['draft', 'suspended'])
+        .limit(50),
+    ),
   ])
   return {
     preops: preops.data,
@@ -211,6 +219,11 @@ async function loadSst({ orgId }) {
     drivers: drivers.data,
     incidents: [...new Map([...accident.data, ...incidents.data].map((x) => [x.id, { ...x }])).values()],
     inspections: inspections.data,
+    confinedPermits: confined.data.map((p) => ({
+      ...p,
+      space_code: p.sst_confined_spaces?.code,
+      space_name: p.sst_confined_spaces?.name,
+    })),
     errors: [preops, supplies, drivers, incidents, inspections].map((r) => r.error).filter(Boolean),
   }
 }

@@ -356,6 +356,36 @@
    * — solo se filtra qué se dibuja al final — para que aislar un nivel no le
    * cambie la geometría al otro cuando se vuelve a ver "ambos".
    */
+  // Estado del permiso de entrada de un túnel → color y rótulo.
+  const COLOR_CONFINADO = {
+    libre: 0xffc400,
+    draft: 0xffc400,
+    authorized: 0x4fd18b,
+    occupied: 0xff8a00,
+    suspended: 0xff3b30,
+  }
+  function rotuloConfinado(r, e) {
+    const st = e?.state || 'libre'
+    const sub = st === 'suspended'
+      ? 'PERMISO SUSPENDIDO · SALIR YA'
+      : st === 'occupied'
+        ? `ESPACIO CONFINADO · ${e.inside.length} adentro${e.attendant ? ` · vigía ${e.attendant}` : ''}`
+        : st === 'authorized'
+          ? 'ESPACIO CONFINADO · permiso autorizado'
+          : st === 'draft'
+            ? 'ESPACIO CONFINADO · permiso por autorizar'
+            : 'ESPACIO CONFINADO · solo con permiso de entrada'
+    const rojo = st === 'suspended'
+    return {
+      sub: `⚠ ${sub}`,
+      alturaM: 1.3,
+      fondo: rojo ? 'rgba(200,30,30,0.94)' : 'rgba(255,196,0,0.94)',
+      color: rojo ? '#ffffff' : '#1a1300',
+      colorSub: rojo ? '#ffffff' : '#3d2a00',
+      borde: rojo ? '#ffffff' : '#1a1300',
+    }
+  }
+
   function construirPlanta(datos, opciones) {
     const nivelFiltro = opciones?.nivel && opciones.nivel !== 'ambos' ? Number(opciones.nivel) : null
     const seVeNivel = (n) => nivelFiltro == null || nivelFiltro === n
@@ -376,7 +406,10 @@
     const gEntrepiso = new THREE.Group(); gEntrepiso.name = 'entrepiso'
     const gEtiquetas = new THREE.Group(); gEtiquetas.name = 'etiquetas'
     const gCotas = new THREE.Group(); gCotas.name = 'cotas'
-    raiz.add(gPisos, gMuros, gPuertas, gEquipos, gTechos, gCielos, gEntrepiso, gEtiquetas, gCotas)
+    // Espacios confinados (los cuatro túneles): volumen de advertencia amarillo que se
+    // ve a través de techos y muros, y cambia de color con el permiso de entrada.
+    const gConfinados = new THREE.Group(); gConfinados.name = 'confinados'
+    raiz.add(gPisos, gMuros, gPuertas, gEquipos, gTechos, gCielos, gEntrepiso, gEtiquetas, gCotas, gConfinados)
     // Asidero para inspeccionar la planta ya construida desde la consola:
     // contar vidrios, buscar una sala, medir un muro. No lo usa el recorrido.
     globalThis.__PLANTA3D = { raiz, gPisos, gMuros, gPuertas, gEquipos, gTechos, segmentos: null, puertas: null, colisiones: null, losa: null, rampas: null }
@@ -4239,17 +4272,66 @@
       if (r.parteDe) return
       if (!seVeNivel(esNivel2(r) ? 2 : 1)) return
       const alto = cotaDe(r) + (r._cat.muro ? alturaDe(r) : 0)
-      const et = Etiquetas.crearEtiqueta(r.name, {
-        sub: `${r.code} · ${r.w} × ${r.h} m · ${r._area} m²`,
-        alturaM: r._cat.muro ? 1.15 : 0.95,
-        borde: r._color,
-      })
+      const et = esTunel(r)
+        ? Etiquetas.crearEtiqueta(r.name, rotuloConfinado(r, (datos.confinados || {})[r.id]))
+        : Etiquetas.crearEtiqueta(r.name, {
+          sub: `${r.code} · ${r.w} × ${r.h} m · ${r._area} m²`,
+          alturaM: r._cat.muro ? 1.15 : 0.95,
+          borde: r._color,
+        })
       et.position.set(r._centro.x, alto + 1.5, r._centro.z)
       et.userData.tipoEtiqueta = 'sala'
       et.userData.sala = r
       gEtiquetas.add(et)
       r._etiqueta = et
     })
+
+    // ── Espacios confinados ────────────────────────────────────────────────
+    // Solo los túneles de aire (Resolución 0491 de 2020: SST → Espacios confinados en
+    // IncubApp). Volumen translúcido y aristas del color del estado del permiso.
+    const confinados = new Map()
+    datos.rooms.forEach((r) => {
+      if (!esTunel(r) || r.parteDe) return
+      if (!seVeNivel(esNivel2(r) ? 2 : 1)) return
+      const alto = alturaDe(r) + 0.12
+      const caja = new THREE.BoxGeometry(r.w + 0.12, alto, r.h + 0.12)
+      const relleno = new THREE.Mesh(caja, new THREE.MeshBasicMaterial({
+        color: 0xffc400, transparent: true, opacity: 0.16, depthWrite: false,
+      }))
+      const bordes = new THREE.LineSegments(new THREE.EdgesGeometry(caja), new THREE.LineBasicMaterial({
+        color: 0xffc400, transparent: true, opacity: 0.95, depthTest: false,
+      }))
+      bordes.renderOrder = 9
+      const y = cotaDe(r) + alto / 2
+      relleno.position.set(r._centro.x, y, r._centro.z)
+      bordes.position.copy(relleno.position)
+      relleno.userData.noSeleccionar = true
+      gConfinados.add(relleno, bordes)
+      confinados.set(r.id, { sala: r, relleno, bordes })
+    })
+
+    /** Pone en los túneles el estado del permiso que trae vivo.js (sin reconstruir). */
+    function actualizarConfinados(estados) {
+      datos.confinados = estados || datos.confinados || {}
+      confinados.forEach(({ sala, relleno, bordes }) => {
+        const e = datos.confinados[sala.id]
+        const color = COLOR_CONFINADO[e?.state] ?? COLOR_CONFINADO.libre
+        relleno.material.color.setHex(color)
+        bordes.material.color.setHex(color)
+        relleno.material.opacity = e?.state === 'occupied' || e?.state === 'suspended' ? 0.28 : 0.16
+        const et = sala._etiqueta
+        if (!et) return
+        const nuevo = Etiquetas.crearEtiqueta(sala.name, rotuloConfinado(sala, e))
+        et.material.map = nuevo.material.map
+        et.material.needsUpdate = true
+        et.userData.base = nuevo.userData.base
+        et.scale.copy(nuevo.scale)
+      })
+    }
+    if (confinados.size) {
+      actualizarConfinados(datos.confinados)
+      console.info(`[planta3d] ${confinados.size} espacio(s) confinado(s) marcado(s)`)
+    }
 
     // ── Cotas generales de la planta ───────────────────────────────────────
     const matCota = new THREE.LineBasicMaterial({ color: 0xffd166 })
@@ -4297,6 +4379,8 @@
     return {
       raiz,
       actualizarPuertas,
+      actualizarConfinados,
+      confinados,
       grupos: { pisos: gPisos, muros: gMuros, puertas: gPuertas, equipos: gEquipos, techos: gTechos, cielos: gCielos, entrepiso: gEntrepiso, etiquetas: gEtiquetas, cotas: gCotas },
       colisiones,
       // Suelo del entrepiso y tramos de escalera: con esto el recorrido a pie
