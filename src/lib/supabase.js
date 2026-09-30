@@ -118,7 +118,9 @@ export async function resilientFetch(input, init) {
           ? 'Advertencia de ngrok detectada. Abre el enlace en el navegador y confirma para continuar.'
           : isNotFound
             ? 'Ruta no encontrada en el servidor (404).'
-            : 'Respuesta no válida del servidor. Intenta de nuevo en unos momentos.'
+            : res.status === 413
+              ? 'El archivo es demasiado grande para el servidor (HTTP 413).'
+              : `Respuesta no válida del servidor (HTTP ${res.status}). Intenta de nuevo en unos momentos.`
       return new Response(
         JSON.stringify({
           error: res.status >= 400 ? `http_${res.status}` : 'invalid_response',
