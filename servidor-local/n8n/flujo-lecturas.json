@@ -1,0 +1,384 @@
+[
+  {
+    "id": "IncubAppLectura1",
+    "name": "IncubApp · Bot de lecturas de rondas",
+    "active": false,
+    "nodes": [
+      {
+        "id": "n-cada5",
+        "name": "Cada 5 minutos",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 5
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "n-manual",
+        "name": "Probar ahora",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          200
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "n-pend",
+        "name": "Fotos pendientes",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          240,
+          100
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "select * from incubapp_bot.lecturas_pendientes(6);",
+          "options": {
+            "largeNumbersOutput": "numbers"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "IncubAppBotBD001",
+            "name": "IncubApp · bot de lecturas (base de datos)"
+          }
+        }
+      },
+      {
+        "id": "n-loop",
+        "name": "Recorrer fotos",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          480,
+          100
+        ],
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        }
+      },
+      {
+        "id": "n-desc",
+        "name": "Descargar foto",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          720,
+          200
+        ],
+        "parameters": {
+          "url": "={{ 'http://supabase-storage:5000/object/authenticated/machine-checks/' + $json.photo_path.split('/').map(encodeURIComponent).join('/') }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            },
+            "timeout": 60000
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "IncubAppFotos001",
+            "name": "IncubApp · fotos de rondas"
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "n-prep",
+        "name": "Preparar lecturas",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          200
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "/**\n * Bot de lecturas de IncubApp (corre dentro de n8n).\n *\n * De cada foto de ronda de una incubadora o nacedora Petersime saca las\n * lecturas de la pantalla y decide qué se puede escribir en el formato.\n * La regla es simple: ante la duda, NO se escribe. Un campo solo pasa si\n *   1. dos lecturas independientes de la foto dan exactamente el mismo número,\n *   2. las dos dicen que el número se ve claro (no «---», no tapado por reflejos),\n *   3. el número es físicamente posible para ese campo, y\n *   4. el número de máquina de la pantalla no contradice la máquina elegida.\n * Lo demás queda como «revisar» con el motivo, para que lo vea el líder.\n *\n * Este archivo lo copia generar-flujo.mjs dentro de los nodos Code del flujo;\n * no usa import ni nada fuera de JavaScript puro.\n * Henry Stark Desarrollador · CDH Maker\n */\n\nconst MODELO = 'claude-opus-5-5'\n\n/** Campos del formato que se leen de la pantalla, por tipo de máquina. */\nconst CAMPOS_POR_TIPO = {\n  setter: ['temp_ovoscan', 'temp_air', 'humidity', 'co2', 'turn_count'],\n  hatcher: ['temp_air', 'humidity', 'co2'],\n}\n\n/**\n * Rango físicamente posible de cada lectura (no el rango \"bueno\" de proceso:\n * una alarma real también debe quedar registrada). Fuera de aquí es un error\n * de lectura, no un dato.\n */\nconst RANGOS = {\n  temp_ovoscan: { min: 60, max: 110, decimales: 1 },\n  temp_air: { min: 60, max: 110, decimales: 1 },\n  humidity: { min: 40, max: 100, decimales: 1 }, // bulbo húmedo en °F\n  co2: { min: 0, max: 2, decimales: 2 },\n  turn_count: { min: 0, max: 9999, decimales: 0 },\n}\n\nconst NOMBRES = {\n  temp_ovoscan: 'Temp. ovoscan',\n  temp_air: 'Temp. aire',\n  humidity: 'Humedad',\n  co2: 'CO₂',\n  turn_count: 'Volteo',\n}\n\nconst lecturaCampo = {\n  type: 'object',\n  additionalProperties: false,\n  required: ['legible', 'valor', 'consigna'],\n  properties: {\n    legible: { type: 'boolean' },\n    valor: { anyOf: [{ type: 'number' }, { type: 'null' }] },\n    consigna: { anyOf: [{ type: 'number' }, { type: 'null' }] },\n  },\n}\n\n/** Forma exacta de la respuesta del modelo (structured outputs). */\nconst ESQUEMA = {\n  type: 'object',\n  additionalProperties: false,\n  required: ['pantalla_visible', 'etiqueta_pantalla', 'numero_maquina', 'temp_ovoscan', 'temp_air', 'humidity', 'co2', 'turn_count', 'observaciones'],\n  properties: {\n    pantalla_visible: { type: 'boolean' },\n    etiqueta_pantalla: { anyOf: [{ type: 'string' }, { type: 'null' }] },\n    numero_maquina: { anyOf: [{ type: 'integer' }, { type: 'null' }] },\n    temp_ovoscan: lecturaCampo,\n    temp_air: lecturaCampo,\n    humidity: lecturaCampo,\n    co2: lecturaCampo,\n    turn_count: {\n      type: 'object',\n      additionalProperties: false,\n      required: ['legible', 'valor'],\n      properties: {\n        legible: { type: 'boolean' },\n        valor: { anyOf: [{ type: 'integer' }, { type: 'null' }] },\n      },\n    },\n    observaciones: { type: 'string' },\n  },\n}\n\nconst INSTRUCCIONES = `Transcribes lecturas de pantallas de incubadoras y nacedoras Petersime (BioStreamer) a partir de fotos tomadas con celular por los turneros de una planta de incubación. Tu transcripción llena un registro de calidad: un número equivocado es peor que un campo vacío. Si un número no se ve con total claridad, marca legible=false y valor=null. Nunca deduzcas, promedies, completes ni copies un número de otro lugar de la pantalla.\n\nCómo es la pantalla:\n- Barra superior izquierda: etiqueta de la máquina, por ejemplo «2 - 18 XS12SHDOX» o «23 - 9 XS4HHDOX». El segundo número (18, 9) es el número de la máquina: va en numero_maquina. La etiqueta completa va en etiqueta_pantalla.\n- Mosaicos de colores. En cada uno el número GRANDE es la lectura real (va en valor) y el número pequeño de abajo es la consigna o setpoint (va en consigna). Nunca pongas la consigna como valor.\n  · Rosado, icono de termómetro con gota/huevo: temperatura de cáscara (OvoScan), °F → temp_ovoscan. Solo existe en incubadoras; en nacedoras ese mosaico está gris o vacío.\n  · Rojo, icono de termómetro: temperatura de aire, °F → temp_air.\n  · Azul, icono de gota: humedad como bulbo húmedo en °F → humidity.\n  · Amarillo, icono CO₂: CO₂ en % → co2.\n  · Verde, icono de ventilador: ventilación en %. NO se transcribe.\n- Abajo, en la sección de volteo, un contador con numeral, por ejemplo «#000386»: es el número de volteos → turn_count (entero sin ceros a la izquierda: 386).\n\nReglas:\n- Si el número grande aparece como «---», está tapado por un reflejo, cortado, borroso o alguna cifra es dudosa: legible=false, valor=null. La consigna sí se anota si se ve clara.\n- Si el mosaico no existe en esa máquina: legible=false, valor=null, consigna=null.\n- Copia los decimales tal como aparecen (97.8, 0.25). No redondees.\n- Si la foto no muestra la pantalla de la máquina (está apagada, es otra cosa, o no se puede leer nada): pantalla_visible=false y todos los campos con legible=false.\n- En observaciones escribe en español, en una o dos frases, cualquier cosa que afecte la lectura (reflejos, alarma en pantalla, foto movida). Si todo se ve bien, escribe «Sin novedad».`\n\nconst VARIANTES = {\n  a: 'Transcribe las lecturas de esta foto.',\n  b: 'Transcribe las lecturas de esta foto. Antes de responder, recorre cada mosaico de colores de izquierda a derecha y lee cada número cifra por cifra, incluida la posición del punto decimal.',\n}\n\n/** Cuerpo de la llamada a la API de mensajes de Claude para una foto. */\nfunction cuerpoLectura({ imagenBase64, mediaType = 'image/jpeg', maquina, variante }) {\n  const tipo = maquina?.machine_type === 'hatcher' ? 'nacedora' : 'incubadora'\n  return {\n    model: MODELO,\n    max_tokens: 16000,\n    fallbacks: 'default',\n    output_config: {\n      effort: 'high',\n      format: { type: 'json_schema', schema: ESQUEMA },\n    },\n    system: INSTRUCCIONES,\n    messages: [\n      {\n        role: 'user',\n        content: [\n          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imagenBase64 } },\n          { type: 'text', text: `Máquina seleccionada en la app: ${maquina?.machine_name || maquina?.machine_code || 'sin nombre'} (${tipo}).\\n${VARIANTES[variante] || VARIANTES.a}` },\n        ],\n      },\n    ],\n  }\n}\n\n/**\n * Saca el JSON de la respuesta de la API. Devuelve { ok, datos, error }.\n * Cualquier cosa que no sea una respuesta completa y válida es un error.\n */\nfunction leerRespuesta(respuesta) {\n  if (!respuesta || typeof respuesta !== 'object') return { ok: false, error: 'Sin respuesta de la API' }\n  if (respuesta.error) {\n    const e = respuesta.error\n    return { ok: false, infraestructura: true, error: `API: ${String(typeof e === 'string' ? e : e.message || JSON.stringify(e)).slice(0, 300)}` }\n  }\n  if (respuesta.stop_reason === 'refusal') return { ok: false, error: 'La API rechazó la lectura' }\n  if (respuesta.stop_reason === 'max_tokens') return { ok: false, error: 'Respuesta incompleta (max_tokens)' }\n  const texto = (respuesta.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')\n  try {\n    return { ok: true, datos: JSON.parse(texto), modelo: respuesta.model || MODELO }\n  } catch {\n    return { ok: false, error: 'La respuesta no es JSON válido' }\n  }\n}\n\n/** Número de máquina a partir del código de IncubApp: «INC-18» → 18, «NAC-09» → 9. */\nfunction numeroDeCodigo(codigo) {\n  const m = String(codigo || '').match(/(\\d+)\\s*$/)\n  return m ? Number(m[1]) : null\n}\n\nconst redondear = (n, dec) => Math.round(n * 10 ** dec) / 10 ** dec\n\n/** Un campo de una lectura, normalizado: número o null. */\nfunction valorDe(datos, campo) {\n  const c = datos?.[campo]\n  if (!c || c.legible !== true || typeof c.valor !== 'number' || !Number.isFinite(c.valor)) return null\n  return redondear(c.valor, RANGOS[campo].decimales)\n}\n\n/**\n * Decide qué se escribe en el formato a partir de las dos lecturas.\n * @param {object} maquina fila de lecturas_pendientes (check_id, machine_code, machine_type, …)\n * @param {object[]} respuestas respuestas crudas de la API, una por lectura\n * @returns resultado listo para incubapp_bot.guardar_lectura\n */\nfunction decidir(maquina, respuestas) {\n  const leidas = respuestas.map(leerRespuesta)\n  const base = {\n    check_id: maquina.check_id,\n    valores: {},\n    discrepancias: [],\n    etiqueta_pantalla: null,\n    modelo: leidas.find((l) => l.ok)?.modelo || MODELO,\n    lecturas: leidas.map((l) => (l.ok ? l.datos : { error: l.error })),\n  }\n\n  const fallidas = leidas.filter((l) => !l.ok)\n  if (leidas.length < 2 || fallidas.length) {\n    // Si falló la conexión o la cuenta (clave, saldo, límite, caída de la API) la\n    // foto no tiene la culpa: se reintenta sin gastarle intentos.\n    const reintentar = fallidas.length > 0 && fallidas.every((l) => l.infraestructura)\n    return { ...base, status: 'error', reintentar, motivo: fallidas.map((l) => l.error).join(' · ') || 'Faltan lecturas' }\n  }\n\n  const [a, b] = leidas.map((l) => l.datos)\n  base.etiqueta_pantalla = a.etiqueta_pantalla || b.etiqueta_pantalla || null\n\n  if (!a.pantalla_visible && !b.pantalla_visible) {\n    return { ...base, status: 'sin_lecturas', motivo: `La foto no muestra la pantalla. ${a.observaciones || ''}`.trim() }\n  }\n  if (a.pantalla_visible !== b.pantalla_visible) {\n    return { ...base, status: 'revisar', motivo: 'Las dos lecturas no coinciden en si la pantalla se ve.' }\n  }\n\n  // ¿La pantalla es de la máquina que eligió el turnero?\n  const esperado = numeroDeCodigo(maquina.machine_code)\n  const enPantalla = [a.numero_maquina, b.numero_maquina].filter((n) => Number.isInteger(n))\n  const notas = []\n  if (enPantalla.length === 2 && enPantalla[0] === enPantalla[1] && esperado != null && enPantalla[0] !== esperado) {\n    return {\n      ...base,\n      status: 'revisar',\n      motivo: `La pantalla dice máquina ${enPantalla[0]} y la foto se registró en ${maquina.machine_code}. No se llenó nada.`,\n      discrepancias: [{ tipo: 'maquina_distinta', esperada: maquina.machine_code, en_pantalla: enPantalla[0] }],\n    }\n  }\n  if (enPantalla.length < 2 || enPantalla[0] !== enPantalla[1]) notas.push('No se pudo confirmar el número de máquina en la pantalla.')\n\n  const campos = CAMPOS_POR_TIPO[maquina.machine_type] || []\n  const valores = {}\n  const discrepancias = []\n  for (const campo of campos) {\n    const va = valorDe(a, campo)\n    const vb = valorDe(b, campo)\n    if (va == null && vb == null) continue // no se ve: el campo queda vacío\n    if (va == null || vb == null || va !== vb) {\n      discrepancias.push({ campo, tipo: 'lecturas_distintas', lectura_a: va, lectura_b: vb })\n      continue\n    }\n    const { min, max } = RANGOS[campo]\n    if (va < min || va > max) {\n      discrepancias.push({ campo, tipo: 'fuera_de_rango', valor: va, min, max })\n      continue\n    }\n    valores[campo] = va\n  }\n\n  const leidos = Object.keys(valores)\n  if (!leidos.length && !discrepancias.length) {\n    return { ...base, status: 'sin_lecturas', motivo: [`No se pudo leer ninguna lectura con certeza.`, ...notas, a.observaciones].filter(Boolean).join(' ') }\n  }\n  const motivo = [\n    leidos.length ? `Confirmado por dos lecturas: ${leidos.map((c) => `${NOMBRES[c]} ${valores[c]}`).join(', ')}.` : null,\n    discrepancias.length ? `Sin llenar por duda: ${discrepancias.map((d) => NOMBRES[d.campo] || d.campo).join(', ')}.` : null,\n    ...notas,\n  ].filter(Boolean).join(' ')\n\n  return { ...base, status: discrepancias.length ? 'revisar' : 'aplicada', valores, discrepancias, motivo }\n}\n\n// Para las pruebas en Node; en n8n este bloque no hace nada.\nif (typeof module !== 'undefined') {\n  module.exports = { MODELO, ESQUEMA, INSTRUCCIONES, CAMPOS_POR_TIPO, RANGOS, cuerpoLectura, leerRespuesta, decidir, numeroDeCodigo }\n}\n\n// ── Nodo «Preparar lecturas»: una foto → dos pedidos independientes a Claude ──\nconst maquina = $('Recorrer fotos').itemMatching(0).json\nconst foto = $input.first()\nconst binario = foto.binary && foto.binary.data\nif (!binario) {\n  const e = foto.json && foto.json.error\n  return [{ json: { maquina, error_descarga: (e && (e.message || e.description)) || 'No se pudo descargar la foto' } }]\n}\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data')\nconst aceptados = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']\nconst mediaType = aceptados.includes(binario.mimeType) ? binario.mimeType : 'image/jpeg'\nconst imagenBase64 = buffer.toString('base64')\nreturn ['a', 'b'].map((variante) => ({\n  json: { maquina, variante, body: cuerpoLectura({ imagenBase64, mediaType, maquina, variante }) },\n}))\n"
+        }
+      },
+      {
+        "id": "n-if",
+        "name": "¿Se descargó?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1200,
+          200
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "c-body",
+                "leftValue": "={{ !!$json.body }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "n-claude",
+        "name": "Claude lee la pantalla",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1440,
+          100
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "anthropic-beta",
+                "value": "server-side-fallback-2026-07-01"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {
+            "timeout": 300000
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "IncubAppClaude01",
+            "name": "IncubApp · Claude (Anthropic)"
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "n-val",
+        "name": "Decidir qué se llena",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1680,
+          200
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "/**\n * Bot de lecturas de IncubApp (corre dentro de n8n).\n *\n * De cada foto de ronda de una incubadora o nacedora Petersime saca las\n * lecturas de la pantalla y decide qué se puede escribir en el formato.\n * La regla es simple: ante la duda, NO se escribe. Un campo solo pasa si\n *   1. dos lecturas independientes de la foto dan exactamente el mismo número,\n *   2. las dos dicen que el número se ve claro (no «---», no tapado por reflejos),\n *   3. el número es físicamente posible para ese campo, y\n *   4. el número de máquina de la pantalla no contradice la máquina elegida.\n * Lo demás queda como «revisar» con el motivo, para que lo vea el líder.\n *\n * Este archivo lo copia generar-flujo.mjs dentro de los nodos Code del flujo;\n * no usa import ni nada fuera de JavaScript puro.\n * Henry Stark Desarrollador · CDH Maker\n */\n\nconst MODELO = 'claude-opus-5-5'\n\n/** Campos del formato que se leen de la pantalla, por tipo de máquina. */\nconst CAMPOS_POR_TIPO = {\n  setter: ['temp_ovoscan', 'temp_air', 'humidity', 'co2', 'turn_count'],\n  hatcher: ['temp_air', 'humidity', 'co2'],\n}\n\n/**\n * Rango físicamente posible de cada lectura (no el rango \"bueno\" de proceso:\n * una alarma real también debe quedar registrada). Fuera de aquí es un error\n * de lectura, no un dato.\n */\nconst RANGOS = {\n  temp_ovoscan: { min: 60, max: 110, decimales: 1 },\n  temp_air: { min: 60, max: 110, decimales: 1 },\n  humidity: { min: 40, max: 100, decimales: 1 }, // bulbo húmedo en °F\n  co2: { min: 0, max: 2, decimales: 2 },\n  turn_count: { min: 0, max: 9999, decimales: 0 },\n}\n\nconst NOMBRES = {\n  temp_ovoscan: 'Temp. ovoscan',\n  temp_air: 'Temp. aire',\n  humidity: 'Humedad',\n  co2: 'CO₂',\n  turn_count: 'Volteo',\n}\n\nconst lecturaCampo = {\n  type: 'object',\n  additionalProperties: false,\n  required: ['legible', 'valor', 'consigna'],\n  properties: {\n    legible: { type: 'boolean' },\n    valor: { anyOf: [{ type: 'number' }, { type: 'null' }] },\n    consigna: { anyOf: [{ type: 'number' }, { type: 'null' }] },\n  },\n}\n\n/** Forma exacta de la respuesta del modelo (structured outputs). */\nconst ESQUEMA = {\n  type: 'object',\n  additionalProperties: false,\n  required: ['pantalla_visible', 'etiqueta_pantalla', 'numero_maquina', 'temp_ovoscan', 'temp_air', 'humidity', 'co2', 'turn_count', 'observaciones'],\n  properties: {\n    pantalla_visible: { type: 'boolean' },\n    etiqueta_pantalla: { anyOf: [{ type: 'string' }, { type: 'null' }] },\n    numero_maquina: { anyOf: [{ type: 'integer' }, { type: 'null' }] },\n    temp_ovoscan: lecturaCampo,\n    temp_air: lecturaCampo,\n    humidity: lecturaCampo,\n    co2: lecturaCampo,\n    turn_count: {\n      type: 'object',\n      additionalProperties: false,\n      required: ['legible', 'valor'],\n      properties: {\n        legible: { type: 'boolean' },\n        valor: { anyOf: [{ type: 'integer' }, { type: 'null' }] },\n      },\n    },\n    observaciones: { type: 'string' },\n  },\n}\n\nconst INSTRUCCIONES = `Transcribes lecturas de pantallas de incubadoras y nacedoras Petersime (BioStreamer) a partir de fotos tomadas con celular por los turneros de una planta de incubación. Tu transcripción llena un registro de calidad: un número equivocado es peor que un campo vacío. Si un número no se ve con total claridad, marca legible=false y valor=null. Nunca deduzcas, promedies, completes ni copies un número de otro lugar de la pantalla.\n\nCómo es la pantalla:\n- Barra superior izquierda: etiqueta de la máquina, por ejemplo «2 - 18 XS12SHDOX» o «23 - 9 XS4HHDOX». El segundo número (18, 9) es el número de la máquina: va en numero_maquina. La etiqueta completa va en etiqueta_pantalla.\n- Mosaicos de colores. En cada uno el número GRANDE es la lectura real (va en valor) y el número pequeño de abajo es la consigna o setpoint (va en consigna). Nunca pongas la consigna como valor.\n  · Rosado, icono de termómetro con gota/huevo: temperatura de cáscara (OvoScan), °F → temp_ovoscan. Solo existe en incubadoras; en nacedoras ese mosaico está gris o vacío.\n  · Rojo, icono de termómetro: temperatura de aire, °F → temp_air.\n  · Azul, icono de gota: humedad como bulbo húmedo en °F → humidity.\n  · Amarillo, icono CO₂: CO₂ en % → co2.\n  · Verde, icono de ventilador: ventilación en %. NO se transcribe.\n- Abajo, en la sección de volteo, un contador con numeral, por ejemplo «#000386»: es el número de volteos → turn_count (entero sin ceros a la izquierda: 386).\n\nReglas:\n- Si el número grande aparece como «---», está tapado por un reflejo, cortado, borroso o alguna cifra es dudosa: legible=false, valor=null. La consigna sí se anota si se ve clara.\n- Si el mosaico no existe en esa máquina: legible=false, valor=null, consigna=null.\n- Copia los decimales tal como aparecen (97.8, 0.25). No redondees.\n- Si la foto no muestra la pantalla de la máquina (está apagada, es otra cosa, o no se puede leer nada): pantalla_visible=false y todos los campos con legible=false.\n- En observaciones escribe en español, en una o dos frases, cualquier cosa que afecte la lectura (reflejos, alarma en pantalla, foto movida). Si todo se ve bien, escribe «Sin novedad».`\n\nconst VARIANTES = {\n  a: 'Transcribe las lecturas de esta foto.',\n  b: 'Transcribe las lecturas de esta foto. Antes de responder, recorre cada mosaico de colores de izquierda a derecha y lee cada número cifra por cifra, incluida la posición del punto decimal.',\n}\n\n/** Cuerpo de la llamada a la API de mensajes de Claude para una foto. */\nfunction cuerpoLectura({ imagenBase64, mediaType = 'image/jpeg', maquina, variante }) {\n  const tipo = maquina?.machine_type === 'hatcher' ? 'nacedora' : 'incubadora'\n  return {\n    model: MODELO,\n    max_tokens: 16000,\n    fallbacks: 'default',\n    output_config: {\n      effort: 'high',\n      format: { type: 'json_schema', schema: ESQUEMA },\n    },\n    system: INSTRUCCIONES,\n    messages: [\n      {\n        role: 'user',\n        content: [\n          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imagenBase64 } },\n          { type: 'text', text: `Máquina seleccionada en la app: ${maquina?.machine_name || maquina?.machine_code || 'sin nombre'} (${tipo}).\\n${VARIANTES[variante] || VARIANTES.a}` },\n        ],\n      },\n    ],\n  }\n}\n\n/**\n * Saca el JSON de la respuesta de la API. Devuelve { ok, datos, error }.\n * Cualquier cosa que no sea una respuesta completa y válida es un error.\n */\nfunction leerRespuesta(respuesta) {\n  if (!respuesta || typeof respuesta !== 'object') return { ok: false, error: 'Sin respuesta de la API' }\n  if (respuesta.error) {\n    const e = respuesta.error\n    return { ok: false, infraestructura: true, error: `API: ${String(typeof e === 'string' ? e : e.message || JSON.stringify(e)).slice(0, 300)}` }\n  }\n  if (respuesta.stop_reason === 'refusal') return { ok: false, error: 'La API rechazó la lectura' }\n  if (respuesta.stop_reason === 'max_tokens') return { ok: false, error: 'Respuesta incompleta (max_tokens)' }\n  const texto = (respuesta.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')\n  try {\n    return { ok: true, datos: JSON.parse(texto), modelo: respuesta.model || MODELO }\n  } catch {\n    return { ok: false, error: 'La respuesta no es JSON válido' }\n  }\n}\n\n/** Número de máquina a partir del código de IncubApp: «INC-18» → 18, «NAC-09» → 9. */\nfunction numeroDeCodigo(codigo) {\n  const m = String(codigo || '').match(/(\\d+)\\s*$/)\n  return m ? Number(m[1]) : null\n}\n\nconst redondear = (n, dec) => Math.round(n * 10 ** dec) / 10 ** dec\n\n/** Un campo de una lectura, normalizado: número o null. */\nfunction valorDe(datos, campo) {\n  const c = datos?.[campo]\n  if (!c || c.legible !== true || typeof c.valor !== 'number' || !Number.isFinite(c.valor)) return null\n  return redondear(c.valor, RANGOS[campo].decimales)\n}\n\n/**\n * Decide qué se escribe en el formato a partir de las dos lecturas.\n * @param {object} maquina fila de lecturas_pendientes (check_id, machine_code, machine_type, …)\n * @param {object[]} respuestas respuestas crudas de la API, una por lectura\n * @returns resultado listo para incubapp_bot.guardar_lectura\n */\nfunction decidir(maquina, respuestas) {\n  const leidas = respuestas.map(leerRespuesta)\n  const base = {\n    check_id: maquina.check_id,\n    valores: {},\n    discrepancias: [],\n    etiqueta_pantalla: null,\n    modelo: leidas.find((l) => l.ok)?.modelo || MODELO,\n    lecturas: leidas.map((l) => (l.ok ? l.datos : { error: l.error })),\n  }\n\n  const fallidas = leidas.filter((l) => !l.ok)\n  if (leidas.length < 2 || fallidas.length) {\n    // Si falló la conexión o la cuenta (clave, saldo, límite, caída de la API) la\n    // foto no tiene la culpa: se reintenta sin gastarle intentos.\n    const reintentar = fallidas.length > 0 && fallidas.every((l) => l.infraestructura)\n    return { ...base, status: 'error', reintentar, motivo: fallidas.map((l) => l.error).join(' · ') || 'Faltan lecturas' }\n  }\n\n  const [a, b] = leidas.map((l) => l.datos)\n  base.etiqueta_pantalla = a.etiqueta_pantalla || b.etiqueta_pantalla || null\n\n  if (!a.pantalla_visible && !b.pantalla_visible) {\n    return { ...base, status: 'sin_lecturas', motivo: `La foto no muestra la pantalla. ${a.observaciones || ''}`.trim() }\n  }\n  if (a.pantalla_visible !== b.pantalla_visible) {\n    return { ...base, status: 'revisar', motivo: 'Las dos lecturas no coinciden en si la pantalla se ve.' }\n  }\n\n  // ¿La pantalla es de la máquina que eligió el turnero?\n  const esperado = numeroDeCodigo(maquina.machine_code)\n  const enPantalla = [a.numero_maquina, b.numero_maquina].filter((n) => Number.isInteger(n))\n  const notas = []\n  if (enPantalla.length === 2 && enPantalla[0] === enPantalla[1] && esperado != null && enPantalla[0] !== esperado) {\n    return {\n      ...base,\n      status: 'revisar',\n      motivo: `La pantalla dice máquina ${enPantalla[0]} y la foto se registró en ${maquina.machine_code}. No se llenó nada.`,\n      discrepancias: [{ tipo: 'maquina_distinta', esperada: maquina.machine_code, en_pantalla: enPantalla[0] }],\n    }\n  }\n  if (enPantalla.length < 2 || enPantalla[0] !== enPantalla[1]) notas.push('No se pudo confirmar el número de máquina en la pantalla.')\n\n  const campos = CAMPOS_POR_TIPO[maquina.machine_type] || []\n  const valores = {}\n  const discrepancias = []\n  for (const campo of campos) {\n    const va = valorDe(a, campo)\n    const vb = valorDe(b, campo)\n    if (va == null && vb == null) continue // no se ve: el campo queda vacío\n    if (va == null || vb == null || va !== vb) {\n      discrepancias.push({ campo, tipo: 'lecturas_distintas', lectura_a: va, lectura_b: vb })\n      continue\n    }\n    const { min, max } = RANGOS[campo]\n    if (va < min || va > max) {\n      discrepancias.push({ campo, tipo: 'fuera_de_rango', valor: va, min, max })\n      continue\n    }\n    valores[campo] = va\n  }\n\n  const leidos = Object.keys(valores)\n  if (!leidos.length && !discrepancias.length) {\n    return { ...base, status: 'sin_lecturas', motivo: [`No se pudo leer ninguna lectura con certeza.`, ...notas, a.observaciones].filter(Boolean).join(' ') }\n  }\n  const motivo = [\n    leidos.length ? `Confirmado por dos lecturas: ${leidos.map((c) => `${NOMBRES[c]} ${valores[c]}`).join(', ')}.` : null,\n    discrepancias.length ? `Sin llenar por duda: ${discrepancias.map((d) => NOMBRES[d.campo] || d.campo).join(', ')}.` : null,\n    ...notas,\n  ].filter(Boolean).join(' ')\n\n  return { ...base, status: discrepancias.length ? 'revisar' : 'aplicada', valores, discrepancias, motivo }\n}\n\n// Para las pruebas en Node; en n8n este bloque no hace nada.\nif (typeof module !== 'undefined') {\n  module.exports = { MODELO, ESQUEMA, INSTRUCCIONES, CAMPOS_POR_TIPO, RANGOS, cuerpoLectura, leerRespuesta, decidir, numeroDeCodigo }\n}\n\n// ── Nodo «Decidir qué se llena»: compara las dos lecturas y valida ──\nconst maquina = $('Recorrer fotos').itemMatching(0).json\nconst entradas = $input.all()\nlet resultado\nif (entradas.length && entradas[0].json.error_descarga) {\n  resultado = { check_id: maquina.check_id, status: 'error', valores: {}, discrepancias: [], motivo: 'No se pudo descargar la foto: ' + entradas[0].json.error_descarga }\n} else {\n  resultado = decidir(maquina, entradas.map((e) => e.json))\n}\nreturn [{ json: { resultado, b64: Buffer.from(JSON.stringify(resultado), 'utf8').toString('base64') } }]\n"
+        }
+      },
+      {
+        "id": "n-save",
+        "name": "Llenar formato",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1920,
+          200
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "select incubapp_bot.guardar_lectura(convert_from(decode($1, 'base64'), 'UTF8')::jsonb) as estado;",
+          "options": {
+            "queryReplacement": "={{ $json.b64 }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "IncubAppBotBD001",
+            "name": "IncubApp · bot de lecturas (base de datos)"
+          }
+        }
+      },
+      {
+        "id": "n-nota",
+        "name": "Nota",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          240,
+          -320
+        ],
+        "parameters": {
+          "width": 900,
+          "height": 280,
+          "content": "## Bot de lecturas de rondas\nCada 5 minutos toma hasta 6 fotos nuevas de incubadoras y nacedoras, las lee **dos veces por separado** con Claude y solo escribe en el formato (machine_checks) los campos en que ambas lecturas coinciden, que están en rango y que el turnero dejó vacíos.\n\nNunca pisa lo digitado. Si algo no cuadra (lecturas distintas, otra máquina en pantalla, turnero ≠ foto) queda **revisar** en `machine_check_ai_readings` con el motivo.\n\nLógica y pruebas: `servidor-local/n8n/bot-lecturas.cjs`. No edites los nodos Code aquí: cambia ese archivo y corre `generar-flujo.mjs`."
+        }
+      }
+    ],
+    "connections": {
+      "Cada 5 minutos": {
+        "main": [
+          [
+            {
+              "node": "Fotos pendientes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Probar ahora": {
+        "main": [
+          [
+            {
+              "node": "Fotos pendientes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fotos pendientes": {
+        "main": [
+          [
+            {
+              "node": "Recorrer fotos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recorrer fotos": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Descargar foto",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Descargar foto": {
+        "main": [
+          [
+            {
+              "node": "Preparar lecturas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar lecturas": {
+        "main": [
+          [
+            {
+              "node": "¿Se descargó?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Se descargó?": {
+        "main": [
+          [
+            {
+              "node": "Claude lee la pantalla",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Decidir qué se llena",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude lee la pantalla": {
+        "main": [
+          [
+            {
+              "node": "Decidir qué se llena",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Decidir qué se llena": {
+        "main": [
+          [
+            {
+              "node": "Llenar formato",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Llenar formato": {
+        "main": [
+          [
+            {
+              "node": "Recorrer fotos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/Bogota",
+      "saveManualExecutions": true
+    },
+    "pinData": {}
+  }
+]
