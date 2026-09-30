@@ -224,3 +224,14 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   paralelo del mismo día.
 - Para que vuelva sola tras un apagón, la BIOS debe tener «encender al volver la
   corriente» (Lenovo: F1 → Power → After Power Loss → Power On).
+
+## Actualización 01-10-2026 — correo en español y prueba real
+
+- **8-CONFIGURAR-CORREO.bat** ahora tiene dos modos: `1` configura el SMTP (como antes) y
+  `2` solo manda un correo de prueba real («recuperar contraseña») a una cuenta existente
+  y muestra la respuesta del servicio de cuentas.
+- Los correos salen **en español con la marca de Incubant**: plantillas en
+  `public/correo/` (recuperar, confirmar, invitación, cambio de correo, enlace de acceso)
+  y asuntos en `/opt/incubapp/server/docker-compose.override.yml`, que escribe
+  `correo.sh`. Si una plantilla no carga, Supabase usa la suya en inglés y el enlace
+  funciona igual.
