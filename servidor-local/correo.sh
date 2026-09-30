@@ -12,20 +12,26 @@
 # internet y volvía por Cloudflare) y se pasaba de sus 10 segundos. Ahora la lee del
 # nginx de la app en este mismo equipo (host.docker.internal), y la prueba revisa por
 # separado la plantilla y el servidor de correo para decir cuál falla.
+# 01-10-2026 (noche): host.docker.internal tampoco llegaba desde el contenedor. Las
+# plantillas las sirve ahora un contenedor mínimo (busybox httpd, «correo-plantillas»)
+# en la MISMA red de Supabase, leyendo public/correo/ de la app: no depende de la red
+# de Windows ni de internet. Y si el servidor de correo no responde, la prueba mira qué
+# puertos de correo sí están abiertos desde este equipo.
 set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 LOGS="$AQUI/logs"; mkdir -p "$LOGS"
 exec > >(tee -a "$LOGS/8-correo.txt") 2>&1
 SRV=/opt/incubapp/server
-PLANT_LOCAL='http://host.docker.internal/correo'
+PLANT_LOCAL='http://correo-plantillas'
+# Copia dentro de Ubuntu (no se monta C:\ en el contenedor: al encender puede no estar lista).
+DIR_PLANT="$SRV/correo-plantillas"
 
 # Correos en español con la marca de Incubant. Supabase (GoTrue) lee cada plantilla por
-# URL; se sirven desde el nginx de la app en este mismo equipo (puerto 80), que el
-# contenedor de cuentas alcanza como host.docker.internal. Si una plantilla no carga,
-# Supabase usa la suya en inglés: el enlace funciona igual.
+# URL; las sirve el contenedor «correo-plantillas» en la misma red de Supabase.
 # Devuelve 0 si el archivo cambió (hay que reiniciar auth).
 escribir_plantillas() {
   local ovr="$SRV/docker-compose.override.yml" nuevo
+  mkdir -p "$DIR_PLANT" && cp -f "$AQUI/../public/correo/"*.html "$DIR_PLANT/"
   if [ -f "$ovr" ] && ! grep -q 'IncubApp: correos' "$ovr"; then
     echo "Aviso: $ovr ya existe y no es de IncubApp; no se tocan plantillas ni asuntos."
     return 1
@@ -33,9 +39,13 @@ escribir_plantillas() {
   nuevo=$(cat <<YML
 # IncubApp: correos en español (lo escribe servidor-local/correo.sh; se puede volver a generar).
 services:
+  correo-plantillas:
+    image: busybox:1.36
+    restart: unless-stopped
+    command: ["httpd", "-f", "-p", "80", "-h", "/www"]
+    volumes:
+      - "$DIR_PLANT:/www:ro"
   auth:
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       GOTRUE_MAILER_SUBJECTS_RECOVERY: "IncubApp · Cambie su contraseña"
       GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "IncubApp · Confirme su correo"
@@ -51,12 +61,13 @@ YML
 )
   if [ -f "$ovr" ] && [ "$(cat "$ovr")" = "$nuevo" ]; then return 1; fi
   printf '%s\n' "$nuevo" > "$ovr"
-  echo "Plantillas en español: $PLANT_LOCAL/… (desde este mismo equipo)"
+  echo "Plantillas en español: $PLANT_LOCAL/… (contenedor correo-plantillas)"
   return 0
 }
 
 reiniciar_auth() {
-  echo "==> Reiniciando el servicio de cuentas (auth)"
+  echo "==> Reiniciando el servicio de cuentas (auth) y las plantillas"
+  (cd "$SRV" && docker compose up -d correo-plantillas)
   (cd "$SRV" && docker compose up -d --force-recreate --no-deps auth)
   sleep 8
   (cd "$SRV" && docker compose ps auth --format 'table {{.Name}}\t{{.Status}}')
@@ -69,10 +80,13 @@ diagnostico() {
   host=$(grep '^SMTP_HOST=' .env | cut -d= -f2- | tr -d '"')
   port=$(grep '^SMTP_PORT=' .env | cut -d= -f2- | tr -d '"')
   echo "==> 1/2 Plantilla desde el servicio de cuentas"
-  if docker compose exec -T auth wget -q -T 5 -O /dev/null "$PLANT_LOCAL/recuperar.html" 2>/dev/null; then
+  docker compose up -d correo-plantillas >/dev/null 2>&1 || true
+  # Desde un contenedor de paso en la misma red de Supabase (el de cuentas puede no traer wget).
+  if docker compose run --rm --no-deps -T correo-plantillas wget -q -T 5 -O /dev/null "$PLANT_LOCAL/recuperar.html" >/dev/null 2>&1; then
     echo "   OK: la plantilla carga."
   else
-    echo "   FALLA: el servicio de cuentas no alcanza $PLANT_LOCAL (¿está arriba la app en el puerto 80?)."
+    echo "   FALLA: no carga $PLANT_LOCAL/recuperar.html. Estado del contenedor:"
+    docker compose ps correo-plantillas --format '     {{.Name}} {{.Status}}' 2>/dev/null || true
   fi
   echo "==> 2/2 Servidor de correo $host:$port"
   tls='-starttls smtp'
@@ -84,6 +98,12 @@ diagnostico() {
   else
     echo "   FALLA: $host:$port no respondió a tiempo (servidor, puerto o firewall). Detalle:"
     head -5 /tmp/correo-tls.txt 2>/dev/null | sed 's/^/     /' || true
+    echo "   Puertos de correo abiertos desde este equipo (para elegir otro servicio):"
+    local h p
+    for hp in smtp.gmail.com:587 smtp.gmail.com:465 smtp-relay.brevo.com:587 smtp-relay.brevo.com:2525 smtp.office365.com:587; do
+      h=${hp%:*}; p=${hp#*:}
+      if timeout 6 bash -c "</dev/tcp/$h/$p" 2>/dev/null; then echo "     abierto  $hp"; else echo "     cerrado  $hp"; fi
+    done
   fi
   rm -f /tmp/correo-tls.txt
 }
