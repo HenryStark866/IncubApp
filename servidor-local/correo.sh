@@ -65,9 +65,30 @@ YML
   return 0
 }
 
+# Docker solo carga docker-compose.override.yml solo con ciertos nombres del archivo
+# principal; en el Lenovo no lo cargaba («no such service: correo-plantillas»,
+# 01-10-2026). Se declara en COMPOSE_FILE del .env de Supabase, que leen TODOS los
+# «docker compose» de esa carpeta (arranque, vigilante, actualizaciones).
+usar_override() {
+  local principal f actual nuevo
+  cd "$SRV"
+  for f in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    [ -f "$f" ] && { principal=$f; break; }
+  done
+  [ -n "${principal:-}" ] || { echo "Aviso: no se encontró el docker-compose de Supabase en $SRV"; return 0; }
+  actual=$(grep '^COMPOSE_FILE=' .env | head -1 | cut -d= -f2- | tr -d '"' || true)
+  case ":$actual:" in *":docker-compose.override.yml:"*) return 0 ;; esac
+  # Si ya había un COMPOSE_FILE (con otros archivos), se le agrega el de correos.
+  nuevo="${actual:-$principal}:docker-compose.override.yml"
+  grep -v '^COMPOSE_FILE=' .env > .env.tmp && printf 'COMPOSE_FILE=%s\n' "$nuevo" >> .env.tmp \
+    && cat .env.tmp > .env && rm -f .env.tmp && chmod 600 .env
+  echo "COMPOSE_FILE=$nuevo (Supabase usa el ajuste de correos)"
+}
+
 reiniciar_auth() {
   echo "==> Reiniciando el servicio de cuentas (auth) y las plantillas"
-  (cd "$SRV" && docker compose up -d correo-plantillas)
+  usar_override
+  (cd "$SRV" && docker compose up -d correo-plantillas) || echo "Aviso: no subió correo-plantillas; los correos saldrán con la plantilla de Supabase."
   (cd "$SRV" && docker compose up -d --force-recreate --no-deps auth)
   sleep 8
   (cd "$SRV" && docker compose ps auth --format 'table {{.Name}}\t{{.Status}}')
@@ -131,7 +152,7 @@ probar() {
 }
 
 if [ "${1:-}" = "--probar" ]; then
-  if escribir_plantillas; then reiniciar_auth; fi
+  if escribir_plantillas || ! grep -q '^COMPOSE_FILE=.*override' "$SRV/.env"; then reiniciar_auth; fi
   diagnostico
   probar "${2:?Falta el correo de prueba}"
   exit 0
