@@ -441,9 +441,67 @@ function UserRoleAssign({ user, admin }) {
   )
 }
 
+/** Contraseña temporal sugerida: fácil de dictar, sin letras que se confundan. */
+function suggestTempPassword() {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const pick = (n, from) => Array.from({ length: n }, () => from[Math.floor(Math.random() * from.length)]).join('')
+  return `Incub-${pick(4, letters)}-${pick(4, '23456789')}`
+}
+
+function TempPasswordForm({ user, onSave, onCancel }) {
+  const [password, setPassword] = useState(suggestTempPassword)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const [done, setDone] = useState(false)
+
+  const submit = async () => {
+    setBusy(true)
+    setErr(null)
+    const { error } = await onSave(user.id, password)
+    setBusy(false)
+    if (error) setErr(error)
+    else setDone(true)
+  }
+
+  if (done) {
+    return (
+      <div className="inline-form">
+        <p className="msg ok" style={{ margin: 0 }}>
+          Listo. {user.full_name || user.email} ya puede entrar con la contraseña <strong>{password}</strong>.
+          Pídele que la cambie en Perfil → Cambiar contraseña.
+        </p>
+        <div className="actions row">
+          <button className="ghost" onClick={onCancel}>Cerrar</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="inline-form">
+      <p className="hint" style={{ margin: 0 }}>
+        Contraseña temporal para <strong>{user.email}</strong>. Úsala cuando la persona no pueda recuperar la suya por correo.
+      </p>
+      <label>
+        Contraseña temporal (mínimo 8 caracteres)
+        <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
+      </label>
+      {err && <p className="msg error">{err}</p>}
+      <div className="actions row">
+        <button className="primary small" onClick={submit} disabled={busy || password.trim().length < 8}>
+          {busy ? 'Guardando…' : 'Asignar contraseña'}
+        </button>
+        <button className="ghost" onClick={() => setPassword(suggestTempPassword())} disabled={busy}>Otra sugerida</button>
+        <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
+      </div>
+    </div>
+  )
+}
+
 function UsersSection({ admin, myId }) {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
+  const [passwordId, setPasswordId] = useState(null)
   const [roleId, setRoleId] = useState(null)
   const lc = useListControls(admin.users, (u, q) =>
     [u.email, u.full_name, u.phone].some((v) => v?.toLowerCase().includes(q))
@@ -522,6 +580,11 @@ function UsersSection({ admin, myId }) {
                   <button className="ghost" onClick={() => setEditId(editId === u.id ? null : u.id)}>
                     Editar
                   </button>
+                  {!isMe && !(admin.tenantMode && u.platform_role === 'admin') && (
+                    <button className="ghost" onClick={() => setPasswordId(passwordId === u.id ? null : u.id)}>
+                      Contraseña
+                    </button>
+                  )}
                   {!isMe && (
                     <>
                       {u.is_approved ? (
@@ -544,6 +607,9 @@ function UsersSection({ admin, myId }) {
               {roleOpen && <UserRoleAssign user={u} admin={admin} />}
               {editId === u.id && (
                 <EditUserForm user={u} onSave={admin.updateProfile} onCancel={() => setEditId(null)} />
+              )}
+              {passwordId === u.id && (
+                <TempPasswordForm user={u} onSave={admin.setUserPassword} onCancel={() => setPasswordId(null)} />
               )}
             </div>
           )

@@ -49,6 +49,8 @@ import {
   PlatformDevTools,
   AccessRegistryPanel,
   TodayBoard,
+  ShiftHome,
+  MaintenanceAuxHome,
   LeaderDashboard,
   LeaderOpsMap,
   SiloReportsPanel,
@@ -88,6 +90,7 @@ import {
   ProfileCard,
 } from './components/lazyPanels'
 import { useOrgPresence } from './hooks/useOrgPresence'
+import { shiftHomeKind } from './features/shift/lib/shiftHome'
 import { useAccessControl } from './hooks/useAccessControl'
 import {
   defaultHomeTab,
@@ -673,6 +676,32 @@ function Workspace({
               presence={presence}
               can={can}
             />
+          ) : tab === 'hoy' && org && role === 'maintenance_auxiliary' ? (
+            // Auxiliar de mantenimiento: Plan AM de la semana, reportes del turno y sus formatos.
+            <MaintenanceAuxHome
+              orgId={org.id}
+              userId={session.user.id}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={(t) => {
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
+              }}
+            />
+          ) : tab === 'hoy' && org && shiftHomeKind(role) ? (
+            // Operación de planta (operario, auxiliares de turno y producción, recepción,
+            // supervisor): inicio «qué me toca ahora». El líder de área sigue arriba.
+            <ShiftHome
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              can={can}
+              onNavigate={(t) => {
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
+              }}
+            />
           ) : tab === 'hoy' && org ? (
             <TodayBoard
               orgId={org.id}
@@ -1059,9 +1088,14 @@ export default function App() {
     let sub
     try {
       const res = supabase.auth.onAuthStateChange((event, s) => {
-        // Sin red, supabase-js puede avisar «sin sesión» porque no logró renovar el
-        // token: eso no es un cierre de sesión y no debe sacar a quien trabaja offline.
-        if (!s && event !== 'SIGNED_OUT' && sessionRef.current?.offline) return
+        // Sin red o por fallo de red temporal al renovar token: no cerrar sesión si el evento no es SIGNED_OUT
+        if (!s && event !== 'SIGNED_OUT') {
+          const stored = readStoredSession(SUPABASE_URL)
+          if (stored || sessionRef.current) {
+            if (!sessionRef.current && stored) setSession({ ...stored, offline: true })
+            return
+          }
+        }
         setSession(s)
         if (event === 'PASSWORD_RECOVERY') {
           setIsRecoveryMode(true)
@@ -1347,7 +1381,7 @@ export default function App() {
       <div className="grid-bg" aria-hidden="true" />
       {content}
       {!!session && !legal.loading && !legal.accepted && (
-        <LegalDocsModal mode="gate" onAccept={acceptLegal} busy={legalBusy} />
+        <LegalDocsModal mode="gate" onAccept={acceptLegal} busy={legalBusy} error={legal.error} />
       )}
       {showLegalView && (
         <LegalDocsModal mode="view" onClose={() => setShowLegalView(false)} />

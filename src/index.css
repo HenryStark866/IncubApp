@@ -1,4 +1,4 @@
-﻿/* =============================================================================
+/* =============================================================================
  * ARCHIVO: src/index.css
  * PROPÓSITO: Estilos globales de IncubApp: temas claro/oscuro, layout, KPIs, cockpits y componentes.
  * CÓMO FUNCIONA: Variables CSS de tema, layout del shell, tarjetas, tabs, mapas, asistencia y cockpits; Vite empaqueta este archivo en el build.
@@ -6,7 +6,36 @@
  * ============================================================================= */
 
 /* INCUBAPP — tema CLARO corporativo (predeterminado) + modo oscuro futurista */
-:root,
+:root {
+  --cyan: #e0740a;
+  --cyan-dim: #b75b08;
+  --orange: #e0740a;
+  --orange-deep: #a94f06;
+  --orange-lite: #f3ad61;
+
+  --bg-0: #f4f6f8;
+  --bg-1: #ffffff;
+  --bg-2: #eef1f4;
+  --line: #d7dee5;
+  --text: #182333;
+  --text-dim: #5f6d7b;
+  --ok: #16794b;
+  --danger: #bd3b32;
+  --amber: #b75b08;
+
+  --accent: #e0740a;
+  --accent-dim: #b75b08;
+  --on-accent: #ffffff;
+
+  --paper: #ffffff;
+  --paper-2: #f7f9fb;
+  --paper-line: #d7dee5;
+  --ink: #182333;
+  --ink-dim: #5f6d7b;
+  --radius: 12px;
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+
 :root[data-theme="dark"] {
   /* High-Tech Dark Mode (Glassmorphism) */
   --cyan: #00f0ff;
@@ -451,12 +480,11 @@ body {
 }
 
 .app-bg.client-bg {
-  /* High-Tech Dark Base */
-  background-color: #050a15;
+  background-color: #f4f6f8;
   background-image:
-    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0, 240, 255, 0.08), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0, 168, 181, 0.05), transparent 50%),
-    linear-gradient(160deg, #050a15 0%, #081020 50%, #03060c 100%);
+    radial-gradient(ellipse 60% 50% at 8% 0%, rgba(224, 116, 10, 0.12), transparent 58%),
+    radial-gradient(ellipse 50% 40% at 92% 100%, rgba(11, 20, 40, 0.08), transparent 55%),
+    linear-gradient(160deg, #f8fafb 0%, #eef1f4 55%, #e5e9ee 100%);
 }
 
 .app-bg.client-bg::before {
@@ -485,6 +513,10 @@ body {
 
 :root[data-theme="dark"] .app-bg.client-bg {
   background-color: #050a15;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0, 240, 255, 0.08), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0, 168, 181, 0.05), transparent 50%),
+    linear-gradient(160deg, #050a15 0%, #081020 50%, #03060c 100%);
 }
 
 :root[data-theme="dark"] .app-bg.client-bg::before {
@@ -11510,5 +11542,486 @@ a.plant3d-link:hover {
   .sig-record-viewer__panel {
     height: 100vh;
     border-radius: 0;
+  }
+}
+
+/* =============================================================================
+ * RESPONSIVE MÓVIL — IncubApp PWA para operarios
+ * Diseñado para celulares (~360-430 px) con dedos, a veces con guantes.
+ * Prioridades: legibilidad, área táctil mínima 44 px, sin scroll horizontal.
+ * Henry Stark Desarrollador · 27-09-2026
+ * ============================================================================= */
+
+/* ── Variables de espacio seguro (notch / barra de navegación) ─────────────── */
+:root {
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+}
+
+@media (max-width: 768px) {
+  /* ── Shell base ─────────────────────────────────────────────────────────── */
+  .shell {
+    padding: 0;
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow-x: hidden;
+  }
+
+  /* ── Header: una sola fila compacta con logo + nombre + botón menú ─────── */
+  .workspace-header,
+  .workspace-header.wide,
+  .workspace-header.social {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: calc(8px + var(--safe-top)) 12px 8px;
+    height: auto;
+    min-height: 52px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* Logo + nombre de la empresa: ancho máximo para no empujar el menú */
+  .ws-brand {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .ws-brand-text {
+    overflow: hidden;
+  }
+
+  .ws-brand-text strong {
+    font-size: 13px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Subtítulo rol/área: oculto en móvil para ahorrar espacio */
+  .ws-brand-sub {
+    display: none;
+  }
+
+  /* Pill de firma (Antioqueña de Incubación) — oculto en móvil */
+  .incubant-sig-pill {
+    display: none;
+  }
+
+  /* Barra de acciones (chat, notificaciones, perfil, menú) */
+  .ws-social-bar {
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+  }
+
+  /* Chips de meta (online, sync) — solo ícono, sin texto */
+  .ws-meta-chip {
+    display: none;
+  }
+
+  /* ── Tarjetas ───────────────────────────────────────────────────────────── */
+  .card,
+  .card.wide {
+    padding: 14px 12px;
+    border-radius: 14px;
+    width: 100%;
+    margin-bottom: 10px;
+    /* Evita que tablas anchas rompan el layout */
+    overflow-x: hidden;
+  }
+
+  .card-head {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .card-head h2 {
+    font-size: 16px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* ── Tipografía táctil ──────────────────────────────────────────────────── */
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 15px; }
+
+  /* ── KPIs: 2 columnas en móvil, 1 columna en muy angosto ───────────────── */
+  .kpi-grid,
+  .exec-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .kpi-card {
+    padding: 12px 10px;
+  }
+
+  .kpi-value,
+  .exec-kpi-value {
+    font-size: 24px;
+  }
+
+  /* ── Grids de 2+ columnas → 1 columna ──────────────────────────────────── */
+  .two-col,
+  .three-col,
+  .detail-history,
+  .check-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Tablas con scroll horizontal (sin romper layout) ──────────────────── */
+  .table-wrap,
+  .list-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+
+  table {
+    min-width: 480px; /* permite scroll si la tabla es ancha */
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  /* ── Formularios: sin zoom en iOS (font-size mín 16 px) ────────────────── */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* iOS zooma si < 16 px */
+    min-height: 44px;
+    border-radius: 10px;
+  }
+
+  .inline-form input,
+  .inline-form select,
+  .inline-form textarea,
+  .list-search,
+  .check-filters select,
+  .check-filters input {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* ── Botones: área táctil mínima 44 × 44 px ─────────────────────────────── */
+  button,
+  .btn,
+  button.primary,
+  button.ghost,
+  .chip {
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 10px;
+    touch-action: manipulation; /* elimina delay de 300 ms en iOS */
+  }
+
+  button.small,
+  button.primary.small {
+    min-height: 38px;
+    font-size: 13px;
+  }
+
+  /* ── Chips de rol / estado ──────────────────────────────────────────────── */
+  .pill {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* ── Filas de administración ────────────────────────────────────────────── */
+  .admin-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .admin-row-main {
+    flex: 1 1 100%;
+  }
+
+  .admin-row-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .admin-row-actions select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* ── Buscador de listas ─────────────────────────────────────────────────── */
+  .list-search {
+    flex: 1 1 100%;
+  }
+
+  .list-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* ── Banners automáticos ─────────────────────────────────────────────────── */
+  .auto-banner,
+  .round-banner {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* ── Galería / captura de fotos ─────────────────────────────────────────── */
+  .capture-preview {
+    max-height: 200px;
+  }
+
+  .check-thumb {
+    width: 88px;
+    height: 88px;
+  }
+
+  /* ── Mapa de planta ─────────────────────────────────────────────────────── */
+  .floor-map-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+
+  /* ── Subtabs / tabs internos ────────────────────────────────────────────── */
+  .tabs,
+  .tab-nav,
+  .sub-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .tabs::-webkit-scrollbar,
+  .tab-nav::-webkit-scrollbar,
+  .sub-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs .tab,
+  .tab-nav button,
+  .sub-nav button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  /* ── Panel de usuario en barra de acceso externo ───────────────────────── */
+  .ws-profile-chip {
+    max-width: 38vw;
+    min-height: 44px;
+    padding: 4px 8px 4px 4px;
+  }
+
+  .ws-profile-text strong {
+    max-width: 64px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ws-profile-text em {
+    font-size: 10px;
+    max-width: 64px;
+  }
+
+  /* ── Drawer de menú: pantalla completa desde abajo ──────────────────────── */
+  .ws-menu-overlay {
+    padding: 0;
+    align-items: flex-end;
+    background: rgba(8, 12, 22, 0.6);
+  }
+
+  .ws-menu-panel {
+    width: 100%;
+    max-width: 100%;
+    height: 92vh;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    animation: ws-menu-drawer-up 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+    padding-bottom: var(--safe-bottom);
+    overflow: hidden;
+  }
+
+  @keyframes ws-menu-drawer-up {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .ws-menu-panel-head {
+    padding: 16px 16px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-0);
+    z-index: 2;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Handle visual (drag indicator) del drawer */
+  .ws-menu-panel-head::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+    margin: 0 auto 12px;
+  }
+
+  .ws-menu-search input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .ws-menu-card {
+    min-height: 52px;
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .ws-menu-card-title {
+    font-size: 15px;
+  }
+
+  .ws-menu-scroll {
+    padding: 8px 12px calc(24px + var(--safe-bottom));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Botón Menú (hamburguesa): bien visible y grande ────────────────────── */
+  .ws-menu-btn {
+    min-height: 44px;
+    min-width: 80px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    color: var(--on-accent);
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(224, 116, 10, 0.3);
+    border-radius: 10px;
+  }
+
+  .ws-menu-btn-lines i {
+    background: var(--on-accent);
+  }
+
+  /* ── Paneles de perfil: sheet desde abajo ───────────────────────────────── */
+  .ws-profile-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .ws-profile-menu {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 20px 20px 0 0;
+    max-height: 80vh;
+    padding-bottom: var(--safe-bottom);
+  }
+
+  /* ── Splash / pantalla de carga ─────────────────────────────────────────── */
+  .splash-name strong {
+    font-size: 20px;
+  }
+
+  .splash-rings .r3 {
+    display: none;
+  }
+
+  /* ── Banners inline (offline, sync) ─────────────────────────────────────── */
+  .offline-banner-bar {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* ── Pantallas muy angostas ≤ 400 px (teléfonos compactos) ────────────────── */
+@media (max-width: 400px) {
+  .shell {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .card,
+  .card.wide {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+
+  .kpi-grid,
+  .exec-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .kpi-value,
+  .exec-kpi-value {
+    font-size: 20px;
+  }
+
+  .ws-brand-text strong {
+    max-width: 110px;
+    font-size: 12px;
+  }
+
+  .room-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pill {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .chip {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}
+
+/* ── Pantalla apaisada en móvil (landscape) ─────────────────────────────────── */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+  .workspace-header,
+  .workspace-header.wide,
+  .workspace-header.social {
+    min-height: 44px;
+    padding: 4px 12px;
+  }
+
+  .ws-brand-text strong {
+    font-size: 12px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .shell {
+    padding-top: 0;
   }
 }

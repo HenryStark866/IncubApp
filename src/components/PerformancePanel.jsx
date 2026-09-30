@@ -10,6 +10,7 @@ import {
   LABOR_KEYS,
 } from '../lib/complianceEngine'
 import { ROLE_LABEL } from '../lib/roles'
+import { MARGIN_KEYS, SHIFT_WINDOWS, describeShiftResult } from '../lib/shiftPunctuality'
 import ExportMenu from './ExportMenu'
 import ComplianceAnalyticsView from './ComplianceAnalyticsView'
 
@@ -45,6 +46,8 @@ export default function PerformancePanel({
     label: '',
   })
   const [laborForm, setLaborForm] = useState({ laborKey: 'labors_completed', qty: 1, note: '' })
+  const [marginForm, setMarginForm] = useState(null)
+  const margins = marginForm || { forRole: '', ...api.punctualityMargins }
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -85,6 +88,40 @@ export default function PerformancePanel({
     setBusy(false)
     if (error) setMsg({ kind: 'error', text: error })
     else setMsg({ kind: 'ok', text: `Meta guardada${local ? ' (local)' : ''}.` })
+  }
+
+  const saveMargins = async () => {
+    const inMin = Number(margins.inMin)
+    const outMin = Number(margins.outMin)
+    if (!Number.isFinite(inMin) || !Number.isFinite(outMin) || inMin < 0 || outMin < 0) {
+      setMsg({ kind: 'error', text: 'Los márgenes son minutos (0 o más).' })
+      return
+    }
+    setBusy(true)
+    setMsg(null)
+    const forRole = margins.forRole || null
+    const a = await api.saveTarget({
+      laborKey: MARGIN_KEYS.in,
+      label: 'Margen de llegada tarde',
+      expected: inMin,
+      unit: 'min',
+      forRole,
+    })
+    const b = a.error
+      ? a
+      : await api.saveTarget({
+          laborKey: MARGIN_KEYS.out,
+          label: 'Margen de salida anticipada',
+          expected: outMin,
+          unit: 'min',
+          forRole,
+        })
+    setBusy(false)
+    if (b.error) setMsg({ kind: 'error', text: b.error })
+    else {
+      setMsg({ kind: 'ok', text: `Márgenes guardados${a.local || b.local ? ' (local)' : ''}.` })
+      setMarginForm(null)
+    }
   }
 
   const reportLabor = async () => {
@@ -247,6 +284,7 @@ export default function PerformancePanel({
           <p className="hint" style={{ marginTop: 0 }}>
             {userName || 'Usuario'} · {ROLE_LABEL[role] || role} · {s.periodLabel}
           </p>
+          <PunctualityCard result={api.myPunctuality} margins={api.punctualityMargins} />
           <div style={{ marginBottom: 10 }}>
             <ExportMenu
               filename="mi_cumplimiento_hoy"
@@ -461,6 +499,57 @@ export default function PerformancePanel({
 
       {tab === 'metas' && (api.isCoord || isOmniscient) && (
         <div className="inline-form" style={{ marginTop: 14 }}>
+          <h3 className="section-title" style={{ marginTop: 0 }}>
+            Márgenes de llegada y salida
+          </h3>
+          <p className="hint" style={{ marginTop: 0 }}>
+            Turnos: T1 {SHIFT_WINDOWS[1].start}–{SHIFT_WINDOWS[1].end} · T2 {SHIFT_WINDOWS[2].start}–
+            {SHIFT_WINDOWS[2].end} · T3 {SHIFT_WINDOWS[3].start}–{SHIFT_WINDOWS[3].end}. Llegar dentro
+            del margen o salir sin adelantarse más de lo permitido vale 50 % cada uno en la adherencia;
+            fuera del margen vale 25 %; sin marca, 0 %.
+          </p>
+          <div className="two-col">
+            <label>
+              Llegada: minutos de tolerancia
+              <input
+                type="number"
+                min="0"
+                value={margins.inMin}
+                onChange={(e) => setMarginForm({ ...margins, inMin: e.target.value })}
+              />
+            </label>
+            <label>
+              Salida: minutos que puede adelantarse
+              <input
+                type="number"
+                min="0"
+                value={margins.outMin}
+                onChange={(e) => setMarginForm({ ...margins, outMin: e.target.value })}
+              />
+            </label>
+          </div>
+          <label>
+            Aplica a
+            <select
+              value={margins.forRole}
+              onChange={(e) => setMarginForm({ ...margins, forRole: e.target.value })}
+            >
+              <option value="">Todos (global)</option>
+              <option value="operator">Operario de turno</option>
+              <option value="auxiliary">Auxiliar de turno</option>
+              <option value="auxiliary_production">Auxiliar producción</option>
+              <option value="reception_operator">Recepción</option>
+              <option value="barn_operator">Operario granja</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
+          </label>
+          <button type="button" className="primary" disabled={busy} onClick={saveMargins}>
+            Guardar márgenes
+          </button>
+
+          <h3 className="section-title" style={{ marginTop: 16 }}>
+            Metas por rol
+          </h3>
           <p className="hint" style={{ marginTop: 0 }}>
             Define cuánto debe rendir cada rol. Ejemplo: turneros = {DEFAULT_MIN_ROUNDS_PER_SHIFT}{' '}
             rondas/turno.
@@ -625,6 +714,40 @@ export default function PerformancePanel({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Llegada y salida del turno actual contra el horario y los márgenes. */
+function PunctualityCard({ result, margins }) {
+  if (!result) {
+    return (
+      <div className="tool-card" style={{ marginBottom: 10 }}>
+        <h4 style={{ margin: '0 0 4px' }}>Puntualidad del turno</h4>
+        <p className="hint" style={{ margin: 0 }}>
+          Aún no hay ingreso en tu turno de hoy. Tolerancia: {margins.inMin} min al llegar y{' '}
+          {margins.outMin} min al salir.
+        </p>
+      </div>
+    )
+  }
+  const tone = result.adherence >= 100 ? 'ok' : result.adherence >= 50 ? 'warn' : 'off'
+  return (
+    <div className="tool-card" style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <h4 style={{ margin: 0 }}>
+          Puntualidad · T{result.shiftNumber} ({SHIFT_WINDOWS[result.shiftNumber].start}–
+          {SHIFT_WINDOWS[result.shiftNumber].end})
+        </h4>
+        <span className={`pill status ${tone}`}>{result.adherence}% adherencia</span>
+      </div>
+      <p className="hint" style={{ margin: '6px 0 0' }}>
+        {describeShiftResult(result)}
+      </p>
+      <p className="hint" style={{ margin: '4px 0 0' }}>
+        Tolerancia: {margins.inMin} min al llegar · {margins.outMin} min al salir
+        {result.inferred ? ' · turno inferido por la hora (sin asignación en el calendario)' : ''}
+      </p>
     </div>
   )
 }

@@ -126,8 +126,38 @@ node scripts/generar_propuesta_perfil.mjs
 
 ## Despliegue
 
-`deploy_incubapp.bat` (o `npx vercel --prod`).  
-Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_KEY` en Vercel.
+**Producción (desde el 27-09-2026):** servidor propio en el PC de la oficina
+(Lenovo `DESKTOP-ROMOGM3`), con Supabase self-hosted en Docker. El contenedor
+`incubapp` (`Dockerfile` + `nginx.conf`) sirve la app y reenvía `/auth`, `/rest`,
+`/storage`, `/realtime` y `/functions` a Supabase, así que la app y su API salen
+por el mismo dominio. Pasos de instalación: `servidor-local/ESTADO.md`.
+
+Actualizar la app en el servidor: doble clic en `servidor-local/7-ACTUALIZAR-APP.bat`
+(trae los cambios de GitHub, reconstruye el contenedor `incubapp` y comprueba que
+responde; Supabase y la base no se tocan). A mano, en `/mnt/c/IncubApp` (Ubuntu/WSL):
+
+```bash
+git pull && docker compose build incubapp && docker compose up -d incubapp
+```
+
+**Dominio propio: `https://incubapp.cdhmaker.com`** (Cloudflare Tunnel, gratis y sin abrir puertos)
+
+1. Agregar `cdhmaker.com` a una cuenta de Cloudflare (plan Free) y cambiar sus
+   nameservers en el registrador por los dos que indique Cloudflare. Antes de
+   cambiarlos, revisar que Cloudflare haya copiado los registros actuales del dominio
+   (sitio web y correo), para que no se caigan.
+2. Cloudflare → Zero Trust → Networks → Tunnels → Create tunnel (Cloudflared),
+   nombre `incubapp`. Copiar el token.
+3. En el túnel, Public hostname: subdominio `incubapp`, dominio `cdhmaker.com`,
+   Service `HTTP` → `incubapp:80`.
+4. En el servidor, doble clic en `servidor-local/5-ACCESO-EXTERNO.bat`, pegar el token
+   y Enter (la dirección por defecto ya es `https://incubapp.cdhmaker.com`).
+5. Probar `https://incubapp.cdhmaker.com` y dar ese enlace al personal.
+
+Mientras tanto la app sigue en la dirección de ngrok (`docker-compose.yml`).
+
+Vercel (`deploy_incubapp.bat`) queda solo para la nube de Supabase: la compilación
+usa `VITE_SUPABASE_URL` directo cuando es un `*.supabase.co`.
 
 ---
 

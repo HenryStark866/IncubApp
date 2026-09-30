@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { loadMantumHistory } from '../../../data/mantumHistory';
 import { LOCAL_DOCUMENT_LIBRARY } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import {
@@ -10,6 +11,8 @@ import {
     loadMapStatusLabel,
     frameSourceFor,
     resolveLoadedByName,
+    shiftNumberForTimestamp,
+    shiftDateForTimestamp,
     sortEvidence,
     resolveSigFormatCatalog,
     mantumHistoricalEvidenceForMachine,
@@ -17,7 +20,13 @@ import {
     buildProductionEvidence,
     chunkList,
     safeRows,
+    paginatedRows,
 } from './MachineAssetHub';
+
+// El historial de OT Mantum se carga bajo demanda; las pruebas lo cargan una vez.
+beforeAll(async () => {
+    await loadMantumHistory();
+});
 
 describe('load map local persistence', () => {
     beforeEach(() => {
@@ -52,6 +61,11 @@ describe('load map local persistence', () => {
         expect(resolveLoadMapPreviewUrl(readLocalLoadMapsForOrg(orgId)[0])).toBe('data:image/png;base64,abc');
     });
 });
+
+// La carpeta MANTENIMIENTO/ (formatos y registros del SIG) es material de trabajo que no
+// se versiona: existe en el equipo de la planta, no en un clon limpio del repositorio.
+// Estas pruebas corren donde la carpeta está y se omiten donde no.
+const itConCarpetaSig = it.skipIf(LOCAL_DOCUMENT_LIBRARY.length === 0);
 
 describe('resolveSelectedEvidence', () => {
     const allEvidence = [
@@ -133,6 +147,17 @@ describe('resolveSelectedEvidence', () => {
         })).toBe('Luis Supervisor');
     });
 
+    it('calcula turno y día en hora de Colombia, sin importar la zona horaria del equipo', () => {
+        // 20:30 en Bogotá ya es el día siguiente en UTC: sigue siendo turno 2 del 22.
+        expect(shiftNumberForTimestamp('2026-09-22T20:30:00-05:00')).toBe(2);
+        expect(shiftDateForTimestamp('2026-09-22T20:30:00-05:00')).toBe('2026-09-22');
+        // La madrugada del 23 pertenece al turno 3 que empezó el 22.
+        expect(shiftNumberForTimestamp('2026-09-23T02:00:00-05:00')).toBe(3);
+        expect(shiftDateForTimestamp('2026-09-23T02:00:00-05:00')).toBe('2026-09-22');
+        expect(shiftNumberForTimestamp('2026-09-22T06:00:00-05:00')).toBe(1);
+        expect(shiftNumberForTimestamp('no es fecha')).toBeNull();
+    });
+
     it('prioriza las evidencias del año actual antes que las históricas', () => {
         const currentYear = new Date().getFullYear();
         const ordered = sortEvidence([
@@ -144,7 +169,7 @@ describe('resolveSelectedEvidence', () => {
         expect(ordered.map((item) => item.id)).toEqual(['new', 'mid', 'old']);
     });
 
-    it('usa la carpeta de registros del SIG como fuente de evidencia activa para toda la gestión', () => {
+    itConCarpetaSig('usa la carpeta de registros del SIG como fuente de evidencia activa para toda la gestión', () => {
         expect(LOCAL_DOCUMENT_LIBRARY.length).toBeGreaterThan(0);
         expect(LOCAL_DOCUMENT_LIBRARY.every((file) => String(file.sourcePath || '').includes('MANTENIMIENTO/SIG-MANTENIMIENTO/REGISTROS'))).toBe(true);
     });
@@ -157,7 +182,7 @@ describe('resolveSelectedEvidence', () => {
         expect(names.some((name) => name.includes('lavandería zona limpia'))).toBe(true);
     });
 
-    it('asocia los registros Mantum del año actual con el formato original del SIG', () => {
+    itConCarpetaSig('asocia los registros Mantum del año actual con el formato original del SIG', () => {
         const [record] = mantumHistoricalEvidenceForMachine({ code: '005.4' });
         expect(record).toBeTruthy();
         expect(record.sourceFile).toBeTruthy();
@@ -170,7 +195,7 @@ describe('resolveSelectedEvidence', () => {
         expect(resolveLoadMapPreviewUrl({ payload: { imageDataUrl: 'data:image/png;base64,abc' } })).toBe('data:image/png;base64,abc');
     });
 
-    it('asocia cada formato SIG con el archivo original del proyecto', () => {
+    itConCarpetaSig('asocia cada formato SIG con el archivo original del proyecto', () => {
         const catalog = resolveSigFormatCatalog([{ code: 'FOMAT01', name: 'ORDEN DE TRABAJO DE MANTENIMIENTO', process: 'GESTIÓN DE MANTENIMIENTO', version: '01', date: '18-08-2026' }]);
 
         expect(catalog[0].sourceFile.file_name).toContain('FOMAT01');
@@ -197,6 +222,19 @@ describe('resolveSelectedEvidence', () => {
 });
 
 describe('lectura del repositorio de evidencias', () => {
+    it('pagina fuentes grandes para no perder evidencias después del límite de Supabase', async () => {
+        const source = Array.from({ length: 1022 }, (_, index) => ({ id: index + 1 }));
+        const buildQuery = () => ({
+            range: (from, to) => Promise.resolve({ data: source.slice(from, to + 1), error: null }),
+        });
+
+        const result = await paginatedRows('el registro SIG', buildQuery, 1000);
+
+        expect(result.failed).toBeNull();
+        expect(result.rows).toHaveLength(1022);
+        expect(result.rows.at(-1)).toEqual({ id: 1022 });
+    });
+
     it('parte las listas de IDs en tandas para no desbordar la URL del filtro in()', () => {
         const ids = Array.from({ length: 205 }, (_, index) => `id-${index}`);
         const chunks = chunkList(ids, 80);

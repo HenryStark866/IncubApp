@@ -15,6 +15,7 @@ import { useEvidence } from '../hooks/useEvidence'
 import { useShiftOps } from '../hooks/useShiftOps'
 import { compressImage } from '../lib/image'
 import { canAssignShiftWork } from '../lib/roles'
+import './RoundFlow.css'
 
 /* ── Helpers compartidos ─────────────────────────────────────── */
 const fmtDT = (v) => (v ? new Date(v).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
@@ -294,16 +295,20 @@ export function WorkOrdersView({ orgId, userId, role, rooms, machines }) {
 }
 
 /* ══ 3) Actividades del turno ════════════════════════════════ */
-function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
+/* Cerrar una actividad (etapa 2): se toca cómo quedó, cuánto, qué se hizo y la foto.
+ * La sala y la máquina vienen de la actividad; solo se cambian si hace falta. */
+function CompleteActivityForm({ rooms, machines, plantId, activity = {}, onComplete }) {
   const [completion, setCompletion] = useState('complete')
   const [resultQty, setResultQty] = useState('')
   const [resultNote, setResultNote] = useState('')
-  const [roomId, setRoomId] = useState('')
-  const [machineId, setMachineId] = useState('')
+  const [roomId, setRoomId] = useState(activity.room_id || '')
+  const [machineId, setMachineId] = useState(activity.machine_id || '')
+  const [changePlace, setChangePlace] = useState(false)
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
   const plantRooms = rooms.filter((r) => !plantId || r.plant_id === plantId)
   const roomMachines = machines.filter((m) => (roomId ? m.room_id === roomId : true) && m.status !== 'decommissioned')
+  const placeText = [rooms.find((r) => r.id === roomId)?.name, machines.find((m) => m.id === machineId)?.code || machines.find((m) => m.id === machineId)?.name].filter(Boolean).join(' · ')
 
   const submit = async () => {
     setBusy(true)
@@ -312,44 +317,44 @@ function CompleteActivityForm({ rooms, machines, plantId, onComplete }) {
   }
 
   return (
-    <div className="inline-form compact">
-      <div className="two-col">
-        <label>
-          ¿Se cumplió?
-          <select value={completion} onChange={(e) => setCompletion(e.target.value)}>
-            <option value="complete">Completa</option>
-            <option value="partial">Parcial</option>
-          </select>
-        </label>
-        <label>
-          Cantidad (ej. canastas lavadas)
-          <input type="number" min="0" value={resultQty} onChange={(e) => setResultQty(e.target.value)} placeholder="0" />
-        </label>
+    <div className="rf-capture" style={{ paddingTop: 10 }}>
+      <span className="rf-label">Cerrar la actividad</span>
+      <div className="rf-conditions" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }} role="group" aria-label="¿Se cumplió?">
+        <button type="button" className="rf-chip" style={{ minHeight: 48 }} aria-pressed={completion === 'complete'} onClick={() => setCompletion('complete')}>Cumplida completa</button>
+        <button type="button" className="rf-chip" style={{ minHeight: 48 }} aria-pressed={completion === 'partial'} onClick={() => setCompletion('partial')}>Cumplida parcial</button>
       </div>
-      <div className="two-col">
-        <label>
-          Sala
-          <select value={roomId} onChange={(e) => { setRoomId(e.target.value); setMachineId('') }}>
-            <option value="">— Sin sala —</option>
-            {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
-          </select>
-        </label>
-        <label>
-          Máquina
-          <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-            <option value="">— Sin máquina —</option>
-            {roomMachines.map((m) => (<option key={m.id} value={m.id}>{m.name} ({m.code})</option>))}
-          </select>
-        </label>
-      </div>
-      <label>
-        Observaciones
-        <input type="text" value={resultNote} onChange={(e) => setResultNote(e.target.value)} placeholder="Opcional" />
+      <label style={{ display: 'grid', gap: 6 }}>
+        <span className="rf-label">Cantidad (si aplica, ej. canastas lavadas)</span>
+        <input className="rf-input" type="number" min="0" inputMode="numeric" value={resultQty} onChange={(e) => setResultQty(e.target.value)} placeholder="0" />
       </label>
+      <label style={{ display: 'grid', gap: 6 }}>
+        <span className="rf-label">Qué se hizo</span>
+        <textarea className="rf-input" value={resultNote} onChange={(e) => setResultNote(e.target.value)} placeholder="Opcional" />
+      </label>
+      {!changePlace ? (
+        <p className="rf-dim" style={{ margin: 0 }}>
+          📍 {placeText || 'Sin sala ni máquina'} · <button type="button" className="rf-btn" style={{ minHeight: 32, border: 0, padding: 0, textDecoration: 'underline' }} onClick={() => setChangePlace(true)}>cambiar</button>
+        </p>
+      ) : (
+        <div className="two-col">
+          <label>
+            Sala
+            <select value={roomId} onChange={(e) => { setRoomId(e.target.value); setMachineId('') }}>
+              <option value="">— Sin sala —</option>
+              {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
+            </select>
+          </label>
+          <label>
+            Máquina
+            <select value={machineId} onChange={(e) => setMachineId(e.target.value)}>
+              <option value="">— Sin máquina —</option>
+              {roomMachines.map((m) => (<option key={m.id} value={m.id}>{m.name} ({m.code})</option>))}
+            </select>
+          </label>
+        </div>
+      )}
       <PhotoInput file={file} onFile={setFile} label="📷 Foto de evidencia" />
-      <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Guardando…' : 'Finalizar actividad'}</button>
-      </div>
+      <button type="button" className="rf-btn rf-btn-primary rf-btn-block" onClick={submit} disabled={busy}>{busy ? 'Guardando…' : 'Finalizar actividad'}</button>
     </div>
   )
 }
@@ -431,10 +436,15 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
   const plantRooms = rooms.filter((r) => r.plant_id === form.plantId)
 
   const visible = canAssign ? so.activities : so.activities.filter((a) => a.assigned_to === userId)
+  // Cuántas actividades abiertas tiene cada persona, para repartir el trabajo al asignar.
+  const openCount = {}
+  for (const a of so.activities) {
+    if ((a.status === 'pending' || a.status === 'in_progress') && a.assigned_to) openCount[a.assigned_to] = (openCount[a.assigned_to] || 0) + 1
+  }
 
   const submitNew = async () => {
     const { error } = await so.createActivity(form)
-    if (!error) { setShowForm(false); setForm((f) => ({ ...f, catalogId: '', title: '', description: '', assignedTo: '', grantsModule: '' })) }
+    if (!error) { setShowForm(false); setForm((f) => ({ ...f, catalogId: '', title: '', description: '', assignedTo: '', roomId: '', machineId: '', grantsModule: '' })) }
   }
 
   return (
@@ -454,46 +464,65 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
       )}
 
       {showForm && canAssign && (
-        <div className="inline-form">
-          <label>
-            Actividad (del catálogo)
-            <select value={form.catalogId} onChange={pickActivity} autoFocus>
-              <option value="">— Selecciona una actividad —</option>
-              {so.catalog.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-          </label>
-          {so.catalog.length === 0 && (
+        <div className="inline-form rf-capture">
+          <span className="rf-label">Qué</span>
+          {so.catalog.length === 0 ? (
             <p className="hint" style={{ margin: 0 }}>No hay actividades en el catálogo. Ábrelo con «Catálogo» y agrega una.</p>
+          ) : (
+            <div className="rf-chips" role="group" aria-label="Actividad del catálogo">
+              {so.catalog.map((c) => (
+                <button key={c.id} type="button" className="rf-chip" aria-pressed={form.catalogId === c.id} onClick={() => pickActivity({ target: { value: c.id } })}>{c.name}</button>
+              ))}
+            </div>
           )}
-          <label>
-            Descripción
-            <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Detalle…" />
-          </label>
+          <span className="rf-label">A quién</span>
+          <div className="rf-machines" style={{ marginTop: 0 }} role="radiogroup" aria-label="Asignar a">
+            {team.length === 0 && <p className="hint" style={{ padding: 14, margin: 0 }}>No hay personas en el equipo.</p>}
+            {[...team].sort((x, y) => (openCount[x.id] || 0) - (openCount[y.id] || 0) || String(x.name).localeCompare(String(y.name))).map((t) => (
+              <label key={t.id} className="rf-machine rf-machine-row" style={{ cursor: 'pointer' }}>
+                <input type="radio" name="assign-to" value={t.id} checked={form.assignedTo === t.id} onChange={set('assignedTo')} style={{ width: 20, height: 20, accentColor: 'var(--accent)' }} />
+                <span className="rf-machine-main">
+                  <strong>{t.name}</strong>
+                  <span>{openCount[t.id] ? `${openCount[t.id]} actividad${openCount[t.id] === 1 ? '' : 'es'} abierta${openCount[t.id] === 1 ? '' : 's'}` : 'Sin actividades abiertas'}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <span className="rf-label">Dónde</span>
           <div className="two-col">
+            {plants.length > 1 && (
+              <label>
+                Planta
+                <select value={form.plantId} onChange={(e) => setForm((f) => ({ ...f, plantId: e.target.value, roomId: '', machineId: '' }))}>
+                  {plants.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                </select>
+              </label>
+            )}
             <label>
-              Asignar a
-              <select value={form.assignedTo} onChange={set('assignedTo')}>
-                <option value="">— Selecciona operario —</option>
-                {team.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+              Sala (opcional)
+              <select value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value, machineId: '' }))}>
+                <option value="">— Sin sala —</option>
+                {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
               </select>
             </label>
             <label>
-              Planta
-              <select value={form.plantId} onChange={(e) => setForm((f) => ({ ...f, plantId: e.target.value, roomId: '' }))}>
-                {plants.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+              Máquina (opcional)
+              <select value={form.machineId} onChange={set('machineId')}>
+                <option value="">— Sin máquina —</option>
+                {machines.filter((m) => m.plant_id === form.plantId && (!form.roomId || m.room_id === form.roomId) && m.status !== 'decommissioned').map((m) => (<option key={m.id} value={m.id}>{m.code || m.name}</option>))}
               </select>
             </label>
           </div>
-          <label>
-            Sala (opcional)
-            <select value={form.roomId} onChange={set('roomId')}>
-              <option value="">— Sin sala —</option>
-              {plantRooms.map((r) => (<option key={r.id} value={r.id}>{r.name} ({r.code})</option>))}
-            </select>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="rf-label">Detalle</span>
+            <textarea className="rf-input" value={form.description} onChange={set('description')} placeholder="Qué hay que hacer…" />
           </label>
-          <div className="actions row">
-            <button className="primary small" onClick={submitNew} disabled={!form.catalogId || !form.assignedTo}>Asignar</button>
-            <button className="ghost" onClick={() => setShowForm(false)}>Cancelar</button>
+          {form.grantsModule && <p className="hint" style={{ margin: 0 }}>Esta actividad {grantLabel(form.grantsModule).toLowerCase()} mientras esté activa.</p>}
+          <div className="rf-footer" style={{ position: 'static', background: 'none', padding: 0 }}>
+            <button type="button" className="rf-btn rf-btn-block" onClick={() => setShowForm(false)}>Cancelar</button>
+            <button type="button" className="rf-btn rf-btn-primary rf-btn-block" onClick={submitNew} disabled={!form.catalogId || !form.assignedTo}>
+              {form.assignedTo ? `Asignar a ${nameOf(form.assignedTo).split(' ')[0]}` : 'Asignar'}
+            </button>
           </div>
         </div>
       )}
@@ -545,6 +574,7 @@ export function ShiftActivitiesView({ orgId, userId, role, area, plants, rooms, 
                     rooms={rooms}
                     machines={machines}
                     plantId={a.plant_id}
+                    activity={a}
                     onComplete={async (vals) => {
                       const { error } = await so.completeActivity(a.id, vals)
                       if (!error) setCompletingId(null)

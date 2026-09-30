@@ -23,6 +23,7 @@ import { calibrationRecordItem, openEvidenceFormat, openRecordDocument, singleCh
 import PlanTaskInstructions from '../features/maintenance/components/PlanTaskInstructions'
 import { IncubantSigPill } from './Brand'
 import SensorPanel from './SensorPanel'
+import StorageImage from './StorageImage'
 
 function SigDocBanner({ code, name, version = '01', date = '18-08-2026', process = 'GESTIÓN DE MANTENIMIENTO', onAction = null, actionLabel = null }) {
   return (
@@ -150,7 +151,7 @@ export default function MachineDossier({
       mantum,
       stats,
       assetEvidence,
-    })
+    }).catch((err) => console.warn('No se pudo exportar el FOMAT03:', err?.message || err))
   }
 
   const handleCreateAutoOt = async (planTask) => {
@@ -248,13 +249,10 @@ export default function MachineDossier({
         {/* Imagen del Activo */}
         <div style={{ position: 'relative', width: 140, height: 110, borderRadius: 8, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.15)', background: '#0f172a', flexShrink: 0 }}>
           {mantum?.imageUrl ? (
-            <img
+            <StorageImage
               src={mantum.imageUrl}
               alt={machine.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
             />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
@@ -591,7 +589,7 @@ export default function MachineDossier({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
                     {assetEvidence.filter((file) => file.file_type === 'image' && file.url).map((file) => (
                       <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
-                        <img src={file.url} alt={file.file_name} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 6 }} />
+                        <StorageImage src={file.url} alt={file.file_name} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 6 }} />
                         <small>{file.file_name}</small>
                       </a>
                     ))}

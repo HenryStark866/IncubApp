@@ -27,16 +27,26 @@ export function isNetworkError(err) {
   const msg = String(err.message || err || '').toLowerCase()
   if (name === 'AuthRetryableFetchError' || (name === 'TypeError' && /fetch/.test(msg))) return true
   if (err.status === 0 || err.status === 502 || err.status === 503 || err.status === 504) return true
-  return /failed to fetch|fetch failed|networkerror|network request failed|load failed|err_network|err_internet|err_name_not_resolved|timeout|timed out|aborted/.test(msg)
+  return /failed to fetch|fetch failed|networkerror|network request failed|load failed|err_network|err_internet|err_name_not_resolved|timeout|timed out|aborted|unexpected token|is not valid json|syntaxerror/.test(msg)
 }
+
+/** El servidor no pudo enviar el correo (sin servidor de correo configurado o caído). */
+export const MAIL_UNAVAILABLE =
+  'El servidor no pudo enviar el correo. Pide al administrador de tu empresa una contraseña temporal (Administración → Usuarios → Contraseña) y cámbiala después en tu Perfil.'
 
 /** Mensajes de Supabase Auth en español, para que nadie vea textos crudos en inglés. */
 export function authErrorEs(err) {
   if (!err) return null
-  if (isNetworkError(err)) {
-    return 'No hay conexión con el servidor. Revisa el internet; si ya entraste antes en este dispositivo, puedes entrar sin conexión con tu mismo correo y contraseña.'
-  }
   const msg = String(err.message || err).toLowerCase()
+  if (/unexpected token|is not valid json|syntaxerror/.test(msg)) {
+    return 'No se pudo conectar con el servidor de autenticación (la respuesta del servidor no fue un JSON válido). Revisa que el servidor local de Supabase esté activo.'
+  }
+  if (/error sending|sending (recovery|confirmation|magic link|invite)|smtp|mail(er)? (server|error)|failed to send/.test(msg)) {
+    return MAIL_UNAVAILABLE
+  }
+  if (isNetworkError(err)) {
+    return 'No hay conexión con el servidor. Revisa tu red local o internet; si ya entraste antes en este dispositivo, puedes entrar sin conexión con tu mismo correo y contraseña.'
+  }
   if (/invalid login credentials|invalid_credentials/.test(msg)) return 'Correo o contraseña incorrectos.'
   if (/email not confirmed/.test(msg)) return 'Tu correo aún no está confirmado. Abre el enlace que te llegó al correo (revisa también spam).'
   if (/user already registered|already been registered|already exists/.test(msg)) return 'Ya existe una cuenta con ese correo. Inicia sesión o usa «¿Olvidaste tu contraseña?».'

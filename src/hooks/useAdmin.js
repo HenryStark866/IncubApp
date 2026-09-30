@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, createIsolatedAuthClient } from '../lib/supabase'
 import { normalizeWorkArea, isPlatformStaffOrgRole } from '../lib/roles'
 import { templateSettingsPayload } from '../lib/clientMenuTemplate'
 
@@ -276,11 +276,17 @@ export function useAdmin(opts = true) {
   })
 
   const createUser = wrap(async ({ email, password, fullName, approved }) => {
-    const { data, error: err } = await supabase.functions.invoke('admin-users', {
+    let { data, error: err } = await supabase.functions.invoke('admin-users', {
       body: { action: 'create', email, password, full_name: fullName, approved },
     })
-    if (err) return { error: err }
-    if (data?.error) return { error: data.error }
+    // El servidor propio no tiene la función «admin-users» (28-09-2026): la cuenta se
+    // crea con el registro normal en un cliente aparte, sin tocar la sesión del admin.
+    if (err || !data || data?.error) {
+      const created = await createAccountBySignup({ email, password, fullName })
+      if (created.error) return { error: created.error }
+      data = { user: { id: created.userId } }
+      err = null
+    }
 
     // Tenant: asignar de inmediato a la empresa de la licencia
     if (tenantMode && scopeOrgId) {
@@ -360,13 +366,21 @@ export function useAdmin(opts = true) {
       safeRole === 'coordinator'
         ? normalizeWorkArea(area) || 'plant'
         : normalizeWorkArea(area) || 'general'
-    return supabase.from('organization_members').insert({
-      org_id: targetOrg,
-      user_id: userId,
-      role: safeRole,
-      area: safeArea,
-    })
+    return supabase.from('organization_members').upsert(
+      {
+        org_id: targetOrg,
+        user_id: userId,
+        role: safeRole,
+        area: safeArea,
+      },
+      { onConflict: 'org_id, user_id' }
+    )
   })
+
+  /** Contraseña temporal para quien no puede recuperar la suya por correo. */
+  const setUserPassword = wrap((userId, password) =>
+    supabase.rpc('admin_set_user_password', { p_user_id: userId, p_password: password })
+  )
 
   const saveMember = wrap((orgId, userId, { role, area, jobTitle } = {}) => {
     const targetOrg = tenantMode ? scopeOrgId : orgId
@@ -443,6 +457,7 @@ export function useAdmin(opts = true) {
   const deleteMachine = wrap((machineId) => supabase.from('machines').delete().eq('id', machineId))
 
   return {
+    setUserPassword,
     users,
     orgs,
     plants,
@@ -476,4 +491,24 @@ export function useAdmin(opts = true) {
     deleteRoom,
     deleteMachine,
   }
+}
+
+/** Crea la cuenta con el registro normal (sin sesión propia) y devuelve su id. */
+async function createAccountBySignup({ email, password, fullName }) {
+  const cleanEmail = String(email || '').trim().toLowerCase()
+  if (!cleanEmail) return { error: 'Falta el correo' }
+  if (!password || password.length < 6) return { error: 'La contraseña debe tener al menos 6 caracteres' }
+  const client = createIsolatedAuthClient()
+  const { data, error } = await client.auth.signUp({
+    email: cleanEmail,
+    password,
+    options: { data: { full_name: fullName || '' } },
+  })
+  if (error) return { error: error.message }
+  // Correo ya registrado: Supabase responde un usuario «vacío», sin identidades.
+  if (!data?.user?.id || (Array.isArray(data.user.identities) && data.user.identities.length === 0)) {
+    return { error: 'Ya existe una cuenta con ese correo. Agrégala a la empresa desde «Rol» o asígnale una contraseña temporal.' }
+  }
+  await client.auth.signOut().catch(() => {})
+  return { userId: data.user.id }
 }

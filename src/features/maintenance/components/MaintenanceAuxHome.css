@@ -1,0 +1,93 @@
+/*
+ * Inicio del auxiliar de mantenimiento. Se apoya en ShiftHome.css (.sh-*, con su
+ * paleta y modo oscuro) y solo agrega lo propio: formularios, lista de chequeo y evidencias.
+ */
+.ma-root .ma-title {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.ma-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ma-facts dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.ma-facts dt {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sh-muted);
+}
+
+.ma-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.ma-callout p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ma-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ma-check {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-line);
+  border-left: 4px solid var(--sh-line);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ma-check-ok {
+  border-left-color: var(--sh-ok);
+}
+
+.ma-check-fail {
+  border-left-color: var(--sh-fault);
+}
+
+.ma-check-na {
+  border-left-color: var(--sh-muted);
+}
+
+.ma-check-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ma-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 420px) {
+  .ma-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -49,18 +49,24 @@ export function IncubAppProductMark({ size = 44, className = '' }) {
       height={size}
       alt={BRAND.productName}
       draggable={false}
-      style={{ display: 'block', borderRadius: Math.round(size * 0.22) }}
+      style={{ display: 'block', objectFit: 'contain' }}
     />
   )
 }
 
-export function IncubAppProductLogo({ mark = 48, center = true, showSlogan = true }) {
+export function IncubAppProductLogo({ mark = 48, center = true, showSlogan = true, light = false }) {
   return (
     <div className={`brand-lockup${center ? ' center' : ''}`}>
       <img
-        src={BRAND.assets.logo}
-        alt={`${BRAND.productName} — ${BRAND.tagline}`}
-        style={{ height: Math.round(mark * 1.15), width: 'auto', maxWidth: '100%' }}
+        src={light ? BRAND.assets.logoLight : BRAND.assets.logo}
+        alt="Incubant"
+        style={{
+          height: Math.round(mark * 1.15),
+          width: 'auto',
+          maxWidth: '100%',
+          // El logo de Incubant tiene letras oscuras: sobre fondo oscuro va en una placa clara.
+          ...(light ? null : { background: '#FFFFFF', borderRadius: 12, padding: '6px 12px' }),
+        }}
         draggable={false}
       />
       {showSlogan && (
@@ -95,7 +101,11 @@ export function IncubAppMark({ size = 44, className = '' }) {
       height={size}
       alt="Incubant"
       draggable={false}
-      style={{ display: 'block', borderRadius: Math.round(size * 0.18), objectFit: 'contain' }}
+      style={{
+        display: 'block',
+        borderRadius: Math.round(size * 0.18),
+        objectFit: 'contain',
+      }}
       onError={(e) => {
         e.currentTarget.src = INCUBANT_LOGO_FALLBACK
       }}
@@ -131,7 +141,12 @@ export function ContextualLogo({ brand, mark = 48, center = true }) {
         <img
           src={brand.logoPath}
           alt={`${brand.product || ''} — ${brand.legalName || ''}`}
-          style={{ height: h, width: 'auto', display: 'block', maxWidth: '100%' }}
+          style={{
+            height: h,
+            width: 'auto',
+            display: 'block',
+            maxWidth: '100%',
+          }}
           draggable={false}
         />
       </div>
@@ -155,7 +170,11 @@ export function ContextualMark({ brand, size = 40 }) {
         width={size}
         height={size}
         alt={brand.legacyBrand || brand.legalName || ''}
-        style={{ borderRadius: 10, objectFit: 'contain', background: 'transparent' }}
+        style={{
+          borderRadius: 10,
+          objectFit: 'contain',
+          background: 'transparent',
+        }}
         draggable={false}
       />
     )
@@ -195,7 +214,7 @@ export function CdhSignature({ className = '', label = 'SaaS', clientMode = fals
   return (
     <span className={`cdh-sig ${className}`}>
       <span className="cdh-sig-wolf">
-        <CdhWolf size={18} />
+        <img src={BRAND.assets.mark} alt="" width={18} height={18} draggable={false} style={{ display: 'block' }} />
       </span>
       <span className="cdh-sig-text">
         {clientMode || label === 'powered' ? (
@@ -253,10 +272,7 @@ export function IncubantSigBadge({ className = '', showSlogan = true }) {
  */
 export function IncubantSigPill({ className = '', text = 'SIG · Antioqueña de Incubación SAS' }) {
   return (
-    <span
-      className={`incubant-sig-pill ${className}`}
-      title="Proceso certificado bajo Sistema Integrado de Gestión"
-    >
+    <span className={`incubant-sig-pill ${className}`} title="Proceso certificado bajo Sistema Integrado de Gestión">
       <img
         src="/client-brands/incubant/logo_sig.png"
         alt="SIG"
@@ -269,4 +285,3 @@ export function IncubantSigPill({ className = '', text = 'SIG · Antioqueña de 
     </span>
   )
 }
-

@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { photoRoundsByUser, roundsForCompliance } from '../lib/roundRecords'
 import {
   BONUS_FUND_NOTE,
   BONUS_MIN_CONTINUOUS_DAYS,
@@ -26,6 +27,7 @@ import {
   localSetUsage,
   localUpsertTarget,
 } from '../lib/performanceLocalStore'
+import { buildPunctuality, isMarginKey, readMargins } from '../lib/shiftPunctuality'
 
 export function usePerformance({ orgId, userId, role, area }) {
   const [targets, setTargets] = useState([])
@@ -34,6 +36,7 @@ export function usePerformance({ orgId, userId, role, area }) {
   const [members, setMembers] = useState([])
   const [usageMap, setUsageMap] = useState({})
   const [attendanceToday, setAttendanceToday] = useState([])
+  const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [localMode, setLocalMode] = useState(false)
@@ -103,14 +106,27 @@ export function usePerformance({ orgId, userId, role, area }) {
       .order('punched_at', { ascending: false })
       .limit(3000)
 
-    const [mem, tgt, rnd, lab, use, att] = await Promise.all([
+    // Turnos asignados: la puntualidad compara las marcas con su horario.
+    const asgP = supabase
+      .from('shift_assignments')
+      .select('user_id, work_date, shift_number, is_rest')
+      .eq('org_id', orgId)
+      .gte('work_date', since)
+      .limit(5000)
+
+    const [mem, tgt, rnd, lab, use, att, photoChecks, asg] = await Promise.all([
       memP,
       tgtP,
       rndP,
       labP,
       useP,
       attP,
+      loadPhotoChecks(orgId, daysAgo(35)),
+      asgP,
     ])
+    // Las fotos de Supervisión cuentan como ronda: cada hora del turno en que
+    // alguien tomó fotos es una ronda para esa persona (lib/roundRecords).
+    const photoRounds = photoRoundsByUser(photoChecks)
 
     if (!mem.error) {
       setMembers(
@@ -139,7 +155,7 @@ export function usePerformance({ orgId, userId, role, area }) {
       setLocalMode(true)
       setError(cloudFail ? null : tgt.error?.message || rnd.error?.message || null)
       setTargets(localListTargets(orgId))
-      setRounds(localListRounds(orgId))
+      setRounds(roundsForCompliance(localListRounds(orgId), photoRounds))
       setLabors(localListLabors(orgId))
       // usage map local
       const um = {}
@@ -157,10 +173,12 @@ export function usePerformance({ orgId, userId, role, area }) {
       setLocalMode(false)
       setError(null)
       setTargets(tgt.data ?? [])
-      setRounds([
-        ...(rnd.data ?? []),
-        ...localListRounds(orgId).filter((r) => r._local),
-      ])
+      setRounds(
+        roundsForCompliance(
+          [...(rnd.data ?? []), ...localListRounds(orgId).filter((r) => r._local)],
+          photoRounds
+        )
+      )
       setLabors([
         ...(lab.data ?? []),
         ...localListLabors(orgId).filter((r) => r._local),
@@ -184,6 +202,7 @@ export function usePerformance({ orgId, userId, role, area }) {
 
     if (!att.error) setAttendanceToday(att.data ?? [])
     else setAttendanceToday([])
+    setAssignments(asg.error ? [] : asg.data ?? [])
 
     setLoading(false)
   }, [orgId, userId])
@@ -385,6 +404,7 @@ export function usePerformance({ orgId, userId, role, area }) {
       const global = targets.filter((t) => !t.user_id && !t.role)
       const merged = new Map()
       for (const t of [...global, ...byRole, ...byUser]) {
+        if (isMarginKey(t.labor_key)) continue
         merged.set(t.labor_key, {
           labor_key: t.labor_key,
           label: t.label,
@@ -409,6 +429,30 @@ export function usePerformance({ orgId, userId, role, area }) {
     [targets]
   )
 
+  // Puntualidad de ayer y hoy (el T3 de anoche sigue siendo «el turno actual» en la madrugada).
+  const recentPunctuality = useMemo(() => {
+    const y = new Date(`${today}T12:00:00Z`)
+    y.setUTCDate(y.getUTCDate() - 1)
+    const yesterday = y.toISOString().slice(0, 10)
+    const memberById = Object.fromEntries(members.map((m) => [m.id, m]))
+    const rows = buildPunctuality({
+      punches: attendanceToday,
+      assignments,
+      marginsFor: (uid) =>
+        readMargins(targets, memberById[uid] || { id: uid, role: uid === userId ? role : undefined }),
+      from: yesterday,
+      to: today,
+    })
+    const byUser = new Map()
+    for (const r of rows) {
+      const current = r.date === today || (r.shiftNumber === 3 && r.outStatus === 'open')
+      if (!current) continue
+      const prev = byUser.get(r.userId)
+      if (!prev || r.start > prev.start) byUser.set(r.userId, r)
+    }
+    return byUser
+  }, [attendanceToday, assignments, targets, members, today, userId, role])
+
   const reportedFor = useCallback(
     (uid) => {
       const rnd = rounds.filter(
@@ -427,23 +471,18 @@ export function usePerformance({ orgId, userId, role, area }) {
           (String(a.shift_date || '').startsWith(today) ||
             String(a.punched_at || '').startsWith(today))
       )
-      const hasIn = att.some((a) => a.punch_type === 'in')
-      const hasOut = att.some((a) => a.punch_type === 'out')
-      // Adherencia simple: 100 si ingreso+salida, 50 si solo uno
-      let adherence = 0
-      if (hasIn && hasOut) adherence = 100
-      else if (hasIn) adherence = 50
-      else adherence = 0
+      // Adherencia: llegada y salida contra el horario del turno (lib/shiftPunctuality).
+      const adherence = recentPunctuality.get(uid)?.adherence ?? 0
 
       return {
         rounds: rnd,
         labors_completed: labQty,
-        attendance_punches: att.length,
+        attendance_punches: recentPunctuality.get(uid)?.punchTimes.length ?? att.length,
         shift_adherence: adherence,
         reports_sent: 0,
       }
     },
-    [rounds, labors, attendanceToday, today]
+    [rounds, labors, attendanceToday, today, recentPunctuality]
   )
 
   const myScore = useMemo(() => {
@@ -489,6 +528,10 @@ export function usePerformance({ orgId, userId, role, area }) {
     myRoundsToday,
     myLaborsToday,
     myAttendanceToday,
+    /** Turno actual del usuario: llegada/salida vs horario y márgenes */
+    myPunctuality: recentPunctuality.get(userId) || null,
+    punctualityMargins: readMargins(targets, { id: userId, role }),
+    assignments,
     myScore,
     teamScores,
     isCoord,
@@ -506,6 +549,31 @@ export function usePerformance({ orgId, userId, role, area }) {
     role,
     area,
   }
+}
+
+/**
+ * Fotos de máquinas (sin las marcas de «apagada») desde `since`, por páginas:
+ * el servidor entrega máximo 1.000 filas por consulta. Si la tabla no responde
+ * se sigue sin ellas (el cumplimiento usa entonces solo los reportes escritos).
+ */
+async function loadPhotoChecks(orgId, since) {
+  const PAGE = 1000
+  const out = []
+  for (let page = 0; page < 30; page += 1) {
+    const { data, error } = await supabase
+      .from('machine_checks')
+      .select('taken_by, taken_at, shift_date, shift_number, hour_slot, plant_id, condition, photo_path')
+      .eq('org_id', orgId)
+      .gte('shift_date', since)
+      .not('photo_path', 'is', null)
+      .neq('condition', 'off')
+      .order('taken_at', { ascending: true })
+      .range(page * PAGE, page * PAGE + PAGE - 1)
+    if (error || !data) break
+    out.push(...data)
+    if (data.length < PAGE) break
+  }
+  return out
 }
 
 function daysAgo(n) {

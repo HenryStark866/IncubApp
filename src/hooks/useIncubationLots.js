@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { compressImage } from '../lib/image'
 import { uniqueChannel } from '../lib/realtimeChannel'
 import { EGGS_PER_TRAY, TRAYS_PER_CART, CARTS_PER_MACHINE } from '../lib/loadMapEngine'
 
@@ -37,9 +38,7 @@ export function lotTotals(postures) {
 }
 
 function missingTable(msg) {
-  return /does not exist|schema cache|Could not find|relation|PGRST205|column/i.test(
-    String(msg || '')
-  )
+  return /does not exist|schema cache|Could not find|relation|PGRST205|column/i.test(String(msg || ''))
 }
 
 /** Export «useIncubationLots»: API pública de este módulo. Henry Stark Desarrollador */
@@ -58,7 +57,7 @@ export function useIncubationLots(orgId, userId) {
       supabase
         .from('incubation_lots')
         .select(
-          'id, code, origin, postures, is_treated, expected_arrival_date, status, priority, notes, created_by, created_at, updated_at'
+          'id, code, origin, postures, is_treated, expected_arrival_date, status, priority, notes, created_by, created_at, updated_at',
         )
         .eq('org_id', orgId)
         .order('priority', { ascending: false })
@@ -66,17 +65,13 @@ export function useIncubationLots(orgId, userId) {
         .limit(500),
       supabase
         .from('lot_arrivals')
-        .select(
-          'id, lot_id, lot_code, arrived_at, received_postures, seal_number, notes, received_by, created_at'
-        )
+        .select('id, lot_id, lot_code, arrived_at, received_postures, seal_number, notes, received_by, created_at')
         .eq('org_id', orgId)
         .order('arrived_at', { ascending: false })
         .limit(300),
       supabase
         .from('classification_orders')
-        .select(
-          'id, status, items, machine_hint, group_count, notes, created_by, published_at, created_at, updated_at'
-        )
+        .select('id, status, items, machine_hint, group_count, notes, created_by, published_at, created_at, updated_at')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false })
         .limit(100),
@@ -85,7 +80,7 @@ export function useIncubationLots(orgId, userId) {
       setError(
         missingTable(l.error.message)
           ? 'Faltan las tablas del módulo Datos en Supabase. Ejecute supabase_migration_datos_center.sql.'
-          : l.error.message
+          : l.error.message,
       )
     } else {
       setLots(l.data ?? [])
@@ -116,13 +111,23 @@ export function useIncubationLots(orgId, userId) {
       .channel(uniqueChannel(`incu-lots:${orgId}`))
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'incubation_lots', filter: `org_id=eq.${orgId}` },
-        () => loadAllRef.current()
+        {
+          event: '*',
+          schema: 'public',
+          table: 'incubation_lots',
+          filter: `org_id=eq.${orgId}`,
+        },
+        () => loadAllRef.current(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'lot_arrivals', filter: `org_id=eq.${orgId}` },
-        () => loadAllRef.current()
+        {
+          event: '*',
+          schema: 'public',
+          table: 'lot_arrivals',
+          filter: `org_id=eq.${orgId}`,
+        },
+        () => loadAllRef.current(),
       )
       .on(
         'postgres_changes',
@@ -132,7 +137,7 @@ export function useIncubationLots(orgId, userId) {
           table: 'classification_orders',
           filter: `org_id=eq.${orgId}`,
         },
-        () => loadAllRef.current()
+        () => loadAllRef.current(),
       )
       .subscribe()
     return () => {
@@ -157,7 +162,9 @@ export function useIncubationLots(orgId, userId) {
       if (!cleanCode) return { error: 'El código del lote es obligatorio' }
       const cp = cleanPostures(postures)
       if (!cp.length && !isTreated) {
-        return { error: 'Agregue al menos una fecha de postura con cantidad de huevos' }
+        return {
+          error: 'Agregue al menos una fecha de postura con cantidad de huevos',
+        }
       }
       const row = {
         org_id: orgId,
@@ -171,11 +178,7 @@ export function useIncubationLots(orgId, userId) {
         created_by: userId,
         status: 'planned',
       }
-      const { data, error: err } = await supabase
-        .from('incubation_lots')
-        .insert(row)
-        .select()
-        .single()
+      const { data, error: err } = await supabase.from('incubation_lots').insert(row).select().single()
       if (err) {
         setError(err.message)
         return { error: err.message }
@@ -183,7 +186,7 @@ export function useIncubationLots(orgId, userId) {
       setLots((list) => [data, ...list])
       return { error: null, lot: data }
     },
-    [orgId, userId, cleanPostures]
+    [orgId, userId, cleanPostures],
   )
 
   const updateLot = useCallback(
@@ -210,45 +213,73 @@ export function useIncubationLots(orgId, userId) {
       }
       return { error: null }
     },
-    [cleanPostures, loadAll]
+    [cleanPostures, loadAll],
   )
 
-  const deleteLot = useCallback(async (id) => {
-    setLots((list) => list.filter((l) => l.id !== id))
-    const { error: err } = await supabase.from('incubation_lots').delete().eq('id', id)
-    if (err) {
-      setError(err.message)
-      await loadAll()
-      return { error: err.message }
-    }
-    return { error: null }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadAll])
+  const deleteLot = useCallback(
+    async (id) => {
+      setLots((list) => list.filter((l) => l.id !== id))
+      const { error: err } = await supabase.from('incubation_lots').delete().eq('id', id)
+      if (err) {
+        setError(err.message)
+        await loadAll()
+        return { error: err.message }
+      }
+      return { error: null }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [loadAll],
+  )
 
   /**
    * Recepción registra la llegada: fecha automática (arrived_at) + cantidades de
    * huevo por fecha de postura. Marca el lote como 'arrived'.
    */
   const registerArrival = useCallback(
-    async ({ lotId, lotCode, receivedPostures, sealNumber, notes }) => {
+    async ({ lotId, lotCode, receivedPostures, sealNumber, notes, photos = [] }) => {
       if (!orgId || !userId) return { error: 'Sesión inválida' }
       const cp = cleanPostures(receivedPostures)
       if (!cp.length) {
-        return { error: 'Ingrese la cantidad de huevos por fecha de al menos una postura' }
+        return {
+          error: 'Ingrese la cantidad de huevos por fecha de al menos una postura',
+        }
       }
-      const { data, error: err } = await supabase
-        .from('lot_arrivals')
-        .insert({
-          org_id: orgId,
-          lot_id: lotId || null,
-          lot_code: lotCode?.trim() || null,
-          received_postures: cp,
-          seal_number: sealNumber?.trim() || null,
-          notes: notes?.trim() || null,
-          received_by: userId,
+      // Fotos de la llegada (camión, precinto, estado del huevo) al bucket de la empresa.
+      const photoPaths = []
+      for (const [i, file] of photos.filter(Boolean).entries()) {
+        let photo = file
+        try {
+          if (photo.size > 900_000) photo = await compressImage(photo, 1280, 0.7)
+        } catch {
+          /* usar original */
+        }
+        const path = `${orgId}/lot-arrivals/${Date.now()}-${i}.jpg`
+        const { error: upErr } = await supabase.storage.from('machine-checks').upload(path, photo, {
+          contentType: photo.type || 'image/jpeg',
+          upsert: false,
         })
-        .select()
-        .single()
+        if (upErr) {
+          if (photoPaths.length) await supabase.storage.from('machine-checks').remove(photoPaths)
+          return { error: `No se pudo subir la foto: ${upErr.message}` }
+        }
+        photoPaths.push(path)
+      }
+      const row = {
+        org_id: orgId,
+        lot_id: lotId || null,
+        lot_code: lotCode?.trim() || null,
+        received_postures: cp,
+        seal_number: sealNumber?.trim() || null,
+        notes: notes?.trim() || null,
+        received_by: userId,
+      }
+      if (photoPaths.length) row.photo_paths = photoPaths
+      let { data, error: err } = await supabase.from('lot_arrivals').insert(row).select().single()
+      if (err && photoPaths.length && /photo_paths/.test(err.message || '')) {
+        // Servidor sin la migración 20260929: se guarda la llegada sin la lista de fotos.
+        delete row.photo_paths
+        ;({ data, error: err } = await supabase.from('lot_arrivals').insert(row).select().single())
+      }
       if (err) {
         setError(err.message)
         return { error: err.message }
@@ -263,7 +294,7 @@ export function useIncubationLots(orgId, userId) {
       }
       return { error: null, arrival: data }
     },
-    [orgId, userId, cleanPostures]
+    [orgId, userId, cleanPostures],
   )
 
   /**
@@ -308,7 +339,7 @@ export function useIncubationLots(orgId, userId) {
         groupCount,
       }
     },
-    [lots]
+    [lots],
   )
 
   /**
@@ -321,7 +352,9 @@ export function useIncubationLots(orgId, userId) {
       const built = items ? { items } : buildClassificationOrder()
       const list = items || built.items
       if (!list?.length) {
-        return { error: 'No hay lotes con posturas para clasificar. Registre lotes primero.' }
+        return {
+          error: 'No hay lotes con posturas para clasificar. Registre lotes primero.',
+        }
       }
       const totalEggs = list.reduce((s, i) => s + (Number(i.eggs) || 0), 0)
       const totalCarts = Math.ceil(totalEggs / EGGS_PER_CART)
@@ -352,7 +385,10 @@ export function useIncubationLots(orgId, userId) {
       if (lotIds.length) {
         await supabase
           .from('incubation_lots')
-          .update({ status: 'classifying', updated_at: new Date().toISOString() })
+          .update({
+            status: 'classifying',
+            updated_at: new Date().toISOString(),
+          })
           .in('id', lotIds)
           .in('status', ['planned', 'arrived'])
       }
@@ -372,7 +408,7 @@ export function useIncubationLots(orgId, userId) {
       }
       return { error: null, order: data }
     },
-    [orgId, userId, buildClassificationOrder]
+    [orgId, userId, buildClassificationOrder],
   )
 
   const cancelOrder = useCallback(async (orderId) => {
@@ -391,7 +427,7 @@ export function useIncubationLots(orgId, userId) {
   /** Órdenes publicadas activas (lo que recepción debe clasificar hoy). */
   const activeOrders = useMemo(
     () => orders.filter((o) => o.status === 'published' || o.status === 'in_progress'),
-    [orders]
+    [orders],
   )
 
   return {

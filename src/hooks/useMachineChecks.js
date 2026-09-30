@@ -349,7 +349,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
    * que no fueron reportadas en la hora actual (sin foto).
    */
   const closeRound = useCallback(
-    async (plantId, machineIds) => {
+    async (plantId, machineIds, { notes: offNotes } = {}) => {
       if (!orgId || !userId) return { error: 'Sesión inválida' }
       if (!machineIds || machineIds.length === 0) return { error: null }
       setError(null)
@@ -384,7 +384,7 @@ export function useMachineChecks(orgId, userId, { canSupervise }) {
         shift_number: shift,
         hour_slot: hour,
         condition: 'off',
-        notes: 'Apagada — no reportada al terminar la ronda',
+        notes: offNotes || 'Apagada — no reportada al terminar la ronda',
         photo_path: null,
       }))
 

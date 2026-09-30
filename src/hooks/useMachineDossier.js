@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { getMantumDataForMachine } from '../data/mantumCatalog'
+import { useMantumHistory } from './useMantumHistory'
 
 export function useMachineDossier(machineId, orgId) {
   const [loading, setLoading] = useState(true)
@@ -181,10 +182,12 @@ export function useMachineDossier(machineId, orgId) {
   }, [loadDossier])
 
   // Datos Mantum cruzados (imagen, ficha Mantum, componentes, plan AM, OTs históricas)
+  // El historial de OT Mantum se descarga aparte (6,5 MB) y llega después de la ficha.
+  const mantumHistory = useMantumHistory(!!machine)
   const mantum = useMemo(() => {
     if (!machine) return null
-    return getMantumDataForMachine(machine)
-  }, [machine])
+    return getMantumDataForMachine(machine, mantumHistory || {})
+  }, [machine, mantumHistory])
 
   // Cálculo de KPIs y Semáforos SIG para Auditoría
   const stats = useMemo(() => {

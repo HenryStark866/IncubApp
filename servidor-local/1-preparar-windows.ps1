@@ -4,6 +4,7 @@
 # Se puede ejecutar varias veces: lo que ya está hecho lo salta.
 # Henry Stark Desarrollador · 23-09-2026
 $ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'  # la barra de progreso de PowerShell 5.1 hace lentísimas las descargas
 $aqui = $PSScriptRoot
 New-Item -ItemType Directory -Force -Path "$aqui\logs" | Out-Null
 Start-Transcript -Path "$aqui\logs\1-preparar.txt" -Append | Out-Null
@@ -38,6 +39,23 @@ Paso 'Actualizando WSL'
 # Descarga directa (sin Microsoft Store) y con tope de 10 minutos: si se demora, se sigue.
 $p = Start-Process wsl.exe -ArgumentList '--update', '--web-download' -PassThru -NoNewWindow
 if (-not $p.WaitForExit(600000)) { try { $p.Kill() } catch {} ; Write-Host '  (la actualización tardó demasiado; se continúa con la versión instalada)' -ForegroundColor Yellow }
+# Si WSL sigue sin instalarse (Windows 11 24H2 trae solo un "wsl.exe" de arranque),
+# se instala el paquete oficial de Microsoft desde GitHub.
+& wsl.exe --version *> $null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host '  WSL no quedó instalado con la actualización: instalando el paquete oficial (GitHub microsoft/WSL)...' -ForegroundColor Yellow
+  try {
+    $rel = Invoke-RestMethod 'https://api.github.com/repos/microsoft/WSL/releases/latest' -UseBasicParsing -Headers @{ 'User-Agent' = 'IncubApp' }
+    $asset = $rel.assets | Where-Object { $_.name -match '\.x64\.msi$' } | Select-Object -First 1
+    $msi = "$env:TEMP\$($asset.name)"
+    Invoke-WebRequest $asset.browser_download_url -OutFile $msi -UseBasicParsing -TimeoutSec 1800
+    $r = Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait -PassThru
+    Write-Host "  Paquete WSL $($rel.tag_name) instalado (código $($r.ExitCode))"
+    Remove-Item $msi -Force -ErrorAction SilentlyContinue
+    if ($r.ExitCode -eq 3010) { Write-Host 'REINICIA EL EQUIPO y vuelve a ejecutar CONTINUAR-INSTALACION.' -ForegroundColor Yellow; Stop-Transcript | Out-Null; exit 3010 }
+  } catch { Write-Host "  No se pudo instalar WSL: $($_.Exception.Message)" -ForegroundColor Red }
+  & wsl.exe --version 2>&1 | Out-Host
+}
 Start-Process wsl.exe -ArgumentList '--set-default-version', '2' -Wait -NoNewWindow
 
 Paso "Instalando $distro"
@@ -67,8 +85,10 @@ if ($lista -notcontains $distro) {
   }
   if ((Test-Path $rootfs) -and (Get-Item $rootfs).Length -gt 100MB) {
     Write-Host "  Importando $distro a WSL2 (esto tarda unos minutos)..."
-    Start-Process wsl.exe -ArgumentList '--import', $distro, $instalarEn, $rootfs, '--version', '2' -Wait -NoNewWindow
-    Remove-Item $rootfs -Force -ErrorAction SilentlyContinue
+    & wsl.exe --import $distro $instalarEn $rootfs --version 2 2>&1 | ForEach-Object { ($_ -as [string]) -replace "`0", '' } | Out-Host
+    # La imagen se borra solo si Ubuntu quedó registrado (si no, se reutiliza en el próximo intento).
+    if (((wsl.exe -l -q 2>$null) -replace "`0", '' | Where-Object { $_ }) -contains $distro) { Remove-Item $rootfs -Force -ErrorAction SilentlyContinue }
+    else { Write-Host "  Ubuntu no quedó registrado; la imagen se conserva en $rootfs" -ForegroundColor Yellow }
     wsl.exe -d $distro -u root -- true 2>&1 | Out-Host
   } else {
     Write-Host "  No se pudo descargar $distro tras 3 intentos. Revisa la conexion a internet y vuelve a ejecutar este paso." -ForegroundColor Red
@@ -79,12 +99,18 @@ Paso 'Configurando Ubuntu (systemd, usuario root)'
 wsl.exe -d $distro -u root -- bash -c 'cd /tmp; echo [boot] > /etc/wsl.conf; echo systemd=true >> /etc/wsl.conf; echo [user] >> /etc/wsl.conf; echo default=root >> /etc/wsl.conf; cat /etc/wsl.conf' 2>&1 | Out-Host
 
 Paso 'Configurando WSL (.wslconfig)'
-$mem = [math]::Max(4, [math]::Floor($ramGB * 0.6))
+# Reserva suficiente para Supabase sin dejar a Windows sin memoria. En el Lenovo
+# de 12 GB esto deja 5 GB para Windows y asigna 7 GB a WSL.
+$memGB = if ($ramGB -le 4) { 2.5 } else { [math]::Min(8, [math]::Max(4, [math]::Floor($ramGB - 5))) }
+$memMB = [int]($memGB * 1024)
+$cpuCount = [math]::Min(4, [Environment]::ProcessorCount)
 $wslcfg = "$env:USERPROFILE\.wslconfig"
 if (Test-Path $wslcfg) { Copy-Item $wslcfg "$wslcfg.antes-incubapp" -Force }
-$lineas = @('[wsl2]', "memory=${mem}GB", 'vmIdleTimeout=-1')
+$swapGB = if ($ramGB -le 4) { 3 } else { 4 }
+$lineas = @('[wsl2]', "memory=${memMB}MB", "processors=${cpuCount}", "swap=${swapGB}GB", 'vmIdleTimeout=-1')
 if ($build -ge 22621) { $lineas += 'networkingMode=mirrored'; Write-Host '  Red en modo espejo (Windows 11 22H2+)' }
 else { Write-Host '  Windows sin red en espejo: se usará reenvío de puertos' -ForegroundColor Yellow }
+$lineas += @('', '[experimental]', 'autoMemoryReclaim=gradual')
 Set-Content -Path $wslcfg -Value ($lineas -join "`r`n") -Encoding ASCII
 Get-Content $wslcfg | Out-Host
 wsl.exe --shutdown
@@ -99,10 +125,15 @@ if (-not (Get-NetFirewallRule -DisplayName 'IncubApp servidor local' -ErrorActio
 }
 try { Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow -ErrorAction Stop; Write-Host '  Firewall de WSL abierto a la red local' } catch { Write-Host "  (firewall de Hyper-V no disponible: $($_.Exception.Message))" }
 
-Paso 'Arranque automático (al encender el equipo y al iniciar sesión)'
-& "$PSScriptRoot\registrar-arranque.ps1"
+# El arranque automático (al encender, sin iniciar sesión) lo deja 9-ARRANQUE-AUTOMATICO.bat,
+# que necesita Docker y Supabase ya instalados (paso 2).
+Write-Host '  Arranque automático: correr 9-ARRANQUE-AUTOMATICO.bat al terminar el paso 2' -ForegroundColor Yellow
 
 Paso 'Comprobación final'
+$hv = (Get-CimInstance Win32_ComputerSystem).HypervisorPresent
+$vt = (Get-CimInstance Win32_Processor | Select-Object -First 1).VirtualizationFirmwareEnabled
+Write-Host "Hipervisor activo: $hv · Virtualización en BIOS: $vt (si el hipervisor está activo, este dato puede salir False)"
+& wsl.exe --status 2>&1 | ForEach-Object { ($_ -as [string]) -replace "`0", '' } | Out-Host
 wsl.exe -l -v 2>&1 | Out-Host
 wsl.exe -d $distro -u root -- sh -c 'ps -p 1 -o comm=; uname -r' 2>&1 | Out-Host
 Write-Host "`nLISTO. Ahora ejecuta 2-INSTALAR-SERVIDOR.bat" -ForegroundColor Green

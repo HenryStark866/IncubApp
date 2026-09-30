@@ -24,6 +24,73 @@ async function uploadPhoto(orgId, folder, file) {
   return { path, error }
 }
 
+/** Crear una actividad del turno (la asigna supervisión o coordinación). `row` ya trae org_id, assigned_to, assigned_by. */
+export async function createShiftActivity(row) {
+  const { error } = await supabase.from('shift_activities').insert({ status: 'pending', ...row, title: String(row.title || '').trim() })
+  return { error: error ? error.message : null }
+}
+
+/** Pasar una actividad a otra persona (vuelve a quedar pendiente). */
+export async function reassignShiftActivity(id, assignedTo) {
+  const { error } = await supabase
+    .from('shift_activities')
+    .update({ assigned_to: assignedTo, status: 'pending', started_at: null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  return { error: error ? error.message : null }
+}
+
+/** Iniciar una actividad asignada. */
+export async function startShiftActivity(id) {
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('shift_activities').update({ status: 'in_progress', started_at: now, updated_at: now }).eq('id', id)
+  return { error: error ? error.message : null }
+}
+
+/**
+ * Cierre de una actividad: completa/parcial, cantidad, sala/máquina y foto de evidencia.
+ * Sin conexión queda en la cola (enqueueActivity) y se cierra al volver la red.
+ * @returns {Promise<{ error: string|null, offline?: boolean }>}
+ */
+export async function completeShiftActivity(orgId, id, { completion, resultQty, resultNote, roomId, machineId, file } = {}) {
+  const meta = {
+    orgId,
+    activityId: id,
+    completion: completion || 'complete',
+    resultQty: resultQty === '' || resultQty == null ? null : Number(resultQty),
+    resultNote: resultNote?.trim() || null,
+    roomId: roomId || null,
+    machineId: machineId || null,
+  }
+  const queue = async () => {
+    try {
+      await enqueueActivity(meta, file || null)
+      return { error: null, offline: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  }
+  let photoPath
+  if (file) {
+    const { path, error: upErr } = await uploadPhoto(orgId, 'activities', file)
+    if (upErr) return isNetworkError(upErr.message) ? queue() : { error: upErr.message }
+    photoPath = path
+  }
+  const patch = {
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+    completion: meta.completion,
+    result_qty: meta.resultQty,
+    result_note: meta.resultNote,
+    updated_at: new Date().toISOString(),
+  }
+  if (roomId) patch.room_id = roomId
+  if (machineId) patch.machine_id = machineId
+  if (photoPath) patch.photo_path = photoPath
+  const { error: err } = await supabase.from('shift_activities').update(patch).eq('id', id)
+  if (err) return isNetworkError(err.message) ? queue() : { error: err.message }
+  return { error: null }
+}
+
 /**
  * Operaciones del turno del operario de planta:
  *  - shift_activities: actividades asignadas por el supervisor/coordinador que
@@ -100,13 +167,10 @@ export function useShiftOps(orgId, userId) {
   const startActivity = useCallback(
     async (id) => {
       setError(null)
-      const { error: err } = await supabase
-        .from('shift_activities')
-        .update({ status: 'in_progress', started_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', id)
-      if (err) {
-        setError(err.message)
-        return { error: err.message }
+      const res = await startShiftActivity(id)
+      if (res.error) {
+        setError(res.error)
+        return res
       }
       await loadAll()
       return { error: null }
@@ -116,62 +180,15 @@ export function useShiftOps(orgId, userId) {
 
   // Cierre de la actividad: completa/parcial, cantidad, sala/máquina y foto de evidencia
   const completeActivity = useCallback(
-    async (id, { completion, resultQty, resultNote, roomId, machineId, file }) => {
+    async (id, opts) => {
       setError(null)
-      const meta = {
-        orgId,
-        activityId: id,
-        completion: completion || 'complete',
-        resultQty: resultQty === '' || resultQty == null ? null : Number(resultQty),
-        resultNote: resultNote?.trim() || null,
-        roomId: roomId || null,
-        machineId: machineId || null,
+      const res = await completeShiftActivity(orgId, id, opts)
+      if (res.error) {
+        setError(res.error)
+        return res
       }
-      let photoPath
-      if (file) {
-        const { path, error: upErr } = await uploadPhoto(orgId, 'activities', file)
-        if (upErr) {
-          if (isNetworkError(upErr.message)) {
-            try {
-              await enqueueActivity(meta, file)
-              return { error: null, offline: true }
-            } catch (e) {
-              setError(e.message)
-              return { error: e.message }
-            }
-          }
-          setError(upErr.message)
-          return { error: upErr.message }
-        }
-        photoPath = path
-      }
-      const patch = {
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        completion: completion || 'complete',
-        result_qty: resultQty === '' || resultQty == null ? null : Number(resultQty),
-        result_note: resultNote?.trim() || null,
-        updated_at: new Date().toISOString(),
-      }
-      if (roomId) patch.room_id = roomId
-      if (machineId) patch.machine_id = machineId
-      if (photoPath) patch.photo_path = photoPath
-      const { error: err } = await supabase.from('shift_activities').update(patch).eq('id', id)
-      if (err) {
-        if (isNetworkError(err.message)) {
-          try {
-            await enqueueActivity(meta, file || null)
-            return { error: null, offline: true }
-          } catch (e) {
-            setError(e.message)
-            return { error: e.message }
-          }
-        }
-        setError(err.message)
-        return { error: err.message }
-      }
-      await loadAll()
-      return { error: null }
+      if (!res.offline) await loadAll()
+      return res
     },
     [orgId, loadAll]
   )

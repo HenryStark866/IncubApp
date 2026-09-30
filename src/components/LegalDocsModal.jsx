@@ -70,7 +70,7 @@ function DocsReader({ initialDoc, onBack, onClose }) {
   )
 }
 
-export default function LegalDocsModal({ mode = 'view', onAccept, onClose, busy = false }) {
+export default function LegalDocsModal({ mode = 'view', onAccept, onClose, busy = false, error = null }) {
   const isGate = mode === 'gate'
   const [reading, setReading] = useState(isGate ? null : 'terms')
   const [checked, setChecked] = useState(false)
@@ -136,7 +136,11 @@ export default function LegalDocsModal({ mode = 'view', onAccept, onClose, busy 
               asistencia, plano en tiempo real y logística.
             </span>
           </label>
-          {err && <p className="msg error">{err}</p>}
+          {(err || error) && (
+            <p className="msg error">
+              No pudimos guardar tu aceptación. {err || error} Puedes intentarlo nuevamente.
+            </p>
+          )}
           <div className="actions row" style={{ marginTop: 10 }}>
             <button
               type="button"

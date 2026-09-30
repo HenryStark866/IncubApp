@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { isNetworkError } from '../lib/offlineAuth'
 import { TERMS_VERSION, PRIVACY_VERSION } from '../legal/legalContent'
 
 export function useLegalAcceptance({ userId, orgId }) {
@@ -18,16 +19,24 @@ export function useLegalAcceptance({ userId, orgId }) {
       return
     }
     setLoading(true)
-    const { data, error: err } = await supabase
+    const { data, error: err, status } = await supabase
       .from('legal_acceptances')
       .select('doc_type, doc_version')
       .eq('user_id', userId)
       .in('doc_type', ['terms', 'privacy'])
 
     if (err) {
-      // No bloquear el acceso a la app por un fallo de red/tabla: se reintenta luego.
-      setError(err.message)
-      setAccepted(true)
+      // Sin red o con el servidor caído no se puede consultar ni guardar la aceptación:
+      // bloquear ahí dejaría atrapado a quien trabaja sin conexión. Se vuelve a
+      // comprobar en la siguiente carga con red. Un error real de la tabla sí muestra
+      // el aviso para aceptar de nuevo.
+      const offline =
+        (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+        isNetworkError(err) ||
+        !status ||
+        status >= 500
+      setError(offline ? null : err.message)
+      setAccepted(offline)
       setLoading(false)
       return
     }
@@ -45,6 +54,7 @@ export function useLegalAcceptance({ userId, orgId }) {
 
   const accept = useCallback(async () => {
     if (!userId) return { error: 'Sin sesión' }
+    setError(null)
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null
     const rows = [
       { user_id: userId, org_id: orgId ?? null, doc_type: 'terms', doc_version: TERMS_VERSION, user_agent: ua },
@@ -53,7 +63,10 @@ export function useLegalAcceptance({ userId, orgId }) {
     const { error: err } = await supabase
       .from('legal_acceptances')
       .upsert(rows, { onConflict: 'user_id,doc_type,doc_version' })
-    if (err) return { error: err.message }
+    if (err) {
+      setError(err.message)
+      return { error: err.message }
+    }
     setAccepted(true)
     return { error: null }
   }, [userId, orgId])

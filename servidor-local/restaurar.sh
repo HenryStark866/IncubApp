@@ -11,7 +11,7 @@ SRV=/opt/incubapp/server
 WORK=/opt/incubapp/restore; mkdir -p "$WORK"
 BK="${1:-}"
 [ -f "$BK" ] || { echo "No encuentro el backup: '$BK'"; exit 2; }
-cd "$SRV"
+cd "$SRV" 2>/dev/null && command -v docker >/dev/null && [ -f .env ] || { echo "DETENIDO: el servidor no está instalado todavía (paso 2)."; exit 4; }
 PGPW=$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)
 psqlq() { docker exec -i -e PGPASSWORD="$PGPW" supabase-db psql -h localhost -U supabase_admin -d postgres -v ON_ERROR_STOP=0 "$@"; }
 
@@ -77,6 +77,7 @@ done
 
 echo "==> Arrancando todo"
 docker compose up -d --wait || docker compose ps
+docker compose stop studio supavisor imgproxy || true
 
 echo "==> Resumen"
 psqlq -tA <<'SQL'

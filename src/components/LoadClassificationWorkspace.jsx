@@ -45,7 +45,13 @@ function today() {
 
 const nfEs = (n) => (n == null ? 0 : Math.round(Number(n))).toLocaleString('es-CO')
 const fmtPostureDate = (v) =>
-  v ? new Date(v + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
+  v
+    ? new Date(v + 'T00:00:00').toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: 'short',
+        year: '2-digit',
+      })
+    : '—'
 
 /**
  * Guía de solo lectura para el operario: qué lotes y fechas clasificar y en qué
@@ -69,22 +75,36 @@ function TodayClassificationOrder({ activeOrders }) {
         background: 'var(--surface-2, rgba(30,136,229,0.06))',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
         <strong style={{ fontSize: '1rem' }}>📋 Orden de clasificación de hoy</strong>
         <span className="pill status warn">Publicada por gerencia</span>
       </div>
       <p className="hint" style={{ margin: '6px 0 8px' }}>
-        Clasifica en este orden (fecha más vieja primero). {lotCount} lote{lotCount === 1 ? '' : 's'} ·{' '}
-        {nfEs(totalEggs)} huevos · {order.group_count} grupo{order.group_count === 1 ? '' : 's'} de 12 carros.
+        Clasifica en este orden (fecha más vieja primero). {lotCount} lote
+        {lotCount === 1 ? '' : 's'} · {nfEs(totalEggs)} huevos · {order.group_count} grupo
+        {order.group_count === 1 ? '' : 's'} de 12 carros.
       </p>
       <div className="admin-list">
         {order.items.map((it, i) => (
           <div key={`${it.lotId}-${it.productionDate}-${i}`} className="admin-row compact" style={{ margin: 0 }}>
-            <span className="pill" style={{ minWidth: 26, justifyContent: 'center' }}>{i + 1}</span>
+            <span className="pill" style={{ minWidth: 26, justifyContent: 'center' }}>
+              {i + 1}
+            </span>
             <div className="admin-row-main" style={{ flex: 1 }}>
-              <strong>{it.code}{it.isTreated ? ' · tratado' : ''}</strong>
+              <strong>
+                {it.code}
+                {it.isTreated ? ' · tratado' : ''}
+              </strong>
               <span className="hint" style={{ margin: 0 }}>
-                Postura {fmtPostureDate(it.productionDate)} · {nfEs(it.eggs)} huevos · {Math.ceil(Number(it.carts) || 0)} carros
+                Postura {fmtPostureDate(it.productionDate)} · {nfEs(it.eggs)} huevos ·{' '}
+                {Math.ceil(Number(it.carts) || 0)} carros
               </span>
             </div>
           </div>
@@ -94,12 +114,7 @@ function TodayClassificationOrder({ activeOrders }) {
   )
 }
 
-export default function LoadClassificationWorkspace({
-  orgId,
-  userId,
-  role,
-  coordinatorName,
-}) {
+export default function LoadClassificationWorkspace({ orgId, userId, role, coordinatorName }) {
   const api = useLoadClassification(orgId, userId)
   // ÚNICA instancia del módulo Datos en este workspace: la comparten la guía
   // de la orden del día y el asistente (dos instancias = dos suscripciones y,
@@ -126,12 +141,9 @@ export default function LoadClassificationWorkspace({
   // quedó bien (pedido 2026-09-15). Antes solo aprobaba coordinación, y eso
   // dejaba el mapa esperando a alguien que no estaba en la sala.
   const canApprove =
-    ['owner', 'admin', 'supervisor', 'auxiliary_production'].includes(role) ||
-    (role === 'coordinator' && true) // coordinador de planta / general
+    ['owner', 'admin', 'supervisor', 'auxiliary_production'].includes(role) || (role === 'coordinator' && true) // coordinador de planta / general
   const canOrder = canApprove
-  const isOperator = ['operator', 'auxiliary', 'auxiliary_production', 'reception_operator'].includes(
-    role
-  )
+  const isOperator = ['operator', 'auxiliary', 'auxiliary_production', 'reception_operator'].includes(role)
 
   useEffect(() => {
     if (!orgId) return
@@ -151,18 +163,9 @@ export default function LoadClassificationWorkspace({
     })()
   }, [orgId])
 
-  const pendingMaps = useMemo(
-    () => api.maps.filter((m) => m.status === 'pending_approval'),
-    [api.maps]
-  )
-  const approvedMaps = useMemo(
-    () => api.maps.filter((m) => m.status === 'approved'),
-    [api.maps]
-  )
-  const orderedMaps = useMemo(
-    () => api.maps.filter((m) => m.status === 'ordered'),
-    [api.maps]
-  )
+  const pendingMaps = useMemo(() => api.maps.filter((m) => m.status === 'pending_approval'), [api.maps])
+  const approvedMaps = useMemo(() => api.maps.filter((m) => m.status === 'approved'), [api.maps])
+  const orderedMaps = useMemo(() => api.maps.filter((m) => m.status === 'ordered'), [api.maps])
 
   // Operario: priorizar órdenes
   useEffect(() => {
@@ -190,9 +193,7 @@ export default function LoadClassificationWorkspace({
           <span className="kpi-label">Carros listos</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-value">
-            {(api.summary.totalEggs || 0).toLocaleString('es-CO')}
-          </span>
+          <span className="kpi-value">{(api.summary.totalEggs || 0).toLocaleString('es-CO')}</span>
           <span className="kpi-label">Huevos clasificados</span>
         </div>
         <div className="kpi-card">
@@ -219,15 +220,16 @@ export default function LoadClassificationWorkspace({
         {[
           { id: 'clasificar', label: 'Clasificar' },
           { id: 'resumen', label: 'Lotes y fechas' },
-          { id: 'mapas', label: `Mapas${pendingMaps.length ? ` (${pendingMaps.length})` : ''}` },
-          { id: 'ordenes', label: `Órdenes${orderedMaps.length ? ` (${orderedMaps.length})` : ''}` },
+          {
+            id: 'mapas',
+            label: `Mapas${pendingMaps.length ? ` (${pendingMaps.length})` : ''}`,
+          },
+          {
+            id: 'ordenes',
+            label: `Órdenes${orderedMaps.length ? ` (${orderedMaps.length})` : ''}`,
+          },
         ].map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={tab === t.id ? 'tab active' : 'tab'}
-            onClick={() => setTab(t.id)}
-          >
+          <button key={t.id} type="button" className={tab === t.id ? 'tab active' : 'tab'} onClick={() => setTab(t.id)}>
             {t.label}
           </button>
         ))}
@@ -285,7 +287,7 @@ export default function LoadClassificationWorkspace({
                     text: r.asignada
                       ? `Mapa aprobado y asignado a ${r.asignada}. Ya puede enviarse la orden de cargue al operario.`
                       : 'Mapa aprobado. Ya puede enviarse la orden de cargue al operario.',
-                  }
+                  },
             )
           }}
           onReject={async (id) => {
@@ -296,7 +298,10 @@ export default function LoadClassificationWorkspace({
             setMsg(
               r.error
                 ? { kind: 'error', text: r.error }
-                : { kind: 'ok', text: 'Mapa rechazado. Carros liberados para rearmar.' }
+                : {
+                    kind: 'ok',
+                    text: 'Mapa rechazado. Carros liberados para rearmar.',
+                  },
             )
           }}
           onOrder={async (id) => {
@@ -306,7 +311,10 @@ export default function LoadClassificationWorkspace({
             setMsg(
               r.error
                 ? { kind: 'error', text: r.error }
-                : { kind: 'ok', text: 'Orden de cargue enviada al operario en turno.' }
+                : {
+                    kind: 'ok',
+                    text: 'Orden de cargue enviada al operario en turno.',
+                  },
             )
             setTab('ordenes')
           }}
@@ -327,11 +335,7 @@ export default function LoadClassificationWorkspace({
             setBusy(true)
             const r = await api.completeLoad(id, extraData)
             setBusy(false)
-            setMsg(
-              r.error
-                ? { kind: 'error', text: r.error }
-                : { kind: 'ok', text: 'Cargue marcado como completado.' }
-            )
+            setMsg(r.error ? { kind: 'error', text: r.error } : { kind: 'ok', text: 'Cargue marcado como completado.' })
           }}
           onOrder={async (id) => {
             setBusy(true)
@@ -392,8 +396,7 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
     if (groupIndex > 0 && !groups[groupIndex]) setGroupIndex(0)
   }, [api.groups, groupIndex])
 
-  const setLot = (i, k, v) =>
-    setLots((list) => list.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)))
+  const setLot = (i, k, v) => setLots((list) => list.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)))
   const addLot = () => setLots((list) => [...list, EMPTY_LOT()])
   const removeLot = (i) => setLots((list) => (list.length > 1 ? list.filter((_, idx) => idx !== i) : list))
 
@@ -413,7 +416,10 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
     const raw = String(cartNo || '').trim()
     if (!raw) {
       setBusy(false)
-      setMsg({ kind: 'error', text: 'Indique el número del carro (lo verá el operario en el mapa).' })
+      setMsg({
+        kind: 'error',
+        text: 'Indique el número del carro (lo verá el operario en el mapa).',
+      })
       return
     }
     const numMatch = raw.match(/(\d+)/)
@@ -470,7 +476,10 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
         return
       }
       if (!res.map) {
-        setMsg({ kind: 'error', text: 'No se obtuvo el mapa. Intente de nuevo.' })
+        setMsg({
+          kind: 'error',
+          text: 'No se obtuvo el mapa. Intente de nuevo.',
+        })
         return
       }
       const warns = res.map?.balance?.warnings || []
@@ -483,7 +492,10 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
       onGenerated?.(res.map)
     } catch (e) {
       console.error(e)
-      setMsg({ kind: 'error', text: e?.message || 'Error inesperado al generar el mapa' })
+      setMsg({
+        kind: 'error',
+        text: e?.message || 'Error inesperado al generar el mapa',
+      })
     } finally {
       setBusy(false)
     }
@@ -495,21 +507,16 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
   return (
     <div style={{ marginTop: 12 }}>
       <p className="hint">
-        Un <strong>carro</strong> puede llevar <strong>uno o varios lotes</strong> (mitad y mitad,
-        mezclas o tratados). Cada lote: bandejas ({EGGS_PER_TRAY} huevos c/u; carro ={' '}
-        {TRAYS_PER_CART} bandejas), fecha, nº de lote y cinta de color — el número del lote se ve{' '}
-        <strong>en el color de su cinta</strong>. Los carros se agrupan en{' '}
+        Un <strong>carro</strong> puede llevar <strong>uno o varios lotes</strong> (mitad y mitad, mezclas o tratados).
+        Cada lote: bandejas ({EGGS_PER_TRAY} huevos c/u; carro = {TRAYS_PER_CART} bandejas), fecha, nº de lote y cinta
+        de color — el número del lote se ve <strong>en el color de su cinta</strong>. Los carros se agrupan en{' '}
         <strong>cargues de {CARTS_PER_MACHINE}</strong> y el encargado le asigna{' '}
         <strong>un color a cada cargue completo</strong> para diferenciarlos en cuarto frío.
       </p>
 
       {canClassify && (
         <div className="tabs" role="tablist" style={{ marginTop: 10 }}>
-          <button
-            type="button"
-            className={mode === 'guiado' ? 'tab active' : 'tab'}
-            onClick={() => setMode('guiado')}
-          >
+          <button type="button" className={mode === 'guiado' ? 'tab active' : 'tab'} onClick={() => setMode('guiado')}>
             🧭 Paso a paso (recomendado)
           </button>
           <button
@@ -530,9 +537,21 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
         <div className="inline-form" style={{ marginTop: 10 }}>
           <label style={{ display: 'block', marginBottom: 12 }}>
             Nº del carro (Seleccione del 1 al 12)
-            <div className="cart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginTop: 6, maxWidth: 450 }}>
+            <div
+              className="cart-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(6, 1fr)',
+                gap: 8,
+                marginTop: 6,
+                maxWidth: 450,
+              }}
+            >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => {
-                const inUse = api.entries.some((c) => String(c.cartNumber) === String(n) && ['available', 'reserved'].includes(c.status || 'available'))
+                const inUse = api.entries.some(
+                  (c) =>
+                    String(c.cartNumber) === String(n) && ['available', 'reserved'].includes(c.status || 'available'),
+                )
                 return (
                   <button
                     key={n}
@@ -541,10 +560,16 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
                     style={{
                       padding: '10px',
                       borderRadius: '8px',
-                      border: String(cartNo) === String(n) ? '2px solid var(--accent, #e67e22)' : '1px solid var(--line, #9993)',
-                      background: String(cartNo) === String(n) 
-                        ? 'var(--accent, #e67e22)' 
-                        : inUse ? 'var(--bg-3, rgba(230,126,34,0.15))' : 'transparent',
+                      border:
+                        String(cartNo) === String(n)
+                          ? '2px solid var(--accent, #e67e22)'
+                          : '1px solid var(--line, #9993)',
+                      background:
+                        String(cartNo) === String(n)
+                          ? 'var(--accent, #e67e22)'
+                          : inUse
+                            ? 'var(--bg-3, rgba(230,126,34,0.15))'
+                            : 'transparent',
                       color: String(cartNo) === String(n) ? '#fff' : 'inherit',
                       fontWeight: 'bold',
                       fontSize: '1rem',
@@ -558,14 +583,26 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
             </div>
           </label>
 
-          <div className="cart-preview" style={{ background: 'var(--bg-2)', color: 'var(--text)', border: '1px solid var(--line)' }}>
+          <div
+            className="cart-preview"
+            style={{
+              background: 'var(--bg-2)',
+              color: 'var(--text)',
+              border: '1px solid var(--line)',
+            }}
+          >
             <strong>CARRO {cartNo || '—'}</strong>
             <span>
               {lots.length} lote(s):{' '}
               {lots.map((l, i) => (
-                <LotChip key={i} lot={l.lot || '?'} colorId={l.kind === 'tratado' ? null : l.colorPrimary} treated={l.kind === 'tratado'} />
-              ))}
-              {' '}· {totalTrays} band. · {totalEggs.toLocaleString('es-CO')} huevos
+                <LotChip
+                  key={i}
+                  lot={l.lot || '?'}
+                  colorId={l.kind === 'tratado' ? null : l.colorPrimary}
+                  treated={l.kind === 'tratado'}
+                />
+              ))}{' '}
+              · {totalTrays} band. · {totalEggs.toLocaleString('es-CO')} huevos
             </span>
           </div>
 
@@ -607,7 +644,11 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
                 </label>
                 <label>
                   {l.kind === 'tratado' ? 'Fecha (opcional)' : 'Fecha de producción'}
-                  <input type="date" value={l.productionDate} onChange={(e) => setLot(i, 'productionDate', e.target.value)} />
+                  <input
+                    type="date"
+                    value={l.productionDate}
+                    onChange={(e) => setLot(i, 'productionDate', e.target.value)}
+                  />
                 </label>
               </div>
 
@@ -621,7 +662,15 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
                         const id = e.target.value
                         const t = tapeById(id)
                         setLots((list) =>
-                          list.map((x, idx) => (idx === i ? { ...x, colorPrimary: id, lot: x.lot || t.lotDefault || x.lot } : x))
+                          list.map((x, idx) =>
+                            idx === i
+                              ? {
+                                  ...x,
+                                  colorPrimary: id,
+                                  lot: x.lot || t.lotDefault || x.lot,
+                                }
+                              : x,
+                          ),
                         )
                       }}
                     >
@@ -652,7 +701,13 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
               <div className="two-col">
                 <label>
                   Bandejas
-                  <input type="number" min="0" max={TRAYS_PER_CART} value={l.trays} onChange={(e) => setLot(i, 'trays', e.target.value)} />
+                  <input
+                    type="number"
+                    min="0"
+                    max={TRAYS_PER_CART}
+                    value={l.trays}
+                    onChange={(e) => setLot(i, 'trays', e.target.value)}
+                  />
                 </label>
                 <label>
                   Huevos (auto × {EGGS_PER_TRAY})
@@ -666,14 +721,23 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
                   <select value={l.eggType} onChange={(e) => setLot(i, 'eggType', e.target.value)}>
                     <option value="">— Sin tipo —</option>
                     {EGG_TYPES.map((t) => (
-                      <option key={t} value={t}>Tipo {t}</option>
+                      <option key={t} value={t}>
+                        Tipo {t}
+                      </option>
                     ))}
                   </select>
                 </label>
                 {l.kind !== 'tratado' ? (
                   <label>
                     Peso 2 cubetas (kg del lote)
-                    <input type="number" step="0.01" min="0" value={l.weightKg} onChange={(e) => setLot(i, 'weightKg', e.target.value)} placeholder="Ej. 12.4" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={l.weightKg}
+                      onChange={(e) => setLot(i, 'weightKg', e.target.value)}
+                      placeholder="Ej. 12.4"
+                    />
                   </label>
                 ) : (
                   <span />
@@ -718,14 +782,21 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
 
       <CartQueue api={api} setMsg={setMsg} />
 
-      <div className="card" style={{ marginTop: 16, padding: 12, border: '1px dashed var(--line, #ccc)' }}>
+      <div
+        className="card"
+        style={{
+          marginTop: 16,
+          padding: 12,
+          border: '1px dashed var(--line, #ccc)',
+        }}
+      >
         <h3 className="section-title" style={{ margin: '0 0 8px' }}>
           Generar mapa de cargue (Petersime · {CARTS_PER_MACHINE} carros)
         </h3>
         <p className="hint" style={{ marginTop: 0 }}>
-          Norma térmica Petersime (columnas simétricas): fechas viejas →{' '}
-          <strong>Centro</strong> (menos calor) · intermedias → <strong>Paredes</strong> · nuevas →{' '}
-          <strong>Serpentín</strong> (junto al ventilador). La máquina se carga pareja a lado y lado.
+          Norma térmica Petersime (columnas simétricas): fechas viejas → <strong>Centro</strong> (menos calor) ·
+          intermedias → <strong>Paredes</strong> · nuevas → <strong>Serpentín</strong> (junto al ventilador). La máquina
+          se carga pareja a lado y lado.
         </p>
 
         {groups.length > 1 && (
@@ -785,8 +856,8 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
         </div>
         {activeGroup && !activeGroup.complete && (
           <p className="hint" style={{ marginTop: 8 }}>
-            Este cargue tiene {activeGroup.carts.length} carro(s); el mapa dejará posiciones vacías
-            hasta completar 12. Petersime desaconseja iniciar el ciclo sin carga completa.
+            Este cargue tiene {activeGroup.carts.length} carro(s); el mapa dejará posiciones vacías hasta completar 12.
+            Petersime desaconseja iniciar el ciclo sin carga completa.
           </p>
         )}
       </div>
@@ -873,7 +944,12 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
       if (!code || seen.has(code)) continue
       if (['completed', 'done', 'cancelled', 'archived'].includes(l.status)) continue
       seen.add(code)
-      list.push({ code, isTreated: !!l.is_treated, postures: l.postures || [], fromOrder: false })
+      list.push({
+        code,
+        isTreated: !!l.is_treated,
+        postures: l.postures || [],
+        fromOrder: false,
+      })
     }
     return list
   }, [catalogLots, activeOrders])
@@ -886,7 +962,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
         const m = cartNoClean.match(/(\d+)/)
         return String(c.cartNumber) === String(m ? m[1] : cartNoClean)
       }),
-    [api.available, cartNoClean]
+    [api.available, cartNoClean],
   )
 
   /** Días de postura ya registrados en el módulo Datos → chips sugeridos */
@@ -921,7 +997,10 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
       return
     }
     if (picked.length >= lotCount) {
-      setMsg({ kind: 'error', text: `Ya eligió ${lotCount} lote(s). Aumente la cantidad o quite uno.` })
+      setMsg({
+        kind: 'error',
+        text: `Ya eligió ${lotCount} lote(s). Aumente la cantidad o quite uno.`,
+      })
       return
     }
     setPicked((prev) => [...prev, { code, isTreated: false, postures: [], manual: true }])
@@ -945,7 +1024,10 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
 
   const setDateCount = (code, n) => {
     setDateCounts((prev) => ({ ...prev, [code]: n }))
-    setDaysByLot((prev) => ({ ...prev, [code]: (prev[code] || []).slice(0, n) }))
+    setDaysByLot((prev) => ({
+      ...prev,
+      [code]: (prev[code] || []).slice(0, n),
+    }))
   }
 
   /** Segmentos lote × fecha, ordenados por fecha (más vieja primero) */
@@ -1067,9 +1149,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                 {day}
                 {suggested.has(day) ? ' ●' : ''}
               </span>
-              <span style={{ display: 'block', fontSize: '0.65rem', opacity: 0.8 }}>
-                {r ? r.label : '—'}
-              </span>
+              <span style={{ display: 'block', fontSize: '0.65rem', opacity: 0.8 }}>{r ? r.label : '—'}</span>
             </WizChip>
           )
         })}
@@ -1080,7 +1160,14 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
   return (
     <div className="inline-form" style={{ marginTop: 10 }}>
       {/* Progreso */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
         {WIZ_STEPS.map((s, i) => (
           <button
             key={s}
@@ -1107,22 +1194,28 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
       </div>
 
       {/* Resumen vivo del carro en construcción */}
-      <div className="cart-preview" style={{ background: 'var(--bg-2)', color: 'var(--text)', border: '1px solid var(--line)', marginTop: 8 }}>
+      <div
+        className="cart-preview"
+        style={{
+          background: 'var(--bg-2)',
+          color: 'var(--text)',
+          border: '1px solid var(--line)',
+          marginTop: 8,
+        }}
+      >
         <strong>CARRO {cartNoClean || '—'}</strong>
         <span>
-          {picked.length ? (
-            picked.map((p) => (
-              <LotChip
-                key={p.code}
-                lot={p.code}
-                colorId={p.isTreated ? null : colorByLot[p.code] || autoTapeFor(p.code)}
-                treated={p.isTreated}
-                eggType={typeByLot[p.code]}
-              />
-            ))
-          ) : (
-            'sin lotes aún'
-          )}
+          {picked.length
+            ? picked.map((p) => (
+                <LotChip
+                  key={p.code}
+                  lot={p.code}
+                  colorId={p.isTreated ? null : colorByLot[p.code] || autoTapeFor(p.code)}
+                  treated={p.isTreated}
+                  eggType={typeByLot[p.code]}
+                />
+              ))
+            : 'sin lotes aún'}
           {segments.length ? ` · ${segments.length} fecha(s)` : ''}
           {step === 4 ? ` · ${totalTrays} band. · ${totalEggs.toLocaleString('es-CO')} huevos` : ''}
         </span>
@@ -1134,9 +1227,21 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
           <h4 className="section-title" style={{ margin: '12px 0 4px' }}>
             1 · Seleccione el carro a clasificar (disponibles del 1 al 12)
           </h4>
-          <div className="cart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginTop: 8, maxWidth: 450 }}>
+          <div
+            className="cart-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(6, 1fr)',
+              gap: 10,
+              marginTop: 8,
+              maxWidth: 450,
+            }}
+          >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => {
-              const inUse = api.entries.some((c) => String(c.cartNumber) === String(n) && ['available', 'reserved'].includes(c.status || 'available'))
+              const inUse = api.entries.some(
+                (c) =>
+                  String(c.cartNumber) === String(n) && ['available', 'reserved'].includes(c.status || 'available'),
+              )
               return (
                 <button
                   key={n}
@@ -1145,12 +1250,16 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                   style={{
                     padding: '12px',
                     borderRadius: '10px',
-                    border: String(cartNo) === String(n)
-                      ? '2px solid var(--accent, #e67e22)'
-                      : '1px solid var(--line, #9993)',
-                    background: String(cartNo) === String(n)
-                      ? 'var(--accent, #e67e22)'
-                      : inUse ? 'var(--bg-3, rgba(230,126,34,0.15))' : 'transparent',
+                    border:
+                      String(cartNo) === String(n)
+                        ? '2px solid var(--accent, #e67e22)'
+                        : '1px solid var(--line, #9993)',
+                    background:
+                      String(cartNo) === String(n)
+                        ? 'var(--accent, #e67e22)'
+                        : inUse
+                          ? 'var(--bg-3, rgba(230,126,34,0.15))'
+                          : 'transparent',
                     color: String(cartNo) === String(n) ? '#fff' : 'inherit',
                     fontWeight: 'bold',
                     fontSize: '1.1rem',
@@ -1159,11 +1268,22 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 2
+                    gap: 2,
                   }}
                 >
                   <span>{n}</span>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 'normal', color: String(cartNo) === String(n) ? '#fff' : inUse ? 'var(--accent, #e67e22)' : 'var(--text-dim, #888)' }}>
+                  <span
+                    style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 'normal',
+                      color:
+                        String(cartNo) === String(n)
+                          ? '#fff'
+                          : inUse
+                            ? 'var(--accent, #e67e22)'
+                            : 'var(--text-dim, #888)',
+                    }}
+                  >
                     {inUse ? 'En cola' : 'Libre'}
                   </span>
                 </button>
@@ -1255,10 +1375,19 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
           </p>
           {picked.map((p) => (
             <div key={p.code} className="lot-editor" style={{ marginTop: 8 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <LotChip lot={p.code} colorId={p.isTreated ? null : autoTapeFor(p.code)} treated={p.isTreated} />
                 <strong>Lote {p.code}</strong>
-                <span className="hint" style={{ margin: 0 }}>¿Cuántas fechas trae?</span>
+                <span className="hint" style={{ margin: 0 }}>
+                  ¿Cuántas fechas trae?
+                </span>
                 {[1, 2, 3].map((n) => (
                   <WizChip key={n} selected={(dateCounts[p.code] || 1) === n} onClick={() => setDateCount(p.code, n)}>
                     {n}
@@ -1295,7 +1424,14 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
           </h4>
           {picked.map((p) => (
             <div key={p.code} className="lot-editor" style={{ marginTop: 8 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <LotChip lot={p.code} colorId={p.isTreated ? null : autoTapeFor(p.code)} treated={p.isTreated} />
                 <strong>Lote {p.code}</strong>
                 {EGG_TYPES.map((t) => (
@@ -1332,7 +1468,9 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                 eggType={typeByLot[s.lot.code]}
               />
               <div className="admin-row-main" style={{ flex: 1, minWidth: 140 }}>
-                <strong>Lote {s.lot.code} · {s.resolved.label}</strong>
+                <strong>
+                  Lote {s.lot.code} · {s.resolved.label}
+                </strong>
                 <span className="hint" style={{ margin: 0 }}>
                   {s.resolved.iso} · Tipo {typeByLot[s.lot.code] || '—'} ·{' '}
                   {eggsFromTrays(traysBySeg[s.key]).toLocaleString('es-CO')} huevos
@@ -1341,12 +1479,19 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
               {!s.lot.isTreated && (
                 <select
                   value={colorByLot[s.lot.code] || 'otro'}
-                  onChange={(e) => setColorByLot((prev) => ({ ...prev, [s.lot.code]: e.target.value }))}
+                  onChange={(e) =>
+                    setColorByLot((prev) => ({
+                      ...prev,
+                      [s.lot.code]: e.target.value,
+                    }))
+                  }
                   title="Cinta del lote"
                   style={{ maxWidth: 120 }}
                 >
                   {TAPE_COLORS.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
                   ))}
                 </select>
               )}
@@ -1354,7 +1499,12 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                 <button
                   type="button"
                   className="ghost small"
-                  onClick={() => setTraysBySeg((prev) => ({ ...prev, [s.key]: Math.max(0, (Number(prev[s.key]) || 0) - 1) }))}
+                  onClick={() =>
+                    setTraysBySeg((prev) => ({
+                      ...prev,
+                      [s.key]: Math.max(0, (Number(prev[s.key]) || 0) - 1),
+                    }))
+                  }
                 >
                   −
                 </button>
@@ -1363,23 +1513,38 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
                   min="0"
                   max={TRAYS_PER_CART}
                   value={traysBySeg[s.key] ?? 0}
-                  onChange={(e) => setTraysBySeg((prev) => ({ ...prev, [s.key]: e.target.value }))}
+                  onChange={(e) =>
+                    setTraysBySeg((prev) => ({
+                      ...prev,
+                      [s.key]: e.target.value,
+                    }))
+                  }
                   style={{ width: 64, textAlign: 'center', fontWeight: 700 }}
                 />
                 <button
                   type="button"
                   className="ghost small"
-                  onClick={() => setTraysBySeg((prev) => ({ ...prev, [s.key]: Math.min(TRAYS_PER_CART, (Number(prev[s.key]) || 0) + 1) }))}
+                  onClick={() =>
+                    setTraysBySeg((prev) => ({
+                      ...prev,
+                      [s.key]: Math.min(TRAYS_PER_CART, (Number(prev[s.key]) || 0) + 1),
+                    }))
+                  }
                 >
                   +
                 </button>
-                <span className="hint" style={{ margin: 0 }}>band.</span>
+                <span className="hint" style={{ margin: 0 }}>
+                  band.
+                </span>
               </span>
             </div>
           ))}
           <p className={overCapacity ? 'msg error' : 'hint'} style={{ margin: '6px 0' }}>
-            Total: <strong>{totalTrays}/{TRAYS_PER_CART} bandejas</strong> ·{' '}
-            {totalEggs.toLocaleString('es-CO')} huevos
+            Total:{' '}
+            <strong>
+              {totalTrays}/{TRAYS_PER_CART} bandejas
+            </strong>{' '}
+            · {totalEggs.toLocaleString('es-CO')} huevos
             {overCapacity ? ` — supera el carro; quite ${totalTrays - TRAYS_PER_CART} bandeja(s).` : ''}
           </p>
           <label>
@@ -1411,10 +1576,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
             type="button"
             className="primary"
             disabled={
-              busy ||
-              overCapacity ||
-              totalTrays === 0 ||
-              segments.some((s) => !(Number(traysBySeg[s.key]) > 0))
+              busy || overCapacity || totalTrays === 0 || segments.some((s) => !(Number(traysBySeg[s.key]) > 0))
             }
             onClick={register}
             style={{ fontSize: '1.05rem', fontWeight: 700 }}
@@ -1457,7 +1619,14 @@ function CartLotChips({ cart }) {
   return (
     <span className="lot-chip-row">
       {(cart.lots || []).map((l) => (
-        <LotChip key={l.id} lot={l.lot || '?'} colorId={l.colorPrimary} treated={l.isTreated} trays={l.trays} eggType={l.eggType} />
+        <LotChip
+          key={l.id}
+          lot={l.lot || '?'}
+          colorId={l.colorPrimary}
+          treated={l.isTreated}
+          trays={l.trays}
+          eggType={l.eggType}
+        />
       ))}
     </span>
   )
@@ -1497,7 +1666,10 @@ function CartQueue({ api, setMsg }) {
             <div className="load-group-head">
               <span
                 className="load-group-color"
-                style={{ background: groupColor, color: readableTextOn(groupColor) }}
+                style={{
+                  background: groupColor,
+                  color: readableTextOn(groupColor),
+                }}
               >
                 Cargue {gi + 1}
               </span>
@@ -1507,7 +1679,9 @@ function CartQueue({ api, setMsg }) {
                 {!uniform ? ' · ⚠ carros con color distinto — reasigne el color del cargue' : ''}
               </span>
               <label className="cargue-color-label" title="Color de TODO el cargue (los 12 carros)">
-                <span className="hint" style={{ margin: 0 }}>Color del cargue</span>
+                <span className="hint" style={{ margin: 0 }}>
+                  Color del cargue
+                </span>
                 <input
                   type="color"
                   className="cart-color-inline"
@@ -1515,7 +1689,11 @@ function CartQueue({ api, setMsg }) {
                   onChange={async (ev) => {
                     const r = await api.setGroupColor(gi, ev.target.value)
                     if (r?.error) setMsg?.({ kind: 'error', text: r.error })
-                    else setMsg?.({ kind: 'ok', text: `Cargue ${gi + 1}: color asignado a sus ${g.carts.length} carro(s)` })
+                    else
+                      setMsg?.({
+                        kind: 'ok',
+                        text: `Cargue ${gi + 1}: color asignado a sus ${g.carts.length} carro(s)`,
+                      })
                   }}
                 />
               </label>
@@ -1526,16 +1704,17 @@ function CartQueue({ api, setMsg }) {
                   <div className="admin-row compact" style={{ margin: 0 }}>
                     <span
                       className="cart-num-badge"
-                      style={{ background: normalizeCartColor(e.color), color: readableTextOn(e.color) }}
+                      style={{
+                        background: normalizeCartColor(e.color),
+                        color: readableTextOn(e.color),
+                      }}
                     >
                       {cartNumberOf(e) || '?'}
                     </span>
                     <div className="admin-row-main" style={{ flex: 1 }}>
                       <strong>
                         Carro {cartNumberOf(e) || '—'}
-                        {e.isMixed ? ` · ${e.lotCount} lotes` : ''}
-                        {' '}
-                        <CartLotChips cart={e} />
+                        {e.isMixed ? ` · ${e.lotCount} lotes` : ''} <CartLotChips cart={e} />
                       </strong>
                       <span className="hint" style={{ margin: 0 }}>
                         {e.trays} band. · {e.eggs.toLocaleString('es-CO')} huevos
@@ -1550,7 +1729,12 @@ function CartQueue({ api, setMsg }) {
                     >
                       {openCart === e.id ? '▲' : '＋ lote'}
                     </button>
-                    <button type="button" className="ghost small" onClick={() => api.removeEntry(e.id)} title="Eliminar carro">
+                    <button
+                      type="button"
+                      className="ghost small"
+                      onClick={() => api.removeEntry(e.id)}
+                      title="Eliminar carro"
+                    >
                       ✕
                     </button>
                   </div>
@@ -1577,7 +1761,10 @@ function CartLotsEditor({ cart, api, setMsg }) {
     setBusy(false)
     if (res.error) setMsg?.({ kind: 'error', text: res.error })
     else {
-      setMsg?.({ kind: 'ok', text: `Lote agregado al carro ${cartNumberOf(cart)}` })
+      setMsg?.({
+        kind: 'ok',
+        text: `Lote agregado al carro ${cartNumberOf(cart)}`,
+      })
       setLotForm(EMPTY_LOT())
     }
   }
@@ -1589,14 +1776,22 @@ function CartLotsEditor({ cart, api, setMsg }) {
           <div key={l.id} className="admin-row compact" style={{ margin: 0 }}>
             <LotChip lot={l.lot || '?'} colorId={l.colorPrimary} treated={l.isTreated} />
             <div className="admin-row-main" style={{ flex: 1 }}>
-              <strong>Lote {l.lot || '?'}{l.isTreated ? ' · TRATADO' : ''}</strong>
+              <strong>
+                Lote {l.lot || '?'}
+                {l.isTreated ? ' · TRATADO' : ''}
+              </strong>
               <span className="hint" style={{ margin: 0 }}>
                 {l.trays} band. · {(l.eggs || 0).toLocaleString('es-CO')} huevos
                 {l.productionDate ? ` · ${l.productionDate}` : ''}
               </span>
             </div>
             {cart.lots.length > 1 && (
-              <button type="button" className="ghost small" onClick={() => api.removeLotFromCart(cart.id, l.id)} title="Quitar lote">
+              <button
+                type="button"
+                className="ghost small"
+                onClick={() => api.removeLotFromCart(cart.id, l.id)}
+                title="Quitar lote"
+              >
                 ✕
               </button>
             )}
@@ -1610,7 +1805,13 @@ function CartLotsEditor({ cart, api, setMsg }) {
         </label>
         <label>
           Bandejas
-          <input type="number" min="0" max={TRAYS_PER_CART} value={lot.trays} onChange={(e) => set('trays', e.target.value)} />
+          <input
+            type="number"
+            min="0"
+            max={TRAYS_PER_CART}
+            value={lot.trays}
+            onChange={(e) => set('trays', e.target.value)}
+          />
         </label>
       </div>
       <div className="two-col">
@@ -1635,7 +1836,6 @@ function CartLotsEditor({ cart, api, setMsg }) {
     </div>
   )
 }
-
 
 /* ─── Resumen ────────────────────────────────────────────── */
 
@@ -1679,9 +1879,9 @@ function FlockAgeBoard({ flock, canEdit }) {
     <div style={{ marginTop: 20 }}>
       <h3 className="section-title">Edad de parvadas (fertilidad estimada)</h3>
       <p className="hint">
-        Registre una vez la edad de cada lote; el sistema la va sumando en el tiempo y calcula la
-        fertilidad automáticamente (30–44 semanas = parvada de mayor fertilidad, norma Petersime). Esto
-        entra al balance térmico del mapa de cargue junto con el tipo de huevo y el almacenamiento.
+        Registre una vez la edad de cada lote; el sistema la va sumando en el tiempo y calcula la fertilidad
+        automáticamente (30–44 semanas = parvada de mayor fertilidad, norma Petersime). Esto entra al balance térmico
+        del mapa de cargue junto con el tipo de huevo y el almacenamiento.
       </p>
       {!rows.length ? (
         <p className="hint">Sin lotes registrados todavía.</p>
@@ -1693,7 +1893,13 @@ function FlockAgeBoard({ flock, canEdit }) {
               <div
                 key={r.lot_code}
                 className="admin-row compact"
-                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
               >
                 <div className="admin-row-main" style={{ flex: 1, minWidth: 160 }}>
                   <strong>Lote {r.lot_code}</strong>
@@ -1727,11 +1933,7 @@ function FlockAgeBoard({ flock, canEdit }) {
                       Actualizar edad
                     </button>
                     {r.status !== 'retired' && (
-                      <button
-                        type="button"
-                        className="btn small ghost"
-                        onClick={() => flock.retireLot(r.lot_code)}
-                      >
+                      <button type="button" className="btn small ghost" onClick={() => flock.retireLot(r.lot_code)}>
                         Marcar salida
                       </button>
                     )}
@@ -1743,7 +1945,15 @@ function FlockAgeBoard({ flock, canEdit }) {
         </div>
       )}
       {canEdit && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            marginTop: 10,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
           <input
             placeholder="Código de lote (ej. 47)"
             style={{ width: 160 }}
@@ -1771,8 +1981,8 @@ function SummaryTab({ summary, entries, flock, canEdit }) {
   return (
     <div style={{ marginTop: 12 }}>
       <p className="hint">
-        El sistema calcula en todo momento cuántas fechas, lotes y cantidades de huevos hay a partir
-        de la clasificación.
+        El sistema calcula en todo momento cuántas fechas, lotes y cantidades de huevos hay a partir de la
+        clasificación.
       </p>
       <h3 className="section-title">Por lote</h3>
       {!summary.lots?.length ? (
@@ -1806,8 +2016,7 @@ function SummaryTab({ summary, entries, flock, canEdit }) {
               <div className="admin-row-main">
                 <strong>{d.date === 's/f' ? 'Sin fecha' : d.date}</strong>
                 <span className="hint" style={{ margin: 0 }}>
-                  {d.carts} carros · {d.eggs.toLocaleString('es-CO')} huevos · lotes{' '}
-                  {d.lots?.join(', ')}
+                  {d.carts} carros · {d.eggs.toLocaleString('es-CO')} huevos · lotes {d.lots?.join(', ')}
                 </span>
               </div>
             </div>
@@ -1815,8 +2024,8 @@ function SummaryTab({ summary, entries, flock, canEdit }) {
         </div>
       )}
       <p className="hint" style={{ marginTop: 12 }}>
-        Máquinas Petersime estimadas: {summary.machinesNeeded || 0} (a {CARTS_PER_MACHINE} carros).
-        Total carros en cola: {entries.length}.
+        Máquinas Petersime estimadas: {summary.machinesNeeded || 0} (a {CARTS_PER_MACHINE} carros). Total carros en
+        cola: {entries.length}.
       </p>
       {flock && <FlockAgeBoard flock={flock} canEdit={canEdit} />}
     </div>
@@ -1825,17 +2034,7 @@ function SummaryTab({ summary, entries, flock, canEdit }) {
 
 /* ─── Mapas ──────────────────────────────────────────────── */
 
-function MapsTab({
-  maps,
-  canApprove,
-  canOrder,
-  busy,
-  onApprove,
-  onReject,
-  onOrder,
-  selectedMap,
-  setSelectedMap,
-}) {
+function MapsTab({ maps, canApprove, canOrder, busy, onApprove, onReject, onOrder, selectedMap, setSelectedMap }) {
   if (!maps.length) {
     return (
       <p className="hint" style={{ marginTop: 12 }}>
@@ -1854,7 +2053,12 @@ function MapsTab({
             key={m.id}
             type="button"
             className={`admin-row compact map-pick${view?.id === m.id ? ' active' : ''}`}
-            style={{ margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            style={{
+              margin: 0,
+              width: '100%',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
             onClick={() => setSelectedMap(m)}
           >
             <div className="admin-row-main">
@@ -1866,7 +2070,9 @@ function MapsTab({
                 {(m.summary?.totalEggs || 0).toLocaleString('es-CO')} huevos
               </span>
             </div>
-            <span className={`pill status ${m.status === 'approved' || m.status === 'ordered' ? 'ok' : m.status === 'pending_approval' ? 'warn' : ''}`}>
+            <span
+              className={`pill status ${m.status === 'approved' || m.status === 'ordered' ? 'ok' : m.status === 'pending_approval' ? 'warn' : ''}`}
+            >
               {STATUS_LABEL[m.status] || m.status}
             </span>
           </button>
@@ -1876,11 +2082,7 @@ function MapsTab({
       {view && (
         <div className="map-detail" style={{ marginTop: 14 }}>
           <div className="actions row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => downloadLoadMapImage(view, `mapa-${view.id}.png`)}
-            >
+            <button type="button" className="ghost" onClick={() => downloadLoadMapImage(view, `mapa-${view.id}.png`)}>
               Descargar imagen del mapa
             </button>
             {canApprove && view.status === 'pending_approval' && (
@@ -1924,7 +2126,12 @@ function MapsTab({
               src={view.imageDataUrl}
               alt="Mapa de cargue"
               className="load-map-img"
-              style={{ width: '100%', maxWidth: 1100, borderRadius: 12, border: '1px solid var(--line)' }}
+              style={{
+                width: '100%',
+                maxWidth: 1100,
+                borderRadius: 12,
+                border: '1px solid var(--line)',
+              }}
             />
           ) : (
             <MapAscii view={view} />
@@ -1951,8 +2158,8 @@ function MapsTab({
                   .filter((s) => s.zone === z && s.entry)
                   .map((s) => (
                     <li key={s.machinePos}>
-                      <strong>Carro {s.cartNo || cartNumberOf(s.entry)}</strong> → Pos. {s.machinePos}{' '}
-                      ({ZONE_LABEL[z]}) · {entryLabel(s.entry)}
+                      <strong>Carro {s.cartNo || cartNumberOf(s.entry)}</strong> → Pos. {s.machinePos} ({ZONE_LABEL[z]})
+                      · {entryLabel(s.entry)}
                       {s.entry && 'heat' in s.entry && (
                         <span style={{ display: 'block', opacity: 0.85 }}>
                           ↳ {heatBreakdownLabel(s.entry.heat)}
@@ -1971,7 +2178,16 @@ function MapsTab({
   )
 }
 
-function OperatorPlacementTable({ map }) {
+/* Carros ya ubicados por el operario (se guardan en el dispositivo por mapa). */
+const PLACED_KEY = (id) => `incubapp:placed-carts:${id}`
+function readPlaced(id) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(PLACED_KEY(id)) || '[]'))
+  } catch {
+    return new Set()
+  }
+}
+function OperatorPlacementTable({ map, placed, onToggle }) {
   const guide = map?.placementGuide || buildOperatorPlacementGuide(map || {})
   if (!guide.length) {
     return <p className="hint">Sin carros en este mapa.</p>
@@ -1985,6 +2201,7 @@ function OperatorPlacementTable({ map }) {
             <th>Ubicación en máquina</th>
             <th>Zona</th>
             <th>Carga (ref.)</th>
+            {onToggle && <th>Ubicado</th>}
           </tr>
         </thead>
         <tbody>
@@ -2000,6 +2217,19 @@ function OperatorPlacementTable({ map }) {
               <td className="hint" style={{ margin: 0 }}>
                 {r.cargo}
               </td>
+              {onToggle && (
+                <td>
+                  <button
+                    type="button"
+                    className={placed?.has(`${r.cartNo}-${r.machinePos}`) ? 'primary' : 'ghost'}
+                    style={{ minHeight: 44, minWidth: 96 }}
+                    aria-pressed={placed?.has(`${r.cartNo}-${r.machinePos}`) || false}
+                    onClick={() => onToggle(`${r.cartNo}-${r.machinePos}`)}
+                  >
+                    {placed?.has(`${r.cartNo}-${r.machinePos}`) ? '✓ Ubicado' : 'Tocar al ubicar'}
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -2076,6 +2306,18 @@ function OrdersTab({ maps, machines = [], canOrder, isOperator, busy, onComplete
   const [selMachineId, setSelMachineId] = useState('')
   const [loadedAt, setLoadedAt] = useState('')
   const [cycleStartAt, setCycleStartAt] = useState('')
+  const [, setPlacedTick] = useState(0)
+  const togglePlacedCart = (mapId, key) => {
+    const next = readPlaced(mapId)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    try {
+      localStorage.setItem(PLACED_KEY(mapId), JSON.stringify([...next]))
+    } catch {
+      /* sin almacenamiento en el dispositivo */
+    }
+    setPlacedTick((t) => t + 1)
+  }
 
   const startCompletion = (m) => {
     setCompletingId(m.id)
@@ -2121,114 +2363,149 @@ function OrdersTab({ maps, machines = [], canOrder, isOperator, busy, onComplete
           ? 'Órdenes de cargue para el turno. Siga el mapa y las posiciones de cada carro.'
           : 'Órdenes emitidas y mapas aprobados listos para despachar al operario.'}
       </p>
-      {active.map((m) => (
-        <div
-          key={m.id}
-          className="card"
-          style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)' }}
-        >
-          <div className="card-head" style={{ marginBottom: 8 }}>
-            <div>
-              <strong>{m.machineName || 'Petersime'}</strong>
-              <span className="hint" style={{ display: 'block', margin: 0 }}>
-                {STATUS_LABEL[m.status]} · {(m.summary?.totalEggs || 0).toLocaleString('es-CO')} huevos
-              </span>
-            </div>
-            <span className="pill">{STATUS_LABEL[m.status]}</span>
-          </div>
+      {active.map((m) => renderCard(m))}
+    </div>
+  )
 
-          {(m.status === 'ordered' || m.status === 'approved') && (
+  function renderCard(m) {
+    const placed = readPlaced(m.id)
+    const togglePlaced = (key) => togglePlacedCart(m.id, key)
+    const guide = m?.placementGuide || buildOperatorPlacementGuide(m || {})
+    const total = guide.length
+    const done = guide.filter((r) => placed.has(`${r.cartNo}-${r.machinePos}`)).length
+    const missing = m.status === 'ordered' ? total - done : 0
+    return (
+      <div key={m.id} className="card" style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)' }}>
+        <div className="card-head" style={{ marginBottom: 8 }}>
+          <div>
+            <strong>{m.machineName || 'Petersime'}</strong>
+            <span className="hint" style={{ display: 'block', margin: 0 }}>
+              {STATUS_LABEL[m.status]} · {(m.summary?.totalEggs || 0).toLocaleString('es-CO')} huevos
+            </span>
+          </div>
+          <span className="pill">{STATUS_LABEL[m.status]}</span>
+        </div>
+
+        {(m.status === 'ordered' || m.status === 'approved') && (
+          <>
+            <h4 className="section-title" style={{ margin: '8px 0' }}>
+              Coloque cada carro en su ubicación
+            </h4>
+            {m.status === 'ordered' && total > 0 && (
+              <p className="hint" style={{ margin: '0 0 8px' }}>
+                <strong>
+                  {done} de {total}
+                </strong>{' '}
+                carros ubicados. Toque cada carro cuando lo deje en su sitio.
+              </p>
+            )}
+            <OperatorPlacementTable map={m} placed={placed} onToggle={m.status === 'ordered' ? togglePlaced : null} />
+          </>
+        )}
+
+        {m.status === 'ordered' && <pre className="load-order-text">{buildLoadOrderText(m)}</pre>}
+
+        {m.imageDataUrl && (m.status === 'ordered' || m.status === 'approved') && (
+          <img
+            src={m.imageDataUrl}
+            alt="Mapa: número de carro y ubicación"
+            style={{
+              width: '100%',
+              maxWidth: 1000,
+              borderRadius: 8,
+              marginTop: 8,
+            }}
+          />
+        )}
+
+        <div className="actions row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
+          {canOrder && m.status === 'approved' && (
+            <button type="button" className="primary" disabled={busy} onClick={() => onOrder(m.id)}>
+              Enviar orden al operario
+            </button>
+          )}
+          {m.status === 'ordered' && completingId !== m.id && (
             <>
-              <h4 className="section-title" style={{ margin: '8px 0' }}>
-                Coloque cada carro en su ubicación
-              </h4>
-              <OperatorPlacementTable map={m} />
+              <button type="button" className="ghost" onClick={() => downloadLoadMapImage(m, `orden-${m.id}.png`)}>
+                Descargar mapa
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  navigator.clipboard?.writeText(buildLoadOrderText(m))
+                  setMsg?.({
+                    kind: 'ok',
+                    text: 'Orden copiada al portapapeles',
+                  })
+                }}
+              >
+                Copiar orden
+              </button>
+              <button type="button" className="primary" disabled={busy} onClick={() => startCompletion(m)}>
+                Marcar cargue completado
+              </button>
             </>
           )}
 
-          {m.status === 'ordered' && (
-            <pre className="load-order-text">{buildLoadOrderText(m)}</pre>
-          )}
-
-          {m.imageDataUrl && (m.status === 'ordered' || m.status === 'approved') && (
-            <img
-              src={m.imageDataUrl}
-              alt="Mapa: número de carro y ubicación"
-              style={{ width: '100%', maxWidth: 1000, borderRadius: 8, marginTop: 8 }}
-            />
-          )}
-
-          <div className="actions row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
-            {canOrder && m.status === 'approved' && (
-              <button type="button" className="primary" disabled={busy} onClick={() => onOrder(m.id)}>
-                Enviar orden al operario
-              </button>
-            )}
-            {m.status === 'ordered' && completingId !== m.id && (
-              <>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => downloadLoadMapImage(m, `orden-${m.id}.png`)}
-                >
-                  Descargar mapa
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(buildLoadOrderText(m))
-                    setMsg?.({ kind: 'ok', text: 'Orden copiada al portapapeles' })
-                  }}
-                >
-                  Copiar orden
-                </button>
-                <button type="button" className="primary" disabled={busy} onClick={() => startCompletion(m)}>
-                  Marcar cargue completado
-                </button>
-              </>
-            )}
-
-            {m.status === 'ordered' && completingId === m.id && (
-              <div className="inline-form" style={{ marginTop: 10, padding: 12, border: '1px solid var(--accent, #e67e22)', borderRadius: 8, background: 'var(--bg-2)', width: '100%' }}>
-                <h4 style={{ margin: '0 0 10px' }}>Confirmación de cargue en incubadora</h4>
-                <div className="two-col">
-                  <label>
-                    Incubadora
-                    <select value={selMachineId} onChange={(e) => setSelMachineId(e.target.value)}>
-                      <option value="">— Seleccione —</option>
-                      {machines.map((mach) => (
-                        <option key={mach.id} value={mach.id}>
-                          {mach.name} ({mach.code})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Hora de cargue
-                    <input type="datetime-local" value={loadedAt} onChange={(e) => setLoadedAt(e.target.value)} />
-                  </label>
-                </div>
-                <div className="two-col">
-                  <label>
-                    Hora de inicio de ciclo de incubación
-                    <input type="datetime-local" value={cycleStartAt} onChange={(e) => setCycleStartAt(e.target.value)} />
-                  </label>
-                  <span />
-                </div>
-                <div className="actions row" style={{ gap: 8, marginTop: 10 }}>
-                  <button type="button" className="primary" onClick={() => handleConfirmComplete(m.id)} disabled={busy || !selMachineId}>
-                    {busy ? 'Guardando...' : 'Confirmar cargue'}
-                  </button>
-                  <button type="button" className="ghost" onClick={() => setCompletingId(null)} disabled={busy}>
-                    Cancelar
-                  </button>
-                </div>
+          {m.status === 'ordered' && completingId === m.id && (
+            <div
+              className="inline-form"
+              style={{
+                marginTop: 10,
+                padding: 12,
+                border: '1px solid var(--accent, #e67e22)',
+                borderRadius: 8,
+                background: 'var(--bg-2)',
+                width: '100%',
+              }}
+            >
+              <h4 style={{ margin: '0 0 10px' }}>Confirmación de cargue en incubadora</h4>
+              <div className="two-col">
+                <label>
+                  Incubadora
+                  <select value={selMachineId} onChange={(e) => setSelMachineId(e.target.value)}>
+                    <option value="">— Seleccione —</option>
+                    {machines.map((mach) => (
+                      <option key={mach.id} value={mach.id}>
+                        {mach.name} ({mach.code})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Hora de cargue
+                  <input type="datetime-local" value={loadedAt} onChange={(e) => setLoadedAt(e.target.value)} />
+                </label>
               </div>
-            )}
-          </div>
+              <div className="two-col">
+                <label>
+                  Hora de inicio de ciclo de incubación
+                  <input type="datetime-local" value={cycleStartAt} onChange={(e) => setCycleStartAt(e.target.value)} />
+                </label>
+                <span />
+              </div>
+              <div className="actions row" style={{ gap: 8, marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => handleConfirmComplete(m.id)}
+                  disabled={busy || !selMachineId || missing > 0}
+                >
+                  {busy
+                    ? 'Guardando...'
+                    : missing > 0
+                      ? `Registrar cargue (faltan ${missing} carros)`
+                      : 'Confirmar cargue'}
+                </button>
+                <button type="button" className="ghost" onClick={() => setCompletingId(null)} disabled={busy}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      ))}
-    </div>
-  )
+      </div>
+    )
+  }
 }

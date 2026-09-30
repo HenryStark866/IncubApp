@@ -17,8 +17,9 @@
  */
 
 import { escapeHtml, footerHtml, letterheadCss, letterheadHtml } from './corporateBrand'
+import { readingFieldsFor } from './machineReadings'
 
-const CONDITION_LABEL = { normal: 'Normal', warning: 'Alerta', fault: 'Falla', off: 'Apagada' }
+const CONDITION_LABEL = { normal: 'Normal', warning: 'Alerta', fault: 'Falla', off: 'Apagada', unreported: 'Sin reportar' }
 const SCOPE_LABEL = { temperature: 'Temperatura', humidity: 'Humedad relativa', both: 'Temperatura y humedad' }
 const REASON_LABEL = { inc_window: 'Ventana de incubación', post_hatch: 'Después del nacimiento', pre_transfer: 'Antes de la transferencia', manual: 'Manual' }
 const STATUS_LABEL = { open: 'Abierta', pending: 'Pendiente', in_progress: 'En curso', completed: 'Cerrada', cancelled: 'Cancelada' }
@@ -52,7 +53,7 @@ function photosBlock(photos = []) {
   const valid = photos.filter((photo) => photo?.url)
   if (!valid.length) return ''
   const figures = valid.map((photo) => `<figure><img src="${escapeHtml(photo.url)}" alt="${escapeHtml(photo.label || 'Foto')}"><figcaption>${escapeHtml(photo.label || '')}</figcaption></figure>`).join('')
-  return `<h2>Fotos del registro</h2><div class="record-photos">${figures}</div><p class="record-hint">Las fotos se ven mientras su enlace firmado siga vigente (una hora desde que se abrió el Centro SIG).</p>`
+  return `<h2>Fotos del registro</h2><div class="record-photos">${figures}</div><p class="record-hint">Las fotos se ven mientras su enlace firmado siga vigente (una hora desde que se abrió el formato).</p>`
 }
 
 function documentHtml({ meta, title, body }) {
@@ -62,30 +63,58 @@ function documentHtml({ meta, title, body }) {
 
 const machineLabel = (machine = {}) => [machine.code, machine.name].filter(Boolean).join(' · ')
 
+/** Lecturas de la pantalla de la máquina en una línea: «Temp. aire 99.5 °F · Humedad relativa 55». */
+function readingsText(item = {}) {
+  // Sin tipo de máquina se consideran todas las lecturas posibles (las de incubadora).
+  const own = readingFieldsFor(item.machine?.type)
+  const keys = own.length ? own : readingFieldsFor('setter')
+  const parts = keys
+    .filter((f) => item[f.key] != null && item[f.key] !== '')
+    .map((f) => `${f.label} ${item[f.key]}${f.unidad ? ` ${f.unidad}` : ''}`)
+  return parts.length ? parts.join(' · ') : null
+}
+
+function photoCell(item = {}) {
+  if (item.condition === 'unreported') return 'Sin reportar'
+  if (item.condition === 'off' && !item.photo_path) return 'No aplica (apagada)'
+  if (!item.photo_path) return 'Sin foto'
+  return item.url ? 'Adjunta' : 'Adjunta, no se pudo abrir'
+}
+
 export function roundRecordHtml(round = {}) {
   const items = round.items || []
   const reports = round.reports || []
+  const reported = items.filter((item) => item.condition !== 'unreported')
   const flagged = items.filter((item) => item.condition === 'warning' || item.condition === 'fault').length
+  const off = items.filter((item) => item.condition === 'off').length
+  const unreported = items.length - reported.length
+  const photos = items.filter((item) => item.photo_path && item.condition !== 'off').length
+  const people = [...new Set(reported.map((item) => item.takenByName).filter(Boolean))]
   const body = [
     fieldsTable([
       ['Fecha del turno', round.shiftDate],
       ['Turno', round.shiftCode],
       ['Franja horaria', round.hourSlot],
-      ['Equipos inspeccionados', items.length ? String(items.length) : null],
+      ['Registraron', people.length ? people.join(', ') : null],
+      ['Equipos en la ronda', items.length ? String(items.length) : null],
+      ['Con foto', items.length ? String(photos) : null],
       ['Con alerta o falla', items.length ? String(flagged) : null],
+      ['Apagadas', items.length ? String(off) : null],
+      ...(unreported ? [['Sin reportar', String(unreported)]] : []),
     ]),
     '<h2>Resultado por equipo</h2>',
-    listTable(['Equipo', 'Condición', 'Observaciones', 'Hora', 'Registró', 'Foto'], items.map((item) => [
+    listTable(['Equipo', 'Condición', 'Lecturas', 'Observaciones', 'Hora', 'Registró', 'Foto'], items.map((item) => [
       item.machine?.code || item.machine?.name || item.machine_id,
       CONDITION_LABEL[item.condition] || item.condition,
+      item.condition === 'unreported' || item.condition === 'off' ? '—' : readingsText(item),
       item.notes,
-      formatDateTime(item.taken_at),
-      item.takenByName,
-      item.photo_path ? (item.url ? 'Adjunta' : 'Adjunta, no se pudo abrir') : 'Sin foto',
+      item.condition === 'unreported' ? '—' : formatDateTime(item.taken_at),
+      item.condition === 'unreported' ? '—' : item.takenByName,
+      photoCell(item),
     ]), 'La ronda no tiene equipos reportados.'),
     reports.length ? '<h2>Reportes de la ronda</h2>' : '',
     reports.length ? listTable(['Título', 'Detalle', 'Reportó', 'Hora'], reports.map((report) => [report.title, report.body, report.authorName, formatDateTime(report.created_at)])) : '',
-    photosBlock(items.map((item) => ({ url: item.url, label: item.machine?.code || item.machine?.name || 'Equipo' }))),
+    photosBlock(items.map((item) => ({ url: item.url, label: [item.machine?.code || item.machine?.name || 'Equipo', CONDITION_LABEL[item.condition]].filter(Boolean).join(' · ') }))),
   ].join('')
   return documentHtml({ meta: { fomatCode: 'FOMAT04' }, title: `FOMAT04 · ${round.file_name || 'Ronda'}`, body })
 }
@@ -112,15 +141,37 @@ export function calibrationRecordHtml(item = {}) {
   return documentHtml({ meta: { fomatCode: 'FOMAT08' }, title: `FOMAT08 · ${item.file_name || 'Calibración'}`, body })
 }
 
+const CHECK_LABEL = { ok: 'OK', fail: 'No OK', na: 'No aplica' }
+
+/**
+ * Formato de la OT: el que quedó anotado al guardarla; si no, FOMAT04 para la
+ * inspección con chequeo y FOMAT06 (solicitud de mantenimiento) para la falla que
+ * reportó la operación mientras mantenimiento no la cierre.
+ */
+export function workOrderFormatCode(order = {}) {
+  if (order.format_code === 'FOMAT04' || order.format_code === 'FOMAT01') return order.format_code
+  if (order.type === 'inspection' && Array.isArray(order.checklist) && order.checklist.length) return 'FOMAT04'
+  if (order.source === 'incident' && order.status !== 'completed' && order.status !== 'cancelled') return 'FOMAT06'
+  return 'FOMAT01'
+}
+
+function checklistBlock(order = {}) {
+  const list = Array.isArray(order.checklist) ? order.checklist : []
+  if (!list.length) return ''
+  return `<h2>Lista de chequeo</h2>${listTable(['Punto', 'Resultado', 'Observación'], list.map((it) => [it.label, CHECK_LABEL[it.result] || it.result, it.note]))}`
+}
+
 export function workOrderRecordHtml(item = {}) {
   const order = item.order || {}
   const files = item.orderFiles || []
+  const formatCode = workOrderFormatCode(order)
   const isImage = (file) => file.file_type === 'image' || /\.(png|jpe?g|webp|gif)$/i.test(file.file_name || '')
   const body = [
     fieldsTable([
       ['Orden de trabajo', order.code || item.workOrderCode],
       ['Título', order.title || item.workOrderTitle],
       ['Equipo', machineLabel(item.orderMachine)],
+      ...(order.maintenance_plan_code ? [['Tarea del Plan AM', order.maintenance_plan_code]] : []),
       ['Estado', STATUS_LABEL[order.status] || order.status],
       ['Prioridad', order.priority],
       ['Creada', formatDateTime(order.created_at)],
@@ -128,14 +179,16 @@ export function workOrderRecordHtml(item = {}) {
       ['Cierre', formatDateTime(order.completed_at)],
       ['Solicitó', item.orderPeople?.createdBy],
       ['Responsable', item.orderPeople?.assignedTo || order.technician_name],
+      ['Parada del equipo', order.downtime_minutes != null ? `${order.downtime_minutes} min` : null],
       ['Descripción', order.description],
       ['Resolución / cierre', order.resolution],
     ]),
+    checklistBlock(order),
     '<h2>Evidencias adjuntas</h2>',
     listTable(['Archivo', 'Nota', 'Subió', 'Fecha'], files.map((file) => [file.file_name, file.note, file.uploadedByName, formatDateTime(file.created_at)])),
     photosBlock(files.filter(isImage).map((file) => ({ url: file.url, label: file.file_name }))),
   ].join('')
-  return documentHtml({ meta: { fomatCode: 'FOMAT01' }, title: `FOMAT01 · ${order.code || item.workOrderCode || 'OT'}`, body })
+  return documentHtml({ meta: { fomatCode: formatCode }, title: `${formatCode} · ${order.code || item.workOrderCode || 'OT'}`, body })
 }
 
 export function productionRecordHtml(item = {}) {
@@ -217,7 +270,7 @@ export function workOrderRecordItem({ order = {}, files = [], machine = null, cr
   return {
     id: `work-order-${order.id}`,
     kind: 'work-order',
-    formatCode: 'FOMAT01',
+    formatCode: workOrderFormatCode(order),
     file_name: `OT ${order.code || 'sin código'}`,
     created_at: order.completed_at || order.created_at || null,
     workOrderCode: order.code || null,

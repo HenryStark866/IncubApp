@@ -64,11 +64,12 @@ export default function ComplianceAnalyticsView({
         rounds: api.rounds || [],
         labors: api.labors || [],
         attendance: api.attendanceHistory || [],
+        assignments: api.assignments || [],
         targets: api.targets || [],
         fromDate,
         toDate,
       }),
-    [scopeMembers, members, api.rounds, api.labors, api.attendanceHistory, api.targets, fromDate, toDate]
+    [scopeMembers, members, api.rounds, api.labors, api.attendanceHistory, api.assignments, api.targets, fromDate, toDate]
   )
 
   const filtered = useMemo(() => {

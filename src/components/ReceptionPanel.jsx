@@ -25,9 +25,18 @@ import ColdRoomPanel from './ColdRoomPanel'
 
 const today = () => new Date().toLocaleDateString('sv-SE')
 const fmtDate = (v) =>
-  v ? new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  v
+    ? new Date(v).toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '—'
 const num = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO')
-const num1 = (n) => (n == null ? 0 : Number(n)).toLocaleString('es-CO', { maximumFractionDigits: 1 })
+const num1 = (n) =>
+  (n == null ? 0 : Number(n)).toLocaleString('es-CO', {
+    maximumFractionDigits: 1,
+  })
 const firstName = (name) => (name || '').trim().split(/\s+/)[0] || ''
 
 /* ══ Formulario de certificación (conteo recibido) ══════════ */
@@ -64,8 +73,12 @@ function CertifyForm({ report, categories, onCertify, onCancel }) {
       </div>
       {err && <p className="msg error">{err}</p>}
       <div className="actions row">
-        <button className="primary small" onClick={submit} disabled={busy}>{busy ? 'Certificando…' : '✓ Certificar recepción'}</button>
-        <button className="ghost" onClick={onCancel} disabled={busy}>Cancelar</button>
+        <button className="primary small" onClick={submit} disabled={busy}>
+          {busy ? 'Certificando…' : '✓ Certificar recepción'}
+        </button>
+        <button className="ghost" onClick={onCancel} disabled={busy}>
+          Cancelar
+        </button>
       </div>
     </div>
   )
@@ -212,8 +225,9 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
         <div>
           <h2>Reporte de llegada del huevo a planta</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · tome foto y
-            anote el número del sello
+            Hola
+            {firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · tome foto y anote el número del
+            sello
           </span>
         </div>
         <span className="pill live">
@@ -222,9 +236,8 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
       </div>
 
       <p className="hint" style={{ marginTop: 10 }}>
-        Al llegar el huevo a planta se registra el <strong>número de sello</strong> del precinto y
-        una <strong>foto</strong> como evidencia. Luego se certifica el envío de granja en la pestaña
-        «Certificar envíos».
+        Al llegar el huevo a planta se registra el <strong>número de sello</strong> del precinto y una{' '}
+        <strong>foto</strong> como evidencia. Luego se certifica el envío de granja en la pestaña «Certificar envíos».
       </p>
 
       {canReport && (
@@ -242,12 +255,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
             </label>
             <label>
               Placa del vehículo (opcional)
-              <input
-                type="text"
-                value={plate}
-                onChange={(e) => setPlate(e.target.value)}
-                placeholder="Ej. ABC-123"
-              />
+              <input type="text" value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="Ej. ABC-123" />
             </label>
           </div>
           <label>
@@ -271,7 +279,14 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
               style={{ display: 'none' }}
               onChange={onFile}
             />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 6,
+              }}
+            >
               <button type="button" className={file ? 'chip' : 'primary'} onClick={() => inputRef.current?.click()}>
                 {file ? '📷 Cambiar foto' : '📷 Tomar foto'}
               </button>
@@ -285,7 +300,12 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
               <img
                 src={preview}
                 alt="Vista previa sello"
-                style={{ display: 'block', maxWidth: 240, borderRadius: 8, marginTop: 8 }}
+                style={{
+                  display: 'block',
+                  maxWidth: 240,
+                  borderRadius: 8,
+                  marginTop: 8,
+                }}
               />
             )}
           </div>
@@ -301,12 +321,7 @@ function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {
           {msg && <p className={`msg ${msg.kind === 'ok' ? 'ok' : 'error'}`}>{msg.text}</p>}
           {er.error && <p className="msg error">{er.error}</p>}
           <div className="actions row">
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || !seal.trim() || !file}
-              onClick={submit}
-            >
+            <button type="button" className="primary" disabled={busy || !seal.trim() || !file} onClick={submit}>
               {busy ? 'Guardando…' : '✓ Registrar llegada'}
             </button>
           </div>
@@ -342,13 +357,14 @@ function LotArrivalCapture({ orgId, userId }) {
   const [rows, setRows] = useState([{ productionDate: '', eggs: '' }])
   const [seal, setSeal] = useState('')
   const [notes, setNotes] = useState('')
+  const [photos, setPhotos] = useState([])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
 
   // Lotes esperados (los que gerencia dejó planeados o ya llegando)
   const expected = useMemo(
     () => api.lots.filter((l) => ['planned', 'arrived', 'classifying'].includes(l.status)),
-    [api.lots]
+    [api.lots],
   )
   const selected = expected.find((l) => l.id === lotId) || api.lots.find((l) => l.id === lotId)
 
@@ -357,7 +373,12 @@ function LotArrivalCapture({ orgId, userId }) {
     setLotId(id)
     const lot = api.lots.find((l) => l.id === id)
     if (lot?.postures?.length) {
-      setRows(lot.postures.map((p) => ({ productionDate: p.productionDate || '', eggs: '' })))
+      setRows(
+        lot.postures.map((p) => ({
+          productionDate: p.productionDate || '',
+          eggs: '',
+        })),
+      )
     } else {
       setRows([{ productionDate: '', eggs: '' }])
     }
@@ -378,21 +399,35 @@ function LotArrivalCapture({ orgId, userId }) {
       receivedPostures: rows,
       sealNumber: seal,
       notes,
+      photos,
     })
     setBusy(false)
     if (res.error) {
       setMsg({ kind: 'error', text: res.error })
       return
     }
-    setMsg({ kind: 'ok', text: `Llegada registrada · ${num(totalEggs)} huevos` })
+    setMsg({
+      kind: 'ok',
+      text: `Llegada registrada · ${num(totalEggs)} huevos`,
+    })
     setLotId('')
     setRows([{ productionDate: '', eggs: '' }])
     setSeal('')
     setNotes('')
+    setPhotos([])
   }
 
+  const expectedEggs = selected ? lotTotals(selected.postures).eggs : 0
+  const diff = totalEggs - expectedEggs
+
   return (
-    <div className="card" style={{ marginTop: 16, background: 'var(--surface-2, rgba(0,0,0,0.03))' }}>
+    <div
+      className="card"
+      style={{
+        marginTop: 16,
+        background: 'var(--surface-2, rgba(0,0,0,0.03))',
+      }}
+    >
       <div className="card-head" style={{ marginBottom: 4 }}>
         <div>
           <h3 style={{ margin: 0 }}>Cantidades recibidas por lote y fecha</h3>
@@ -441,7 +476,13 @@ function LotArrivalCapture({ orgId, userId }) {
                 onChange={(e) => setRow(i, { eggs: e.target.value })}
                 placeholder="0"
               />
-              <button type="button" className="ghost small" onClick={() => removeRow(i)} title="Quitar" style={{ flex: '0 0 auto' }}>
+              <button
+                type="button"
+                className="ghost small"
+                onClick={() => removeRow(i)}
+                title="Quitar"
+                style={{ flex: '0 0 auto' }}
+              >
                 ✕
               </button>
             </div>
@@ -463,14 +504,66 @@ function LotArrivalCapture({ orgId, userId }) {
         </label>
       </div>
 
-      {totalEggs > 0 && (
-        <p className="hint" style={{ margin: '6px 0 0', color: 'var(--accent)' }}>
-          Total recibido: <strong>{num(totalEggs)}</strong> huevos ·{' '}
-          {num1(totalEggs / api.eggsPerTray)} bandejas · {Math.ceil(totalEggs / api.eggsPerCart)} carros
+      <label style={{ marginTop: 8 }}>
+        Fotos de la llegada (camión, precinto, estado del huevo)
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || [])
+            setPhotos((ps) => [...ps, ...files].slice(0, 6))
+            e.target.value = ''
+          }}
+        />
+      </label>
+      {photos.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+          {photos.map((f, i) => (
+            <button
+              key={`${f.name}-${i}`}
+              type="button"
+              className="chip ghost"
+              title="Quitar foto"
+              onClick={() => setPhotos((ps) => ps.filter((_, idx) => idx !== i))}
+            >
+              📷 Foto {i + 1} ✕
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selected && totalEggs > 0 && expectedEggs > 0 && (
+        <p
+          className="hint"
+          style={{
+            margin: '6px 0 0',
+            fontWeight: 700,
+            color: diff === 0 ? 'var(--ok)' : 'var(--amber, #b7791f)',
+          }}
+        >
+          Esperado {num(expectedEggs)} · recibido {num(totalEggs)} ·{' '}
+          {diff === 0 ? 'cuadra' : `diferencia ${diff > 0 ? '+' : ''}${num(diff)} huevos`}
         </p>
       )}
-      {msg && <p className={`msg ${msg.kind === 'ok' ? 'ok' : 'error'}`} style={{ marginTop: 6 }}>{msg.text}</p>}
-      {api.error && <p className="msg error" style={{ marginTop: 6 }}>{api.error}</p>}
+
+      {totalEggs > 0 && (
+        <p className="hint" style={{ margin: '6px 0 0', color: 'var(--accent)' }}>
+          Total recibido: <strong>{num(totalEggs)}</strong> huevos · {num1(totalEggs / api.eggsPerTray)} bandejas ·{' '}
+          {Math.ceil(totalEggs / api.eggsPerCart)} carros
+        </p>
+      )}
+      {msg && (
+        <p className={`msg ${msg.kind === 'ok' ? 'ok' : 'error'}`} style={{ marginTop: 6 }}>
+          {msg.text}
+        </p>
+      )}
+      {api.error && (
+        <p className="msg error" style={{ marginTop: 6 }}>
+          {api.error}
+        </p>
+      )}
       <div className="actions row" style={{ marginTop: 8 }}>
         <button type="button" className="primary" disabled={busy || totalEggs <= 0} onClick={submit}>
           {busy ? 'Guardando…' : '✓ Registrar cantidades'}
@@ -479,7 +572,9 @@ function LotArrivalCapture({ orgId, userId }) {
 
       {api.arrivals.length > 0 && (
         <>
-          <h4 className="section-title" style={{ margin: '16px 0 6px' }}>Últimas cantidades recibidas</h4>
+          <h4 className="section-title" style={{ margin: '16px 0 6px' }}>
+            Últimas cantidades recibidas
+          </h4>
           <div className="admin-list">
             {api.arrivals.slice(0, 8).map((a) => {
               const eggs = (a.received_postures || []).reduce((s, p) => s + (Number(p.eggs) || 0), 0)
@@ -487,11 +582,23 @@ function LotArrivalCapture({ orgId, userId }) {
                 <div key={a.id} className="admin-row compact" style={{ margin: 0 }}>
                   <span>📦</span>
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>{a.lot_code || 'Lote'} · {num(eggs)} huevos</strong>
+                    <strong>
+                      {a.lot_code || 'Lote'} · {num(eggs)} huevos
+                      {a.photo_paths?.length ? ` · 📷 ${a.photo_paths.length}` : ''}
+                    </strong>
                     <span className="hint" style={{ margin: 0 }}>
-                      {a.arrived_at ? new Date(a.arrived_at).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {a.arrived_at
+                        ? new Date(a.arrived_at).toLocaleString('es-CO', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
                       {' · '}
-                      {(a.received_postures || []).map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`).join('  ·  ')}
+                      {(a.received_postures || [])
+                        .map((p) => `${fmtDate(p.productionDate)}: ${num(p.eggs)}`)
+                        .join('  ·  ')}
                     </span>
                   </div>
                 </div>
@@ -522,7 +629,12 @@ function ArrivalRow({ arrival, getUrl }) {
             <img
               src={url}
               alt={`Sello ${arrival.seal_number}`}
-              style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }}
+              style={{
+                width: 64,
+                height: 64,
+                objectFit: 'cover',
+                borderRadius: 8,
+              }}
             />
           </a>
         ) : (
@@ -590,7 +702,7 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
     return r ? `${r.name} (${r.code})` : 'Galpón'
   }
   const farmName = (id) => farms.find((f) => f.id === id)?.name ?? 'Granja'
-  const nameOf = (id) => (id ? people[id] ?? '—' : '—')
+  const nameOf = (id) => (id ? (people[id] ?? '—') : '—')
 
   const kindTotals = (counts) => {
     let inc = 0
@@ -610,7 +722,11 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
   const kpis = useMemo(() => {
     let inc = 0
     for (const r of receivedToday) inc += kindTotals(r.received_counts ?? r.counts).inc
-    return { pending: pending.length, receivedToday: receivedToday.length, incToday: inc }
+    return {
+      pending: pending.length,
+      receivedToday: receivedToday.length,
+      incToday: inc,
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending.length, receivedToday, er.categories])
 
@@ -620,7 +736,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
         <div>
           <h2>Recepción de huevo</h2>
           <span className="hint" style={{ margin: 0 }}>
-            Hola{firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · verifica y certifica los envíos de las granjas
+            Hola
+            {firstName(coordinatorName) ? `, ${firstName(coordinatorName)}` : ''} · verifica y certifica los envíos de
+            las granjas
           </span>
         </div>
         {kpis.pending > 0 && <span className="pill status warn">{kpis.pending} por recibir</span>}
@@ -658,7 +776,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
               <div key={r.id} className="admin-card">
                 <div className="admin-row">
                   <div className="admin-row-main" style={{ flex: 1 }}>
-                    <strong>{roomName(r.room_id)} · {fmtDate(r.report_date)}</strong>
+                    <strong>
+                      {roomName(r.room_id)} · {fmtDate(r.report_date)}
+                    </strong>
                     <span className="hint" style={{ margin: 0 }}>
                       Reportado: Incubable {num(t.inc)} · Comercial {num(t.com)} · {farmName(r.farm_id)}
                       {r.verified_by ? ` · Verificó ${nameOf(r.verified_by)}` : ''}
@@ -666,7 +786,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
                   </div>
                   <span className="pill status ok">Verificado</span>
                   {canCertify && certifyId !== r.id && (
-                    <button className="primary small" onClick={() => setCertifyId(r.id)}>Recibir</button>
+                    <button className="primary small" onClick={() => setCertifyId(r.id)}>
+                      Recibir
+                    </button>
                   )}
                 </div>
                 {certifyId === r.id && (
@@ -700,7 +822,9 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
               <div key={r.id} className="admin-row compact" style={{ margin: 0 }}>
                 <span>❄️</span>
                 <div className="admin-row-main" style={{ flex: 1 }}>
-                  <strong>{roomName(r.room_id)} · {fmtDate(r.report_date)}</strong>
+                  <strong>
+                    {roomName(r.room_id)} · {fmtDate(r.report_date)}
+                  </strong>
                   <span className="hint" style={{ margin: 0 }}>
                     Recibido: Incubable {num(t.inc)} · Comercial {num(t.com)} · {farmName(r.farm_id)}
                     {r.received_by ? ` · ${nameOf(r.received_by)}` : ''}

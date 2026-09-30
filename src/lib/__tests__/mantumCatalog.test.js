@@ -1,5 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest'
 import { resolveMantumKeys, getMantumDataForMachine } from '../../data/mantumCatalog'
+import { loadMantumHistory } from '../../data/mantumHistory'
+
+// El historial de OT se carga bajo demanda; las pruebas lo cargan una vez.
+beforeAll(async () => {
+  await loadMantumHistory()
+})
 
 describe('mantumCatalog & SIG Dossier Resolver', () => {
   it('resolves Mantum keys for incubators correctly', () => {

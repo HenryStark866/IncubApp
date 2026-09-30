@@ -1,0 +1,38 @@
+services:
+  incubapp:
+    build:
+      context: .
+      # Dentro de WSL la red por defecto de `docker build` se cuelga al bajar paquetes
+      # de npm (ETIMEDOUT, 27-09-2026). Con la red del equipo sale como cualquier programa.
+      network: host
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_KEY=${VITE_SUPABASE_KEY}
+    networks:
+      - app-network
+      - supabase_default
+
+  # Ngrok container to expose the application to the internet
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command:
+      - "http"
+      - "incubapp:80"
+    ports:
+      - "4040:4040"
+    networks:
+      - app-network
+    depends_on:
+      - incubapp
+
+networks:
+  app-network:
+    driver: bridge
+  supabase_default:
+    external: true

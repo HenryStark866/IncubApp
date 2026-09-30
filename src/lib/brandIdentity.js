@@ -44,12 +44,15 @@ export const BRAND = {
     body: 'IBM Plex Sans, Segoe UI, system-ui, sans-serif',
   },
   /** Assets del PRODUCTO (nunca logos de clientes) */
+  // Logos originales de Incubant (28-09-2026: se retiran los logos de CDH Maker).
   assets: {
-    mark: '/brand/incubapp-mark.svg',
-    logo: '/brand/incubapp-logo.svg',
+    mark: '/icon-512.png',
+    logo: '/client-brands/incubant/logo_sig.png',
+    /** Mismo logo, para tarjetas claras (pantalla de acceso). */
+    logoLight: '/client-brands/incubant/logo_sig.png',
     wordmark: '/brand/incubapp-wordmark.svg',
     og: '/brand/incubapp-og.svg',
-    favicon: '/brand/incubapp-favicon.svg',
+    favicon: '/favicon.png',
     platformBg: '/brand/incubapp-platform-bg.svg',
   },
   /** Assets del operador CDH Maker (plataforma) */
@@ -138,17 +141,25 @@ export const GO_TO_MARKET = {
     'Expansión módulo a módulo (ops → gerencia → multi-sede).',
   ],
   packaging: [
-    { name: 'IncubApp Starter', includes: 'Rondas, OT, asistencia, offline, multi-usuario.' },
-    { name: 'IncubApp Ops', includes: 'Starter + nacimiento/cargue, inventarios, sensores, reportes.' },
-    { name: 'IncubApp Enterprise', includes: 'Ops + multi-sede, white-label cliente, SLA, onboarding.' },
+    {
+      name: 'IncubApp Starter',
+      includes: 'Rondas, OT, asistencia, offline, multi-usuario.',
+    },
+    {
+      name: 'IncubApp Ops',
+      includes: 'Starter + nacimiento/cargue, inventarios, sensores, reportes.',
+    },
+    {
+      name: 'IncubApp Enterprise',
+      includes: 'Ops + multi-sede, white-label cliente, SLA, onboarding.',
+    },
   ],
 }
 
 export const LETTERHEAD = {
   productLine: 'IncubApp',
   operatorLine: BRAND.slogan,
-  confidentiality:
-    'Documento generado con IncubApp. Confidencial según la organización. Uso interno autorizado.',
+  confidentiality: 'Documento generado con IncubApp. Confidencial según la organización. Uso interno autorizado.',
 }
 
 export const PLATFORM_DEV_ROLE = {

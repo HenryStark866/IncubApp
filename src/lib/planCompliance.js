@@ -62,7 +62,7 @@ const ACTIVITY_FAMILIES = [
   ['limpieza', /limpi|lava|desinfec|aseo|sanitiz|purg/],
   ['lubricacion', /lubric|engras|aceit|grasa/],
   ['cambio', /cambi|reempla|sustitu|renov/],
-  ['ajuste', /ajust|apret|tension|alinea|nivela/],
+  ['ajuste', /ajust|apret|apriet|tension|alinea|nivela/],
   ['medicion', /medi[rc]|termogra|vibraci|megg?u|aislamiento|amperaj|voltaj|analisis/],
   ['prueba', /prueba|arranque|simulacro|test\b/],
   ['correctivo', /falla|dano|danad|repar|alarma|fuga|pantalla negra|no enciende|averi/],

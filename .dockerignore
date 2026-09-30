@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.agents
+servidor-local/logs
+.respaldo
+docs
+servidor-local
+supabase
+coverage

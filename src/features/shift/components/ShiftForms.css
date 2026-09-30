@@ -1,0 +1,254 @@
+/*
+ * Piezas de formulario de los inicios de planta y mantenimiento (prefijo sf-):
+ * campos, botones segmentados, fotos adjuntas, avisos de guardado. Usan la
+ * paleta de ShiftHome.css (.sh-root), así heredan el modo oscuro.
+ */
+.sf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sh-muted);
+  min-width: 0;
+}
+
+.sf-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--sh-line);
+  border-radius: 12px;
+  background: var(--sh-surface);
+  color: var(--sh-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+textarea.sf-input {
+  min-height: 0;
+  resize: vertical;
+}
+
+.sf-input:focus-visible {
+  outline: 2px solid var(--sh-accent);
+  outline-offset: 1px;
+}
+
+.sf-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 420px) {
+  .sf-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sf-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--sh-muted);
+  line-height: 1.45;
+}
+
+.sf-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--sh-hero-track);
+  overflow: hidden;
+}
+
+.sf-progress > div {
+  height: 100%;
+  background: var(--sh-amber);
+  border-radius: inherit;
+}
+
+.sf-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sf-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.sf-pills button {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sh-line);
+  background: var(--sh-surface);
+  color: var(--sh-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-pills button[aria-pressed='true'] {
+  background: var(--sh-ink);
+  border-color: var(--sh-ink);
+  color: var(--sh-surface);
+}
+
+.sf-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sf-seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sf-seg button {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--sh-line);
+  background: var(--sh-ground);
+  color: var(--sh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sf-seg .sf-seg-ok[aria-pressed='true'] {
+  background: var(--sh-ok-soft);
+  border-color: var(--sh-ok);
+  color: var(--sh-ok);
+}
+
+.sf-seg .sf-seg-fail[aria-pressed='true'] {
+  background: var(--sh-fault-soft);
+  border-color: var(--sh-fault);
+  color: var(--sh-fault);
+}
+
+.sf-seg .sf-seg-na[aria-pressed='true'] {
+  background: var(--sh-line-soft);
+  border-color: var(--sh-muted);
+  color: var(--sh-muted);
+}
+
+.sf-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--sh-fault-soft);
+  color: var(--sh-fault);
+}
+
+.sf-toggle input {
+  width: 20px;
+  height: 20px;
+}
+
+.sf-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sf-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.sf-thumb {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid var(--sh-line);
+  background: var(--sh-surface);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sf-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-thumb figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 6px;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sf-thumb > button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sf-thumb-doc {
+  color: var(--sh-muted);
+}
+
+.sf-thumb-add {
+  gap: 6px;
+  border-style: dashed;
+  color: var(--sh-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sf-save {
+  margin-top: 4px;
+}
+
+.sf-save:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.sf-saved {
+  align-items: flex-start;
+}
+
+.sf-saved-offline {
+  border-color: var(--sh-warn-dot);
+}

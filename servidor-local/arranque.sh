@@ -1,68 +1,169 @@
-#!/bin/bash
-# IncubApp · servidor local — arranque dentro de WSL (lo llama arranque-windows.ps1).
-# Espera a Docker y vuelve a levantar los contenedores que el reinicio o el apagón
-# dejaron caídos (por ejemplo, porque su puerto estaba ocupado cuando Docker arrancó).
-# Respeta los que se apagaron a mano (studio, imgproxy, supavisor): esos salen con
-# código 0/143 y sin error de arranque, y no se tocan.
+#!/usr/bin/env bash
+# IncubApp · servidor local — arranque automático y vigilante.
 #
-# Ojo: un contenedor que falló al conectar su red queda SIN redes; un `docker start`
-# lo deja "arriba" pero aislado (la API respondía 502). Por eso los de compose se
-# recrean con `docker compose up --force-recreate`, que vuelve a armar sus redes.
+#   arranque.sh             levanta todo (Docker, Supabase, app, túnel) y espera a que responda
+#   arranque.sh --vigia     revisión de cada minuto: si algo no responde, lo vuelve a levantar
+#   arranque.sh --instalar  deja el arranque y el vigilante como servicios de Ubuntu (systemd)
+#
+# Por qué existe (30-09-2026): tras reiniciar el Lenovo, Cloudflare daba 502. Docker
+# arrancaba, pero nadie volvía a levantar Supabase ni el contenedor de la app si fallaban
+# al primer intento (p. ej. el puerto 80 todavía ocupado). Ahora systemd lo hace al
+# encender Ubuntu y lo revisa cada minuto, sin que nadie tenga que iniciar sesión.
+set -uo pipefail
 
-log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
-etiqueta() { docker inspect -f "{{index .Config.Labels \"$2\"}}" "$1"; }
+APP=/mnt/c/IncubApp
+SRV=/opt/incubapp/server
+LOG=/var/log/incubapp-arranque.log
+# Servicios de Supabase que no hacen falta en producción (tunel.sh ya los detenía).
+SOBRAN='^(studio|supavisor|imgproxy)$'
 
-systemctl start docker 2>/dev/null
-for i in $(seq 1 60); do docker info >/dev/null 2>&1 && break; sleep 3; done
-if ! docker info >/dev/null 2>&1; then log "Docker no respondió en 3 min"; exit 1; fi
-log "Docker listo"
+log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 
-# Dale a Docker un momento para su propio arranque de contenedores.
-sleep 20
+instalar() {
+  local yo
+  yo="$(readlink -f "$0")"
+  cat > /etc/systemd/system/incubapp-arranque.service <<UNIT
+[Unit]
+Description=IncubApp: levanta Supabase, la app y el túnel al encender
+After=docker.service network-online.target
+Wants=docker.service network-online.target
 
-reparar() {
-  local c=$1 proyecto servicio dir archivos args=()
-  proyecto=$(etiqueta "$c" com.docker.compose.project)
-  servicio=$(etiqueta "$c" com.docker.compose.service)
-  dir=$(etiqueta "$c" com.docker.compose.project.working_dir)
-  archivos=$(etiqueta "$c" com.docker.compose.project.config_files)
-  if [ -n "$servicio" ] && [ -d "$dir" ]; then
-    IFS=',' read -ra lista <<< "$archivos"
-    for f in "${lista[@]}"; do args+=(-f "$f"); done
-    (cd "$dir" && docker compose -p "$proyecto" "${args[@]}" up -d --no-deps --no-build --force-recreate "$servicio") >/dev/null 2>&1
-  else
-    docker start "$c" >/dev/null 2>&1
-  fi
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash $yo
+TimeoutStartSec=15min
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  cat > /etc/systemd/system/incubapp-vigia.service <<UNIT
+[Unit]
+Description=IncubApp: revisa que la app responda y levanta lo que se haya caído
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash $yo --vigia
+TimeoutStartSec=10min
+UNIT
+  cat > /etc/systemd/system/incubapp-vigia.timer <<UNIT
+[Unit]
+Description=IncubApp: vigilante cada minuto
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable docker >/dev/null 2>&1
+  systemctl enable incubapp-arranque.service incubapp-vigia.timer
+  systemctl start incubapp-vigia.timer
+  log "Servicios instalados: incubapp-arranque (al encender) e incubapp-vigia (cada minuto)."
 }
 
-for intento in 1 2 3 4 5; do
-  pendientes=""
+esperar_docker() {
+  systemctl start docker >/dev/null 2>&1 || service docker start >/dev/null 2>&1 || true
+  for _ in $(seq 1 60); do
+    docker info >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  log "Docker no respondió en 2 minutos."
+  return 1
+}
+
+# ¿Responde la app de punta a punta? (nginx de la app + API de Supabase detrás)
+responde() {
+  local app api
+  app=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/ || true)
+  api=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/auth/v1/health || true)
+  # /auth/v1/health responde 200 (o 401 si pide apikey): ambos significan que Supabase está vivo.
+  [ "$app" = 200 ] && { [ "$api" = 200 ] || [ "$api" = 401 ]; }
+}
+
+# Contenedores que un arranque fallido dejó rotos (29-09-2026: con el puerto ocupado,
+# envoy quedó "arriba" pero SIN red y la API daba 502; `up --no-recreate` no lo arregla).
+# Se recrean con compose, que vuelve a armar sus redes. Los apagados a mano (código 0/143,
+# sin error) no se tocan.
+reparar_rotos() {
+  local c nombre estado error codigo modo redes proyecto servicio dir archivos f args
   for c in $(docker ps -aq); do
+    case "$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$c")" in always|unless-stopped) ;; *) continue ;; esac
     nombre=$(docker inspect -f '{{.Name}}' "$c" | sed 's#^/##')
-    politica=$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$c")
-    [ "$politica" = "always" ] || [ "$politica" = "unless-stopped" ] || continue
     estado=$(docker inspect -f '{{.State.Status}}' "$c")
     error=$(docker inspect -f '{{.State.Error}}' "$c")
     codigo=$(docker inspect -f '{{.State.ExitCode}}' "$c")
     modo=$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$c")
     redes=$(docker inspect -f '{{len .NetworkSettings.Networks}}' "$c")
     case "$estado" in
-      running)
-        # Arriba pero sin ninguna red: quedó aislado tras un fallo de arranque.
-        [ "$redes" = "0" ] && [ "$modo" != "host" ] && [ "$modo" != "none" ] && pendientes="$pendientes $nombre" ;;
-      exited|dead)
-        # Caído por error (puerto ocupado, red, apagón) → levantar. Apagado a mano → dejar.
-        if [ -n "$error" ] || { [ "$codigo" != "0" ] && [ "$codigo" != "143" ]; }; then
-          pendientes="$pendientes $nombre"
-        fi ;;
-    esac                                           # "created": nunca se arrancó, no tocar
+      running) [ "$redes" = 0 ] && [ "$modo" != host ] && [ "$modo" != none ] || continue ;;
+      exited|dead) [ -n "$error" ] || { [ "$codigo" != 0 ] && [ "$codigo" != 143 ]; } || continue ;;
+      *) continue ;;
+    esac
+    proyecto=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c")
+    servicio=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$c")
+    dir=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$c")
+    archivos=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.config_files"}}' "$c")
+    log "Reparando $nombre ($estado, redes=$redes${error:+, $error})"
+    if [ -n "$servicio" ] && [ -d "$dir" ]; then
+      args=()
+      IFS=',' read -ra lista <<< "$archivos"
+      for f in "${lista[@]}"; do args+=(-f "$f"); done
+      (cd "$dir" && docker compose -p "$proyecto" "${args[@]}" up -d --no-deps --no-build --force-recreate "$servicio") >>"$LOG" 2>&1 \
+        || log "  $nombre no se pudo recrear (ver arriba)."
+    else
+      docker start "$c" >/dev/null 2>&1 || true
+    fi
   done
-  [ -z "$pendientes" ] && break
-  log "Intento $intento, levantando:$pendientes"
-  for n in $pendientes; do reparar "$n"; log "  $n: $(docker inspect -f '{{.State.Status}} {{.State.Error}}' "$n" 2>/dev/null)"; done
-  sleep 15
-done
+}
 
-docker start incubapp-tunel >/dev/null 2>&1 || true
-log "Estado final:"
-docker ps --format '  {{.Names}}\t{{.Status}}'
+levantar() {
+  reparar_rotos
+  if [ -d "$SRV" ]; then
+    local servicios
+    servicios=$(cd "$SRV" && docker compose config --services 2>/dev/null | grep -Ev "$SOBRAN" | tr '\n' ' ')
+    # shellcheck disable=SC2086
+    (cd "$SRV" && docker compose up -d --no-recreate $servicios) >>"$LOG" 2>&1 || log "Supabase: algún servicio no subió (ver arriba)."
+  fi
+  if [ -f "$APP/docker-compose.yml" ]; then
+    # Si el puerto 80 lo tiene otro programa, la app no puede arrancar: se deja dicho.
+    if ! docker ps --format '{{.Names}}' | grep -qx 'incubapp-incubapp-1' && ss -ltn 2>/dev/null | grep -q ':80 '; then
+      log "Aviso: el puerto 80 está ocupado por otro programa; la app no puede tomarlo."
+    fi
+    (cd "$APP" && docker compose up -d --no-recreate --no-build incubapp) >>"$LOG" 2>&1 || log "La app no subió (ver arriba)."
+  fi
+  docker start incubapp-tunel >/dev/null 2>&1 || true
+}
+
+case "${1:-}" in
+  --instalar)
+    instalar
+    exit 0
+    ;;
+  --vigia)
+    esperar_docker || exit 0
+    responde && exit 0
+    log "Vigilante: la app no responde; levantando lo que falte."
+    levantar
+    for _ in $(seq 1 24); do responde && { log "Vigilante: la app volvió a responder."; exit 0; }; sleep 5; done
+    log "Vigilante: sigue sin responder; se reintenta en el próximo minuto."
+    exit 0
+    ;;
+esac
+
+log "=== Arranque ==="
+esperar_docker || exit 1
+levantar
+for _ in $(seq 1 60); do
+  if responde; then
+    log "Listo: la app responde en este equipo."
+    exit 0
+  fi
+  sleep 5
+done
+log "La app todavía no responde tras 5 minutos; el vigilante seguirá intentando cada minuto."
+exit 0

@@ -32,6 +32,17 @@ const MACHINE_TYPE_LABEL = {
   other: 'Otro',
 }
 
+
+/** «+0.2» / «−0.3»: lectura de la máquina menos la del patrón, o null si falta alguna. */
+export function readingDelta(machineValue, calibratorValue) {
+  const toNum = (v) => (v === '' || v == null ? NaN : Number(String(v).replace(',', '.')))
+  const a = toNum(machineValue)
+  const b = toNum(calibratorValue)
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null
+  const d = Math.round((a - b) * 10) / 10
+  return d === 0 ? '0.0' : `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}`
+}
+
 function PhotoCapture({ label, file, onFile, hint }) {
   const inputRef = useRef(null)
   const [preview, setPreview] = useState(null)
@@ -365,6 +376,9 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
 
   const needTemp = scope === CALIB_SCOPE.temperature || scope === CALIB_SCOPE.both
   const needRh = scope === CALIB_SCOPE.humidity || scope === CALIB_SCOPE.both
+  // Diferencia en vivo mientras se escriben las lecturas (la misma que guarda el FOMAT08).
+  const tempDelta = needTemp ? readingDelta(tempMachineF, tempCalibratorF) : null
+  const rhDelta = needRh ? readingDelta(rhMachinePct, rhCalibratorPct) : null
 
   const startFromOrder = (order) => {
     setMachineId(order.machine_id || '')
@@ -647,18 +661,26 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
             </div>
           )}
 
-          <PhotoCapture
-            label="1. Foto del calibrador"
-            hint="instrumento en el punto de calibración"
-            file={calibratorFile}
-            onFile={setCalibratorFile}
-          />
-          <PhotoCapture
-            label="2. Foto de la pantalla de la máquina"
-            hint="valores mostrados del sensor"
-            file={screenFile}
-            onFile={setScreenFile}
-          />
+          {(tempDelta || rhDelta) && (
+            <p className="hint" style={{ margin: 0, fontWeight: 600 }} role="status">
+              Diferencia máquina − patrón: {[tempDelta && `temperatura ${tempDelta} °F`, rhDelta && `humedad ${rhDelta} %`].filter(Boolean).join(' · ')}
+            </p>
+          )}
+
+          <div className="two-col">
+            <PhotoCapture
+              label="1. Foto del calibrador"
+              hint="instrumento en el punto de calibración"
+              file={calibratorFile}
+              onFile={setCalibratorFile}
+            />
+            <PhotoCapture
+              label="2. Foto de la pantalla de la máquina"
+              hint="valores mostrados del sensor"
+              file={screenFile}
+              onFile={setScreenFile}
+            />
+          </div>
 
           <label>
             Observaciones (opcional)
@@ -671,6 +693,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
           </label>
 
           <div className="actions row">
+            <span className="hint" style={{ margin: 0 }}>Genera el FOMAT08 y cierra la OT de calibración.</span>
             <button
               type="button"
               className="primary"

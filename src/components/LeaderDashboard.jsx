@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState, useEffect } from 'react'
 import { usePlants } from '../hooks/usePlants'
 import { useRooms } from '../hooks/useRooms'
 import { useMachines } from '../hooks/useMachines'
@@ -23,13 +23,31 @@ import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
 import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
-import MachineAssetHub, { buildProductionEvidence } from '../features/maintenance/components/MachineAssetHub'
-import { evidenceHasRecordDocument, openEvidenceFormat, shiftActivityRecordItem, singleCheckRound, workOrderRecordItem } from '../lib/sigRecordDocuments'
+import { buildProductionEvidence } from '../features/maintenance/lib/productionEvidence'
+import {
+  evidenceHasRecordDocument,
+  openEvidenceFormat,
+  shiftActivityRecordItem,
+  singleCheckRound,
+  workOrderRecordItem,
+} from '../lib/sigRecordDocuments'
+
+// El Centro de Activos SIG trae el historial Mantum (~7 MB): se carga aparte para que
+// indicadores y feed del turno se vean de inmediato, sobre todo por el túnel.
+const MachineAssetHub = lazy(() => import('../features/maintenance/components/MachineAssetHub'))
+// Etapa 3: decisiones, equipo y plan del día del líder según su área (va encima de lo que ya había).
+const LeaderAreaHome = lazy(() => import('../features/leader/components/LeaderAreaHome'))
 
 /** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
-  'horarios', 'supervision', 'mantenimiento', 'calibracion',
-  'asistencia', 'misionales', 'preoperacional', 'hoy',
+  'horarios',
+  'supervision',
+  'mantenimiento',
+  'calibracion',
+  'asistencia',
+  'misionales',
+  'preoperacional',
+  'hoy',
 ])
 
 /** Ãconos por tipo de evento del feed */
@@ -50,13 +68,18 @@ const CONDITION_COLOR = {
 }
 
 function nowTime() {
-  return new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+  return new Date().toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function KpiCard({ label, value, icon, color, sub }) {
   return (
     <div className="ldr-kpi-card" style={{ '--kpi-accent': color }}>
-      <span className="ldr-kpi-icon" aria-hidden="true">{icon}</span>
+      <span className="ldr-kpi-icon" aria-hidden="true">
+        {icon}
+      </span>
       <div className="ldr-kpi-body">
         <span className="ldr-kpi-value">{value ?? '–'}</span>
         <span className="ldr-kpi-label">{label}</span>
@@ -74,7 +97,9 @@ function QuickCard({ item, onNavigate }) {
       onClick={() => onNavigate?.(item.id)}
       title={item.hint || item.label}
     >
-      <span className="ldr-quick-icon" aria-hidden="true">{item.icon || '🔹'}</span>
+      <span className="ldr-quick-icon" aria-hidden="true">
+        {item.icon || '🔹'}
+      </span>
       <span className="ldr-quick-label">{item.label}</span>
     </button>
   )
@@ -84,7 +109,10 @@ function FeedItem({ event, peopleName, getPhotoUrl, onOpenFormat }) {
   const [photoUrl, setPhotoUrl] = useState(null)
   const who = peopleName?.[event.personId] || 'Operario registrado'
   const when = event.when
-    ? new Date(event.when).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(event.when).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : ''
 
   useEffect(() => {
@@ -96,31 +124,49 @@ function FeedItem({ event, peopleName, getPhotoUrl, onOpenFormat }) {
     getPhotoUrl(event.photoPath).then((url) => {
       if (active) setPhotoUrl(url)
     })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [event.photoPath, getPhotoUrl])
 
   return (
     <div className={`ldr-feed-item kind-${(event.kind || '').toLowerCase()}`}>
-      <span className="ldr-feed-dot" aria-hidden="true">{FEED_ICONS[event.kind] || '•'}</span>
+      <span className="ldr-feed-dot" aria-hidden="true">
+        {FEED_ICONS[event.kind] || '•'}
+      </span>
       <div className="ldr-feed-body">
         <span className="ldr-feed-who">{who}</span>
         {event.kind !== 'Ronda' && <span className="ldr-feed-kind">{event.kind}</span>}
-        {event.detail && <span className="ldr-feed-detail" title={event.detail}>{event.detail}</span>}
-        {event.report && <span className="ldr-feed-report" title={event.report}>{event.report}</span>}
+        {event.detail && (
+          <span className="ldr-feed-detail" title={event.detail}>
+            {event.detail}
+          </span>
+        )}
+        {event.report && (
+          <span className="ldr-feed-report" title={event.report}>
+            {event.report}
+          </span>
+        )}
         {when && <span className="ldr-feed-when">{when}</span>}
       </div>
       <div className="ldr-feed-actions">
-        {event.kind === 'Ronda' && (
-          photoUrl
-            ? <a className="ldr-feed-view" href={photoUrl} target="_blank" rel="noopener noreferrer">VER</a>
-            : <span className="ldr-feed-view is-empty">Sin foto</span>
-        )}
+        {event.kind === 'Ronda' &&
+          (photoUrl ? (
+            <a className="ldr-feed-view" href={photoUrl} target="_blank" rel="noopener noreferrer">
+              VER
+            </a>
+          ) : (
+            <span className="ldr-feed-view is-empty">Sin foto</span>
+          ))}
         {event.source && onOpenFormat && (
           <a
             className="ldr-feed-view ldr-feed-format"
             href="#formato"
             title="Abrir el formato diligenciado de este registro"
-            onClick={(clickEvent) => { clickEvent.preventDefault(); onOpenFormat(event) }}
+            onClick={(clickEvent) => {
+              clickEvent.preventDefault()
+              onOpenFormat(event)
+            }}
           >
             FORMATO
           </a>
@@ -145,8 +191,11 @@ function EvidenceCard({ item, getFileUrl, peopleName }) {
   const uploader = peopleName?.[item.uploaded_by] || 'Operario'
   const dateStr = item.created_at
     ? new Date(item.created_at).toLocaleDateString('es-CO', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-    })
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : ''
 
   return (
@@ -159,12 +208,24 @@ function EvidenceCard({ item, getFileUrl, peopleName }) {
         )}
       </div>
       <div className="ldr-ev-info">
-        <span className="ldr-ev-name" title={item.file_name}>{item.file_name}</span>
-        <span className="ldr-ev-meta">{uploader} · {dateStr}</span>
+        <span className="ldr-ev-name" title={item.file_name}>
+          {item.file_name}
+        </span>
+        <span className="ldr-ev-meta">
+          {uploader} · {dateStr}
+        </span>
         {item.note && <span className="ldr-ev-note">"{item.note}"</span>}
       </div>
       {evidenceHasRecordDocument(item) && (
-        <a href="#formato" className="ldr-ev-link ldr-ev-format" title="Abrir el formato diligenciado" onClick={(event) => { event.preventDefault(); openEvidenceFormat(item) }}>
+        <a
+          href="#formato"
+          className="ldr-ev-link ldr-ev-format"
+          title="Abrir el formato diligenciado"
+          onClick={(event) => {
+            event.preventDefault()
+            openEvidenceFormat(item)
+          }}
+        >
           Formato
         </a>
       )}
@@ -182,7 +243,7 @@ export default function LeaderDashboard({
   userId,
   role,
   developerMode = false,
-  area: _area,
+  area,
   userName,
   orgName,
   onNavigate,
@@ -214,8 +275,7 @@ export default function LeaderDashboard({
   const { orders } = useWorkOrders(orgId, userId)
   const [sigEvidence, setSigEvidence] = useState([])
   const handleSigEvidenceLoaded = useCallback((items) => setSigEvidence(items), [])
-  const dashboardEvidence = (sigEvidence.length > 0 ? sigEvidence : evidence)
-    .filter((item) => item.kind !== 'round')
+  const dashboardEvidence = (sigEvidence.length > 0 ? sigEvidence : evidence).filter((item) => item.kind !== 'round')
 
   useEffect(() => {
     let active = true
@@ -226,13 +286,17 @@ export default function LeaderDashboard({
       .eq('org_id', orgId)
       .then(({ data }) => {
         if (!active) return
-        const names = Object.fromEntries((data || []).map((row) => [
-          row.user_id,
-          row.profiles?.full_name || row.profiles?.email || 'Operario registrado',
-        ]))
+        const names = Object.fromEntries(
+          (data || []).map((row) => [
+            row.user_id,
+            row.profiles?.full_name || row.profiles?.email || 'Operario registrado',
+          ]),
+        )
         setDirectory(names)
       })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [orgId])
 
   const latestByMachine = useMemo(() => {
@@ -346,36 +410,65 @@ export default function LeaderDashboard({
   // ronda → FOMAT04, OT → FOMAT01, cargue / transferencia / actividad → registro operativo.
   const machinesById = useMemo(() => Object.fromEntries(machines.map((m) => [m.id, m])), [machines])
   const getCheckPhotoUrl = mc.getPhotoUrl
-  const openFeedFormat = useCallback(async (ev) => {
-    const row = ev.source || {}
-    const photo = async (path) => (path ? getCheckPhotoUrl(path) : null)
-    try {
-      if (ev.kind === 'Ronda') {
-        openEvidenceFormat(singleCheckRound({ check: row, machine: machinesById[row.machine_id] || null, takenByName: peopleName[row.taken_by] || null, photoUrl: await photo(row.photo_path) }))
-      } else if (ev.kind === 'Actividad') {
-        openEvidenceFormat(shiftActivityRecordItem({ activity: row, machine: machinesById[row.machine_id] || null, people: peopleName, photoUrl: await photo(row.photo_path) }))
-      } else if (ev.kind === 'Cargue' || ev.kind === 'Transferencia') {
-        const url = await photo(row.photo_path)
-        const [record] = buildProductionEvidence({
-          loads: ev.kind === 'Cargue' ? [row] : [],
-          transfers: ev.kind === 'Transferencia' ? [row] : [],
-          machines: machinesById,
-          people: peopleName,
-          photoUrls: new Map(url ? [[row.photo_path, url]] : []),
-        })
-        if (record) openEvidenceFormat(record)
-      } else if (ev.kind === 'Mantenimiento') {
-        const files = await Promise.all(evidence.filter((file) => file.work_order_id === row.id).map(async (file) => ({
-          ...file,
-          url: await getFileUrl(file.file_path),
-          uploadedByName: peopleName[file.uploaded_by] || null,
-        })))
-        openEvidenceFormat(workOrderRecordItem({ order: row, files, machine: machinesById[row.machine_id] || null, createdBy: peopleName[row.created_by] || null, assignedTo: peopleName[row.assigned_to] || null }))
+  const openFeedFormat = useCallback(
+    async (ev) => {
+      const row = ev.source || {}
+      const photo = async (path) => (path ? getCheckPhotoUrl(path) : null)
+      try {
+        if (ev.kind === 'Ronda') {
+          openEvidenceFormat(
+            singleCheckRound({
+              check: row,
+              machine: machinesById[row.machine_id] || null,
+              takenByName: peopleName[row.taken_by] || null,
+              photoUrl: await photo(row.photo_path),
+            }),
+          )
+        } else if (ev.kind === 'Actividad') {
+          openEvidenceFormat(
+            shiftActivityRecordItem({
+              activity: row,
+              machine: machinesById[row.machine_id] || null,
+              people: peopleName,
+              photoUrl: await photo(row.photo_path),
+            }),
+          )
+        } else if (ev.kind === 'Cargue' || ev.kind === 'Transferencia') {
+          const url = await photo(row.photo_path)
+          const [record] = buildProductionEvidence({
+            loads: ev.kind === 'Cargue' ? [row] : [],
+            transfers: ev.kind === 'Transferencia' ? [row] : [],
+            machines: machinesById,
+            people: peopleName,
+            photoUrls: new Map(url ? [[row.photo_path, url]] : []),
+          })
+          if (record) openEvidenceFormat(record)
+        } else if (ev.kind === 'Mantenimiento') {
+          const files = await Promise.all(
+            evidence
+              .filter((file) => file.work_order_id === row.id)
+              .map(async (file) => ({
+                ...file,
+                url: await getFileUrl(file.file_path),
+                uploadedByName: peopleName[file.uploaded_by] || null,
+              })),
+          )
+          openEvidenceFormat(
+            workOrderRecordItem({
+              order: row,
+              files,
+              machine: machinesById[row.machine_id] || null,
+              createdBy: peopleName[row.created_by] || null,
+              assignedTo: peopleName[row.assigned_to] || null,
+            }),
+          )
+        }
+      } catch (error) {
+        console.warn('Tablero del líder: no se pudo abrir el formato del registro.', error)
       }
-    } catch (error) {
-      console.warn('Tablero del líder: no se pudo abrir el formato del registro.', error)
-    }
-  }, [getCheckPhotoUrl, machinesById, peopleName, evidence, getFileUrl])
+    },
+    [getCheckPhotoUrl, machinesById, peopleName, evidence, getFileUrl],
+  )
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
@@ -402,18 +495,44 @@ export default function LeaderDashboard({
         </div>
       </header>
 
+      <Suspense fallback={null}>
+        <LeaderAreaHome
+          orgId={orgId}
+          userId={userId}
+          role={role}
+          area={area}
+          userName={userName}
+          onNavigate={onNavigate}
+          peopleName={peopleName}
+        />
+      </Suspense>
+
       <section className="ldr-kpi-grid" aria-label="Indicadores de planta">
-        <KpiCard label="Operativas" value={summary.normal} icon="✅" color={CONDITION_COLOR.normal} sub={`de ${totalMachines} máquinas`} />
+        <KpiCard
+          label="Operativas"
+          value={summary.normal}
+          icon="✅"
+          color={CONDITION_COLOR.normal}
+          sub={`de ${totalMachines} máquinas`}
+        />
         <KpiCard label="En alerta" value={summary.warning} icon="!" color={CONDITION_COLOR.warning} />
         <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
         <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
-        <KpiCard label="Evidencias SIG" value={dashboardEvidence.length} icon="SIG" color="#a78bfa" sub="Registros vinculados" />
+        <KpiCard
+          label="Evidencias SIG"
+          value={dashboardEvidence.length}
+          icon="SIG"
+          color="#a78bfa"
+          sub="Registros vinculados"
+        />
         <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
       </section>
 
       {quickItems.length > 0 && (
         <section className="ldr-quick-section" aria-label="Acceso rápido">
-          <h2 className="ldr-section-title"><span aria-hidden="true">⚡</span> Acceso Rápido</h2>
+          <h2 className="ldr-section-title">
+            <span aria-hidden="true">⚡</span> Acceso Rápido
+          </h2>
           <div className="ldr-quick-grid">
             {quickItems.map((item) => (
               <QuickCard key={item.id} item={item} onNavigate={onNavigate} />
@@ -429,7 +548,9 @@ export default function LeaderDashboard({
           <span className="ldr-section-sub">{dashboardEvidence.length} registros vinculados</span>
         </h2>
         {dashboardEvidence.length === 0 ? (
-          <p className="ldr-feed-empty">No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.</p>
+          <p className="ldr-feed-empty">
+            No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.
+          </p>
         ) : (
           <div className="ldr-ev-grid">
             {dashboardEvidence.slice(0, 8).map((item) => (
@@ -457,10 +578,10 @@ export default function LeaderDashboard({
                   canExpand={false}
                   roomsApi={roomsApi}
                   machines={machines}
-                  updateMachine={() => { }}
+                  updateMachine={() => {}}
                   moveRoom={roomsApi.moveRoom}
                   selectedMachineId={null}
-                  onSelectMachine={() => { }}
+                  onSelectMachine={() => {}}
                   livePeople={[]}
                   conditionByMachine={conditionByMachine}
                   highlightRoomIds={null}
@@ -481,26 +602,35 @@ export default function LeaderDashboard({
         ) : null}
 
         <section className="ldr-feed-section" aria-label="Actividad reciente">
-          <h2 className="ldr-section-title"><span aria-hidden="true">📋</span> Actividad del turno</h2>
+          <h2 className="ldr-section-title">
+            <span aria-hidden="true">📋</span> Actividad del turno
+          </h2>
           <div className="ldr-feed">
             {recentEvents.length === 0 ? (
               <p className="ldr-feed-empty">Sin actividad registrada en este turno aún.</p>
             ) : (
               recentEvents.map((ev, i) => (
-                <FeedItem key={i} event={ev} peopleName={peopleName} getPhotoUrl={mc.getPhotoUrl} onOpenFormat={openFeedFormat} />
+                <FeedItem
+                  key={i}
+                  event={ev}
+                  peopleName={peopleName}
+                  getPhotoUrl={mc.getPhotoUrl}
+                  onOpenFormat={openFeedFormat}
+                />
               ))
             )}
           </div>
         </section>
       </div>
 
-
       <section className="ldr-assets-section" aria-label="Gestión de Activos SIG">
         <h2 className="ldr-section-title">
           <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
         </h2>
         <div className="ldr-assets-frame">
-          <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
+          <Suspense fallback={<p className="ldr-feed-empty">Cargando Centro de Activos…</p>}>
+            <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
+          </Suspense>
         </div>
       </section>
       <footer className="ldr-actions">
@@ -513,6 +643,3 @@ export default function LeaderDashboard({
     </div>
   )
 }
-
-
-

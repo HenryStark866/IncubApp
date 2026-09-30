@@ -1,8 +1,12 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { groupChecksIntoRounds } from '../../../lib/roundRecords';
+import { READING_COLUMNS } from '../../../lib/machineReadings';
 import { useMachineDossier } from '../hooks/useMachineDossier';
 import { exportCorporate } from '../../../lib/exportDocument';
-import { MANTUM_EQUIPOS, MANTUM_HISTORICAL_OTS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { MANTUM_EQUIPOS, getMantumDataForMachine } from '../../../data/mantumCatalog';
+import { loadMantumHistory, mantumHistoryLoaded } from '../../../data/mantumHistory';
+import { useMantumHistory } from '../../../hooks/useMantumHistory';
 import { LOCAL_ASSET_EVIDENCE, LOCAL_DOCUMENT_LIBRARY, LOCAL_MAINTENANCE_MANUALS, LOCAL_MANTUM_RESOURCES, LOCAL_SIG_2026_EVIDENCE } from '../../../data/maintenanceManuals';
 import { PLANT_ASSET_REGISTRY } from '../../../data/plantAssetRegistry';
 import { SIG_FORMATS } from '../../../lib/corporateBrand';
@@ -18,7 +22,11 @@ import PlanCompliancePanel from './PlanCompliancePanel';
 import MaintenanceIndicatorsPanel from './MaintenanceIndicatorsPanel';
 import OperationRecordsPanel from './OperationRecordsPanel';
 import { useMaintenanceRecords } from '../hooks/useMaintenanceRecords';
+import StorageImage from '../../../components/StorageImage';
+import { buildProductionEvidence } from '../lib/productionEvidence';
 import './SigInsights.css';
+
+export { buildProductionEvidence };
 
 
 const STORAGE_KEY = 'incubapp:sig-asset-hub:custom-assets';
@@ -29,7 +37,6 @@ const MAINTENANCE_RESPONSIBLE = 'Henry Camilo Taborda Galeano'
 // 0 (22-09-2026). Por eso los filtros por lista van en tandas cortas.
 const ID_CHUNK = 80
 const SIGN_CHUNK = 100
-const HATCH_MODE_LABEL = { single: 'sencilla', double: 'doble' }
 
 // Estados de un mapa de cargue como se dicen en la planta; en la base van en inglés.
 export const LOAD_MAP_STATUS = {
@@ -154,6 +161,23 @@ export async function safeRows(label, query) {
   }
 }
 
+export async function paginatedRows(label, buildQuery, pageSize = 1000) {
+  const rows = []
+  let failed = null
+
+  for (let from = 0; ; from += pageSize) {
+    const result = await safeRows(label, buildQuery().range(from, from + pageSize - 1))
+    if (result.failed) {
+      failed = result.failed
+      break
+    }
+    rows.push(...result.rows)
+    if (result.rows.length < pageSize) break
+  }
+
+  return { rows, failed }
+}
+
 export function chunkList(list = [], size = ID_CHUNK) {
   const chunks = []
   for (let index = 0; index < list.length; index += size) chunks.push(list.slice(index, index + size))
@@ -196,149 +220,6 @@ async function signStoragePaths(bucket, paths = [], expiresIn = 3600) {
 
 function normalizeSourcePath(value) {
   return String(value || '').replace(/\\/g, '/').replace(/^(?:\.\.?\/)+/, '').replace(/^\//, '')
-}
-
-function formatDateTime(value) {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString('es-CO')
-}
-
-// Los registros de producción ya guardan quién, cuándo, qué lote y la foto de la pantalla de la
-// máquina: son la evidencia de que el cargue, la transferencia o el nacimiento ocurrieron. Se
-// muestran tal cual están en la base; si falta la foto se dice, no se rellena.
-export function buildProductionEvidence({ loads = [], transfers = [], hatches = [], machines = {}, people = {}, photoUrls = new Map(), now = new Date() } = {}) {
-  const nowTime = now.getTime()
-  const happened = (value) => {
-    if (!value) return false
-    const time = new Date(value).getTime()
-    return Number.isFinite(time) && time <= nowTime
-  }
-  const personName = (userId) => people[userId] || 'No registrado'
-  const photoOf = (path) => (path ? photoUrls.get(path) || null : null)
-  const photoItem = (id, path, label) => {
-    const url = photoOf(path)
-    return { id, file_name: label, url, notes: url ? '' : path ? 'La foto no se pudo abrir' : 'Registro sin foto adjunta' }
-  }
-  const photoStatus = (path) => (path ? (photoOf(path) ? 'Adjunta' : 'Adjunta, no se pudo abrir') : 'Sin foto')
-  const count = (value) => (value != null ? Number(value).toLocaleString('es-CO') : null)
-  const records = []
-
-  for (const load of loads) {
-    const when = load.loaded_at || load.created_at
-    // Un cargue planeado para más adelante todavía no es evidencia de nada.
-    if (!happened(when)) continue
-    const machine = machines[load.machine_id] || {}
-    const machineLabel = machine.code || machine.name || 'Incubadora'
-    const lot = load.lote || 'sin lote'
-    const tape = load.tape_color_name || load.tape_color
-    const detail = [`Lote ${lot}`, machineLabel, tape ? `Cinta ${tape}` : null, `Registró: ${personName(load.created_by)}`].filter(Boolean).join(' · ')
-    const cycleStart = formatDateTime(load.cycle_start_at)
-    records.push({
-      id: `production-load-${load.id}`,
-      file_name: `Cargue ${machineLabel} · Lote ${lot}`,
-      file_type: 'production',
-      formatCode: 'PRODUCCIÓN · CARGUE',
-      workOrderTitle: 'Registro de cargue de incubadora',
-      recordTitle: 'REGISTRO DE CARGUE DE INCUBADORA',
-      recordFields: [
-        ['Lote', load.lote || null],
-        ['Incubadora', [machine.code, machine.name].filter(Boolean).join(' · ') || null],
-        ['Fecha y hora del cargue', formatDateTime(when)],
-        ['Inicio del ciclo', cycleStart],
-        ['Cinta / clasificación', tape || null],
-        ['Registró', personName(load.created_by)],
-        ['Foto de la pantalla', photoStatus(load.photo_path)],
-      ],
-      machineCode: machine.code || null,
-      note: detail,
-      created_at: when,
-      source: 'incubapp',
-      kind: 'production',
-      uploaded_by: load.created_by || null,
-      items: [photoItem(`${load.id}-photo`, load.photo_path, 'Foto de la pantalla')],
-      reports: [{ id: `${load.id}-detail`, title: 'Detalle del cargue', body: cycleStart ? `${detail} · Inicio de ciclo ${cycleStart}` : detail }],
-      url: photoOf(load.photo_path),
-    })
-  }
-
-  for (const transfer of transfers) {
-    const when = transfer.transferred_at || transfer.created_at
-    if (!happened(when)) continue
-    const lot = transfer.lote || 'sin lote'
-    const mode = HATCH_MODE_LABEL[transfer.mode]
-    const detail = [`Lote ${lot}`, mode ? `Transferencia ${mode}` : null, transfer.weight_diff != null ? `Diferencia de peso ${transfer.weight_diff}` : null, `Registró: ${personName(transfer.created_by)}`].filter(Boolean).join(' · ')
-    records.push({
-      id: `production-transfer-${transfer.id}`,
-      file_name: `Transferencia a nacedora · Lote ${lot}`,
-      file_type: 'production',
-      formatCode: 'PRODUCCIÓN · TRANSFERENCIA',
-      workOrderTitle: 'Registro de transferencia incubadora → nacedora',
-      recordTitle: 'REGISTRO DE TRANSFERENCIA A NACEDORA',
-      recordFields: [
-        ['Lote', transfer.lote || null],
-        ['Modalidad', mode ? `Transferencia ${mode}` : null],
-        ['Fecha y hora', formatDateTime(when)],
-        ['Diferencia de peso', transfer.weight_diff != null ? String(transfer.weight_diff) : null],
-        ['Registró', personName(transfer.created_by)],
-        ['Foto', photoStatus(transfer.photo_path)],
-      ],
-      note: detail,
-      created_at: when,
-      source: 'incubapp',
-      kind: 'production',
-      uploaded_by: transfer.created_by || null,
-      items: [photoItem(`${transfer.id}-photo`, transfer.photo_path, 'Foto de la transferencia')],
-      reports: [{ id: `${transfer.id}-detail`, title: 'Detalle de la transferencia', body: detail }],
-      url: photoOf(transfer.photo_path),
-    })
-  }
-
-  for (const hatch of hatches) {
-    const when = hatch.ended_at || hatch.started_at || hatch.created_at
-    if (!happened(when)) continue
-    const lot = hatch.lote || 'sin lote'
-    const closed = hatch.status === 'completed'
-    const responsible = closed ? hatch.closed_by || hatch.started_by : hatch.started_by
-    const detail = [
-      `Lote ${lot}`,
-      closed ? 'Nacimiento completado' : 'Nacimiento en curso',
-      hatch.actual_chicks != null ? `${Number(hatch.actual_chicks).toLocaleString('es-CO')} pollitos nacidos` : null,
-      hatch.estimated_chicks != null ? `${Number(hatch.estimated_chicks).toLocaleString('es-CO')} estimados` : null,
-      `${closed ? 'Cerró' : 'Inició'}: ${personName(responsible)}`,
-    ].filter(Boolean).join(' · ')
-    records.push({
-      id: `production-hatch-${hatch.id}`,
-      file_name: `Nacimiento · Lote ${lot}`,
-      file_type: 'production',
-      formatCode: 'PRODUCCIÓN · NACIMIENTO',
-      workOrderTitle: 'Registro de nacimiento',
-      recordTitle: 'REGISTRO DE NACIMIENTO',
-      recordFields: [
-        ['Lote', hatch.lote || null],
-        ['Estado', closed ? 'Completado' : 'En curso'],
-        ['Modalidad', HATCH_MODE_LABEL[hatch.mode] || null],
-        ['Inicio', formatDateTime(hatch.started_at)],
-        ['Fin', formatDateTime(hatch.ended_at)],
-        ['Huevos incubables', count(hatch.incubable_eggs)],
-        ['Pollitos estimados', count(hatch.estimated_chicks)],
-        ['Pollitos nacidos', count(hatch.actual_chicks)],
-        ['Inició', personName(hatch.started_by)],
-        ['Cerró', hatch.closed_by ? personName(hatch.closed_by) : null],
-        ['Foto', photoStatus(hatch.photo_path)],
-      ],
-      note: detail,
-      created_at: when,
-      source: 'incubapp',
-      kind: 'production',
-      uploaded_by: responsible || null,
-      items: [photoItem(`${hatch.id}-photo`, hatch.photo_path, 'Foto del nacimiento')],
-      reports: [{ id: `${hatch.id}-detail`, title: 'Detalle del nacimiento', body: detail }],
-      url: photoOf(hatch.photo_path),
-    })
-  }
-
-  return records
 }
 
 function formatCodeForEvidence(file = {}) {
@@ -387,10 +268,19 @@ function splitMantumOrderFeedback(feedback = '', machineCode = '', orderCode = '
   });
 }
 
-function mantumHistoricalEvidence() {
+const NO_HISTORY = {};
+// El historial no cambia una vez cargado: sus evidencias se arman una sola vez.
+const historicalEvidenceCache = new WeakMap();
+
+function mantumHistoricalEvidence(history = mantumHistoryLoaded() || NO_HISTORY) {
+  if (!historicalEvidenceCache.has(history)) historicalEvidenceCache.set(history, buildMantumHistoricalEvidence(history));
+  return historicalEvidenceCache.get(history);
+}
+
+function buildMantumHistoricalEvidence(history) {
   const originalFormat = LOCAL_SIG_2026_EVIDENCE.find((file) => /FOMAT01/i.test(file.file_name || file.formatCode || '')) || null;
 
-  return Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+  return Object.entries(history).flatMap(([machineCode, orders]) =>
     (orders || []).flatMap((order) => {
       const segments = splitMantumOrderFeedback(order.feedback, machineCode, order.code);
       if (segments.length === 0) {
@@ -433,11 +323,11 @@ function mantumHistoricalEvidence() {
   );
 }
 
-export function mantumHistoricalEvidenceForMachine(machine = {}) {
+export function mantumHistoricalEvidenceForMachine(machine = {}, history) {
   const machineCode = String(machine.code || machine.mantum_code || machine.machine_id || '').trim().toUpperCase();
   if (!machineCode) return [];
 
-  return mantumHistoricalEvidence().filter((entry) => {
+  return mantumHistoricalEvidence(history).filter((entry) => {
     const entryCode = String(entry.machineCode || '').trim().toUpperCase();
     return entryCode === machineCode || entryCode.includes(machineCode) || machineCode.includes(entryCode);
   });
@@ -781,25 +671,33 @@ export function resolveSigFormatCatalog(formats = Object.values(SIG_FORMATS)) {
   });
 }
 
-export function shiftNumberForTimestamp(value) {
+// Los turnos son de la planta (Colombia, UTC-5 sin horario de verano), no del equipo:
+// con la hora local del navegador, un celular o servidor en otra zona asignaba la
+// carga al turno y al día equivocados. Se corre el instante a hora de Bogotá y se
+// leen los campos UTC.
+const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function bogotaClock(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  const hour = date.getHours();
+  return new Date(date.getTime() - BOGOTA_OFFSET_MS);
+}
+
+export function shiftNumberForTimestamp(value) {
+  const local = bogotaClock(value);
+  if (!local) return null;
+  const hour = local.getUTCHours();
   if (hour >= 6 && hour < 14) return 1;
   if (hour >= 14 && hour < 22) return 2;
   return 3;
 }
 
 export function shiftDateForTimestamp(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const shift = shiftNumberForTimestamp(date);
-  if (shift === 3 && date.getHours() < 6) {
-    const adjusted = new Date(date);
-    adjusted.setDate(adjusted.getDate() - 1);
-    return adjusted.toISOString().slice(0, 10);
-  }
-  return date.toISOString().slice(0, 10);
+  const local = bogotaClock(value);
+  if (!local) return null;
+  // El turno 3 empieza a las 22:00: la madrugada pertenece al día anterior.
+  if (local.getUTCHours() < 6) local.setUTCDate(local.getUTCDate() - 1);
+  return local.toISOString().slice(0, 10);
 }
 
 export function resolveLoadedByName({ loadedAt, loadedBy, people = {}, shiftAssignments = [] } = {}) {
@@ -879,7 +777,7 @@ function ManualPreview({ file, showMeta = false }) {
         </div>
       )}
       <div className="sig-manual-reader-body">
-        {isImage && previewUrl ? <img src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
+        {isImage && previewUrl ? <StorageImage src={previewUrl} alt={file.file_name} /> : isPdf && previewUrl ? (
           <iframe className="sig-manual-pdf" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} />
         ) : isHtml && previewUrl ? <iframe className="sig-manual-document" title={`Vista previa ${file.file_name}`} src={frameSourceFor(previewUrl)} /> : <p>Este formato no tiene visor nativo en el navegador. Usa el botón de descarga para abrirlo con su aplicación correspondiente.</p>}
       </div>
@@ -977,6 +875,8 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const [planTypeFilter, setPlanTypeFilter] = useState('all');
   const [planSearchText, setPlanSearchText] = useState('');
   const [selectedTaskCode, setSelectedTaskCode] = useState(null);
+  // Historial de OT Mantum: se descarga al abrir un equipo o los registros del plan.
+  const mantumHistory = useMantumHistory(!!selectedMachineId || annualPlanSubTab === 'registros');
   const [selectedRegistroFileId, setSelectedRegistroFileId] = useState(null);
   const [instructionTask, setInstructionTask] = useState(null);
   // Registros del último año (OT, calibraciones, rondas, Mántum): solo se piden al abrir
@@ -1076,7 +976,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
   const filteredAnnualRegistros = useMemo(() => {
     const query = planSearchText.trim().toLowerCase();
     // Aplanar todas las OTs de Mantum en un mapa por código para hacer lookup rápido
-    const mantumFlat = Object.entries(MANTUM_HISTORICAL_OTS).flatMap(([machineCode, orders]) =>
+    const mantumFlat = Object.entries(mantumHistory || NO_HISTORY).flatMap(([machineCode, orders]) =>
       (orders || []).map((ot) => ({ ...ot, machineCode }))
     );
     const mantumByCode = Object.fromEntries(mantumFlat.map((ot) => [String(ot.code || '').toUpperCase(), ot]));
@@ -1112,7 +1012,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         }) : null;
         return { ...f, fileUrl, recordHtml, mantumOt: ot || null };
       });
-  }, [planSearchText, registroFileUrls]);
+  }, [planSearchText, registroFileUrls, mantumHistory]);
 
 
   useEffect(() => {
@@ -1282,7 +1182,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
 
   const localDossier = useMemo(() => {
     if (!selectedMachine || selectedMachine.source === 'remote') return null;
-    const mantum = getMantumDataForMachine(selectedMachine);
+    const mantum = getMantumDataForMachine(selectedMachine, mantumHistory || NO_HISTORY);
     const code = String(selectedMachine.code || selectedMachine.mantum_code || '').trim().toUpperCase();
     const name = String(selectedMachine.name || '').trim().toUpperCase();
     const matchedOfficialPlan = (annualPlanData.tasks || []).filter((task) => {
@@ -1307,7 +1207,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       images: mantum.images || [],
       mantum,
     };
-  }, [selectedMachine]);
+  }, [selectedMachine, mantumHistory]);
 
   const dossier = selectedMachine?.source === 'remote' ? remoteDossier : localDossier;
 
@@ -1421,7 +1321,9 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           kind: 'sig-registry',
         };
       }));
-      const historicalOrders = selectedMachine?.source !== 'remote' ? mantumHistoricalEvidenceForMachine(selectedMachine) : [];
+      const historicalOrders = selectedMachine?.source !== 'remote'
+        ? mantumHistoricalEvidenceForMachine(selectedMachine, await loadMantumHistory().catch(() => NO_HISTORY))
+        : [];
       const combined = sortEvidence([...resolved, ...resolvedRegistry, ...historicalOrders]);
       setDocuments(combined);
       setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
@@ -1453,15 +1355,14 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
       ] = await Promise.all([
         // Por org_id y no con `.in()` sobre todas las OT: esa lista desbordaba la URL, Supabase
         // respondía «Bad Request» y Evidencias quedaba en 0.
-        safeRows('las evidencias de OT', supabase
+        paginatedRows('las evidencias de OT', () => supabase
           .from('wo_evidence')
           .select('id, work_order_id, file_path, file_name, file_type, note, uploaded_by, created_at')
           .eq('org_id', orgId)
-          .order('created_at', { ascending: false })
-          .limit(1000)),
+          .order('created_at', { ascending: false })),
         safeRows('las rondas', supabase
           .from('machine_checks')
-          .select('id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path')
+          .select(`id, machine_id, plant_id, taken_by, taken_at, shift_date, shift_number, hour_slot, condition, notes, photo_path, ${READING_COLUMNS.join(', ')}`)
           .eq('org_id', orgId)
           .order('taken_at', { ascending: false })
           .limit(2000)),
@@ -1479,13 +1380,12 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
           .order('created_at', { ascending: false })
           .limit(1000)),
         // Sin filtro de org, como en el resto de la app: la RLS ya limita las máquinas visibles.
-        safeRows('las máquinas', supabase.from('machines').select('id, code, name')),
-        safeRows('el registro SIG', supabase
+        safeRows('las máquinas', supabase.from('machines').select('id, code, name, type')),
+        paginatedRows('el registro SIG', () => supabase
           .from('sig_evidence')
           .select('id, machine_id, machine_code, source, format_code, title, file_name, file_path, file_type, recorded_at, metadata')
           .eq('org_id', orgId)
-          .order('recorded_at', { ascending: false })
-          .limit(5000)),
+          .order('recorded_at', { ascending: false })),
         safeRows('los cargues', supabase
           .from('setter_loads')
           .select('id, plant_id, machine_id, lote, loaded_at, cycle_start_at, tape_color, tape_color_name, photo_path, created_by, created_at')
@@ -1585,47 +1485,24 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         url: registryUrls.get(file.file_path) || null,
       }));
       const withAuthor = (reports = []) => reports.map((report) => ({ ...report, authorName: personName(report.user_id) }));
-      const checksByRound = new Map();
-      for (const check of checksResult.rows) {
-        const rawShift = check.shift_number || 'T?';
-        const shiftCode = String(rawShift).startsWith('T') ? rawShift : `T${rawShift}`;
-        const key = `${check.shift_date || 'sin-fecha'}|${shiftCode}|${check.hour_slot || 'H?'}`;
-        checksByRound.set(key, [...(checksByRound.get(key) || []), check]);
-      }
       const reportsByRound = new Map();
       for (const report of reportsResult.rows) {
         const key = `${report.shift_date || 'sin-fecha'}|${report.shift_code || 'T?'}`;
         reportsByRound.set(key, [...(reportsByRound.get(key) || []), report]);
       }
-      const rounds = Array.from(checksByRound.entries()).map(([key, checks]) => {
-        const [shiftDate, shiftNumber, hourSlot] = key.split('|');
-        const items = checks.map((check) => ({
-          ...check,
-          url: check.photo_path ? checkUrls.get(check.photo_path) || null : null,
-          machine: machineMap[check.machine_id] || null,
-          takenByName: personName(check.taken_by),
-        }));
-        const latest = checks.reduce((date, check) => check.taken_at > date ? check.taken_at : date, checks[0]?.taken_at || null);
-        return {
-          id: `round-${key}`,
-          file_name: `Ronda ${shiftDate} · ${shiftNumber} · ${hourSlot}`,
-          file_type: 'round',
-          formatCode: 'FOMAT04',
-          workOrderTitle: 'Ronda de inspección',
-          note: `${checks.length} máquinas reportadas en una sola ronda`,
-          created_at: latest,
-          source: 'incubapp',
-          kind: 'round',
-          shiftDate,
-          shiftCode: shiftNumber,
-          hourSlot,
-          items,
-          reports: withAuthor(reportsByRound.get(`${shiftDate}|${shiftNumber}`)),
-          url: items.find((item) => item.url)?.url || null,
-        };
-      });
+      // Una ronda = una hora del turno en la planta, con todas sus fotos (lib/roundRecords).
+      const rounds = groupChecksIntoRounds(checksResult.rows, {
+        machinesById: machineMap,
+        nameOf: personName,
+        urlOf: (path) => checkUrls.get(path) || null,
+      }).map((round) => ({
+        ...round,
+        source: 'incubapp',
+        reports: withAuthor(reportsByRound.get(`${round.shiftDate}|${round.shiftCode}`)),
+      }));
+      const shiftsWithChecks = new Set(rounds.map((round) => `${round.shiftDate}|${round.shiftCode}`));
       for (const [key, reports] of reportsByRound.entries()) {
-        if (Array.from(checksByRound.keys()).some((checkKey) => checkKey.startsWith(`${key}|`))) continue;
+        if (shiftsWithChecks.has(key)) continue;
         const [shiftDate, shiftNumber] = key.split('|');
         rounds.push({
           id: `round-report-${key}`,
@@ -1684,20 +1561,19 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
         ...rounds,
         ...calibrations,
         ...production,
-        ...mantumHistoricalEvidence(),
+        ...mantumHistoricalEvidence(await loadMantumHistory().catch(() => NO_HISTORY)),
         ...LOCAL_DOCUMENT_LIBRARY,
       ]);
-      const currentYearEvidence = combined.filter(isCurrentYearEvidence);
-      setAllEvidence(currentYearEvidence);
+      setAllEvidence(combined);
       setEvidenceWarnings(failedSources);
-      onEvidenceLoaded?.(currentYearEvidence);
-      setSelectedDocumentId((current) => current && currentYearEvidence.some((file) => file.id === current) ? current : currentYearEvidence[0]?.id || null);
+      onEvidenceLoaded?.(combined);
+      setSelectedDocumentId((current) => current && combined.some((file) => file.id === current) ? current : combined[0]?.id || null);
     } catch (error) {
       console.warn('Centro SIG: no se pudieron cargar todas las evidencias.', error);
       const fallbackEvidence = sortEvidence([
         ...mantumHistoricalEvidence(),
         ...LOCAL_DOCUMENT_LIBRARY,
-      ]).filter(isCurrentYearEvidence);
+      ]);
       setAllEvidence(fallbackEvidence);
       setEvidenceWarnings(['las evidencias remotas']);
       onEvidenceLoaded?.(fallbackEvidence);
@@ -1706,7 +1582,20 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
     }
   }, [onEvidenceLoaded, orgId]);
 
-  useEffect(() => { loadAllEvidence(); }, [loadAllEvidence]);
+  useEffect(() => {
+    loadAllEvidence()
+
+    const tables = ['wo_evidence', 'sig_evidence', 'work_orders', 'machine_checks', 'machine_calibrations', 'round_reports', 'setter_loads', 'transfers', 'hatch_events']
+    const channel = supabase.channel(`sig-evidence-changes-${orgId}`)
+    tables.forEach((table) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `org_id=eq.${orgId}` }, loadAllEvidence)
+    })
+    channel.subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadAllEvidence, orgId]);
 
   const loadMachines = useCallback(async () => {
     setLoading(true);
@@ -2417,7 +2306,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
             <h1>Evidencias de la organización</h1>
             <p className="sig-format-description">Fotos y registros de órdenes de trabajo, rondas, calibraciones y producción (cargues, transferencias y nacimientos), tal como están en la base.</p>
             {evidenceWarnings.length > 0 && <p className="sig-empty-tab" role="status">No se pudo leer {evidenceWarnings.join(', ')}. El resto de las evidencias sí está al día.</p>}
-            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div><div className="sig-evidence-actions">{hasEvidenceFormat(selectedDocument) && <button type="button" className="sig-format-button" onClick={() => openEvidenceFormat(selectedDocument)}>Formato diligenciado ↗</button>}{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div></div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <img src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
+            {allEvidenceLoading ? <p className="sig-empty-tab">Cargando evidencias...</p> : selectedDocument ? <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span><small>{selectedDocument.workOrderCode || selectedDocument.workOrderTitle || 'Evidencia SIG'} · {selectedDocument.created_at ? new Date(selectedDocument.created_at).toLocaleString('es-CO') : 'Sin fecha'}</small></div><div className="sig-evidence-actions">{hasEvidenceFormat(selectedDocument) && <button type="button" className="sig-format-button" onClick={() => openEvidenceFormat(selectedDocument)}>Formato diligenciado ↗</button>}{selectedDocument.url && <a href={selectedDocument.url} download={selectedDocument.downloadName || selectedDocument.file_name} target="_blank" rel="noopener noreferrer">Descargar</a>}</div></div>{selectedDocument.kind === 'round' || selectedDocument.kind === 'calibration' || selectedDocument.kind === 'production' ? <div className="sig-evidence-gallery">{(selectedDocument.items || []).map((item, index) => <article key={`${selectedDocument.id}-${item.id || index}`}><div><strong>{item.machine?.code || item.file_name || 'Reporte'}</strong><span>{item.condition || item.notes || ''}</span></div>{item.url ? <StorageImage src={item.url} alt={item.file_name || selectedDocument.file_name} /> : <p>{item.notes || 'Sin foto adjunta'}</p>}</article>)}{(selectedDocument.reports || []).map((report) => <article key={report.id}><strong>{report.title || 'Reporte de ronda'}</strong><p>{report.body || 'Reporte sin detalle'}</p></article>)}</div> : <ManualPreview file={selectedDocument} />}</div> : <p className="sig-empty-tab">No hay evidencias registradas todavía.</p>}
           </div>
         ) : section === 'documents' ? (
           <div className="sig-format-detail">
@@ -2498,7 +2387,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, padding: 14 }}>
                   {dossier.images.map((image) => (
                     <a key={image.id} href={image.url} target="_blank" rel="noopener noreferrer" title={image.file_name}>
-                      <img src={image.url} alt={`${dossier.summary.name} · ${image.file_name}`} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
+                      <StorageImage src={image.url} alt={`${dossier.summary.name} · ${image.file_name}`} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
                       <small style={{ display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{image.file_name}</small>
                     </a>
                   ))}
@@ -2516,7 +2405,7 @@ const MachineAssetHub = ({ orgId, onEvidenceLoaded }) => {
                       <div className="sig-evidence-list">
                         {documents.map((file) => <button type="button" key={file.id} className={file.id === selectedDocumentId ? 'is-active' : ''} onClick={() => setSelectedDocumentId(file.id)}><strong>{file.formatCode}</strong><span>{file.file_name}</span><small>{file.created_at ? new Date(file.created_at).toLocaleDateString('es-CO') : 'Sin fecha'} · {file.workOrderCode || 'Evidencia SIG'}</small></button>)}
                       </div>
-                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#formato'} target="_blank" rel="noopener noreferrer" onClick={(event) => { event.preventDefault(); openEvidenceFormat(selectedDocument); }}>Abrir formato ↗</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <img src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
+                      {selectedDocument && <div className="sig-evidence-preview"><div className="sig-evidence-preview-head"><div><b>{selectedDocument.formatCode}</b><span>{selectedDocument.file_name}</span></div><a href={selectedDocument.url || '#formato'} target="_blank" rel="noopener noreferrer" onClick={(event) => { event.preventDefault(); openEvidenceFormat(selectedDocument); }}>Abrir formato ↗</a></div>{selectedDocument.url && selectedDocument.file_type === 'image' ? <StorageImage src={selectedDocument.url} alt={selectedDocument.file_name} /> : selectedDocument.url && (selectedDocument.file_name || '').toLowerCase().endsWith('.pdf') ? <iframe title={`Vista previa ${selectedDocument.file_name}`} src={selectedDocument.url} /> : <p>Este documento está disponible para abrir o descargar.</p>}</div>}
                     </>}
                   </div>
                 )}

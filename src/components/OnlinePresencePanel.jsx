@@ -370,7 +370,7 @@ function PermissionTroubleshootingModal({ onClose }) {
             <h4 style={{ margin: '0 0 4px 0', color: 'var(--orange-lite)', fontSize: '0.9rem', fontWeight: '600' }}>🔒 Conexión Segura Requerida (HTTPS)</h4>
             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: '1.4' }}>
               Los navegadores modernos por seguridad <strong>bloquean por completo el GPS</strong> en conexiones no seguras (HTTP). 
-              Asegúrate de ingresar usando <strong>https://</strong> (ej: <code>https://incubapp.vercel.app</code>) y no mediante una dirección IP local por HTTP ordinario.
+              Asegúrate de ingresar usando <strong>https://</strong> (ej: <code>https://incubapp.cdhmaker.com</code>) y no mediante una dirección IP local por HTTP ordinario.
             </p>
           </div>
         </div>
