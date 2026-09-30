@@ -72,7 +72,9 @@ export function useAdmin(opts = true) {
             'id, org_id, plant_id, machine_id, code, title, type, priority, status, created_at'
           )
           .eq('org_id', scopeOrgId)
-          .order('created_at', { ascending: false }),
+          .in('status', ['open', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1000),
       ])
 
       const err = o.error || p.error || m.error || r.error || mq.error || s.error || wo.error
@@ -171,7 +173,9 @@ export function useAdmin(opts = true) {
         .select(
           'id, org_id, plant_id, machine_id, code, title, type, priority, status, created_at'
         )
-        .order('created_at', { ascending: false }),
+        .in('status', ['open', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1000),
     ])
     const err =
       u.error || o.error || p.error || m.error || r.error || mq.error || s.error || rd.error || wo.error

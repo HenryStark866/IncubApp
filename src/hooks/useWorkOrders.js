@@ -77,7 +77,13 @@ export function useWorkOrders(orgId, userId) {
         // select('*'): las columnas nuevas (checklist, format_code, maintenance_plan_code…) no existen en todas las instalaciones.
         .select('*')
         .eq('org_id', orgId)
-        .order('created_at', { ascending: false }),
+        // El historial regularizado de Mántum (76 mil OT cerradas, source maintenance_plan) no se
+        // lista aquí: traerlo entero pasaba el límite de 8 s de la base y dejaba el módulo sin datos.
+        // Se ven las de los últimos 14 días (las que el líder aún aprueba); el resto está en el
+        // Centro SIG y en el cumplimiento del plan.
+        .or(`source.is.null,source.neq.maintenance_plan,status.neq.completed,completed_at.gte.${new Date(Date.now() - 14 * 86400000).toISOString()}`)
+        .order('created_at', { ascending: false })
+        .limit(2000),
       supabase
         .from('organization_members')
         .select('user_id, role, profiles ( id, full_name, email )')

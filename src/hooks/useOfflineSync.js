@@ -90,6 +90,17 @@ export function useOfflineSync() {
     try {
       const result = await flushQueue({
         uploadCheck: async (meta, file) => {
+          // Teléfono compartido: la foto la tomó otra persona que ya cerró sesión. La base solo
+          // deja registrar fotos a nombre propio, así que se guarda en el teléfono hasta que esa
+          // persona vuelva a entrar. Antes se reintentaba sin parar y cada intento subía otra
+          // copia de la foto al almacenamiento sin llegar a registrarla (30-09-2026).
+          if (meta.userId) {
+            const { data: auth } = await supabase.auth.getSession()
+            const current = auth?.session?.user?.id
+            if (current && current !== meta.userId) {
+              return { error: 'Foto de otra persona: se sube cuando esa persona entre en este teléfono' }
+            }
+          }
           // condition=off puede ir sin foto; el resto exige bytes o storagePath
           const isOff = (meta.condition || 'normal') === 'off'
           let path = meta.storagePath || null
