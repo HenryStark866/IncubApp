@@ -249,3 +249,13 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   cargado por `COMPOSE_FILE` en `/opt/incubapp/server/.env`.
 - Para probar de nuevo: `8-CONFIGURAR-CORREO.bat`, modo 2. Si algún día se abre el 587
   en la red, `11-ABRIR-PUERTOS-CORREO.bat` dice si el bloqueo es del equipo o de la red.
+
+## Actualización 01-10-2026 — fotos de calibración (depósito wo-evidence)
+
+- Síntoma: al guardar la calibración de una nacedora, la foto al depósito `wo-evidence` devolvía
+  una página HTML («Respuesta no válida del servidor»). Ya está resuelto para el usuario: la app
+  reintenta en `machine-checks`, que sí funciona.
+- Causa de fondo pendiente: ninguna migración crea `wo-evidence` (la base vino de un respaldo).
+- Diagnóstico: `12-REVISAR-FOTOS.bat` lista los depósitos y sube archivos de prueba (100 KB y
+  2 MB) a `wo-evidence` y `machine-checks`, directo (puerto 8000) y por el nginx de la app; muestra
+  código HTTP y tipo de respuesta; borra lo que subió. Registro: `logs/12-fotos.txt`.
