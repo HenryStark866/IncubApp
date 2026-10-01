@@ -4,6 +4,7 @@
 #   arranque.sh             levanta todo (Docker, Supabase, app, túnel) y espera a que responda
 #   arranque.sh --vigia     revisión de cada minuto: si algo no responde, lo vuelve a levantar
 #   arranque.sh --instalar  deja el arranque y el vigilante como servicios de Ubuntu (systemd)
+#   arranque.sh --tunel     recrea el contenedor del túnel de Cloudflare (botón del panel)
 #
 # Por qué existe (30-09-2026): tras reiniciar el Lenovo, Cloudflare daba 502. Docker
 # arrancaba, pero nadie volvía a levantar Supabase ni el contenedor de la app si fallaban
@@ -196,6 +197,14 @@ levantar() {
 case "${1:-}" in
   --instalar)
     instalar
+    exit 0
+    ;;
+  --tunel)
+    esperar_docker || exit 1
+    log "Túnel: se recrea a mano (panel)."
+    tunel_crear
+    sleep 5
+    tunel_listo && log "Túnel: conectado con Cloudflare." || log "Túnel: todavía conectando (el vigilante lo sigue revisando)."
     exit 0
     ;;
   --vigia)

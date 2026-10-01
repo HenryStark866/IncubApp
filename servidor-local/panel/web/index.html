@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="no-referrer">
+  <title>IncubApp — Panel del servidor</title>
+  <link rel="icon" id="favicon" href="icono.ico">
+  <link rel="stylesheet" href="estilos.css">
+  <!-- Aplica el tema guardado antes de pintar (evita el destello del tema equivocado). -->
+  <script src="js/tema.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <div class="app" id="app">
+    <!-- ── Barra lateral ─────────────────────────────────────────────── -->
+    <aside class="lateral" aria-label="Menú del panel">
+      <div class="lateral-marca">
+        <span class="logo-marca" role="img" aria-label="Incubant"></span>
+        <span class="marca-sub">Servidor</span>
+      </div>
+      <nav class="nav" id="nav" aria-label="Secciones"></nav>
+      <div class="lateral-pie">
+        <div class="lateral-dato" title="Hora del último dato recibido del servidor">
+          <span class="punto-vivo" id="punto-vivo" aria-hidden="true"></span>
+          <span>Último dato: <strong id="ultimo-dato">—</strong></span>
+        </div>
+        <div class="lateral-version" id="version">Panel IncubApp</div>
+        <button class="boton boton-sutil boton-bloque" type="button" id="btn-cerrar-panel">
+          <span class="ico-hueco" data-icono="apagar"></span><span>Cerrar panel</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Zona principal ────────────────────────────────────────────── -->
+    <div class="principal">
+      <header class="superior">
+        <div class="semaforo nivel-desconocido" id="semaforo">
+          <span class="semaforo-luz" id="semaforo-luz" aria-hidden="true"></span>
+          <div class="semaforo-texto" aria-live="polite" aria-atomic="true">
+            <strong id="semaforo-titulo">Revisando el servidor…</strong>
+            <span id="semaforo-detalle">Esperando el primer dato.</span>
+          </div>
+        </div>
+        <div class="superior-acciones">
+          <div class="trabajos-indicador" id="trabajos-indicador">
+            <button class="boton boton-sutil" type="button" id="btn-trabajos" aria-expanded="false" aria-controls="trabajos-lista" aria-haspopup="true">
+              <span class="ico-hueco" data-icono="terminal"></span>
+              <span id="trabajos-texto">Sin trabajos</span>
+              <span class="trabajos-cuenta" id="trabajos-cuenta" hidden>0</span>
+            </button>
+            <div class="desplegable" id="trabajos-lista" hidden></div>
+          </div>
+          <button class="boton boton-primario" type="button" id="btn-actualizar" title="Pide al servidor que revise todo ahora mismo">
+            <span class="ico-hueco" data-icono="actualizar"></span><span>Actualizar ahora</span>
+          </button>
+          <div class="reloj" id="reloj" aria-label="Hora actual">
+            <strong id="reloj-hora">--:--</strong>
+            <span id="reloj-fecha"></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="franja-conexion" id="franja-conexion" role="alert" hidden>
+        <span class="ico-hueco" data-icono="falla"></span>
+        <strong>Se perdió la conexión con el panel.</strong>
+        <span id="franja-detalle">Reintentando…</span>
+      </div>
+
+      <main class="contenido" id="contenido" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- Avisos (toasts) y consolas de trabajos -->
+  <div class="avisos" id="avisos" aria-live="polite"></div>
+  <div class="consolas" id="consolas" aria-label="Trabajos abiertos"></div>
+
+  <!-- Pantalla cuando no hay sesión (401) -->
+  <div class="pantalla-completa" id="sin-sesion" hidden>
+    <div class="pantalla-caja">
+      <span class="logo-marca logo-grande" role="img" aria-label="Incubant"></span>
+      <h1>Abra el panel desde el acceso directo «Panel IncubApp» del escritorio</h1>
+      <p id="sin-sesion-detalle">Esta ventana no tiene permiso para ver el panel (la sesión venció o se reinició el panel).</p>
+      <p class="texto-2">Por seguridad, el panel solo funciona en este equipo y solo si se abre desde su acceso directo.</p>
+    </div>
+  </div>
+
+  <!-- Pantalla al cerrar el panel -->
+  <div class="pantalla-completa" id="panel-cerrado" hidden>
+    <div class="pantalla-caja">
+      <span class="logo-marca logo-grande" role="img" aria-label="Incubant"></span>
+      <h1>El panel se cerró</h1>
+      <p>El servidor de IncubApp sigue funcionando normalmente: solo se cerró esta pantalla de control.</p>
+      <p class="texto-2">Puede cerrar esta ventana. Para volver a abrirlo use el acceso directo «Panel IncubApp».</p>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="pantalla-completa"><div class="pantalla-caja"><h1>El panel necesita JavaScript activado.</h1></div></div>
+  </noscript>
+</body>
+</html>

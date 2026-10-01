@@ -259,3 +259,34 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
 - Diagnóstico: `12-REVISAR-FOTOS.bat` lista los depósitos y sube archivos de prueba (100 KB y
   2 MB) a `wo-evidence` y `machine-checks`, directo (puerto 8000) y por el nginx de la app; muestra
   código HTTP y tipo de respuesta; borra lo que subió. Registro: `logs/12-fotos.txt`.
+
+## Actualización 01-10-2026 (tarde) — Panel IncubApp (interfaz gráfica del servidor)
+
+- **Panel IncubApp** (`servidor-local/panel/`, ver `panel/DISENO.md`): ventana propia (Edge en modo
+  aplicación) que se abre sola al iniciar sesión en el Lenovo y muestra en vivo el estado de cada
+  pieza (Windows, Ubuntu, Docker, app, API, URL pública, túnel, Supabase, lector, asistente, n8n,
+  correo, respaldo, vigilante, arranque y versión), con gráficas, eventos y avisos de Windows cuando
+  algo se cae o vuelve. Servidor local en Python sin dependencias, solo en `127.0.0.1:8770`, con
+  sesión por cookie y protección contra peticiones de otras páginas.
+- **Soporte** (catálogo cerrado, con confirmación): revisar/levantar todo, arranque completo,
+  arrancar o reiniciar Ubuntu, reiniciar/detener/encender servicios, recrear el túnel
+  (`arranque.sh --tunel`, opción nueva), respaldo ahora, actualizar la app, probar el correo,
+  Studio, liberar espacio de Docker, registros de cada servicio y reporte de soporte (ZIP con las
+  claves tachadas).
+- **Ciberseguridad**: auditoría del servidor (antivirus, firewall, puertos expuestos, Docker, claves
+  de Supabase, RLS, la web pública, respaldo), puertos y conexiones del equipo, ingresos a la app
+  (fallidos por IP), y para la red de la empresa: equipos conectados (inventario por MAC con
+  fabricante), escaneo de puertos (incluye protocolos industriales), auditoría de la red, aviso de
+  suplantación ARP, calidad de internet y herramientas (ping, traceroute, DNS, HTTP, puerto,
+  Wake-on-LAN, UPnP).
+- Instalar: **13-INSTALAR-PANEL.bat** (sin administrador; accesos directos en Escritorio, menú
+  Inicio y arranque de Windows). Abrir a mano: acceso directo «Panel IncubApp» o
+  `PANEL-INCUBAPP.bat`. Datos del panel en `servidor-local/logs/panel/`.
+- **9-arranque-automatico.ps1**: la tarea «IncubApp Servidor» ahora se repite cada 5 minutos. Si
+  Ubuntu se apaga con Windows encendido, vuelve solo (antes quedaba caído hasta el próximo reinicio).
+  Hay que volver a correr 9-ARRANQUE-AUTOMATICO.bat (pide administrador) para aplicarlo.
+- Hallazgos del primer análisis (01-10-2026): router MikroTik 192.168.5.1 con Telnet (23) y Winbox
+  (8291) abiertos a la red; PostgreSQL de Windows escuchando en 5432 para toda la red; inspector de
+  ngrok (4040) abierto a la red; protección en tiempo real de Defender apagada; zona Wi-Fi
+  compartida activa (192.168.137.1); puerto 8000 abierto en el firewall; la red Ethernet marcada
+  como Pública. Ninguno se cambió: se arreglan desde el panel o con quien administra la red.
