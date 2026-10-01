@@ -1,15 +1,19 @@
 # Asistente de voz propio (gratis, local). Lo levanta asistente.sh.
+# Lee los documentos del repositorio: al actualizar la app, reiniciar el asistente los recarga.
 name: incubapp-asistente
 services:
   asistente:
-    build:
-      context: ../..
-      dockerfile: servidor-local/asistente/Dockerfile
+    build: .
     image: incubapp-asistente
     container_name: incubapp-asistente
     restart: always
     cpus: 0.5
     mem_limit: 256m
+    volumes:
+      - ./preguntas-frecuentes.md:/docs/preguntas-frecuentes.md:ro
+      - ../../src/lib/incubationKnowledge.js:/docs/incubationKnowledge.js:ro
+      - ../../docs/Manual de Usuario - IncubApp.docx:/docs/manual-usuario.docx:ro
+      - ../../docs/Offline_Operacion.md:/docs/Offline_Operacion.md:ro
     networks:
       - supabase_default
 networks:
