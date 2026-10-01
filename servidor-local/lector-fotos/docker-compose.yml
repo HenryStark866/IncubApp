@@ -1,0 +1,22 @@
+# Lector propio de fotos de ronda (gratis, local). Lo levanta 11-LECTOR-FOTOS / lector.sh.
+# Un núcleo como máximo para no quitarle velocidad a la app.
+name: incubapp-lector
+services:
+  lector:
+    build: .
+    image: incubapp-lector
+    container_name: incubapp-lector
+    command: python worker.py
+    restart: always
+    environment:
+      - BOT_DB_PASSWORD=${BOT_DB_PASSWORD}
+      - TZ=America/Bogota
+    volumes:
+      - /opt/incubapp/server/volumes/storage:/storage:ro
+    cpus: 1
+    mem_limit: 1g
+    networks:
+      - supabase_default
+networks:
+  supabase_default:
+    external: true
