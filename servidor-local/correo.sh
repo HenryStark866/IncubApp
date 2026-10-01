@@ -121,10 +121,26 @@ diagnostico() {
     head -5 /tmp/correo-tls.txt 2>/dev/null | sed 's/^/     /' || true
     echo "   Puertos de correo abiertos desde este equipo (para elegir otro servicio):"
     local h p
-    for hp in smtp.gmail.com:587 smtp.gmail.com:465 smtp-relay.brevo.com:587 smtp-relay.brevo.com:2525 smtp.office365.com:587; do
+    # «abierto» solo si contesta un servidor de correo de verdad (saludo 220): en el
+    # puerto 80 un firewall puede aceptar la conexión sin dejarla pasar. 465 abre con
+    # TLS directo y no saluda en claro: ahí basta con que abra.
+    # 01-10-2026: en la planta salían cerrados TODOS los de Gmail, Brevo y Office 365;
+    # SMTP2GO también recibe por 80 y 8025, que los firewalls suelen dejar pasar.
+    local hp
+    for hp in smtp.gmail.com:587 smtp.gmail.com:465 smtp-relay.brevo.com:587 smtp-relay.brevo.com:2525 \
+      smtp.office365.com:587 mail.smtp2go.com:2525 mail.smtp2go.com:8025 mail.smtp2go.com:80; do
       h=${hp%:*}; p=${hp#*:}
-      if timeout 6 bash -c "</dev/tcp/$h/$p" 2>/dev/null; then echo "     abierto  $hp"; else echo "     cerrado  $hp"; fi
+      if [ "$p" = 465 ]; then
+        if timeout 6 bash -c "</dev/tcp/$h/$p" 2>/dev/null; then echo "     abierto  $hp"; else echo "     cerrado  $hp"; fi
+      elif timeout 8 bash -c "exec 3<>/dev/tcp/$h/$p; head -c 3 <&3" 2>/dev/null | grep -q '^220'; then
+        echo "     abierto  $hp"
+      else
+        echo "     cerrado  $hp"
+      fi
     done
+    if timeout 8 bash -c "</dev/tcp/www.google.com/443" 2>/dev/null; then
+      echo "   (La salida web por 443 sí funciona: el firewall de la red bloquea solo el correo.)"
+    fi
   fi
   rm -f /tmp/correo-tls.txt
 }
