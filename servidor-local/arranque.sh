@@ -100,6 +100,32 @@ revisar_tunel() {
   tunel_crear
 }
 
+# Docker no reinicia un contenedor «unhealthy» (vivo pero sin responder): se reinicia aquí.
+# Los que sobran en producción (studio, supavisor/pooler, imgproxy) no se tocan.
+revisar_enfermos() {
+  local n
+  for n in $(docker ps --filter health=unhealthy --format '{{.Names}}'); do
+    case "$n" in *studio*|*pooler*|*imgproxy*) continue;; esac
+    log "Vigilante: $n no responde (unhealthy); se reinicia."
+    docker restart "$n" >/dev/null 2>&1 || true
+  done
+}
+revisar_asistente() {
+  docker inspect incubapp-asistente >/dev/null 2>&1 || return 0
+  docker exec incubapp-incubapp-1 wget -q -T 5 -O /dev/null http://incubapp-asistente:8080/ 2>/dev/null && return 0
+  log "Vigilante: el asistente no responde; se reinicia."
+  docker restart incubapp-asistente >/dev/null 2>&1 || true
+}
+
+# Algún servicio de Supabase o de la app detenido (aunque la página principal responda).
+falta_servicio() {
+  local quiere corren
+  [ -d "$SRV" ] || return 1
+  quiere=$(cd "$SRV" && docker compose config --services 2>/dev/null | grep -Ev "$SOBRAN" | sort)
+  corren=$(cd "$SRV" && docker compose ps --status running --services 2>/dev/null | sort)
+  [ -n "$(comm -23 <(echo "$quiere") <(echo "$corren"))" ]
+}
+
 responde() {
   local app api
   app=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/ || true)
@@ -159,7 +185,7 @@ levantar() {
     fi
     (cd "$APP" && docker compose up -d --no-recreate --no-build incubapp) >>"$LOG" 2>&1 || log "La app no subió (ver arriba)."
   fi
-  docker start incubapp-tunel >/dev/null 2>&1 || true
+  docker start incubapp-tunel incubapp-lector incubapp-asistente >/dev/null 2>&1 || true
 }
 
 case "${1:-}" in
@@ -169,12 +195,17 @@ case "${1:-}" in
     ;;
   --vigia)
     esperar_docker || exit 0
+    revisar_enfermos
+    if ! responde || falta_servicio; then
+      log "Vigilante: la app o un servicio no responde; levantando lo que falte."
+      levantar
+      for _ in $(seq 1 24); do responde && break; sleep 5; done
+      responde || { log "Vigilante: sigue sin responder; se reintenta en el próximo minuto."; exit 0; }
+      log "Vigilante: la app volvió a responder."
+    fi
+    # Túnel y asistente se revisan desde el contenedor de la app: solo con la app arriba.
     revisar_tunel
-    responde && exit 0
-    log "Vigilante: la app no responde; levantando lo que falte."
-    levantar
-    for _ in $(seq 1 24); do responde && { log "Vigilante: la app volvió a responder."; exit 0; }; sleep 5; done
-    log "Vigilante: sigue sin responder; se reintenta en el próximo minuto."
+    revisar_asistente
     exit 0
     ;;
 esac
