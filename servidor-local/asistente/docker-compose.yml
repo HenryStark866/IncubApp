@@ -1,0 +1,17 @@
+# Asistente de voz propio (gratis, local). Lo levanta asistente.sh.
+name: incubapp-asistente
+services:
+  asistente:
+    build:
+      context: ../..
+      dockerfile: servidor-local/asistente/Dockerfile
+    image: incubapp-asistente
+    container_name: incubapp-asistente
+    restart: always
+    cpus: 0.5
+    mem_limit: 256m
+    networks:
+      - supabase_default
+networks:
+  supabase_default:
+    external: true
