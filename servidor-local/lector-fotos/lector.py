@@ -57,15 +57,18 @@ def _nacedora(unidos, alto_max):
     ancho = max(max(u['x1'] for u in abajo) - x_min, 1)
     col = lambda u: min(2, max(0, int((u['cx'] - x_min) / ancho * 3)))
     nombres = ('temp_air', None, 'humidity') if col(co2) == 1 else ('temp_air', 'humidity', None)
-    # En cada columna, el número de más arriba es la lectura (la consigna va debajo).
-    fila = [min((u for u in abajo if col(u) == c), key=lambda u: u['cy'], default=None) for c in range(3)]
+    # En cada columna, el número CON DECIMAL de más arriba es la lectura (la consigna va
+    # debajo; los íconos sueltos del borde, como un «8», no traen decimal).
+    con_decimal = [u for u in abajo if re.search(r'\d[.,]\d', u['texto'])]
+    fila = [min((u for u in con_decimal if col(u) == c), key=lambda u: u['cy'], default=None) for c in range(3)]
     fila = [u for u in fila if u]
     valores, detalle = {}, {}
     for campo, u in [('co2', co2)] + [(nombres[col(u)], u) for u in fila]:
         if not campo or campo in detalle:
             continue
-        numero = re.split(r'[°℉F%]', u['texto'])[0]
-        v = _valor(re.sub(r'\D', '', numero), campo) if u['conf'] >= CONF_MIN else None
+        # «98.5°F» a veces sale «98.530» (el ° leído como 30): se toma entero + decimales del campo.
+        m = re.search(r'(\d{1,3})[.,](\d{%d})' % DECIMALES[campo], u['texto'])
+        v = _valor(m.group(1) + m.group(2), campo) if m and u['conf'] >= CONF_MIN else None
         if v is None:
             detalle[campo] = f'dudoso ({u["texto"]})'
         else:
