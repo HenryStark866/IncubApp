@@ -39,31 +39,30 @@ def _valor(cifras, campo):
     return v if lo <= v <= hi else None
 
 
-def _nacedora_antigua(unidos, alto_max):
-    """Pantalla de nacedora antigua: arriba solo el CO2 (centro); abajo aire (izq.),
-    ventilación (centro) y humedad (der.). Lectura y consigna casi del mismo tamaño:
-    en cada recuadro la lectura es la línea de ARRIBA. Si no tiene esa forma, None."""
-    lineas = []
-    for u in sorted(unidos, key=lambda u: u['cy']):
-        if lineas and abs(u['cy'] - lineas[-1][0]['cy']) < alto_max * 0.6:
-            lineas[-1].append(u)
-        else:
-            lineas.append([u])
-    if len(lineas) < 3 or len(lineas[0]) != 1:
+def _nacedora(unidos, alto_max):
+    """Pantallas de nacedora (dos modelos). Arriba solo el CO2; abajo tres recuadros.
+      antigua: CO2 al centro → abajo aire (izq.) · ventilación · humedad (der.)
+      XS4:     CO2 a la der. → abajo aire (izq.) · humedad (centro) · ventilación (der.)
+    Lectura y consigna son casi del mismo tamaño: en cada recuadro la lectura es la
+    de ARRIBA. Si la foto no tiene esa forma, None (se usa la lectura general)."""
+    co2s = [u for u in unidos if re.match(r'^0[.,]\d\d', u['texto'].strip())]
+    if not co2s:
         return None
-    x_min = min(u['x0'] for u in unidos)
-    ancho = max(max(u['x1'] for u in unidos) - x_min, 1)
-    col = lambda u: min(2, int((u['cx'] - x_min) / ancho * 3))
-    co2 = lineas[0][0]
-    if col(co2) != 1:
+    co2 = min(co2s, key=lambda u: u['cy'])
+    abajo = [u for u in unidos if u['cy'] > co2['cy'] + co2['alto'] * 1.2 and not re.match(r'^\d+-\d', u['texto'])]
+    if len(abajo) < 2:
         return None
-    # La fila de abajo con 3 números (aire · ventilación · humedad).
-    fila = next((l for l in lineas[2:] if len(l) >= 2), None)
-    if not fila:
-        return None
+    # Columnas por x en el ancho de la fila de abajo (el CO2 queda dentro de ese ancho).
+    x_min = min(u['x0'] for u in abajo)
+    ancho = max(max(u['x1'] for u in abajo) - x_min, 1)
+    col = lambda u: min(2, max(0, int((u['cx'] - x_min) / ancho * 3)))
+    nombres = ('temp_air', None, 'humidity') if col(co2) == 1 else ('temp_air', 'humidity', None)
+    # En cada columna, el número de más arriba es la lectura (la consigna va debajo).
+    fila = [min((u for u in abajo if col(u) == c), key=lambda u: u['cy'], default=None) for c in range(3)]
+    fila = [u for u in fila if u]
     valores, detalle = {}, {}
-    for campo, u in [('co2', co2)] + [(('temp_air', None, 'humidity')[col(u)], u) for u in fila]:
-        if not campo:
+    for campo, u in [('co2', co2)] + [(nombres[col(u)], u) for u in fila]:
+        if not campo or campo in detalle:
             continue
         numero = re.split(r'[°℉F%]', u['texto'])[0]
         v = _valor(re.sub(r'\D', '', numero), campo) if u['conf'] >= CONF_MIN else None
@@ -113,7 +112,7 @@ def leer(ruta_o_imagen, tipo='setter'):
         else:
             unidos.append(dict(c))
     if tipo == 'hatcher':
-        r = _nacedora_antigua(unidos, alto_max)
+        r = _nacedora(unidos, alto_max)
         if r:
             valores.update(r['valores'])
             detalle.update(r['detalle'])
