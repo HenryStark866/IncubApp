@@ -1,0 +1,3 @@
+# Scripts que corren dentro de Ubuntu: con CRLF bash falla. Siempre LF.
+*.sh text eol=lf
+*.py text eol=lf

@@ -243,7 +243,7 @@ def leer(ruta):
 
 
 def main():
-    modo = sys.argv[1] if len(sys.argv) > 1 else 'rapido'
+    modo = (sys.argv[1] if len(sys.argv) > 1 else 'rapido').strip()   # por si el .sh llega con CRLF
     t0 = time.time()
     trabajos = {
         'contenedores': contenedores,
