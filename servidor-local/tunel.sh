@@ -23,7 +23,7 @@ echo "Red de Supabase: $RED"
 docker rm -f incubapp-tunel >/dev/null 2>&1 || true
 docker run -d --name incubapp-tunel --restart unless-stopped --network "$RED" \
   --env-file /opt/incubapp/tunel.env --memory 96m \
-  cloudflare/cloudflared:latest tunnel --no-autoupdate run
+  cloudflare/cloudflared:latest tunnel --no-autoupdate --protocol http2 --metrics 0.0.0.0:2000 run
 cd "$SRV"
 set_env() { if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else printf '%s=%s\n' "$1" "$2" >> .env; fi; }
 set_env SUPABASE_PUBLIC_URL "$URL"

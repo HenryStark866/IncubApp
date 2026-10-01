@@ -77,6 +77,29 @@ esperar_docker() {
 }
 
 # ¿Responde la app de punta a punta? (nginx de la app + API de Supabase detrás)
+# El túnel a veces queda «Up» pero sin ninguna conexión con Cloudflare (la red corta
+# y cloudflared no se recupera): desde internet sale 502 / Error 1033. Su /ready lo
+# dice; si falla dos veces seguidas (o el contenedor viejo no tiene métricas), se
+# recrea con tunel_crear, que además usa HTTP/2 (TCP) en vez de QUIC (UDP).
+tunel_listo() {
+  docker exec incubapp-incubapp-1 wget -q -T 5 -O /dev/null http://incubapp-tunel:2000/ready 2>/dev/null
+}
+tunel_crear() {
+  [ -f /opt/incubapp/tunel.env ] || return 0
+  local red
+  red=$(docker inspect incubapp-tunel -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null | awk '{print $1}')
+  docker rm -f incubapp-tunel >/dev/null 2>&1 || true
+  docker run -d --name incubapp-tunel --restart unless-stopped --network "${red:-supabase_default}"     --env-file /opt/incubapp/tunel.env --memory 96m     cloudflare/cloudflared:latest tunnel --no-autoupdate --protocol http2 --metrics 0.0.0.0:2000 run >/dev/null
+}
+revisar_tunel() {
+  docker inspect incubapp-tunel >/dev/null 2>&1 || return 0
+  tunel_listo && return 0
+  sleep 20
+  tunel_listo && return 0
+  log "Vigilante: el túnel no tiene conexión con Cloudflare; se recrea."
+  tunel_crear
+}
+
 responde() {
   local app api
   app=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/ || true)
@@ -146,6 +169,7 @@ case "${1:-}" in
     ;;
   --vigia)
     esperar_docker || exit 0
+    revisar_tunel
     responde && exit 0
     log "Vigilante: la app no responde; levantando lo que falte."
     levantar
