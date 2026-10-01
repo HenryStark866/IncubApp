@@ -235,3 +235,17 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   y asuntos en `/opt/incubapp/server/docker-compose.override.yml`, que escribe
   `correo.sh`. Si una plantilla no carga, Supabase usa la suya en inglés y el enlace
   funciona igual.
+
+## Actualización 01-10-2026 — correo funcionando (SMTP2GO por el puerto 8025)
+
+- La red de la planta bloquea la salida de correo por 587, 465 y 2525 (Gmail, Brevo,
+  Office 365). Abiertos: 8025 y 80 hacia SMTP2GO.
+- Quedó configurado **SMTP2GO**: servidor `mail.smtp2go.com`, puerto `8025`, remitente
+  `no-responder@cdhmaker.com`. El dominio `cdhmaker.com` está verificado en SMTP2GO con
+  tres CNAME en Cloudflare (`em1008004`, `s1008004._domainkey`, `link`), en «Solo DNS».
+  Plan gratis: 1.000 correos al mes. Envíos y entregas: SMTP2GO → Reports → Activity.
+- Prueba del 01-10-2026: `/auth/v1/recover` respondió HTTP 200 en 2,7 s.
+- Plantillas en español: contenedor `correo-plantillas` (busybox) en la red de Supabase,
+  cargado por `COMPOSE_FILE` en `/opt/incubapp/server/.env`.
+- Para probar de nuevo: `8-CONFIGURAR-CORREO.bat`, modo 2. Si algún día se abre el 587
+  en la red, `11-ABRIR-PUERTOS-CORREO.bat` dice si el bloqueo es del equipo o de la red.
