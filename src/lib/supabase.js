@@ -82,8 +82,30 @@ function proxiedUrl(url) {
   return `${window.location.origin}/sb${url.slice(SUPABASE_URL.length)}`
 }
 
-/** Export «resilientFetch»: fetch de Supabase con bypass de ngrok y protección contra respuestas HTML */
+// Cortes cortos del internet de la planta (el túnel se reconecta solo en 10-30 s):
+// las lecturas (GET/HEAD) se reintentan en silencio antes de mostrar un error.
+const RETRY_STATUS = new Set([502, 503, 504, 520, 521, 522, 523, 524, 530])
+const RETRY_WAITS = [1000, 3000, 6000, 10000]
+const pause = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** Export «resilientFetch»: fetch de Supabase con reintentos ante cortes cortos de la red. */
 export async function resilientFetch(input, init) {
+  const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase()
+  const idempotent = method === 'GET' || method === 'HEAD'
+  for (let attempt = 0; ; attempt++) {
+    const last = !idempotent || attempt >= RETRY_WAITS.length || init?.signal?.aborted
+    try {
+      const res = await fetchOnce(input, init)
+      if (last || !RETRY_STATUS.has(res.status)) return res
+    } catch (err) {
+      if (last) throw err
+    }
+    await pause(RETRY_WAITS[attempt])
+  }
+}
+
+/** Un intento: bypass de ngrok y protección contra respuestas HTML. */
+async function fetchOnce(input, init) {
   let url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url ? input.url : null
 
   // Inyectar header para saltar advertencia de ngrok
@@ -113,7 +135,7 @@ export async function resilientFetch(input, init) {
       const isNotFound = res.status === 404
       const isNgrok = res.headers.has('ngrok-error-code') || (await res.clone().text().catch(() => '')).includes('ngrok')
       const msg = isBadGateway
-        ? 'El servidor local de Supabase no está respondiendo (502 Bad Gateway). Verifica que los contenedores estén activos.'
+        ? 'Se cortó la conexión con el servidor. Se actualiza solo al volver la señal.'
         : isNgrok
           ? 'Advertencia de ngrok detectada. Abre el enlace en el navegador y confirma para continuar.'
           : isNotFound

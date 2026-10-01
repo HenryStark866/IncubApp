@@ -92,11 +92,16 @@ tunel_crear() {
   docker run -d --name incubapp-tunel --restart unless-stopped --network "${red:-supabase_default}"     --env-file /opt/incubapp/tunel.env --memory 96m     cloudflare/cloudflared:latest tunnel --no-autoupdate --protocol http2 --metrics 0.0.0.0:2000 run >/dev/null
 }
 revisar_tunel() {
+  # Los cortes cortos del internet (10-30 s) los recupera cloudflared solo; recrearlo
+  # en medio los alarga. Solo se recrea tras 4 revisiones seguidas (≈4 min) sin conexión.
+  local cuenta=/run/incubapp-tunel-fallas n
   docker inspect incubapp-tunel >/dev/null 2>&1 || return 0
-  tunel_listo && return 0
-  sleep 20
-  tunel_listo && return 0
-  log "Vigilante: el túnel no tiene conexión con Cloudflare; se recrea."
+  if tunel_listo; then rm -f "$cuenta"; return 0; fi
+  n=$(( $(cat "$cuenta" 2>/dev/null || echo 0) + 1 ))
+  echo "$n" > "$cuenta"
+  [ "$n" -ge 4 ] || return 0
+  rm -f "$cuenta"
+  log "Vigilante: el túnel lleva 4 minutos sin conexión con Cloudflare; se recrea."
   tunel_crear
 }
 
