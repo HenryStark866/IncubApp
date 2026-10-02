@@ -6,7 +6,7 @@ import { icono, iconoComponente } from '../iconos.js';
 import { insigniaNivel, ponerNivel, nivelValido, NIVELES, tarjeta, vacio, boton, botonIcono } from '../ui.js';
 import { miniGrafica, medidor } from '../graficas.js';
 import { conteoSeveridades } from '../hallazgos.js';
-import { obtenerCatalogo, accion as accionDe, catalogoActual } from '../datos.js';
+import { obtenerCatalogo, accion as accionDe, catalogoActual, almacen } from '../datos.js';
 import { ejecutarAccion } from '../lanzador.js';
 import { cargarEn, periodico, cabecera } from './comun.js';
 
@@ -58,8 +58,15 @@ export function crear({ ir, marcarNav }) {
     tarjeta({ titulo: 'Red de la empresa', icono: 'red', acciones: h('button', { class: 'enlace', type: 'button', on: { click: () => ir('red') } }, 'Abrir', icono('derecha', { tam: 14 })), cuerpo: [redCaja] }),
     tarjeta({ titulo: 'Últimos eventos', icono: 'eventos', acciones: h('button', { class: 'enlace', type: 'button', on: { click: () => ir('eventos') } }, 'Ver todos', icono('derecha', { tam: 14 })), cuerpo: [evCaja] }));
 
+  // insignia «MODO SERVIDOR ACTIVO» (la consulta la hace app.js cada 60 s; si falla, no se muestra)
+  const insModo = h('button', { class: 'insignia-modo', type: 'button', hidden: true, title: 'El modo servidor está activo. Pulse para ver el detalle.', on: { click: () => ir('modo') } },
+    icono('modo', { tam: 18 }), h('span', null, 'MODO SERVIDOR ACTIVO'));
+  const ponerModo = (m) => { insModo.hidden = m?.activo !== true; };
+  ponerModo(almacen.modo);
+  bus.on('modo', ponerModo);
+
   const el = h('div', { class: 'seccion' },
-    cabecera('Inicio', 'inicio', 'Estado del servidor de IncubApp en este equipo, en vivo.'),
+    cabecera('Inicio', 'inicio', 'Estado del servidor de IncubApp en este equipo, en vivo.', insModo),
     h('div', { class: 'rejilla rejilla-inicio' },
       h('div', { class: 'columna' }, general, mosaicos, gruposCaja),
       derecha));

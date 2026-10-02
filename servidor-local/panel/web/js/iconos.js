@@ -123,6 +123,10 @@ const D = {
   ojo: [P('M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'), C(12, 12, 3)],
   mas: [P('M12 5v14M5 12h14')],
   guardar: [P('M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z'), P('M8 4v5h7V4M8 20v-6h8v6')],
+  // modo «servidor activo»: escudo con candado · escritorio remoto · manual
+  modo: [P('M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z'), R(9, 11, 6, 5, 1), P('M10.3 11V9.7a1.7 1.7 0 0 1 3.4 0V11')],
+  remoto: [R(3, 4, 18, 12), P('M8 20h8M12 16v4'), P('M9 12l6-5M11 7h4v4')],
+  manual: [P('M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z'), P('M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3'), P('M9 7h6M9 10.5h4')],
 };
 
 /** Crea un <svg> con el ícono pedido. */

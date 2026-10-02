@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import http.server
+import ipaddress
 import json
 import math
 import mimetypes
@@ -39,7 +40,7 @@ ZONA = _dt.timezone(_dt.timedelta(hours=-5))
 INICIO = time.time()
 CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
 
-SIM = {'nivel': 'auto', 'r503': set(), 'caida_hasta': 0.0, 'sin_sesion': False}
+SIM = {'nivel': 'auto', 'r503': set(), 'caida_hasta': 0.0, 'sin_sesion': False, 'tailscale': True}
 CANDADO = threading.Lock()
 rnd = random.Random(7)
 
@@ -369,7 +370,8 @@ ACCIONES = [
     {'id': 'abrir', 'titulo': 'Abrir', 'grupo': 'Abrir', 'peligro': 'bajo', 'admin': False,
      'descripcion': 'Abre una página o carpeta del servidor.', 'confirmar': None,
      'parametros': [{'nombre': 'destino', 'etiqueta': 'Qué abrir', 'tipo': 'opcion', 'requerido': True,
-                     'opciones': ['app_local', 'publico', 'studio', 'n8n', 'carpeta_registros', 'carpeta_respaldos', 'carpeta_reportes']}]},
+                     'opciones': ['app_local', 'publico', 'studio', 'n8n', 'carpeta_registros', 'carpeta_respaldos', 'carpeta_reportes',
+                                 'tailscale', 'manual']}]},
 ]
 
 
@@ -928,6 +930,111 @@ AJUSTES = {'intervalo_rapido_s': 10, 'intervalo_completo_s': 60, 'notificaciones
            'abrir_al_iniciar': True, 'extra': {}}
 
 
+# ═══════════════════════════ MODO SERVIDOR ═══════════════════════════
+# Igual que nucleo/modo.py, pero con el estado en memoria: activar/desactivar son trabajos
+# simulados (con la espera del permiso de administrador) que cambian MODO al terminar.
+# /sim?modo=activo|parcial|inactivo lo fuerza; /sim?tailscale=0|1 simula Tailscale sin instalar.
+RED_TAILSCALE = ipaddress.IPv4Network('100.64.0.0/10')
+MODO = {'activo': False, 'parcial': False, 'activado_en': None, 'permitidos': ['100.64.0.0/10']}
+AVISOS_MODO = [
+    'Mantener presionado el botón de encendido 4 segundos apaga el equipo a la fuerza (lo hace el hardware): '
+    'eso no se puede bloquear por software. Proteja el equipo físicamente (gabinete o cuarto con llave).',
+    'Desconectar el cable o un corte de luz también lo apagan. Al volver la corriente arranca solo si la BIOS tiene '
+    '«After Power Loss → Power On».',
+    'El acceso remoto pide la contraseña de Windows de este equipo: use una contraseña fuerte.',
+]
+
+
+def modo_validar(lista_) -> list[str]:
+    if not isinstance(lista_, list) or not lista_:
+        raise ValueError('Agregue al menos un equipo o red permitida (por ejemplo la red de Tailscale 100.64.0.0/10).')
+    salida = []
+    for x in lista_[:30]:
+        texto = str(x).strip()
+        try:
+            red = ipaddress.IPv4Network(texto, strict=False)
+        except ValueError as e:
+            raise ValueError(f'«{texto[:40]}» no es una IP ni una red válida.') from e
+        if not (red.is_private or red.subnet_of(RED_TAILSCALE)):
+            raise ValueError(f'«{texto}» es una dirección de internet: solo se permiten IP de la planta o de Tailscale.')
+        if red.prefixlen < 10:
+            raise ValueError(f'«{texto}» es demasiado amplia.')
+        valor = str(red.network_address) if red.prefixlen == 32 else str(red)
+        if valor not in salida:
+            salida.append(valor)
+    return salida
+
+
+def modo_estado() -> dict:
+    act, parcial = MODO['activo'], MODO['parcial']
+    aplicado = act or parcial
+    boton = {'ac': 'nada', 'dc': 'nada'} if aplicado else {'ac': 'apagar', 'dc': 'apagar'}
+    suspender = {'ac': 'nada', 'dc': 'nada'} if aplicado else {'ac': 'suspender', 'dc': 'suspender'}
+    remotos = list(MODO['permitidos']) if aplicado else []
+    genericas = 2 if parcial else 0
+    protecciones = [
+        {'id': 'boton', 'titulo': 'Botón de encendido sin efecto', 'ok': boton['ac'] == 'nada',
+         'detalle': f"Al pulsarlo: {boton['ac']} (con corriente)"},
+        {'id': 'suspender', 'titulo': 'Botón de suspender sin efecto', 'ok': suspender['ac'] == 'nada',
+         'detalle': f"Al pulsarlo: {suspender['ac']}"},
+        {'id': 'pantalla_inicio', 'titulo': 'Sin «Apagar» en la pantalla de inicio de sesión', 'ok': aplicado,
+         'detalle': 'Nadie puede apagar desde la pantalla de bloqueo sin la contraseña' if aplicado
+         else 'Cualquiera puede apagar desde la pantalla de inicio de sesión'},
+        {'id': 'remoto', 'titulo': 'Escritorio remoto con verificación previa (NLA)', 'ok': aplicado,
+         'detalle': 'Activo, pide usuario y contraseña antes de mostrar nada' if aplicado else 'Apagado'},
+        {'id': 'firewall', 'titulo': 'Solo los equipos permitidos llegan al escritorio remoto',
+         'ok': aplicado and not genericas,
+         'detalle': (f"Permitidos: {', '.join(remotos)}" if remotos else 'No hay regla de IncubApp')
+         + (f' · {genericas} regla(s) genérica(s) de Windows abiertas a toda la red' if genericas else '')},
+    ]
+    ts = SIM['tailscale']
+    return {
+        'activo': act and not parcial, 'parcial': parcial,
+        'activado_en': MODO['activado_en'] if act and not parcial else None,
+        'permitidos': list(MODO['permitidos']),
+        'boton_encendido': boton, 'boton_suspender': suspender, 'apagado_sin_sesion': not aplicado,
+        'escritorio_remoto': {'activo': aplicado, 'nla': aplicado, 'regla': aplicado, 'regla_remotos': remotos,
+                              'reglas_genericas_abiertas': bool(genericas), 'puerto': 3389},
+        'tailscale': {'instalado': ts, 'servicio': 'Running' if ts else None,
+                      'ip': '100.101.102.103' if ts else None, 'nombre': 'desktop-romogm3' if ts else None},
+        'equipo': {'nombre': 'DESKTOP-ROMOGM3', 'ip_lan': '192.168.5.28', 'usuario': 'Admin Mantenimiento'},
+        'protecciones': protecciones, 'avisos': AVISOS_MODO,
+    }
+
+
+def modo_activar(permitidos, bloquear):
+    permitidos = modo_validar(permitidos)
+
+    def fin():
+        MODO.update(activo=True, parcial=False, activado_en=ahora_iso(), permitidos=permitidos)
+        evento('panel', 'ok', None, 'Modo servidor ACTIVADO desde el panel')
+        return {'ok': True, 'mensaje': 'Modo servidor activo.', 'estado': modo_estado()}
+    lineas = ['Activando el modo servidor… Windows le pedirá permiso de administrador en la pantalla: acéptelo.',
+              'Equipos permitidos para el escritorio remoto: ' + ', '.join(permitidos),
+              '(simulado) Esperando el permiso de administrador…', 'Permiso concedido.',
+              'Botón de encendido y de suspender: «No hacer nada» (con corriente y con batería).',
+              'Pantalla de inicio de sesión: sin botón de apagar.',
+              'Escritorio remoto: encendido con NLA.',
+              'Firewall: reglas genéricas de Escritorio remoto desactivadas; regla «IncubApp acceso remoto» creada.',
+              'Suspensión e hibernación: desactivadas.', 'Listo.']
+    if bloquear:
+        lineas.append('Bloqueando la pantalla… (simulado)')
+    return lanzar('modo', 'Activar modo servidor', guion_simple(lineas, 0.4, True), fin, exclusivo='modo')
+
+
+def modo_desactivar():
+    def fin():
+        MODO.update(activo=False, parcial=False, activado_en=None)
+        evento('panel', 'aviso', 'ok', 'Modo servidor DESACTIVADO desde el panel')
+        return {'ok': True, 'mensaje': 'Modo servidor desactivado.', 'estado': modo_estado()}
+    return lanzar('modo', 'Desactivar modo servidor', guion_simple([
+        'Desactivando el modo servidor… Windows le pedirá permiso de administrador: acéptelo.',
+        '(simulado) Esperando el permiso de administrador…', 'Permiso concedido.',
+        'Botón de encendido: «Apagar».', 'Pantalla de inicio de sesión: con botón de apagar.',
+        'Escritorio remoto: apagado; regla «IncubApp acceso remoto» borrada.', 'Listo.'], 0.4, True),
+        fin, exclusivo='modo')
+
+
 # ═══════════════════════════ HTTP ═══════════════════════════
 class Manejador(http.server.BaseHTTPRequestHandler):
     server_version = 'PanelSimulado/1.0'
@@ -1019,6 +1126,11 @@ class Manejador(http.server.BaseHTTPRequestHandler):
             SIM['caida_hasta'] = time.time() + float(q['caida'])
         if 'sin_sesion' in q:
             SIM['sin_sesion'] = q['sin_sesion'] == '1'
+        if 'tailscale' in q:
+            SIM['tailscale'] = q['tailscale'] == '1'
+        if 'modo' in q:
+            MODO.update(activo=q['modo'] in ('activo', 'parcial'), parcial=q['modo'] == 'parcial',
+                        activado_en=ahora_iso() if q['modo'] == 'activo' else None)
         self.json({'nivel': SIM['nivel'], 'r503': sorted(SIM['r503']), 'caida_hasta': iso(SIM['caida_hasta']), 'sin_sesion': SIM['sin_sesion']})
 
     def _estatico(self, ruta):
@@ -1159,6 +1271,15 @@ class Manejador(http.server.BaseHTTPRequestHandler):
                 if k in AJUSTES and k != 'extra' and isinstance(v, type(AJUSTES[k])):
                     AJUSTES[k] = v
             return AJUSTES
+        if G and ruta == '/api/modo':
+            return modo_estado()
+        if P and ruta == '/api/modo/activar':
+            c = c or {}
+            return {'trabajo': modo_activar(c.get('permitidos'), bool(c.get('bloquear'))).como_dict()}
+        if P and ruta == '/api/modo/desactivar':
+            return {'trabajo': modo_desactivar().como_dict()}
+        if P and ruta == '/api/modo/bloquear':
+            return {'ok': True}
         if P and ruta == '/api/salir':
             return {'ok': True}
         return None

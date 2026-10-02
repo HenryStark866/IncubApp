@@ -183,6 +183,9 @@ levantar() {
     servicios=$(cd "$SRV" && docker compose config --services 2>/dev/null | grep -Ev "$SOBRAN" | tr '\n' ' ')
     # shellcheck disable=SC2086
     (cd "$SRV" && docker compose up -d --no-recreate $servicios) >>"$LOG" 2>&1 || log "Supabase: algún servicio no subió (ver arriba)."
+    # 01-10-2026: api-gw (envoy) depende de studio, así que «up» lo enciende siempre. Con la API
+    # ya arriba se apaga otra vez lo que sobra en producción (como hacía tunel.sh): ~350 MB de RAM.
+    (cd "$SRV" && docker compose stop studio supavisor imgproxy) >>"$LOG" 2>&1 || true
   fi
   if [ -f "$APP/docker-compose.yml" ]; then
     # Si el puerto 80 lo tiene otro programa, la app no puede arrancar: se deja dicho.

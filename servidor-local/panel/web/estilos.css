@@ -760,6 +760,34 @@ circle.marca { fill: var(--fondo-2); stroke: var(--s); stroke-width: 2; }
 .ajuste-control .unidad { color: var(--texto-2); font-size: 13px; white-space: nowrap; }
 .ajuste.cambiado .ajuste-texto strong::after { content: " · sin guardar"; color: var(--acento-texto); font-weight: 500; font-size: 12px; }
 
+/* ── Modo servidor ──────────────────────────────────────────────────────── */
+.insignia-modo {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 9px; border-radius: 16px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; cursor: pointer;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.insignia-modo:hover { background: color-mix(in srgb, var(--ok) 24%, transparent); }
+.modo-estado .semaforo-luz { width: 72px; height: 72px; }
+.modo-estado .grupo-botones { align-self: center; }
+.modo-explica { font-size: 13.5px; }
+.modo-protecciones, .modo-avisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.modo-proteccion { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 9px; background: var(--fondo-3); }
+.modo-proteccion > .ico { flex: none; color: var(--c); margin-top: 1px; }
+.modo-proteccion > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.modo-proteccion span { color: var(--texto-2); font-size: 13px; overflow-wrap: anywhere; }
+.modo-permitidos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.modo-permitido { display: flex; align-items: center; gap: 10px; padding: 5px 5px 5px 12px; border: 1px solid var(--linea); border-radius: 8px; background: var(--fondo-3); }
+.modo-permitido .mono { font-weight: 650; flex: none; }
+.modo-permitido .texto-2 { flex: 1; min-width: 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.modo-agregar { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.modo-agregar .campo { flex: 1; min-width: 200px; }
+.modo-pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; }
+.modo-pasos li::marker { color: var(--acento-texto); font-weight: 700; }
+.modo-copiar { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.modo-copiar .mono { font-weight: 650; }
+.modo-casilla { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--linea); background: var(--fondo-3); cursor: pointer; font-weight: 600; }
+.modo-casilla input { width: 18px; height: 18px; accent-color: var(--acento); flex: none; }
+
 /* ── Pantallas completas ─────────────────────────────────────────────────── */
 .pantalla-completa { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: var(--fondo); padding: 24px; }
 .pantalla-caja { max-width: 620px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }

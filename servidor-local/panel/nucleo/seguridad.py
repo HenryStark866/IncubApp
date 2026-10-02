@@ -50,7 +50,9 @@ $r.ips = @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | 
   ForEach-Object { @{ interfaz=$_.InterfaceAlias; ip=$_.IPAddress; prefijo=$_.PrefixLength } })
 $ts = Get-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -ErrorAction SilentlyContinue
 $nla = Get-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -ErrorAction SilentlyContinue
-$r.rdp = @{ activo = ($ts.fDenyTSConnections -eq 0); nla = ($nla.UserAuthentication -eq 1) }
+$r.rdp = @{ activo = ($ts.fDenyTSConnections -eq 0); nla = ($nla.UserAuthentication -eq 1);
+  regla_incubapp = [bool](Get-NetFirewallRule -DisplayName 'IncubApp acceso remoto' -ErrorAction SilentlyContinue);
+  genericas = @(Get-NetFirewallRule -Group '@FirewallAPI.dll,-28752' -ErrorAction SilentlyContinue | Where-Object { $_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' }).Count }
 try { $r.smb1 = [string](Get-SmbServerConfiguration -ErrorAction Stop).EnableSMB1Protocol } catch { $r.smb1 = 'sin_permiso' }
 $inv = Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.SID.Value -like '*-501' }
 $r.invitado = [bool]($inv -and $inv.Enabled)
@@ -267,7 +269,10 @@ def _rev_windows_varios(w: dict) -> list:
                       'Apague «Zona con cobertura inalámbrica móvil» en Configuración → Red e Internet, si nadie la necesita.',
                       None, ev))
     rdp = w.get('rdp') or {}
-    if rdp.get('activo'):
+    if rdp.get('activo') and rdp.get('nla') and rdp.get('regla_incubapp') and not rdp.get('genericas'):
+        res.append(_h('rdp', 'windows', 'Escritorio remoto activo solo para los equipos permitidos (modo servidor)', 'ok',
+                      'Pide usuario y contraseña (NLA) y el firewall solo deja entrar a los equipos de la lista.'))
+    elif rdp.get('activo'):
         res.append(_h('rdp', 'windows', 'El Escritorio remoto está activado' + ('' if rdp.get('nla') else ' SIN autenticación previa (NLA)'),
                       'alto' if not rdp.get('nla') else 'medio',
                       'Es el blanco número uno de los ataques de contraseña.', 'Desactívelo si no se usa, o deje NLA y una clave fuerte.'))

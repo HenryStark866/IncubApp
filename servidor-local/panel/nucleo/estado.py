@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ctypes
 import json
+import re
 import shutil
 import socket
 import ssl
@@ -507,12 +508,15 @@ class Monitor:
             if comp['lector']['nivel'] == 'ok' and lineas:
                 # La última lectura de verdad (no un error viejo del arranque): si no hay rondas
                 # con fotos, el lector se queda callado y eso está bien.
-                f, ultima = next((x for x in reversed(lineas) if x[1].strip() and not x[1].lower().startswith('error')),
-                                 (None, ''))
+                # Una lectura empieza por el código de la máquina (INC-08, NAC-03…); lo demás son errores
+                # o líneas sueltas de un error de varias líneas.
+                f, ultima = next((x for x in reversed(lineas) if re.match(r'^[A-Z][A-Z0-9]*-\d+\s', x[1])), (None, ''))
                 hace = f' (hace {sistema.duracion_legible(time.time() - f)})' if f else ''
                 comp['lector']['estado'] = ('Última lectura: ' + ultima[:70] + hace) if ultima else 'Esperando fotos de ronda'
-                # Solo cuentan los errores de la última media hora: uno viejo del arranque no es una falla.
-                errores = [t for f, t in lineas if f and time.time() - f < 1800
+                # Solo cuentan los errores de la última media hora y posteriores a la última lectura:
+                # uno viejo del arranque (la base aún no estaba lista) no es una falla.
+                errores = [t for fe, t in lineas
+                           if fe and time.time() - fe < 1800 and (f is None or fe > f)
                            and ('error' in t.lower() or 'traceback' in t.lower())]
                 if errores:
                     comp['lector']['nivel'] = 'aviso'
@@ -522,8 +526,17 @@ class Monitor:
                 comp['asistente'].update(nivel='falla', estado='En marcha pero no responde')
             self._por_contenedor(poner, 'n8n', conts, ausente='apagado')
             n8n = lc.get('n8n') or {}
+            c8 = conts.get(CONTENEDOR['n8n']) or {}
+            recien = (time.time() - (_fecha_utc(c8.get('iniciado')) or 0)) < 180
             if comp['n8n']['nivel'] == 'ok' and lc and n8n.get('codigo') not in (200, None):
-                comp['n8n'].update(nivel='falla', estado=f"En marcha pero no responde (código {n8n.get('codigo')})")
+                if recien:
+                    # n8n tarda 1-2 min en contestar después de arrancar (más con el equipo cargado).
+                    comp['n8n'].update(nivel='aviso', estado='Arrancando… (n8n tarda 1 a 2 minutos en responder)')
+                elif not n8n.get('codigo'):
+                    # Código 0 = no contestó a tiempo: con el equipo al 100 % pasa sin que n8n esté caído.
+                    comp['n8n'].update(nivel='aviso', estado='No respondió a tiempo (puede ser la carga del equipo); se revisa de nuevo')
+                else:
+                    comp['n8n'].update(nivel='falla', estado=f"En marcha pero no responde (código {n8n.get('codigo')})")
 
             # Vigilante y arranque (systemd)
             sd = lx.get('systemd') or {}

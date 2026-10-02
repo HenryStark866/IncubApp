@@ -392,3 +392,45 @@ Sin permisos de administrador: busca `pythonw.exe` real (no el alias de WindowsA
 accesos directos «Panel IncubApp» en el Escritorio, en el menú Inicio y en la carpeta **Inicio**
 de Windows (se abre sola al iniciar sesión), con ícono propio (`panel/web/icono.ico`), y abre el
 panel. `PANEL-INCUBAPP.bat` abre el panel a mano. Registro en `logs/13-panel.txt`.
+
+## Modo «servidor activo» (control remoto y bloqueo del apagado) — `nucleo/modo.py`
+
+Para cuando el responsable no está en la planta: el equipo solo se controla a distancia desde
+sus equipos. Lo activa una persona desde el panel (Windows pide permiso de administrador).
+Activar aplica, en un solo script elevado:
+1. Botón de encendido y botón de suspensión del equipo → «No hacer nada» (con y sin batería,
+   `powercfg … SUB_BUTTONS PBUTTONACTION / SBUTTONACTION = 0`). La pulsación LARGA (4 s) es un
+   apagado forzado del hardware: no se puede bloquear por software (se dice en la pantalla).
+2. Sin botón de apagar en la pantalla de inicio de sesión / bloqueo (`ShutdownWithoutLogon=0`).
+3. Escritorio remoto encendido con NLA, y firewall: se desactivan las reglas genéricas de
+   «Escritorio remoto» y se crea «IncubApp acceso remoto» (TCP 3389) SOLO desde `permitidos`
+   (IP o CIDR privadas, o la red de Tailscale 100.64.0.0/10).
+4. Sin suspensión/hibernación (ya lo dejaba el paso 1 de instalación; se reafirma).
+5. Opcional: bloquear la pantalla al terminar.
+Desactivar revierte 1-3 (botón = Apagar, apagado en la pantalla de inicio, escritorio remoto
+apagado y regla borrada).
+
+```python
+def estado() -> dict            # MODO (lee el estado real del equipo; sin administrador)
+def activar(trabajo, permitidos: list[str], bloquear: bool = False) -> dict   # pide UAC
+def desactivar(trabajo) -> dict                                           # pide UAC
+def bloquear_pantalla() -> dict  # bloquea la sesión ahora (sin administrador)
+def validar_permitidos(lista) -> list[str]   # ValueError en español si alguna no sirve
+```
+**MODO** (`GET /api/modo`):
+```json
+{"activo": true, "parcial": false, "activado_en": "iso|null", "permitidos": ["100.64.0.0/10", "192.168.5.37"],
+ "boton_encendido": {"ac": "nada|apagar|suspender|hibernar|apagar_pantalla|desconocido", "dc": "…"},
+ "boton_suspender": {"ac": "…", "dc": "…"},
+ "apagado_sin_sesion": false,
+ "escritorio_remoto": {"activo": true, "nla": true, "regla": true, "regla_remotos": ["100.64.0.0/10"],
+                       "reglas_genericas_abiertas": false, "puerto": 3389},
+ "tailscale": {"instalado": true, "servicio": "Running|Stopped|null", "ip": "100.101.102.103|null", "nombre": "desktop-romogm3|null"},
+ "equipo": {"nombre": "DESKTOP-ROMOGM3", "ip_lan": "192.168.5.28", "usuario": "Admin Mantenimiento"},
+ "protecciones": [{"id": "boton", "titulo": "Botón de encendido sin efecto", "ok": true, "detalle": "…"}, …],
+ "avisos": ["Mantener presionado el botón 4 segundos apaga el equipo a la fuerza: eso no se puede bloquear por software."]}
+```
+Rutas: `GET /api/modo` · `POST /api/modo/activar {"permitidos": [...], "bloquear": bool}` → `{"trabajo"}` ·
+`POST /api/modo/desactivar` → `{"trabajo"}` · `POST /api/modo/bloquear` → `{"ok": true}`.
+Acción `abrir` con destinos nuevos: `tailscale` (https://tailscale.com/download/windows) y `manual`
+(el PDF `servidor-local/MANUAL-SERVIDOR-INCUBAPP.pdf`).

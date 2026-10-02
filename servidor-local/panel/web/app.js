@@ -19,6 +19,7 @@ const SECCIONES = [
   { id: 'registros', titulo: 'Registros', icono: 'registros' },
   { id: 'soporte', titulo: 'Soporte', icono: 'soporte' },
   { id: 'seguridad', titulo: 'Seguridad', icono: 'seguridad' },
+  { id: 'modo', titulo: 'Modo servidor', icono: 'modo' },
   { id: 'red', titulo: 'Red', icono: 'red' },
   { id: 'eventos', titulo: 'Eventos', icono: 'eventos' },
   { id: 'ajustes', titulo: 'Ajustes', icono: 'ajustes' },
@@ -286,6 +287,24 @@ document.addEventListener('click', (e) => { if (!listaTrabajos.hidden && !e.targ
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !listaTrabajos.hidden) { cerrarListaTrabajos(); btnTrabajos.focus(); } });
 bus.on('trabajo-lanzado', () => cargarTrabajos());
 bus.on('trabajo-terminado', () => cargarTrabajos());
+
+// ── Modo servidor: insignia «MODO SERVIDOR ACTIVO» en la barra superior ──────
+// Se consulta cada 60 s (y al terminar un trabajo del modo). Si /api/modo falla o da 503, no se
+// muestra nada. La sección «Modo servidor» e Inicio escuchan el mismo aviso del bus ('modo').
+const insigniaModo = $('#insignia-modo');
+insigniaModo.addEventListener('click', () => ir('modo'));
+bus.on('modo', (m) => {
+  almacen.modo = m && typeof m === 'object' && !Array.isArray(m) ? m : null;
+  insigniaModo.hidden = almacen.modo?.activo !== true;
+});
+async function cicloModo() {
+  if (detenido) return;
+  try { bus.emit('modo', await api.get('/api/modo', { timeout: 60000 })); }
+  catch (e) { if (e.estado !== 0 && e.estado !== 401) bus.emit('modo', null); }
+}
+setTimeout(cicloModo, 2000);
+setInterval(cicloModo, 60000);
+bus.on('trabajo-terminado', (t) => { if (t?.tipo === 'modo') cicloModo(); });
 
 // ── Actualizar ahora ────────────────────────────────────────────────────
 const btnActualizar = $('#btn-actualizar');

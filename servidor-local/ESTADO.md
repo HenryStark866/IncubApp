@@ -290,3 +290,20 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   ngrok (4040) abierto a la red; protección en tiempo real de Defender apagada; zona Wi-Fi
   compartida activa (192.168.137.1); puerto 8000 abierto en el firewall; la red Ethernet marcada
   como Pública. Ninguno se cambió: se arreglan desde el panel o con quien administra la red.
+
+## Actualización 01-10-2026 (noche) — modo «servidor activo», acceso remoto y manual
+
+- **Modo servidor** (panel → «Modo servidor», `panel/nucleo/modo.py`): al activarlo (pide administrador)
+  el botón de encendido y el de suspender no hacen nada, desaparece «Apagar» de la pantalla de inicio
+  de sesión y el Escritorio remoto (con NLA) queda abierto SOLO a los equipos permitidos (por defecto la
+  red de Tailscale 100.64.0.0/10; regla de firewall «IncubApp acceso remoto»). Desactivar lo revierte.
+  Límite honesto: mantener el botón 4 s o desconectar el cable apagan igual (hardware).
+- **Tailscale** instalado en el servidor (`desktop-romogm3`, 100.90.11.101, cuenta HenryStark866) con
+  «Run unattended» activo (conecta tras un reinicio sin iniciar sesión). Equipo del responsable en la
+  misma red: `mrstark` (100.72.33.16). Pendiente en la consola de Tailscale: «Disable key expiry» del servidor.
+- **Manual**: `servidor-local/MANUAL-SERVIDOR-INCUBAPP.pdf` (fuente en `servidor-local/manual/`; se
+  regenera con Edge: `msedge --headless=new --no-pdf-header-footer --print-to-pdf=… manual.html`).
+- **Studio se encendía solo**: `api-gw` (envoy) depende de studio en el compose de Supabase, así que todo
+  `docker compose up` lo levanta. `arranque.sh` ahora apaga studio/supavisor/imgproxy al terminar de levantar.
+- Panel: un solo panel aunque se abra dos veces a la vez (mutex de Windows); n8n recién arrancado o sin
+  respuesta por carga ya no sale como falla (se reiniciaba a mano sin necesidad).

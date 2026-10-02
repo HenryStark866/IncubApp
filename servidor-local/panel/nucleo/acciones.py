@@ -128,7 +128,16 @@ DESTINOS = {
     'carpeta_registros': ('Carpeta de registros', lambda: str(sistema.SERVIDOR_LOCAL / 'logs')),
     'carpeta_respaldos': ('Carpeta de respaldos', lambda: _carpeta_respaldos()),
     'carpeta_reportes': ('Carpeta de reportes', lambda: str(sistema.DATOS / 'reportes')),
+    'tailscale': ('Descarga de Tailscale', lambda: 'https://tailscale.com/download/windows'),
+    'manual': ('Manual del servidor (PDF)', lambda: _manual()),
 }
+
+
+def _manual() -> str:
+    ruta = sistema.SERVIDOR_LOCAL / 'MANUAL-SERVIDOR-INCUBAPP.pdf'
+    if not ruta.exists():
+        raise RuntimeError('Todavía no está el manual (MANUAL-SERVIDOR-INCUBAPP.pdf).')
+    return str(ruta)
 
 
 def _carpeta_respaldos() -> str:

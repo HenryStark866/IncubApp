@@ -1,0 +1,1039 @@
+<!doctype html>
+<!--
+  Manual de manipulación del Servidor IncubApp · versión 1.0 · 01-10-2026
+  Fuente del PDF servidor-local/MANUAL-SERVIDOR-INCUBAPP.pdf. Para regenerarlo (en Windows, sin instalar nada):
+    "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu
+      --no-pdf-header-footer --print-to-pdf="C:\IncubApp\servidor-local\MANUAL-SERVIDOR-INCUBAPP.pdf"
+      "file:///C:/IncubApp/servidor-local/manual/manual.html"
+  Si cambia el contenido, revise los números de página del índice (no se calculan solos).
+  Fuentes: servidor-local/ESTADO.md, panel/DISENO.md, cabeceras de los scripts, panel/nucleo/*.py y la
+  auditoría logs/panel/seguridad.json del 01-10-2026.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual del Servidor IncubApp</title>
+<meta name="author" content="Incubant · Mantenimiento">
+<meta name="description" content="Manual de manipulación del Servidor IncubApp: operación, panel, soporte, modo servidor activo, acceso remoto y ciberseguridad.">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+
+<!-- ════════════════════════ PORTADA ════════════════════════ -->
+<section class="portada">
+  <div class="portada-banda">
+    <div class="marca" aria-label="Incubant"><!--MARCA--></div>
+    <div class="portada-etiqueta">Manual de operación</div>
+    <h1>Manual de manipulación del Servidor IncubApp</h1>
+    <div class="subtitulo">Cómo encender, vigilar, reparar, respaldar, actualizar y proteger el servidor de la planta; modo «servidor activo» y acceso remoto.</div>
+  </div>
+  <div class="portada-raya"></div>
+  <div class="portada-cuerpo">
+    <table class="ficha">
+      <tr><th>Equipo</th><td>Lenovo de mesa <span class="mono">DESKTOP-ROMOGM3</span></td></tr>
+      <tr><th>Sistema</th><td>Windows 11 Pro + Ubuntu-24.04 (WSL2) + Docker</td></tr>
+      <tr><th>Dirección pública de la app</th><td>https://incubapp.cdhmaker.com</td></tr>
+      <tr><th>Dirección en la planta</th><td>http://192.168.5.28 (IP fija del servidor)</td></tr>
+      <tr><th>Panel de control</th><td>«Panel IncubApp» (solo en el propio servidor)</td></tr>
+      <tr><th>Dirigido a</th><td>Personal de mantenimiento de Incubant</td></tr>
+      <tr><th>Versión y fecha</th><td>Versión 1.0 · 01-10-2026</td></tr>
+    </table>
+    <div class="recuadro atencion" style="margin-top:8mm">
+      <span class="etiqueta">Atención</span>
+      <p>Este equipo es el <strong>servidor de producción</strong>: la planta trabaja con él todo el día. Lea el capítulo 2 («Reglas de oro») antes de tocarlo. Este manual no contiene contraseñas; guárdelo impreso junto al servidor y en un lugar seguro.</p>
+    </div>
+  </div>
+  <div class="portada-pie">
+    <img src="../panel/web/icono.png" alt="">
+    <div>Incubant · Área de Mantenimiento<br>Servidor local de IncubApp</div>
+    <div class="version">Versión 1.0<br>01-10-2026</div>
+  </div>
+</section>
+
+<!-- ════════════════════════ ÍNDICE ════════════════════════ -->
+<section>
+  <div class="resumen-rapido">
+    <h2>Lo más importante en 30 segundos</h2>
+    <ul>
+      <li><strong>No apague el servidor con el botón ni lo desconecte.</strong> Si hay que reiniciarlo, hágalo desde Windows (capítulo 3).</li>
+      <li><strong>Todo se mira y se arregla desde el «Panel IncubApp»</strong> (acceso directo en el Escritorio). Verde = bien, amarillo = aviso, rojo = falla (capítulo 4).</li>
+      <li><strong>Si algo se cae, el servidor intenta arreglarse solo cada minuto.</strong> Espere 2 minutos antes de actuar y siga el capítulo 5.</li>
+      <li><strong>Hay respaldo todos los días a las 2:00 a. m.</strong> en OneDrive (capítulo 7). Antes de cambios grandes, haga uno a mano.</li>
+      <li><strong>Para controlarlo a distancia</strong> use el modo «servidor activo» con Tailscale y Escritorio remoto (capítulo 9). Nunca abra el puerto 3389 en el router.</li>
+      <li><strong>Ante la duda, no toque:</strong> saque el «Reporte de soporte» del panel y llame a soporte (capítulo 12).</li>
+    </ul>
+  </div>
+
+  <h2 style="margin-top:2mm">Contenido</h2>
+  <ol class="indice">
+    <li><span class="num">1</span><span class="tit">Qué es el servidor y qué corre <small>piezas, direcciones, contenedores</small></span><span class="relleno"></span><span class="pag" data-cap="c1">3</span></li>
+    <li><span class="num">2</span><span class="tit">Reglas de oro <small>lo que nunca se hace</small></span><span class="relleno"></span><span class="pag" data-cap="c2">5</span></li>
+    <li><span class="num">3</span><span class="tit">Encender, apagar y reiniciar <small>y lo que pasa solo</small></span><span class="relleno"></span><span class="pag" data-cap="c3">6</span></li>
+    <li><span class="num">4</span><span class="tit">El Panel IncubApp <small>abrirlo, semáforo, secciones, avisos</small></span><span class="relleno"></span><span class="pag" data-cap="c4">8</span></li>
+    <li><span class="num">5</span><span class="tit">Qué hacer si… <small>guía de problemas paso a paso</small></span><span class="relleno"></span><span class="pag" data-cap="c5">11</span></li>
+    <li><span class="num">6</span><span class="tit">Herramientas de soporte del panel <small>cada botón, su peligro y si corta el servicio</small></span><span class="relleno"></span><span class="pag" data-cap="c6">16</span></li>
+    <li><span class="num">7</span><span class="tit">Respaldos y restauración</span><span class="relleno"></span><span class="pag" data-cap="c7">18</span></li>
+    <li><span class="num">8</span><span class="tit">Actualizar la app <small>y cambios de la base de datos</small></span><span class="relleno"></span><span class="pag" data-cap="c8">20</span></li>
+    <li><span class="num">9</span><span class="tit">Modo «servidor activo» y acceso remoto <small>capítulo central</small></span><span class="relleno"></span><span class="pag" data-cap="c9">21</span></li>
+    <li><span class="num">10</span><span class="tit">Ciberseguridad <small>auditoría, hallazgos actuales, router, red</small></span><span class="relleno"></span><span class="pag" data-cap="c10">27</span></li>
+    <li><span class="num">11</span><span class="tit">Referencia <small>scripts, rutas, registros, puertos, ajustes</small></span><span class="relleno"></span><span class="pag" data-cap="c11">31</span></li>
+    <li><span class="num">12</span><span class="tit">Listas de chequeo y soporte <small>diaria, semanal, mensual; bitácora</small></span><span class="relleno"></span><span class="pag" data-cap="c12">34</span></li>
+  </ol>
+
+  <h3 style="margin-top:6mm">Cómo leer este manual</h3>
+  <table class="t compacta">
+    <thead><tr><th style="width:34mm">Marca</th><th>Qué significa</th></tr></thead>
+    <tbody>
+      <tr><td><span class="nivel medio">ATENCIÓN</span></td><td>Recuadro naranja: algo que puede causar un problema si se pasa por alto.</td></tr>
+      <tr><td><span class="nivel alto">PELIGRO</span></td><td>Recuadro negro: puede cortar la app a toda la planta o hacer perder datos. Hágalo solo si el manual o soporte lo indican.</td></tr>
+      <tr><td><span class="boton">Botón</span></td><td>Nombre de un botón o de una opción del panel o de Windows, tal como aparece en pantalla.</td></tr>
+      <tr><td><kbd>Win</kbd> + <kbd>R</kbd></td><td>Teclas que se presionan a la vez.</td></tr>
+      <tr><td><span class="nivel bajo">Bajo</span> <span class="nivel medio">Medio</span> <span class="nivel alto">Alto</span></td><td>Nivel de peligro de una acción del panel (el mismo que muestra el panel).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ 1 ════════════════════════ -->
+<section class="capitulo" id="c1">
+  <div class="cap-cabecera"><div class="cap-num">1</div><div class="cap-titulos"><span class="antetitulo">Capítulo 1</span><h1>Qué es el servidor y qué corre</h1></div></div>
+  <p class="cap-intro">El servidor es el Lenovo de mesa <strong>DESKTOP-ROMOGM3</strong> de la oficina. Desde el 27-09-2026 la app IncubApp, su base de datos y las fotos de la planta viven en este equipo (antes estaban en la nube de Supabase). Si este equipo se apaga, <strong>IncubApp deja de funcionar para todos</strong>, dentro y fuera de la planta.</p>
+
+  <h2><span class="n">1.1</span>El equipo</h2>
+  <table class="t compacta">
+    <tbody>
+      <tr><td style="width:42mm"><strong>Equipo</strong></td><td>Lenovo de mesa, nombre <code>DESKTOP-ROMOGM3</code>, procesador Intel Core i3-4160 (3,6 GHz), <strong>12 GB de RAM</strong> DDR3, sin tarjeta de video dedicada.</td></tr>
+      <tr><td><strong>Sistema</strong></td><td>Windows 11 Pro. Usuario de Windows: <strong>Admin Mantenimiento</strong>.</td></tr>
+      <tr><td><strong>Dirección en la red</strong></td><td><code>192.168.5.28</code> · puerta de enlace (router MikroTik) <code>192.168.5.1</code> · red <code>192.168.5.0/24</code>.</td></tr>
+      <tr><td><strong>Memoria repartida</strong></td><td>Ubuntu (WSL) tiene asignados <strong>7 GB</strong> + 4 GB de intercambio y hasta 4 procesadores; a Windows le quedan unos 5 GB. Por eso la RAM siempre se ve alta: <strong>no abra programas de más en el servidor</strong>.</td></tr>
+      <tr><td><strong>Carpeta del proyecto</strong></td><td><code>C:\IncubApp</code> (en Ubuntu se ve como <code>/mnt/c/IncubApp</code>). Scripts del servidor: <code>C:\IncubApp\servidor-local</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">1.2</span>Las piezas, una dentro de otra</h2>
+  <p>El servidor funciona por capas. Windows lleva dentro un Ubuntu (Linux) por WSL2; dentro de Ubuntu corre Docker, y Docker mueve los «contenedores»: cada uno es un programa del servidor.</p>
+  <div class="diagrama">
+    <div class="capas">
+      <div class="capa equipo">
+        <div class="capa-tit">Equipo físico <span>· Lenovo DESKTOP-ROMOGM3 · 192.168.5.28</span></div>
+        <div class="capa windows">
+          <div class="capa-tit">Windows 11 Pro</div>
+          <div class="detalle">Panel IncubApp (127.0.0.1:8770) · tarea «IncubApp Servidor» · OneDrive (sube los respaldos) · firewall · Tailscale y Escritorio remoto (modo «servidor activo»)</div>
+          <div class="capa ubuntu">
+            <div class="capa-tit">Ubuntu-24.04 en WSL2 <span>· 7 GB de RAM</span></div>
+            <div class="detalle">Servicios automáticos: arranque al encender · vigilante cada minuto · respaldo a las 2:00 a. m.</div>
+            <div class="capa docker">
+              <div class="capa-tit">Docker <span>· contenedores</span></div>
+              <div class="cajas">
+                <div class="caja"><b>App IncubApp</b>nginx, puerto 80</div>
+                <div class="caja"><b>Supabase</b>base de datos, cuentas, API, fotos, tiempo real, correo</div>
+                <div class="caja"><b>Túnel Cloudflare</b>acceso desde internet</div>
+                <div class="caja"><b>Lector de fotos</b>lee las fotos de ronda</div>
+                <div class="caja"><b>Asistente de voz</b>busca en los manuales</div>
+                <div class="caja"><b>n8n</b>automatizaciones</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caminos">
+      <div class="camino"><b>Desde la planta</b>Celulares y PC de la red<span class="flecha">→ http://192.168.5.28</span>entra por el puerto 80 a la app.</div>
+      <div class="camino"><b>Desde internet</b>Cualquier lugar<span class="flecha">→ https://incubapp.cdhmaker.com</span>Cloudflare → túnel → app. El túnel sale desde el servidor: <strong>no hay puertos abiertos en el router</strong>.</div>
+      <div class="camino"><b>Control remoto (usted)</b>Su PC con Tailscale<span class="flecha">→ Escritorio remoto</span>solo con el modo «servidor activo» y solo desde equipos permitidos (capítulo 9).</div>
+      <div class="camino"><b>En el propio servidor</b><span class="flecha">→ http://127.0.0.1/</span>la app vista desde el mismo equipo.</div>
+    </div>
+  </div>
+
+  <h2><span class="n">1.3</span>Contenedores (lo que aparece en «Servicios» del panel)</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:52mm">Nombre del contenedor</th><th>Qué es</th><th style="width:58mm">Si se cae…</th></tr></thead>
+    <tbody>
+      <tr><td class="nw"><code>incubapp-incubapp-1</code></td><td>La app IncubApp (nginx, puerto 80). Entrega la app y pasa las consultas a Supabase.</td><td>Nadie puede abrir la app.</td></tr>
+      <tr><td class="nw"><code>supabase-db</code></td><td>Base de datos (PostgreSQL).</td><td>Todo deja de funcionar.</td></tr>
+      <tr><td class="nw"><code>supabase-auth</code></td><td>Cuentas: inicio de sesión, contraseñas, correos de cuenta.</td><td>Nadie puede entrar.</td></tr>
+      <tr><td class="nw"><code>supabase-rest</code></td><td>API de datos de la app.</td><td>La app abre pero no carga datos.</td></tr>
+      <tr><td class="nw"><code>supabase-storage</code></td><td>Fotos y archivos.</td><td>No se ven ni se guardan fotos.</td></tr>
+      <tr><td class="nw"><code>realtime-dev.supabase-realtime</code></td><td>Actualizaciones en vivo (tablero del supervisor).</td><td>Hay que recargar para ver cambios.</td></tr>
+      <tr><td class="nw"><code>supabase-envoy</code></td><td>Puerta de entrada de la API (puerto 8000).</td><td>La app no llega a la base.</td></tr>
+      <tr><td class="nw"><code>supabase-meta</code>, <code>supabase-edge-functions</code></td><td>Piezas internas de Supabase.</td><td>Fallas parciales.</td></tr>
+      <tr><td class="nw"><code>supabase-correo-plantillas-1</code></td><td>Plantillas de correo en español con la marca de Incubant.</td><td>Los correos salen con el texto en inglés de Supabase (el enlace funciona igual).</td></tr>
+      <tr><td class="nw"><code>incubapp-tunel</code></td><td>Túnel de Cloudflare.</td><td>No abre desde internet (sí en la planta).</td></tr>
+      <tr><td class="nw"><code>incubapp-lector</code></td><td>Lector propio de fotos de ronda.</td><td>Las fotos de ronda no se leen solas.</td></tr>
+      <tr><td class="nw"><code>incubapp-asistente</code></td><td>Asistente de voz propio (busca en los manuales).</td><td>El asistente no responde.</td></tr>
+      <tr><td class="nw"><code>incubapp-n8n</code></td><td>n8n: automatizaciones y bot de lecturas.</td><td>Las automatizaciones se detienen.</td></tr>
+      <tr><td class="nw"><code>incubapp-ngrok-1</code></td><td>ngrok: acceso antiguo por internet, ya reemplazado por Cloudflare.</td><td>Nada (se recomienda apagarlo, capítulo 10).</td></tr>
+      <tr class="grupo"><td colspan="3">Apagados a propósito (en el panel salen en gris «Apagado», y eso es lo normal)</td></tr>
+      <tr><td class="nw"><code>supabase-studio</code></td><td>Studio: administrador visual de la base. Se enciende solo cuando soporte lo necesita.</td><td>—</td></tr>
+      <tr><td class="nw"><code>supabase-pooler</code>, <code>supabase-imgproxy</code></td><td>No hacen falta en producción; se dejan apagados para ahorrar memoria.</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">1.4</span>Direcciones útiles</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:60mm">Dirección</th><th>Para qué</th><th style="width:45mm">Desde dónde</th></tr></thead>
+    <tbody>
+      <tr><td><code>https://incubapp.cdhmaker.com</code></td><td>La app (dirección oficial).</td><td>Cualquier lugar con internet.</td></tr>
+      <tr><td><code>http://192.168.5.28</code></td><td>La app por la red de la planta (sigue funcionando aunque se caiga internet).</td><td>Equipos de la red de la planta.</td></tr>
+      <tr><td><code>http://127.0.0.1/</code></td><td>La app vista desde el propio servidor.</td><td>Solo el servidor.</td></tr>
+      <tr><td><code>http://127.0.0.1:8770</code></td><td>Panel IncubApp (se abre con su acceso directo, no escribiendo la dirección).</td><td>Solo el servidor.</td></tr>
+      <tr><td><code>http://127.0.0.1:8000/</code></td><td>Studio de Supabase (solo si se encendió).</td><td>Solo el servidor.</td></tr>
+      <tr><td><code>http://127.0.0.1:5678/</code></td><td>n8n.</td><td>Solo el servidor.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ 2 ════════════════════════ -->
+<section class="capitulo" id="c2">
+  <div class="cap-cabecera"><div class="cap-num">2</div><div class="cap-titulos"><span class="antetitulo">Capítulo 2</span><h1>Reglas de oro</h1></div></div>
+  <p class="cap-intro">Estas reglas evitan casi todas las caídas. Valen para cualquier persona que se siente frente al servidor o se conecte a él.</p>
+
+  <table class="t">
+    <thead><tr><th style="width:8mm" class="c">#</th><th style="width:62mm">Regla</th><th>Por qué</th></tr></thead>
+    <tbody>
+      <tr><td class="c"><strong>1</strong></td><td><strong>No apague el equipo con el botón de encendido ni lo desconecte.</strong></td><td>Cortar la corriente a la fuerza puede dañar la base de datos. Si hay que apagar o reiniciar, hágalo desde Windows (capítulo 3).</td></tr>
+      <tr><td class="c"><strong>2</strong></td><td><strong>No cierre ni apague Ubuntu.</strong> No ejecute <code>wsl --shutdown</code> ni cierre ventanas negras que estén trabajando.</td><td>Ubuntu lleva dentro la base de datos y la app. Si se apaga, la app se cae para todos hasta que vuelva (hasta 5 minutos).</td></tr>
+      <tr><td class="c"><strong>3</strong></td><td><strong>No desconecte el cable de red ni cambie la IP</strong> <code>192.168.5.28</code>.</td><td>Los equipos de la planta y el túnel de internet dependen de esa conexión.</td></tr>
+      <tr><td class="c"><strong>4</strong></td><td><strong>No instale, actualice ni desinstale programas</strong> (Docker, WSL, Ubuntu, antivirus, «optimizadores»…).</td><td>Cualquier cambio puede romper el arranque automático. La única instalación prevista es Tailscale (capítulo 9).</td></tr>
+      <tr><td class="c"><strong>5</strong></td><td><strong>No use el servidor como computador de oficina.</strong> Cierre navegadores, Office y cualquier programa que abra.</td><td>La RAM está al límite: 7 GB son de Ubuntu y Windows trabaja con unos 5 GB. Un navegador con muchas pestañas puede poner lenta la app.</td></tr>
+      <tr><td class="c"><strong>6</strong></td><td><strong>No borre ni mueva nada</strong> de <code>C:\IncubApp</code> ni de la carpeta de OneDrive <code>IncubApp-Respaldos</code>.</td><td>Ahí están los scripts, los registros y los respaldos.</td></tr>
+      <tr><td class="c"><strong>7</strong></td><td><strong>No cierre la sesión de OneDrive</strong> ni pause su sincronización.</td><td>OneDrive es el que sube el respaldo diario a la nube.</td></tr>
+      <tr><td class="c"><strong>8</strong></td><td><strong>No ejecute los scripts 1, 2, 3, 5 ni 10</strong> de <code>servidor-local</code> sin soporte.</td><td>Son de instalación o de restauración: pueden reemplazar configuraciones o datos (capítulo 11).</td></tr>
+      <tr><td class="c"><strong>9</strong></td><td><strong>Nunca abra puertos en el router</strong> hacia el servidor (en especial el 3389 de Escritorio remoto).</td><td>Expondría el equipo a ataques desde internet. El acceso remoto se hace solo por Tailscale (capítulo 9).</td></tr>
+      <tr><td class="c"><strong>10</strong></td><td><strong>Bloquee la sesión al levantarse</strong> (<kbd>Win</kbd> + <kbd>L</kbd>) y no comparta la contraseña de Windows.</td><td>Quien tenga la sesión abierta o la contraseña puede apagar el equipo o cambiar su configuración.</td></tr>
+      <tr><td class="c"><strong>11</strong></td><td><strong>Si Windows pide reiniciar por actualizaciones</strong>, hágalo en un horario de poco uso.</td><td>Durante el reinicio la app no está disponible (vuelve sola en 1 a 3 minutos tras encender Windows).</td></tr>
+      <tr><td class="c"><strong>12</strong></td><td><strong>Ante la duda, no toque.</strong> Mire el panel, saque el «Reporte de soporte» y llame.</td><td>Un botón equivocado puede cortar la app a toda la planta.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <p><strong>Acepte un permiso de administrador de Windows solo si usted acaba de pulsar el botón que lo pide</strong> (por ejemplo «Activar» del modo servidor o un «Arreglar» de Seguridad). Si aparece una ventana de permiso que nadie pidió, pulse <span class="boton">No</span> y avise a soporte.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════ 3 ════════════════════════ -->
+<section class="capitulo" id="c3">
+  <div class="cap-cabecera"><div class="cap-num">3</div><div class="cap-titulos"><span class="antetitulo">Capítulo 3</span><h1>Encender, apagar y reiniciar</h1></div></div>
+  <p class="cap-intro">El servidor está preparado para volver solo después de un reinicio o de un corte de luz, <strong>aunque nadie inicie sesión en Windows</strong>. Conocer esa secuencia evita tocar cosas mientras el equipo se está recuperando.</p>
+
+  <h2><span class="n">3.1</span>Lo que pasa solo al encender</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:8mm" class="c">#</th><th style="width:52mm">Qué arranca</th><th>Qué hace</th></tr></thead>
+    <tbody>
+      <tr><td class="c">1</td><td>BIOS del Lenovo</td><td>Si está configurada con <strong>After Power Loss → Power On</strong>, el equipo se enciende solo al volver la corriente.</td></tr>
+      <tr><td class="c">2</td><td>Windows</td><td>Arranca hasta la pantalla de inicio de sesión. No hace falta que nadie entre.</td></tr>
+      <tr><td class="c">3</td><td>Tarea «IncubApp Servidor»</td><td>Tarea programada de Windows que corre al encender (sin iniciar sesión) y <strong>se repite cada 5 minutos</strong>: enciende Ubuntu y, si Ubuntu se apagó con Windows encendido, lo vuelve a encender.</td></tr>
+      <tr><td class="c">4</td><td><code>incubapp-arranque.service</code> (Ubuntu)</td><td>Levanta Docker → Supabase (sin Studio, supavisor ni imgproxy) → la app → el túnel, y espera a que la app responda.</td></tr>
+      <tr><td class="c">5</td><td><code>incubapp-vigia.timer</code> — el «vigilante»</td><td><strong>Cada minuto</strong> revisa que respondan la app (<code>http://127.0.0.1/</code>) y las cuentas (<code>/auth/v1/health</code>). Si algo no responde, levanta lo que falte. Respeta los servicios que alguien apagó a mano.</td></tr>
+      <tr><td class="c">6</td><td>Panel IncubApp</td><td>Se abre solo cuando alguien inicia sesión en Windows (no es necesario para que la app funcione).</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro nota">
+    <span class="etiqueta">Nota</span>
+    <p><strong>Tras un reinicio, la app vuelve sola en 1 a 3 minutos.</strong> Durante ese tiempo es normal que desde internet salga «502». No pulse nada: espere 5 minutos antes de seguir el capítulo 5.</p>
+  </div>
+
+  <h2><span class="n">3.2</span>Reiniciar el servidor correctamente</h2>
+  <ol class="pasos">
+    <li>Elija un momento de poco uso y avise: la app no estará disponible unos minutos para nadie.</li>
+    <li>En el panel, revise arriba a la derecha que no haya <strong>trabajos en curso</strong> (respaldo, actualización). Si los hay, espere a que terminen.</li>
+    <li>Cierre los programas abiertos (menos el panel).</li>
+    <li>Menú Inicio → botón de encendido → <span class="boton">Reiniciar</span>. No use el botón físico.</li>
+    <li>Espere de 3 a 5 minutos. Inicie sesión con la cuenta <strong>Admin Mantenimiento</strong> y bloquee después con <kbd>Win</kbd> + <kbd>L</kbd>: así se abren el panel y OneDrive (que sube los respaldos a la nube).</li>
+    <li>En el panel, el estado general debe decir <strong>«IncubApp funcionando»</strong>. Pruebe además <code>https://incubapp.cdhmaker.com</code> desde un celular.</li>
+  </ol>
+
+  <h2><span class="n">3.3</span>Apagar el servidor (solo si es necesario)</h2>
+  <p>Solo para trabajos eléctricos, mover el equipo o por indicación de soporte.</p>
+  <ol class="pasos">
+    <li>Avise a la planta: <strong>IncubApp dejará de funcionar para todos</strong> mientras esté apagado.</li>
+    <li>Revise que no haya trabajos en curso en el panel y cierre los programas.</li>
+    <li>Menú Inicio → botón de encendido → <span class="boton">Apagar</span>. Espere a que se apague la luz del equipo antes de desconectarlo.</li>
+    <li>Para volver a encenderlo, presione <strong>una vez y brevemente</strong> el botón de encendido (esto funciona siempre, también con el modo «servidor activo»). Siga el paso 5 y 6 de la sección 3.2.</li>
+  </ol>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <p>Con el modo «servidor activo» encendido (capítulo 9), <strong>el botón físico no apaga el equipo</strong> y la pantalla de inicio de sesión no tiene «Apagar». Para apagar o reiniciar, inicie sesión y use el menú Inicio, o desactive primero el modo.</p>
+  </div>
+
+  <h2><span class="n">3.4</span>Situaciones especiales</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:50mm">Situación</th><th>Qué pasa y qué hacer</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Corte de luz</strong></td><td>Si la BIOS tiene «After Power Loss → Power On», el equipo enciende solo al volver la corriente y la app vuelve en 1 a 3 minutos. Si no enciende solo, presione brevemente el botón de encendido.</td></tr>
+      <tr><td><strong>Revisar la BIOS</strong> (una vez, con soporte)</td><td>Al encender, presione <kbd>F1</kbd> repetidamente → menú <strong>Power</strong> → <strong>After Power Loss</strong> → <strong>Power On</strong>. Guarde los cambios al salir. No cambie nada más: la virtualización (Intel VT-x) debe quedar activada, Ubuntu la necesita.</td></tr>
+      <tr><td><strong>Ubuntu se apagó</strong> (Windows sigue encendido)</td><td>La tarea «IncubApp Servidor» lo vuelve a encender en menos de 5 minutos. Para no esperar: panel → Soporte → <span class="boton">Arrancar el servidor</span>.</td></tr>
+      <tr><td><strong>Actualizaciones de Windows</strong></td><td>Windows reinicia el equipo: la app vuelve sola. Revise el panel después.</td></tr>
+      <tr><td><strong>Se perdió el arranque automático</strong> (tras reiniciar, nada vuelve solo)</td><td>Ejecute <code>9-ARRANQUE-AUTOMATICO.bat</code> (doble clic, pide administrador). Vuelve a instalar el arranque, el vigilante y la tarea, y comprueba que la app responda. Registro: <code>servidor-local\logs\9-arranque.txt</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ 4 ════════════════════════ -->
+<section class="capitulo" id="c4">
+  <div class="cap-cabecera"><div class="cap-num">4</div><div class="cap-titulos"><span class="antetitulo">Capítulo 4</span><h1>El Panel IncubApp</h1></div></div>
+  <p class="cap-intro"><img class="icono-acceso" src="../panel/web/icono.png" alt="Ícono del Panel IncubApp">El panel es la ventana de control del servidor: muestra en vivo el estado de cada pieza, avisa cuando algo se cae y trae las herramientas para arreglarlo. <strong>Solo funciona en el propio servidor</strong> (dirección interna <code>127.0.0.1:8770</code>): nadie en la red puede entrar a él.</p>
+
+  <h2><span class="n">4.1</span>Abrir el panel</h2>
+  <ul>
+    <li><strong>Solo:</strong> se abre al iniciar sesión en Windows.</li>
+    <li><strong>A mano:</strong> doble clic en el acceso directo <strong>«Panel IncubApp»</strong> (Escritorio o menú Inicio; es el ícono de la derecha). También sirve <code>C:\IncubApp\servidor-local\PANEL-INCUBAPP.bat</code>.</li>
+    <li><strong>Si faltan los accesos directos:</strong> ejecute <code>13-INSTALAR-PANEL.bat</code> (no pide administrador). Los crea de nuevo y abre el panel.</li>
+    <li>Si el panel dice <em>«Abra el panel desde el acceso directo «Panel IncubApp»»</em>, ciérrelo y ábralo otra vez desde el acceso directo.</li>
+  </ul>
+
+  <h2><span class="n">4.2</span>El semáforo</h2>
+  <p>Arriba se ve el <strong>estado general</strong> y, en cada sección, el estado de cada pieza. Además del color, siempre hay un texto: se lee igual en blanco y negro.</p>
+  <table class="t compacta">
+    <thead><tr><th style="width:40mm">Color y texto</th><th>Qué significa</th><th style="width:52mm">Qué hacer</th></tr></thead>
+    <tbody>
+      <tr><td><span class="punto ok"></span><strong>Verde · Funciona</strong></td><td>Responde bien.</td><td>Nada.</td></tr>
+      <tr><td><span class="punto aviso"></span><strong>Amarillo · Aviso</strong></td><td>Funciona, pero algo merece atención (por ejemplo respaldo de más de 26 horas).</td><td>Revisar el mismo día.</td></tr>
+      <tr><td><span class="punto falla"></span><strong>Rojo · Falla</strong></td><td>No funciona.</td><td>Capítulo 5.</td></tr>
+      <tr><td><span class="punto apagado"></span><strong>Gris · Apagado</strong></td><td>Detenido a propósito (Studio, supavisor, imgproxy; ngrok si se apagó).</td><td>Nada: es lo normal.</td></tr>
+      <tr><td><span class="punto desconocido"></span><strong>Sin datos</strong></td><td>No se pudo revisar (por ejemplo Ubuntu detenido o el panel recién abierto).</td><td>Esperar 1 minuto; si sigue, capítulo 5.</td></tr>
+    </tbody>
+  </table>
+  <p>El estado general tiene tres mensajes: <strong>«IncubApp funcionando»</strong>, <strong>«IncubApp funciona con avisos»</strong> e <strong>«IncubApp NO está disponible»</strong>. Este último aparece si falla la app, la API, la base de datos, Ubuntu o Docker.</p>
+  <div class="recuadro nota">
+    <span class="etiqueta">Nota</span>
+    <p>El panel revisa lo básico cada 10 segundos y todo cada 60 segundos. Un cambio de color solo cuenta si se repite <strong>dos revisiones seguidas</strong>: así un corte de pocos segundos no dispara alarmas. El botón <span class="boton">Actualizar ahora</span> (arriba) pide una revisión completa en el momento.</p>
+  </div>
+
+  <h2><span class="n">4.3</span>Las secciones (menú de la izquierda)</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:30mm">Sección</th><th>Qué muestra</th><th style="width:55mm">Para qué se usa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Inicio</strong></td><td>Estado general, datos clave, todas las piezas por grupo (Servidor, Acceso, Supabase, Servicios IncubApp, Mantenimiento) con sus botones, mini gráficas de CPU y RAM, últimos eventos, puntaje de seguridad y estado de la red.</td><td>La revisión diaria de 1 minuto.</td></tr>
+      <tr><td><strong>Servicios</strong></td><td>Tabla de contenedores de Docker: estado, salud (<em>healthy / unhealthy</em>), reinicios, CPU, memoria y puertos; botones por fila.</td><td>Reiniciar o encender un contenedor puntual.</td></tr>
+      <tr><td><strong>Recursos</strong></td><td>Gráficas de CPU, RAM, tiempo de respuesta de la app y memoria de contenedores; disponibilidad por pieza; discos; base de datos; Ubuntu.</td><td>Ver si el equipo está saturado o si hubo cortes.</td></tr>
+      <tr><td><strong>Registros</strong></td><td>Visor de registros de cada contenedor, del vigilante, del respaldo, del panel, de actualizaciones, del correo y del arranque de Windows. Filtro, actualización cada 5 s y copiar.</td><td>Buscar el error exacto o mandarlo a soporte.</td></tr>
+      <tr><td><strong>Soporte</strong></td><td>Reporte de soporte, accesos «Abrir», todas las herramientas con su peligro y el historial de trabajos.</td><td>Arreglar (capítulo 6).</td></tr>
+      <tr><td><strong>Seguridad</strong></td><td>Puntaje, auditoría con hallazgos y botón <span class="boton">Arreglar</span>, puertos abiertos, conexiones activas e ingresos a la app (correctos, fallidos por IP, usuarios nuevos).</td><td>Capítulo 10.</td></tr>
+      <tr><td><strong>Modo servidor</strong></td><td>Estado del modo «servidor activo», sus protecciones, Tailscale, equipos permitidos para Escritorio remoto, y los botones para activarlo, desactivarlo y bloquear la pantalla.</td><td>Capítulo 9.</td></tr>
+      <tr><td><strong>Red</strong></td><td>Calidad de internet y cortes, equipos conectados a la red de la planta (inventario), auditoría de la red y herramientas (ping, traceroute, DNS, HTTP, puerto, Wake-on-LAN, UPnP).</td><td>Problemas de red y equipos extraños (capítulo 10).</td></tr>
+      <tr><td><strong>Eventos</strong></td><td>Línea de tiempo de cuándo se cayó o volvió cada pieza, por día, con filtros.</td><td>Saber qué pasó y a qué hora.</td></tr>
+      <tr><td><strong>Ajustes</strong></td><td>Intervalos de revisión, avisos de Windows, abrir al iniciar sesión, red que se escanea, frecuencia de auditoría; tema claro u oscuro y sonido.</td><td>Normalmente no se cambian (capítulo 11).</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">4.4</span>Cómo funcionan los botones</h2>
+  <ul>
+    <li>Cada herramienta muestra su <strong>nivel de peligro</strong> (<span class="nivel bajo">Bajo</span> <span class="nivel medio">Medio</span> <span class="nivel alto">Alto</span>) y, si puede afectar a los usuarios, <strong>pide confirmación</strong> explicando qué se corta y por cuánto tiempo.</li>
+    <li>Al confirmar, se abre la salida <strong>en vivo</strong>. Puede cerrar esa ventana: el trabajo sigue y queda en «Trabajos abiertos» (arriba a la derecha) y en el historial de Soporte.</li>
+    <li>Algunos trabajos no se pueden hacer a la vez (por ejemplo, actualizar y reiniciar Ubuntu). Si uno está en curso, espere a que termine.</li>
+    <li>Las herramientas que cambian Windows (modo servidor y algunos arreglos de seguridad) hacen que <strong>Windows pida permiso de administrador</strong>: hay que pulsar <span class="boton">Sí</span> en el servidor. Si nadie lo acepta, no se cambia nada.</li>
+    <li>El panel <strong>no ejecuta comandos libres</strong>: solo las herramientas de su lista, con datos revisados.</li>
+  </ul>
+
+  <h2><span class="n">4.5</span>Avisos de Windows</h2>
+  <p>Con «Avisos de Windows» activado (lo normal), aparece un aviso en la esquina de la pantalla cuando una pieza importante <strong>se cae o vuelve</strong>, cuando aparece un <strong>equipo nuevo</strong> en la red, ante una posible <strong>suplantación (ARP)</strong> y si un <strong>respaldo falla</strong>. Como máximo sale un aviso por pieza cada 10 minutos. Al ver un aviso rojo, abra el panel y siga el capítulo 5.</p>
+
+  <h2><span class="n">4.6</span>Cerrar la ventana o «Cerrar panel»</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:52mm">Qué pulsa</th><th>Qué pasa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>La X de la ventana</strong></td><td>Se cierra solo la ventana. El panel <strong>sigue vigilando en segundo plano</strong>: los avisos, la auditoría y los escaneos continúan. Se vuelve a abrir con el acceso directo.</td></tr>
+      <tr><td><strong>El botón <span class="boton">Cerrar panel</span></strong></td><td>Pide confirmación y <strong>detiene el panel por completo</strong>, con sus revisiones automáticas (ya no habrá avisos). El servidor, la app y la base de datos siguen funcionando igual. Para volver a abrirlo: acceso directo «Panel IncubApp».</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro nota">
+    <span class="etiqueta">Nota</span>
+    <p><strong>Panel cerrado no significa servidor caído.</strong> La app no depende del panel. Si el panel no abre, compruebe la app en <code>https://incubapp.cdhmaker.com</code> y siga el problema «El panel no abre» del capítulo 5.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════ 5 ════════════════════════ -->
+<section class="capitulo" id="c5">
+  <div class="cap-cabecera"><div class="cap-num">5</div><div class="cap-titulos"><span class="antetitulo">Capítulo 5</span><h1>Qué hacer si…</h1></div></div>
+  <p class="cap-intro">Primero mire el panel (sección <strong>Inicio</strong>): casi siempre dice qué pieza falla. Recuerde que el vigilante intenta arreglar solo cada minuto: <strong>espere 2 minutos</strong> antes de pulsar botones, salvo que la caída sea evidente y larga.</p>
+
+  <h3>La escalera: de lo más suave a lo más fuerte</h3>
+  <div class="escalera">
+    <div class="escalon"><span class="paso">Paso 1</span><b>Revisar y levantar todo</b>No corta nada.</div>
+    <div class="escalon"><span class="paso">Paso 2</span><b>Reiniciar la pieza que falla</b>Corta esa pieza segundos.</div>
+    <div class="escalon"><span class="paso">Paso 3</span><b>Arranque completo</b>Hasta 5 min de trabajo.</div>
+    <div class="escalon"><span class="paso">Paso 4</span><b>Reiniciar Ubuntu</b>Peligro alto: corta todo 1-3 min.</div>
+    <div class="escalon"><span class="paso">Paso 5</span><b>Reiniciar Windows</b>Último recurso (capítulo 3).</div>
+  </div>
+  <p>Entre un paso y otro, espere a que termine el trabajo y mire si el panel vuelve a verde. Si después del paso 3 sigue en rojo, saque el <strong>Reporte de soporte</strong> antes de seguir: guarda los registros del momento de la falla.</p>
+
+  <div class="problema">
+    <h3>A. La app no abre en la planta</h3>
+    <div class="sintoma"><b>Síntoma:</b> en los equipos de la planta <code>http://192.168.5.28</code> no carga o tarda mucho.</div>
+    <ol class="pasos">
+      <li>En el panel, mire la pieza <strong>App IncubApp</strong> (grupo Acceso). Si está en <strong>rojo</strong>: Soporte → <span class="boton">Revisar y levantar todo</span>. Si sigue: <span class="boton">Reiniciar la app</span>. Si sigue: <span class="boton">Arranque completo</span>.</li>
+      <li>Si la app está en <strong>verde</strong> en el panel pero los equipos de la planta no llegan, el problema es de red: revise el cable del servidor y que su IP siga siendo <code>192.168.5.28</code> (Inicio → datos del equipo). Pruebe desde otro equipo o desde un celular con la dirección de internet.</li>
+      <li>La regla del firewall «IncubApp servidor local» (puertos 80, 443, 8000) solo vale para redes <strong>Privadas</strong> o de dominio. Si Windows marca la red como <strong>Pública</strong> (hallazgo actual, capítulo 10), cámbiela a Privada.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>B. No abre desde internet (502, 530 o «Error 1033»)</h3>
+    <div class="sintoma"><b>Síntoma:</b> <code>https://incubapp.cdhmaker.com</code> muestra una página de Cloudflare con error.</div>
+    <table class="t compacta">
+      <thead><tr><th style="width:36mm">Error</th><th>Qué significa</th><th style="width:66mm">Qué hacer</th></tr></thead>
+      <tbody>
+        <tr><td><strong>502 Bad Gateway</strong></td><td>Cloudflare llega al túnel, pero la app no contesta (el servidor está arrancando o la app está caída).</td><td>Si se acaba de reiniciar, espere 5 min. Si la app está en rojo en el panel: problema A. Si la app está en verde: Soporte → <span class="boton">Recrear el túnel de Cloudflare</span>.</td></tr>
+        <tr><td><strong>530</strong> o <strong>Error 1033</strong></td><td>Cloudflare no encuentra el túnel: el túnel está desconectado.</td><td>Revise internet (sección Red). Luego Soporte → <span class="boton">Recrear el túnel de Cloudflare</span>.</td></tr>
+        <tr><td>No carga nada / sin conexión</td><td>Falla internet de la planta o del celular.</td><td>Sección <strong>Red</strong>: calidad de internet. Mientras tanto, en la planta se puede usar <code>http://192.168.5.28</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="problema">
+    <h3>C. «Túnel de Cloudflare» en rojo (túnel sin conexión)</h3>
+    <ol class="pasos">
+      <li>Sección <strong>Red</strong>: ¿hay internet? Si no hay, el túnel volverá solo cuando vuelva internet. En la planta la app sigue funcionando por <code>http://192.168.5.28</code>.</li>
+      <li>Con internet funcionando: Soporte → <span class="boton">Recrear el túnel de Cloudflare</span> (desde internet no abre durante 10 a 30 segundos).</li>
+      <li>Si sigue en rojo: Registros → contenedor <code>incubapp-tunel</code>, y Reporte de soporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>D. El panel dice «IncubApp NO está disponible»</h3>
+    <div class="sintoma"><b>Causa:</b> falla al menos una de estas piezas: App, API, Base de datos, Ubuntu (WSL) o Docker. El panel muestra cuál.</div>
+    <ol class="pasos">
+      <li>Pulse <span class="boton">Actualizar ahora</span> y espere 1 a 2 minutos: el vigilante puede estar arreglándolo.</li>
+      <li>Si <strong>Ubuntu</strong> aparece detenido: problema E.</li>
+      <li>Si no: Soporte → <span class="boton">Revisar y levantar todo</span>.</li>
+      <li>Si sigue: <span class="boton">Arranque completo</span> (puede tardar hasta 5 minutos).</li>
+      <li>Si sigue: saque el <span class="boton">Reporte de soporte</span> y, como último recurso, <span class="boton">Reiniciar Ubuntu (todo el servidor)</span> <span class="nivel alto">Alto</span>.</li>
+      <li>Si nada funciona: reinicie Windows (capítulo 3) y llame a soporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>E. Ubuntu detenido</h3>
+    <div class="sintoma"><b>Síntoma:</b> la pieza Ubuntu (WSL) dice detenido y casi todo lo demás sale «Sin datos». El panel no enciende Ubuntu por su cuenta.</div>
+    <ol class="pasos">
+      <li>Soporte → <span class="boton">Arrancar el servidor</span>: enciende Ubuntu con la tarea «IncubApp Servidor» y espera a que la app responda. (Si no hace nada, la tarea lo encenderá sola en menos de 5 minutos.)</li>
+      <li>Si sale el error <code>Wsl/Service/0x8007274c</code> (WSL no respondió), vuelva a intentarlo: es un corte momentáneo del servicio de WSL.</li>
+      <li>Si Ubuntu se sigue apagando solo: mire Recursos (¿RAM al límite?) y llame a soporte con el reporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>F. Un servicio aparece «unhealthy» o se reinicia una y otra vez</h3>
+    <ol class="pasos">
+      <li>Sección <strong>Servicios</strong>: ubique el contenedor y mire la columna de reinicios. Espere 2 minutos: a veces se recupera solo.</li>
+      <li>Botón de la fila o Soporte → <span class="boton">Reiniciar un servicio</span> → elija ese contenedor. Ese servicio deja de responder unos segundos.</li>
+      <li>Si es <code>supabase-db</code> (base de datos), reiniciarlo corta la app a todos: hágalo solo si la app ya está caída o con soporte.</li>
+      <li>Si los reinicios siguen subiendo: Registros → ese contenedor (busque líneas con «error») y Reporte de soporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>G. El correo no llega («Recuperar contraseña», confirmaciones)</h3>
+    <ol class="pasos">
+      <li>Soporte → <span class="boton">Probar el correo</span> → escriba el correo de una cuenta que exista en IncubApp. Manda un correo real de «recuperar contraseña» y muestra la respuesta del servidor de correo.</li>
+      <li>Pida a la persona que revise la carpeta de <strong>correo no deseado</strong>.</li>
+      <li>El correo sale por <strong>SMTP2GO</strong> (servidor <code>mail.smtp2go.com</code>, puerto <strong>8025</strong>, remitente <code>no-responder@cdhmaker.com</code>). La red de la planta bloquea los puertos 587, 465 y 2525; no cambie la configuración sin soporte. El plan gratis permite <strong>1.000 correos al mes</strong>; quien administra la cuenta de SMTP2GO puede ver envíos y entregas en <em>Reports → Activity</em>.</li>
+      <li>Mientras se arregla, el administrador puede dar una <strong>contraseña temporal</strong> en la app: Administración → Usuarios → «Contraseña».</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>H. El respaldo falló o tiene más de 26 horas</h3>
+    <div class="sintoma"><b>Síntoma:</b> la pieza <strong>Respaldo</strong> en amarillo (más de 26 h) o rojo (más de 50 h o resultado ERROR), o aviso de Windows «respaldo fallido».</div>
+    <ol class="pasos">
+      <li>Registros → <strong>Respaldos</strong>: mire la última parte (busque «ERROR»).</li>
+      <li>Revise que el ícono de OneDrive (junto al reloj) no muestre errores y que haya espacio en el disco (sección Recursos).</li>
+      <li>Soporte → <span class="boton">Hacer un respaldo ahora</span> y espere el final: debe decir <strong>RESPALDO OK</strong>.</li>
+      <li>Compruebe el archivo: Soporte → Abrir → <strong>Carpeta de respaldos</strong> → <code>base-de-datos</code> → debe haber un <code>incubapp-AAAA-MM-DD_HHMM.tar</code> de hoy.</li>
+      <li>Si vuelve a fallar: Reporte de soporte (capítulo 7 para más detalle).</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>I. Disco lleno o casi lleno</h3>
+    <ol class="pasos">
+      <li>Recursos → <strong>Discos</strong>: mire el disco C: de Windows y el disco de Ubuntu.</li>
+      <li>Soporte → <span class="boton">Estado de Docker</span> (solo mira) y luego <span class="boton">Liberar espacio de Docker</span>: borra imágenes viejas sin usar y la caché de compilación de más de 7 días. <strong>No toca datos, fotos ni contenedores.</strong></li>
+      <li>En Windows puede borrar archivos temporales: Configuración → Sistema → Almacenamiento → Archivos temporales.</li>
+      <li><strong>No borre a mano</strong> nada de <code>C:\IncubApp</code>, de Ubuntu ni de la carpeta de respaldos. Si no alcanza, llame a soporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>J. RAM o CPU al 100 % (todo va lento)</h3>
+    <ol class="pasos">
+      <li>Cierre en el servidor todo lo que no sea el panel: navegadores, Office, exploradores de archivos, etc.</li>
+      <li>Recursos y Servicios: vea qué contenedor usa más memoria. Si <strong>Studio</strong> está encendido y nadie lo usa: Soporte → <span class="boton">Apagar Studio</span> (libera unos 250 MB).</li>
+      <li>Si hay una auditoría, un escaneo de red, un respaldo o una actualización en curso, es normal que la CPU suba unos minutos: espere a que termine.</li>
+      <li>En el Administrador de tareas (<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Esc</kbd>) el proceso <strong>VmmemWSL</strong> es Ubuntu completo: <strong>nunca lo finalice</strong>.</li>
+      <li>Si sigue lento mucho tiempo: reinicie Ubuntu o Windows en horario de poco uso (capítulo 3) y avise a soporte.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>K. El lector de fotos no lee las fotos de ronda</h3>
+    <ol class="pasos">
+      <li>Inicio → grupo Servicios IncubApp → <strong>Lector</strong>. Si está en rojo: Soporte → <span class="boton">Reiniciar un servicio</span> → <code>incubapp-lector</code>.</li>
+      <li>Registros → contenedor <code>incubapp-lector</code>: busque errores.</li>
+      <li>Si el problema es que <strong>una foto no se guarda</strong> en la app («Respuesta no válida del servidor»), ejecute <code>12-REVISAR-FOTOS.bat</code>: revisa los depósitos de fotos, sube archivos de prueba y los borra al terminar. Mande a soporte <code>servidor-local\logs\12-fotos.txt</code>.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>L. El panel no abre</h3>
+    <ol class="pasos">
+      <li>Compruebe primero la app en <code>https://incubapp.cdhmaker.com</code>: si abre, el servidor está bien.</li>
+      <li>Abra el panel con el acceso directo «Panel IncubApp» y espere 20 segundos (en este equipo tarda en arrancar).</li>
+      <li>Pruebe <code>C:\IncubApp\servidor-local\PANEL-INCUBAPP.bat</code>. Si el puerto 8770 está ocupado, el panel usa solo uno entre 8771 y 8779.</li>
+      <li>Ejecute <code>13-INSTALAR-PANEL.bat</code>: vuelve a crear los accesos directos y abre el panel. Registro: <code>servidor-local\logs\13-panel.txt</code>.</li>
+      <li>Mande a soporte <code>servidor-local\logs\panel\panel.txt</code>.</li>
+    </ol>
+  </div>
+
+  <div class="problema">
+    <h3>M. No puedo entrar por Escritorio remoto</h3>
+    <p>Vea la sección 9.8 («Si no puede entrar»).</p>
+  </div>
+</section>
+
+<!-- ════════════════════════ 6 ════════════════════════ -->
+<section class="capitulo" id="c6">
+  <div class="cap-cabecera"><div class="cap-num">6</div><div class="cap-titulos"><span class="antetitulo">Capítulo 6</span><h1>Herramientas de soporte del panel</h1></div></div>
+  <p class="cap-intro">Todas están en la sección <strong>Soporte</strong> (algunas también como botones junto a cada pieza en Inicio y en Servicios). La columna «¿Corta el servicio?» dice si los usuarios notan algo.</p>
+
+  <table class="t compacta">
+    <thead><tr><th style="width:38mm">Herramienta</th><th>Para qué sirve</th><th style="width:40mm">Cuándo usarla</th><th style="width:15mm" class="c">Peligro</th><th style="width:30mm">¿Corta el servicio?</th></tr></thead>
+    <tbody>
+      <tr class="grupo"><td colspan="5">Servidor</td></tr>
+      <tr><td><strong>Revisar y levantar todo</strong></td><td>Hace lo mismo que el vigilante: si algo no responde, lo vuelve a levantar.</td><td>Primer paso ante cualquier falla.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Arranque completo</strong></td><td>Levanta Docker, Supabase, la app, el túnel, el lector y el asistente, y espera a que la app responda (hasta 5 min).</td><td>Si «Revisar y levantar todo» no bastó.</td><td class="c"><span class="nivel medio">Medio</span></td><td>No corta lo que ya funciona; levanta lo caído.</td></tr>
+      <tr><td><strong>Arrancar el servidor</strong></td><td>Enciende Ubuntu con la tarea «IncubApp Servidor» y espera a que la app responda.</td><td>Ubuntu detenido.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Reiniciar Ubuntu (todo el servidor)</strong></td><td>Apaga Ubuntu por completo y lo vuelve a encender con todo.</td><td>Último recurso, cuando nada más funcionó.</td><td class="c"><span class="nivel alto">Alto</span></td><td><strong>Sí: toda la app y la base, 1 a 3 min.</strong></td></tr>
+      <tr class="grupo"><td colspan="5">Servicios</td></tr>
+      <tr><td><strong>Reiniciar un servicio</strong></td><td>Reinicia un contenedor elegido de la lista.</td><td>Contenedor «unhealthy» o en falla.</td><td class="c"><span class="nivel medio">Medio</span></td><td>Ese servicio, unos segundos.</td></tr>
+      <tr><td><strong>Detener un servicio</strong></td><td>Detiene un contenedor. El vigilante vuelve a levantar los necesarios.</td><td>Solo por indicación de soporte.</td><td class="c"><span class="nivel medio">Medio</span></td><td>Sí, ese servicio hasta que se encienda.</td></tr>
+      <tr><td><strong>Encender un servicio</strong></td><td>Enciende un contenedor detenido.</td><td>Un servicio quedó apagado sin querer.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Reiniciar la app</strong></td><td>Reinicia el contenedor de la app (nginx). No toca la base de datos.</td><td>La app en rojo o sin responder.</td><td class="c"><span class="nivel medio">Medio</span></td><td>Sí, unos segundos.</td></tr>
+      <tr><td><strong>Reiniciar Supabase</strong></td><td>Reinicia todos los servicios de Supabase (sin Studio, supavisor ni imgproxy) y espera a que respondan.</td><td>Cuentas, API o base fallando a la vez.</td><td class="c"><span class="nivel alto">Alto</span></td><td><strong>Sí: app, cuentas y base, 1 a 2 min.</strong></td></tr>
+      <tr><td><strong>Recrear el túnel de Cloudflare</strong></td><td>Vuelve a crear la conexión con Cloudflare.</td><td>Desde internet sale 502, 530 o error 1033.</td><td class="c"><span class="nivel medio">Medio</span></td><td>Solo desde internet, 10 a 30 s.</td></tr>
+      <tr><td><strong>Encender Studio</strong></td><td>Enciende Studio de Supabase (<code>http://127.0.0.1:8000/</code>). Gasta unos 250 MB.</td><td>Solo si soporte lo pide.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No (apáguelo al terminar).</td></tr>
+      <tr><td><strong>Apagar Studio</strong></td><td>Apaga Studio (no hace falta en producción).</td><td>Al terminar de usarlo.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr class="grupo"><td colspan="5">Mantenimiento</td></tr>
+      <tr><td><strong>Hacer un respaldo ahora</strong></td><td>Copia la base de datos y las fotos a OneDrive (igual que el de las 2:00 a. m.).</td><td>Antes de actualizar o de cambios grandes; si el respaldo falló.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No (usa disco y CPU unos minutos).</td></tr>
+      <tr><td><strong>Actualizar la app</strong></td><td>Trae la última versión de GitHub, reconstruye la app y aplica los cambios de la base (7-ACTUALIZAR-APP).</td><td>Cuando soporte avisa de una versión nueva (capítulo 8).</td><td class="c"><span class="nivel medio">Medio</span></td><td>No mientras trabaja (2 a 5 min); solo el cambio final.</td></tr>
+      <tr><td><strong>Probar el correo</strong></td><td>Manda un correo real de «recuperar contraseña» a una cuenta y muestra la respuesta del servidor de correo.</td><td>Alguien no recibe correos.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Liberar espacio de Docker</strong></td><td>Borra imágenes viejas sin usar y caché de compilación de más de 7 días. Muestra el espacio antes y después.</td><td>Disco con poco espacio.</td><td class="c"><span class="nivel medio">Medio</span></td><td>No (no toca datos).</td></tr>
+      <tr class="grupo"><td colspan="5">Diagnóstico (solo miran, no cambian nada)</td></tr>
+      <tr><td><strong>Reporte de soporte</strong></td><td>Arma un ZIP con estado, eventos, auditoría y registros recientes, <strong>con las claves tachadas</strong>.</td><td>Siempre antes de llamar a soporte.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Estado de Docker</strong></td><td>Espacio que usa Docker y resumen del motor.</td><td>Disco lleno, dudas de Docker.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr><td><strong>Diagnóstico de red de Ubuntu</strong></td><td>Revisa DNS, salida a internet y procesos colgados dentro de Ubuntu.</td><td>El túnel o el correo fallan por red.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+      <tr class="grupo"><td colspan="5">Abrir</td></tr>
+      <tr><td><strong>Abrir</strong></td><td>La app en este equipo, la app desde internet, Studio, n8n, la carpeta de registros, la de respaldos, la de reportes, la descarga de Tailscale y este manual.</td><td>Acceso rápido.</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>No.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="recuadro peligro">
+    <span class="etiqueta">Peligro</span>
+    <p><strong>«Reiniciar Ubuntu» y «Reiniciar Supabase» cortan la app a toda la planta.</strong> Úselos solo cuando la app ya esté caída o en horario de poco uso, y nunca durante un respaldo o una actualización.</p>
+  </div>
+  <p class="pequeno">Además de estas, la sección Seguridad tiene sus propios botones «Arreglar» (capítulo 10) y la sección Modo servidor los de activar y desactivar (capítulo 9).</p>
+</section>
+
+<!-- ════════════════════════ 7 ════════════════════════ -->
+<section class="capitulo" id="c7">
+  <div class="cap-cabecera"><div class="cap-num">7</div><div class="cap-titulos"><span class="antetitulo">Capítulo 7</span><h1>Respaldos y restauración</h1></div></div>
+  <p class="cap-intro">Todos los días a las <strong>2:00 a. m.</strong> el servidor copia la base de datos y las fotos a la carpeta de OneDrive de la empresa, y OneDrive las sube a la nube.</p>
+
+  <h2><span class="n">7.1</span>Qué se respalda y dónde</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:52mm">Qué</th><th>Cómo</th><th style="width:50mm">Cuánto se guarda</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Base de datos</strong><br><code>base-de-datos\incubapp-AAAA-MM-DD_HHMM.tar</code></td><td>Copia completa de la base (usuarios, datos, fotos registradas) + roles.</td><td><strong>14 días</strong>; los más viejos se borran solos.</td></tr>
+      <tr><td><strong>Fotos y archivos</strong><br><code>fotos\</code></td><td>Copia incremental: solo copia lo nuevo o cambiado.</td><td><strong>Nunca borra</strong>: una foto borrada por error en la app sigue en el respaldo.</td></tr>
+      <tr><td><code>fotos-atributos.txt.gz</code></td><td>El tipo de cada archivo (OneDrive no lo conserva).</td><td>Se reescribe cada día.</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Destino:</strong> <code>OneDrive - Antioqueña de Incubacion\IncubApp-Respaldos</code>, dentro de la carpeta del usuario de Windows. Se abre desde el panel: Soporte → Abrir → <strong>Carpeta de respaldos</strong>.</p>
+  <p><strong>Resultado:</strong> el panel lo muestra en la pieza <strong>Respaldo</strong> (amarillo si pasaron más de 26 h; rojo si más de 50 h o si el último dio ERROR). Archivos: <code>servidor-local\logs\ultimo-respaldo.txt</code> (fecha y OK/ERROR) y <code>servidor-local\logs\respaldo.txt</code> (detalle).</p>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <ul>
+      <li>El respaldo de las 2:00 a. m. necesita que <strong>el servidor y Ubuntu estén encendidos</strong> a esa hora.</li>
+      <li>El archivo queda primero en el disco del servidor. <strong>OneDrive lo sube a la nube solo mientras haya una sesión de Windows abierta</strong> con OneDrive funcionando: después de un reinicio, inicie sesión y bloquee la pantalla (no cierre la sesión).</li>
+      <li>Revise de vez en cuando que el ícono de OneDrive no muestre errores ni falta de espacio.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">7.2</span>Hacer un respaldo a mano</h2>
+  <ol class="pasos">
+    <li>Panel → Soporte → <span class="boton">Hacer un respaldo ahora</span> → confirme.</li>
+    <li>Espere el final (puede tardar varios minutos). Debe terminar con <strong>RESPALDO OK</strong>. Si dice <strong>RESPALDO CON ERRORES</strong>, vea el problema H del capítulo 5.</li>
+    <li>Hágalo siempre <strong>antes de actualizar la app</strong> o de cualquier trabajo que soporte haga sobre la base.</li>
+  </ol>
+
+  <h2><span class="n">7.3</span>Restaurar</h2>
+  <div class="recuadro peligro">
+    <span class="etiqueta">Peligro</span>
+    <p>Restaurar <strong>reemplaza los datos actuales</strong>: todo lo registrado después de ese respaldo se pierde. Nunca restaure por su cuenta. Siempre con soporte y con autorización del responsable.</p>
+  </div>
+  <table class="t compacta">
+    <thead><tr><th style="width:52mm">Qué hay que recuperar</th><th>Cómo se hace</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Una foto borrada por error</strong></td><td>Está en la carpeta <code>fotos\</code> del respaldo (nunca se borra). Soporte la ubica y la devuelve.</td></tr>
+      <tr><td><strong>La base de datos de un día anterior</strong> (respaldos <code>incubapp-…tar</code>)</td><td><strong>No hay botón ni script automático.</strong> Lo hace soporte: carga los roles y la copia de la base, y devuelve las fotos con su tipo de archivo. Antes de empezar se hace un respaldo del estado actual.</td></tr>
+      <tr><td><strong>El respaldo original de la nube</strong> (<code>db_cluster-…backup.gz</code>)</td><td><code>3-RESTAURAR-BACKUP.bat</code> busca ese archivo en la carpeta <strong>Descargas</strong> y lo carga. Se usó para montar el servidor el 23-09-2026. Para proteger los datos, <strong>se niega a correr si la base ya tiene datos</strong>; repetirlo encima de datos es una decisión de soporte. Mientras carga, detiene los servicios y deja solo la base. Registro: <code>logs\3-restaurar.txt</code>.</td></tr>
+      <tr><td><strong>Todo el servidor</strong> (el equipo se dañó)</td><td>Con soporte, en otro equipo: scripts 0 → 1 → 2 (capítulo 11) y luego cargar el último respaldo de OneDrive.</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro consejo">
+    <span class="etiqueta">Recomendación</span>
+    <p>Un respaldo solo es confiable si alguna vez se probó. Pida a soporte, cada pocos meses, una prueba de restauración en otro equipo (no en este servidor).</p>
+  </div>
+</section>
+
+<!-- ════════════════════════ 8 ════════════════════════ -->
+<section class="capitulo" id="c8">
+  <div class="cap-cabecera"><div class="cap-num">8</div><div class="cap-titulos"><span class="antetitulo">Capítulo 8</span><h1>Actualizar la app</h1></div></div>
+  <p class="cap-intro">Cuando soporte publica una versión nueva de IncubApp en GitHub, el servidor la trae y la vuelve a publicar. Supabase y los datos no se tocan, salvo los cambios de base de datos que trae la versión (migraciones).</p>
+
+  <h2><span class="n">8.1</span>Qué hace la actualización</h2>
+  <ol class="pasos">
+    <li>Trae los cambios de GitHub de la rama indicada en <code>servidor-local\rama.txt</code> (hoy: <code>main</code>). Si falla por un choque momentáneo, reintenta hasta 3 veces.</li>
+    <li>Reconstruye el contenedor de la app (2 a 5 minutos). <strong>La versión anterior sigue en línea</strong> mientras tanto.</li>
+    <li>Aplica las migraciones pendientes de <code>servidor-local\migraciones.txt</code>: cada una una sola vez, dentro de una transacción (si falla, no queda a medias) y anotada en la base.</li>
+    <li>Comprueba que la app responda en <code>http://127.0.0.1/</code>. Quien tenga la app abierta verá la versión nueva al recargar.</li>
+  </ol>
+
+  <h2><span class="n">8.2</span>Cómo actualizar</h2>
+  <ol class="pasos">
+    <li>Elija un horario de poco uso y revise que el panel esté en verde.</li>
+    <li>Soporte → <span class="boton">Hacer un respaldo ahora</span> y espere RESPALDO OK.</li>
+    <li>Soporte → <span class="boton">Actualizar la app</span> → confirme. (Otra forma: doble clic en <code>7-ACTUALIZAR-APP.bat</code>.)</li>
+    <li>Siga la salida en vivo hasta <strong>«Listo. Quien tenga la app abierta la verá actualizada al recargar.»</strong></li>
+    <li>Compruebe: Inicio → pieza <strong>Versión</strong> (muestra el código de la versión) y abra la app desde un celular.</li>
+  </ol>
+
+  <h2><span class="n">8.3</span>Si algo sale mal</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:72mm">Mensaje</th><th>Qué significa y qué hacer</th></tr></thead>
+    <tbody>
+      <tr><td>«No se pudo traer los cambios sin mezclar (hay cambios locales o la rama se separó)»</td><td>No se cambió nada; la app sigue igual. Llame a soporte. No intente arreglarlo con git.</td></tr>
+      <tr><td>«Falló la reconstrucción…»</td><td>La versión anterior sigue en línea si el contenedor no se reemplazó. Detalle en <code>logs\7-actualizar.txt</code>. Llame a soporte.</td></tr>
+      <tr><td>«Una migración falló (no quedó a medias)»</td><td>La base quedó como estaba antes de esa migración. Llame a soporte con el registro.</td></tr>
+      <tr><td><code>Wsl/Service/0x8007274c</code></td><td>WSL no respondió un momento. Vuelva a correr la actualización.</td></tr>
+      <tr><td>«La app no respondió en http://127.0.0.1/ tras 1 minuto»</td><td>Pruebe <code>https://incubapp.cdhmaker.com</code>. Si no abre: Soporte → <span class="boton">Revisar y levantar todo</span>; si sigue, <code>0-DIAGNOSTICO.bat</code> y soporte.</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <p>No cambie <code>rama.txt</code> ni ejecute comandos de git en el servidor salvo que soporte lo indique: el servidor debe seguir siempre la rama oficial.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════ 9 ════════════════════════ -->
+<section class="capitulo" id="c9">
+  <div class="cap-cabecera"><div class="cap-num">9</div><div class="cap-titulos"><span class="antetitulo">Capítulo 9 · capítulo central</span><h1>Modo «servidor activo» y acceso remoto</h1></div></div>
+  <p class="cap-intro">Para cuando el responsable no está en la planta. Con el modo activo, <strong>nadie apaga el equipo con una pulsación del botón</strong>, la pantalla de inicio de sesión no tiene «Apagar», y el equipo <strong>solo se controla a distancia desde sus equipos</strong>, por Escritorio remoto de Windows a través de Tailscale.</p>
+
+  <h2><span class="n">9.1</span>Qué hace el modo</h2>
+  <p>Se activa desde el panel (sección <strong>Modo servidor</strong>); Windows pide permiso de administrador. Aplica de una vez estas protecciones, que el panel muestra con su estado:</p>
+  <table class="t compacta">
+    <thead><tr><th style="width:62mm">Protección (como la muestra el panel)</th><th>Qué cambia en Windows</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Botón de encendido sin efecto</strong></td><td>Una pulsación normal del botón no hace nada (con corriente y con batería).</td></tr>
+      <tr><td><strong>Botón de suspender sin efecto</strong></td><td>El botón o tecla de suspender no hace nada. Además se reafirma: sin suspensión ni hibernación.</td></tr>
+      <tr><td><strong>Sin «Apagar» en la pantalla de inicio de sesión</strong></td><td>Desaparece el botón de apagar de la pantalla de bloqueo / inicio de sesión: nadie apaga sin la contraseña.</td></tr>
+      <tr><td><strong>Escritorio remoto con verificación previa (NLA)</strong></td><td>Escritorio remoto encendido y pidiendo usuario y contraseña <em>antes</em> de mostrar nada.</td></tr>
+      <tr><td><strong>Solo los equipos permitidos llegan al escritorio remoto</strong></td><td>Se desactivan las reglas genéricas de «Escritorio remoto» del firewall y se crea la regla <strong>«IncubApp acceso remoto»</strong> (puerto 3389) que solo deja entrar a la lista de equipos permitidos.</td></tr>
+      <tr><td>Opcional: bloquear la pantalla al terminar</td><td>Bloquea la sesión abierta en el servidor.</td></tr>
+    </tbody>
+  </table>
+  <p>El panel indica <strong>activo</strong> (las cinco protecciones en orden), <strong>parcial</strong> (solo algunas) o inactivo. La auditoría de seguridad lo reconoce: «Escritorio remoto activo solo para los equipos permitidos (modo servidor)».</p>
+
+  <h2><span class="n">9.2</span>Lo que el modo NO puede hacer (dicho con honestidad)</h2>
+  <div class="recuadro peligro">
+    <span class="etiqueta">Límites</span>
+    <ul>
+      <li><strong>Mantener presionado el botón de encendido 4 segundos apaga el equipo a la fuerza.</strong> Lo hace el hardware, no Windows: <strong>no se puede bloquear por software</strong>.</li>
+      <li><strong>Desconectar el cable o un corte de luz</strong> también lo apagan. Al volver la corriente arranca solo si la BIOS tiene «After Power Loss → Power On».</li>
+      <li><strong>Quien sepa la contraseña de Windows</strong> puede iniciar sesión en la planta y apagar desde el menú Inicio.</li>
+    </ul>
+    <p><strong>La solución es física:</strong> el equipo en un gabinete o cuarto con llave, con el botón y el cable fuera del alcance. Un UPS (respaldo de batería) evita que un corte breve lo apague.</p>
+  </div>
+  <p>Además, el modo <strong>no cambia la app</strong>: IncubApp sigue funcionando igual en la planta y por internet, esté el modo activo o no. Encender el equipo apagado con una pulsación corta del botón <strong>sí funciona</strong> siempre.</p>
+
+  <h2><span class="n">9.3</span>Preparar Tailscale (una sola vez)</h2>
+  <p><strong>Tailscale</strong> es una red privada virtual (VPN) gratuita y cifrada: une el servidor y su PC como si estuvieran en la misma red, estén donde estén, <strong>sin abrir ningún puerto en el router</strong>. Cada equipo de su red Tailscale recibe una dirección que empieza por <code>100.</code> (red <code>100.64.0.0/10</code>).</p>
+  <h3>En el servidor (en la planta)</h3>
+  <ol class="pasos">
+    <li>Panel → Soporte → Abrir → <strong>Descarga de Tailscale</strong> (o en el navegador: <code>https://tailscale.com/download/windows</code>). Descargue el instalador para Windows. <strong>Es la única instalación permitida en el servidor.</strong></li>
+    <li>Ejecute el instalador y acepte el permiso de administrador.</li>
+    <li>Aparece el ícono de Tailscale junto al reloj (puede estar en la flecha <kbd>^</kbd> de íconos ocultos). Haga clic → <span class="boton">Log in…</span>. Se abre el navegador: <strong>inicie sesión con SU cuenta</strong> (Google, Microsoft u otra). Esa cuenta es la dueña de su red privada.</li>
+    <li>Al terminar, <strong>cierre la sesión de su cuenta en ese navegador</strong> y cierre el navegador (Tailscale queda conectado; ahorra RAM y nadie usa su cuenta).</li>
+    <li>Ícono de Tailscale → <span class="boton">Preferences</span> → marque <span class="boton">Run unattended</span>. <strong>Imprescindible:</strong> mantiene Tailscale conectado aunque nadie haya iniciado sesión (por ejemplo, después de un reinicio). Revise también que <span class="boton">Allow incoming connections</span> esté marcado.</li>
+    <li>Desde cualquier navegador entre a <code>https://login.tailscale.com/admin/machines</code> con su cuenta → en la fila del servidor (<code>desktop-romogm3</code>) → menú <span class="boton">…</span> → <span class="boton">Disable key expiry</span>. Si no lo hace, Tailscale pedirá volver a iniciar sesión en el servidor cada cierto tiempo (unos 6 meses) y perderá el acceso remoto hasta que alguien lo haga en la planta.</li>
+    <li>Anote la <strong>IP de Tailscale del servidor</strong> (<code>100.x.y.z</code>): la muestra el panel en <strong>Modo servidor → Tailscale</strong>, y también el ícono de Tailscale (la línea con el nombre del equipo; al hacer clic se copia).</li>
+  </ol>
+  <h3>En su PC</h3>
+  <ol class="pasos inicia-8">
+    <li>Instale Tailscale desde la misma página e inicie sesión con <strong>la MISMA cuenta</strong> que usó en el servidor.</li>
+    <li>En <code>https://login.tailscale.com/admin/machines</code> deben aparecer los dos equipos, conectados.</li>
+  </ol>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <ul>
+      <li>Cualquier equipo que entre a su cuenta de Tailscale puede llegar a la puerta del Escritorio remoto del servidor (y aún necesita la contraseña de Windows). <strong>No comparta su cuenta</strong>, no invite a otras personas y active la <strong>verificación en dos pasos</strong> en la cuenta con la que entra (Google/Microsoft).</li>
+      <li>Revise cada mes la lista de equipos en <em>admin/machines</em> y elimine los que no reconozca.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">9.4</span>Activar el modo desde el panel</h2>
+  <ol class="pasos">
+    <li>En la planta, inicie sesión en el servidor con la cuenta <strong>Admin Mantenimiento</strong> y abra el panel → sección <strong>Modo servidor</strong>.</li>
+    <li>Revise <strong>Tailscale</strong>: instalado, servicio en marcha y con IP <code>100.…</code>.</li>
+    <li>Revise la lista de <strong>equipos permitidos</strong>. Viene con <code>100.64.0.0/10</code> (todos los equipos de su red Tailscale): es lo recomendado. Si quiere entrar también desde su PC dentro de la planta sin Tailscale, agregue la IP de ese PC (en su PC: <kbd>Win</kbd> + <kbd>R</kbd> → <code>cmd</code> → <code>ipconfig</code> → «Dirección IPv4», por ejemplo <code>192.168.5.37</code>).</li>
+    <li>Si se va a ir de la planta, marque la opción de <strong>bloquear la pantalla al terminar</strong>.</li>
+    <li>Pulse <span class="boton">Activar</span>. Windows muestra «¿Quiere permitir que esta aplicación haga cambios en el dispositivo?» → <span class="boton">Sí</span>. (Si nadie lo acepta, no se cambia nada.)</li>
+    <li>Lea la salida: debe mostrar <strong>1/3</strong>, <strong>2/3</strong>, <strong>3/3</strong> y <strong>«LISTO: modo servidor activo.»</strong> Si aparece «ATENCIÓN: no quedaron aplicadas: …», vuelva a activarlo; si se repite, llame a soporte.</li>
+    <li>Compruebe en el panel que las cinco protecciones estén en orden (estado <strong>activo</strong>, no «parcial»).</li>
+    <li><strong>Antes de irse, pruebe la conexión desde su PC</strong> (sección 9.5). Váyase solo cuando funcione.</li>
+  </ol>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <ul>
+      <li>El panel solo acepta IP de la planta (privadas) o de Tailscale; <strong>rechaza direcciones de internet</strong>. No intente saltarse esa protección.</li>
+      <li>Si su PC de la planta recibe la IP automáticamente, puede cambiar con el tiempo y quedar fuera de la lista. Tailscale (<code>100.64.0.0/10</code>) funciona siempre, dentro y fuera de la planta.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">9.5</span>Conectarse desde su PC</h2>
+  <ol class="pasos">
+    <li>Compruebe que Tailscale esté conectado en su PC (ícono junto al reloj).</li>
+    <li>Presione <kbd>Win</kbd> + <kbd>R</kbd>, escriba <code>mstsc</code> y presione <kbd>Enter</kbd>: se abre «Conexión a Escritorio remoto».</li>
+    <li>En <strong>Equipo</strong> escriba la IP de Tailscale del servidor (<code>100.x.y.z</code>). Desde la planta también sirve <code>192.168.5.28</code> si su PC está en la lista de permitidos. Pulse <span class="boton">Conectar</span>.</li>
+    <li>Usuario: <strong>Admin Mantenimiento</strong> (si Windows lo pide completo: <code>DESKTOP-ROMOGM3\Admin Mantenimiento</code>). Contraseña: <strong>la contraseña de Windows de esa cuenta</strong>, no el PIN. Si la cuenta del servidor es una cuenta Microsoft (con correo), el usuario es ese correo y la contraseña la de la cuenta Microsoft. Use <span class="boton">Más opciones</span> → <span class="boton">Usar otra cuenta</span> si aparece otro usuario.</li>
+    <li>La primera vez sale «No se puede comprobar la identidad del equipo remoto». Verifique que el nombre sea <strong>DESKTOP-ROMOGM3</strong>, marque «No volver a preguntar…» y pulse <span class="boton">Sí</span>.</li>
+    <li>Verá el escritorio del servidor. Mientras usted está conectado, <strong>la pantalla del servidor en la planta queda bloqueada</strong>. Use el panel normalmente.</li>
+    <li><strong>Para salir:</strong> cierre la ventana de Escritorio remoto con la X y acepte: la sesión queda desconectada, pero el panel y los programas siguen funcionando en el servidor. <strong>No use «Apagar»</strong> en el menú Inicio remoto.</li>
+  </ol>
+  <table class="t compacta">
+    <thead><tr><th style="width:60mm">Situación</th><th>Qué saber</th></tr></thead>
+    <tbody>
+      <tr><td>Guardar la conexión</td><td>En «Conexión a Escritorio remoto» → <span class="boton">Mostrar opciones</span> → <span class="boton">Guardar como</span>, en el escritorio de su PC. No guarde la contraseña en equipos compartidos.</td></tr>
+      <tr><td>Reiniciar el servidor estando afuera</td><td>Inicio → <span class="boton">Reiniciar</span> funciona desde la conexión remota. Gracias a «Run unattended», Tailscale y el Escritorio remoto vuelven solos: podrá reconectarse a los 3 a 5 minutos. Úselo solo si es necesario.</td></tr>
+      <tr><td>Una sola sesión a la vez</td><td>Windows 11 Pro permite una sola persona conectada. Si alguien inicia sesión en la planta, su conexión remota se cierra (y viceversa).</td></tr>
+      <tr><td>Enviar <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Supr</kbd> al servidor</td><td>Dentro de Escritorio remoto se usa <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Fin</kbd> (por ejemplo, para cambiar la contraseña).</td></tr>
+      <tr><td>Contraseña de Windows</td><td>Es la llave del acceso remoto: <strong>larga y difícil</strong> (frase de 12 o más caracteres), solo usted la conoce, y cámbiela si cree que alguien la vio. Windows no permite el acceso remoto a cuentas sin contraseña.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">9.6</span>Al llegar a la planta</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:58mm">Opción</th><th>Cuándo y cómo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A. Dejarlo activo</strong> (recomendado)</td><td>Si va a volver a salir pronto. El equipo sigue protegido; para apagar o reiniciar use el menú Inicio con la sesión iniciada. Puede trabajar en el servidor normalmente.</td></tr>
+      <tr><td><strong>B. Desactivarlo</strong></td><td>Panel → Modo servidor → <span class="boton">Desactivar</span> → <span class="boton">Sí</span> en el permiso de Windows. El botón de encendido vuelve a apagar el equipo, vuelve «Apagar» a la pantalla de inicio de sesión, el Escritorio remoto se apaga y se borra la regla «IncubApp acceso remoto».</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro peligro">
+    <span class="etiqueta">Peligro</span>
+    <p><strong>Nunca desactive el modo estando conectado desde fuera.</strong> Al terminar, Escritorio remoto se apaga, su conexión se corta y no podrá volver a entrar hasta que alguien en la planta lo active otra vez.</p>
+  </div>
+
+  <h2><span class="n">9.7</span>Bloquear la pantalla</h2>
+  <p>Cada vez que se levante del servidor, presione <kbd>Win</kbd> + <kbd>L</kbd> (o use el botón de bloquear la pantalla de la sección Modo servidor). La app y el panel siguen funcionando con la pantalla bloqueada.</p>
+
+  <h2><span class="n">9.8</span>Si no puede entrar</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:48mm">Lo que ve</th><th style="width:52mm">Causa probable</th><th>Qué hacer</th></tr></thead>
+    <tbody>
+      <tr><td>«No se puede conectar al equipo remoto»</td><td>Tailscale apagado en su PC; servidor apagado o sin internet; modo desactivado; su IP fuera de la lista.</td><td>1) Encienda Tailscale en su PC. 2) En <em>admin/machines</em>, ¿el servidor aparece conectado? 3) Si <code>https://incubapp.cdhmaker.com</code> abre, el servidor está encendido y con internet. 4) Pida ayuda en la planta (abajo).</td></tr>
+      <tr><td>El servidor sale desconectado en Tailscale</td><td>Sin internet en la planta, equipo apagado, «Run unattended» sin marcar o la llave de Tailscale venció.</td><td>Alguien en la planta debe revisar el equipo e iniciar sesión; luego corrija «Run unattended» y «Disable key expiry» (9.3).</td></tr>
+      <tr><td>Rechaza el usuario o la contraseña</td><td>Contraseña equivocada, Bloq Mayús, o cuenta Microsoft (usar el correo).</td><td>Revise el usuario (9.5, paso 4). Tras varios intentos fallidos Windows puede bloquear la cuenta un rato: espere 10 minutos antes de reintentar.</td></tr>
+      <tr><td>Conecta pero la sesión se cierra</td><td>Alguien inició sesión en la planta.</td><td>Coordine con esa persona: solo uno a la vez.</td></tr>
+    </tbody>
+  </table>
+  <h3>Recuperación con alguien en la planta</h3>
+  <ol class="pasos">
+    <li>La persona inicia sesión en el servidor (con la cuenta y la contraseña que usted le indique, y que luego usted cambia).</li>
+    <li>Abre el panel (acceso directo «Panel IncubApp»; si no aparece, <code>13-INSTALAR-PANEL.bat</code> o <code>PANEL-INCUBAPP.bat</code>) → <strong>Modo servidor</strong>.</li>
+    <li>Revisa las protecciones y Tailscale. Corrige la lista de permitidos y pulsa <span class="boton">Activar</span> de nuevo (o <span class="boton">Desactivar</span> si así lo decide usted), aceptando el permiso de Windows.</li>
+    <li>Usted prueba la conexión antes de que la persona se retire, y la persona bloquea la pantalla.</li>
+  </ol>
+  <p>Si nadie conoce la contraseña de Windows, no hay forma de recuperarlo a distancia: llame a soporte.</p>
+
+  <h2><span class="n">9.9</span>Reglas de seguridad del acceso remoto</h2>
+  <div class="recuadro peligro">
+    <span class="etiqueta">Nunca</span>
+    <ul>
+      <li><strong>Nunca abra ni redirija el puerto 3389</strong> (ni ningún otro) en el router MikroTik hacia el servidor. Escritorio remoto expuesto a internet es de los ataques más comunes.</li>
+      <li>Nunca use programas de control remoto de terceros en el servidor: el acceso es solo Tailscale + Escritorio remoto.</li>
+      <li>Nunca deje la sesión remota abierta sin uso, ni guarde la contraseña en equipos compartidos.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ════════════════════════ 10 ════════════════════════ -->
+<section class="capitulo" id="c10">
+  <div class="cap-cabecera"><div class="cap-num">10</div><div class="cap-titulos"><span class="antetitulo">Capítulo 10</span><h1>Ciberseguridad</h1></div></div>
+  <p class="cap-intro">El panel revisa la seguridad del servidor y de la red de la planta. Ningún arreglo se aplica solo: siempre hace falta pulsar un botón y confirmar.</p>
+
+  <h2><span class="n">10.1</span>Qué revisa la auditoría del servidor</h2>
+  <p>Se repite sola cada 6 horas (ajustable) y a mano con <span class="boton">Auditar ahora</span> en la sección Seguridad. Revisa:</p>
+  <div class="dos-col">
+    <div>
+      <ul>
+        <li><strong>Windows:</strong> antivirus Defender (tiempo real, firmas, último análisis), firewall, Escritorio remoto y NLA, SMBv1, cuenta Invitado, control de cuentas (UAC), inicio de sesión automático, carpetas compartidas, última actualización, zona Wi-Fi, hora sincronizada, espacio en disco.</li>
+        <li><strong>Puertos</strong> abiertos a la red (los de Windows y los de Ubuntu).</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li><strong>Docker:</strong> puertos publicados, contenedores privilegiados, reinicios en bucle.</li>
+        <li><strong>Supabase y la app:</strong> claves propias (no las de ejemplo), permisos de los archivos de claves, protección por filas (RLS) en todas las tablas, que la página no lleve claves secretas, que no se publiquen <code>.env</code> ni <code>.git</code>.</li>
+        <li><strong>Web pública:</strong> certificado y cabeceras de seguridad. <strong>Respaldo</strong> reciente.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="n">10.2</span>Cómo leer el puntaje</h2>
+  <p>El puntaje parte de <strong>100</strong> y resta por cada hallazgo: <strong>25</strong> por crítico, <strong>10</strong> por alto, <strong>4</strong> por medio y <strong>1</strong> por bajo («info» y «bien» no restan).</p>
+  <table class="t compacta" style="width:70%">
+    <thead><tr><th>Puntaje</th><th>Color</th><th>Lectura</th></tr></thead>
+    <tbody>
+      <tr><td><strong>85 a 100</strong></td><td><span class="punto ok"></span>Verde</td><td>Bien protegido.</td></tr>
+      <tr><td><strong>65 a 84</strong></td><td><span class="punto aviso"></span>Amarillo</td><td>Hay cosas por corregir.</td></tr>
+      <tr><td><strong>0 a 64</strong></td><td><span class="punto falla"></span>Rojo</td><td>Corregir pronto.</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Última auditoría (01-10-2026, 15:52): 54 de 100</strong> — 0 críticos, 3 altos, 3 medios, 4 bajos, 1 informativo y 12 revisiones bien. Corrigiendo los tres altos sube a 84.</p>
+
+  <h2><span class="n">10.3</span>Hallazgos actuales y cómo resolverlos</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:56mm">Hallazgo</th><th style="width:15mm" class="c">Nivel</th><th>Cómo resolverlo</th></tr></thead>
+    <tbody>
+      <tr><td>PostgreSQL de Windows escucha en el puerto <strong>5432</strong> para toda la red</td><td class="c"><span class="nivel alto">Alto</span></td><td>Es un PostgreSQL instalado en Windows, <strong>distinto</strong> de la base de IncubApp (que está dentro de Ubuntu). Con soporte: si no se usa, desinstalarlo o detener su servicio; si se usa, que escuche solo en 127.0.0.1 o cerrarlo en el firewall. Sin botón automático.</td></tr>
+      <tr><td>El inspector de <strong>ngrok</strong> (puerto 4040) está abierto a toda la red</td><td class="c"><span class="nivel alto">Alto</span></td><td>Seguridad → hallazgo → <span class="boton">Arreglar</span> → <strong>«Apagar ngrok»</strong>. Lo detiene y le quita el arranque automático. No pide administrador. La app sigue por Cloudflare.</td></tr>
+      <tr><td>Protección en tiempo real de <strong>Defender</strong> apagada</td><td class="c"><span class="nivel alto">Alto</span></td><td><span class="boton">Arreglar</span> → «Activar la protección en tiempo real» (Windows pide permiso). Si se vuelve a apagar sola, avise a soporte.</td></tr>
+      <tr><td>Firewall deja entrar al puerto <strong>8000</strong> (API directa)</td><td class="c"><span class="nivel medio">Medio</span></td><td><span class="boton">Arreglar</span> → «Cerrar el puerto 8000 a la red» (pide permiso). La app entra por el 80 y no lo necesita. Resuelve también el hallazgo bajo «La API de Supabase (8000) escucha en todas las interfaces».</td></tr>
+      <tr><td>El servidor comparte su conexión (<strong>zona Wi-Fi</strong>, 192.168.137.1)</td><td class="c"><span class="nivel medio">Medio</span></td><td>Si nadie la necesita: Configuración → Red e Internet → <strong>Zona con cobertura inalámbrica móvil</strong> → Desactivado.</td></tr>
+      <tr><td>Sin análisis del antivirus desde hace 31 días</td><td class="c"><span class="nivel medio">Medio</span></td><td><span class="boton">Arreglar</span> → «Análisis rápido del antivirus» (unos minutos, no detiene la app).</td></tr>
+      <tr><td>La red «Ethernet» está marcada como <strong>Pública</strong></td><td class="c"><span class="nivel bajo">Bajo</span></td><td>Si es la red de la empresa: Configuración → Red e Internet → Ethernet → Tipo de perfil de red → <strong>Red privada</strong>. Así también aplica la regla «IncubApp servidor local» (problema A).</td></tr>
+      <tr><td>Las cuentas nuevas no confirman el correo</td><td class="c"><span class="nivel bajo">Bajo</span></td><td>Con el correo funcionando ya se puede exigir confirmación. Decisión de soporte y del administrador de la app.</td></tr>
+      <tr><td>A la web pública le falta la cabecera <strong>HSTS</strong></td><td class="c"><span class="nivel bajo">Bajo</span></td><td>La agrega soporte (configuración de nginx o de Cloudflare).</td></tr>
+      <tr><td>Cualquiera en internet puede crear una cuenta</td><td class="c"><span class="nivel info">Info</span></td><td>Revise de vez en cuando «Usuarios nuevos» en Seguridad → ingresos a la app.</td></tr>
+    </tbody>
+  </table>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <p>Los arreglos marcados con permiso de administrador hacen que Windows pregunte en la pantalla del servidor: acéptelo solo si usted pulsó «Arreglar». Después pulse <span class="boton">Auditar ahora</span> para confirmar que el hallazgo desapareció.</p>
+  </div>
+
+  <h2><span class="n">10.4</span>El router MikroTik (192.168.5.1)</h2>
+  <p>En el primer análisis de la red (01-10-2026) el router de la planta tenía abiertos a toda la red <strong>Telnet (puerto 23)</strong>, que manda la contraseña sin cifrar (crítico), y <strong>Winbox (puerto 8291)</strong>, su administración (alto). Esto lo corrige quien administra la red, con estos pasos:</p>
+  <ol class="pasos">
+    <li>Desde un PC <strong>conectado por cable</strong> en la planta, entre al router con Winbox o con el navegador (WebFig: <code>http://192.168.5.1</code>).</li>
+    <li>Haga primero una copia de la configuración: <strong>Files → Backup</strong>.</li>
+    <li>Vaya a <strong>IP → Services</strong>. Seleccione <strong>telnet</strong> y deshabilítelo (Disable). Haga lo mismo con <strong>ftp</strong> y con lo que no se use (por ejemplo <strong>api</strong>, <strong>api-ssl</strong>, <strong>www</strong> si administra solo con Winbox).</li>
+    <li>En los servicios que sí se usan (<strong>winbox</strong>, y <strong>www</strong> o <strong>ssh</strong> si se usan), abra cada uno y en <strong>Available From</strong> escriba la red de la planta <code>192.168.5.0/24</code>. Así solo se administra desde dentro.</li>
+    <li>Cambie la contraseña del usuario <strong>admin</strong> por una larga y difícil (<strong>System → Password</strong>, o System → Users).</li>
+    <li>Compruebe desde el panel: Red → escaneo de puertos a <code>192.168.5.1</code>: el 23 ya no debe aparecer.</li>
+  </ol>
+  <div class="recuadro atencion">
+    <span class="etiqueta">Atención</span>
+    <p>Un cambio equivocado en el router puede dejar a la planta sin red ni internet. Hágalo fuera del turno, con quien administra la red o con el proveedor, y nunca deshabilite el servicio con el que está conectado en ese momento. <strong>No cree redirecciones de puertos</strong> hacia el servidor.</p>
+  </div>
+
+  <h2><span class="n">10.5</span>La red de la planta (sección Red)</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:44mm">Herramienta</th><th>Qué hace y cómo usarla</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Internet</strong></td><td>Mide todo el tiempo el router, 1.1.1.1, 8.8.8.8 y el DNS; muestra calidad y cortes de los últimos días.</td></tr>
+      <tr><td><strong>Equipos conectados</strong></td><td>Inventario de la red por dirección física (MAC) con su fabricante. Ponga nombre a cada equipo conocido y márquelo como conocido: así los nuevos resaltan.</td></tr>
+      <tr><td><strong>Escaneo de puertos</strong></td><td>Perfiles rápido, común, industrial (PLC, SCADA, cámaras) y completo. Use solo en equipos de la empresa; el perfil industrial, fuera de momentos críticos de producción.</td></tr>
+      <tr><td><strong>Auditoría de la red</strong></td><td>Revisa los equipos en línea buscando servicios peligrosos (Telnet, administraciones abiertas, UPnP en el router) y equipos sin identificar.</td></tr>
+      <tr><td><strong>Herramientas</strong></td><td>Ping, traceroute, DNS, prueba HTTP (código, certificado, cabeceras), puerto, Wake-on-LAN y UPnP.</td></tr>
+    </tbody>
+  </table>
+  <h3>Avisos de la red</h3>
+  <table class="t compacta">
+    <thead><tr><th style="width:56mm">Aviso</th><th>Qué hacer</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Equipo nuevo en la red</strong> / equipos sin identificar</td><td>Averigüe de quién es (fabricante, nombre en la red, IP). Si es conocido, póngale nombre y márquelo como conocido. Los celulares a veces usan una dirección física aleatoria (el panel lo indica). Si nadie lo reconoce, ubíquelo y avise a quien administra la red.</td></tr>
+      <tr><td><strong>«La MAC de la puerta de enlace cambió: posible suplantación (ARP)»</strong> o la misma MAC en varias IP</td><td><strong>Es serio:</strong> otro equipo puede estar haciéndose pasar por el router para espiar el tráfico. No escriba contraseñas en equipos de la red, avise de inmediato a quien administra la red, busque en el inventario el equipo con esa MAC y desconéctelo. (Si se acaba de cambiar el router, es normal: confírmelo.)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ 11 ════════════════════════ -->
+<section class="capitulo" id="c11">
+  <div class="cap-cabecera"><div class="cap-num">11</div><div class="cap-titulos"><span class="antetitulo">Capítulo 11</span><h1>Referencia</h1></div></div>
+
+  <h2><span class="n">11.1</span>Scripts de <code>C:\IncubApp\servidor-local</code></h2>
+  <p>Se ejecutan con doble clic en el archivo <code>.bat</code>. La mayoría de las tareas diarias ya están en el panel: use los scripts solo cuando este manual o soporte lo indiquen.</p>
+  <table class="t compacta">
+    <thead><tr><th style="width:46mm">Script</th><th>Qué hace</th><th style="width:20mm" class="c">Admin.</th><th style="width:34mm">Uso</th></tr></thead>
+    <tbody>
+      <tr><td><code>0-DIAGNOSTICO.bat</code></td><td>Diagnóstico del equipo. No cambia nada. Registro <code>logs\diagnostico.txt</code>.</td><td class="c">—</td><td>Libre.</td></tr>
+      <tr><td><code>1-PREPARAR-WINDOWS.bat</code></td><td>Activa WSL2, instala Ubuntu, deja el equipo sin suspenderse, abre el firewall de la red local y programa el arranque.</td><td class="c">Sí</td><td>Solo instalación, con soporte.</td></tr>
+      <tr><td><code>2-INSTALAR-SERVIDOR.bat</code></td><td>Instala Docker y Supabase en Ubuntu (15 a 30 min).</td><td class="c">—</td><td>Solo instalación, con soporte.</td></tr>
+      <tr><td><code>3-RESTAURAR-BACKUP.bat</code></td><td>Restaura el respaldo original de la nube (<code>db_cluster-…backup.gz</code> de Descargas). Ver 7.3.</td><td class="c">—</td><td><strong>Peligroso.</strong> Solo soporte.</td></tr>
+      <tr><td><code>4-ACTIVAR-RESPALDO.bat</code></td><td>Activa el respaldo diario de las 2:00 a. m. en OneDrive. Puede reiniciar Ubuntu si hace falta.</td><td class="c">—</td><td>Ya hecho. Solo con soporte.</td></tr>
+      <tr><td><code>5-ACCESO-EXTERNO.bat</code></td><td>Configura el túnel de Cloudflare con su clave (token).</td><td class="c">—</td><td>Ya hecho. Solo soporte.</td></tr>
+      <tr><td><code>6-AUTO-REBUILD.bat</code>, <code>6-REGISTRAR-TAREA.bat</code></td><td>De la época de ngrok. Con el dominio fijo de Cloudflare no hace nada.</td><td class="c">—</td><td>Antiguo, no usar.</td></tr>
+      <tr><td><code>7-ACTUALIZAR-APP.bat</code></td><td>Actualiza la app (capítulo 8). Igual al botón del panel.</td><td class="c">—</td><td>Con respaldo previo.</td></tr>
+      <tr><td><code>8-CONFIGURAR-CORREO.bat</code></td><td>Modo 1: configura el servidor de correo (reinicia el servicio de cuentas). Modo 2: solo manda un correo de prueba.</td><td class="c">—</td><td>Modo 2 libre; modo 1 con soporte.</td></tr>
+      <tr><td><code>9-ARRANQUE-AUTOMATICO.bat</code></td><td>Instala el arranque al encender, el vigilante de cada minuto y la tarea «IncubApp Servidor» (cada 5 min); quita reglas viejas que bloqueaban puertos y comprueba la app.</td><td class="c">Sí</td><td>Si se perdió el arranque automático.</td></tr>
+      <tr><td><code>10-INSTALAR-N8N.bat</code></td><td>Instala n8n y el bot de lecturas (pide una clave).</td><td class="c">—</td><td>Solo soporte.</td></tr>
+      <tr><td><code>11-ABRIR-PUERTOS-CORREO.bat</code></td><td>Abre la salida de correo 587/465/2525 en el firewall y prueba si el bloqueo es del equipo o de la red.</td><td class="c">Sí</td><td>Solo con soporte.</td></tr>
+      <tr><td><code>12-REVISAR-FOTOS.bat</code></td><td>Diagnóstico de los depósitos de fotos: sube archivos de prueba y los borra. Registro <code>logs\12-fotos.txt</code>.</td><td class="c">—</td><td>Libre (problema K).</td></tr>
+      <tr><td><code>13-INSTALAR-PANEL.bat</code></td><td>Instala el panel: accesos directos en Escritorio, menú Inicio y arranque de Windows. Abre el panel.</td><td class="c">—</td><td>Libre.</td></tr>
+      <tr><td><code>PANEL-INCUBAPP.bat</code></td><td>Abre el panel.</td><td class="c">—</td><td>Libre.</td></tr>
+      <tr><td><code>DIAG-RED.bat</code></td><td>Diagnóstico de red dentro de Ubuntu (solo lee). Igual a «Diagnóstico de red de Ubuntu» del panel.</td><td class="c">—</td><td>Libre.</td></tr>
+      <tr><td><code>IMPORTAR-UBUNTU.bat</code>, <code>CONTINUAR-INSTALACION.bat</code></td><td>Partes de la instalación inicial.</td><td class="c">—</td><td>Solo soporte.</td></tr>
+    </tbody>
+  </table>
+  <p class="pequeno">Los archivos <code>.sh</code> (arranque.sh, respaldar.sh, restaurar.sh, correo.sh, tunel.sh, aplicar-migraciones.sh, lector.sh, asistente.sh, n8n.sh, instalar.sh, revisar-fotos.sh…) corren dentro de Ubuntu y los llaman los scripts, los servicios automáticos o el panel. No se ejecutan a mano.</p>
+
+  <h2><span class="n">11.2</span>Tareas y servicios automáticos</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:56mm">Nombre</th><th>Dónde</th><th>Qué hace</th></tr></thead>
+    <tbody>
+      <tr><td>Tarea «IncubApp Servidor»</td><td>Windows (Programador de tareas)</td><td>Al encender, sin iniciar sesión, y cada 5 minutos: enciende Ubuntu.</td></tr>
+      <tr><td><code>incubapp-arranque.service</code></td><td>Ubuntu</td><td>Al encender: Docker → Supabase → app → túnel.</td></tr>
+      <tr><td><code>incubapp-vigia.timer</code></td><td>Ubuntu</td><td>Cada minuto: revisa la app y las cuentas y levanta lo caído.</td></tr>
+      <tr><td><code>incubapp-respaldo.timer</code></td><td>Ubuntu</td><td>Respaldo diario a las 2:00 a. m.</td></tr>
+      <tr><td>Regla «IncubApp servidor local»</td><td>Firewall de Windows</td><td>Entrada TCP 80, 443 y 8000 (perfiles Privado y Dominio).</td></tr>
+      <tr><td>Regla «IncubApp acceso remoto»</td><td>Firewall de Windows</td><td>Puerto 3389 solo desde los equipos permitidos. Existe solo con el modo «servidor activo».</td></tr>
+      <tr><td>Acceso directo «Panel IncubApp»</td><td>Carpeta Inicio de Windows</td><td>Abre el panel al iniciar sesión.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">11.3</span>Carpetas y registros</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:72mm">Ruta</th><th>Contenido</th></tr></thead>
+    <tbody>
+      <tr><td><code>C:\IncubApp</code></td><td>Proyecto completo (en Ubuntu: <code>/mnt/c/IncubApp</code>).</td></tr>
+      <tr><td><code>C:\IncubApp\servidor-local\logs\</code></td><td>Registros de los scripts: <code>diagnostico.txt</code>, <code>1-preparar.txt</code>, <code>2-instalar.txt</code>, <code>3-restaurar.txt</code>, <code>7-actualizar.txt</code>, <code>8-correo.txt</code>, <code>9-arranque.txt</code>, <code>12-fotos.txt</code>, <code>13-panel.txt</code>, <code>respaldo.txt</code>, <code>ultimo-respaldo.txt</code>.</td></tr>
+      <tr><td><code>…\servidor-local\logs\panel\</code></td><td>Datos del panel: <code>panel.txt</code> (registro), <code>eventos.jsonl</code>, <code>metricas.json</code>, <code>seguridad.json</code> (última auditoría), <code>red-*.json</code>, <code>ajustes.json</code> y la carpeta <code>reportes\</code> (ZIP de soporte).</td></tr>
+      <tr><td><code>/var/log/incubapp-arranque.log</code> (Ubuntu)</td><td>Vigilante y arranque. En el panel: Registros → «Vigilante y arranque (Ubuntu)».</td></tr>
+      <tr><td><code>/opt/incubapp/server</code> (Ubuntu)</td><td>Supabase y su archivo de claves <code>.env</code>. <strong>No tocar.</strong></td></tr>
+      <tr><td><code>/opt/incubapp/tunel.env</code> (Ubuntu)</td><td>Clave del túnel de Cloudflare (secreta). <strong>No tocar.</strong></td></tr>
+      <tr><td><code>OneDrive - Antioqueña de Incubacion\IncubApp-Respaldos</code></td><td>Respaldos (capítulo 7).</td></tr>
+      <tr><td><code>%USERPROFILE%\.wslconfig</code></td><td>Memoria y procesadores de Ubuntu (7 GB). Solo soporte.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">11.4</span>Puertos</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:20mm">Puerto</th><th style="width:56mm">Qué es</th><th>Quién llega / estado esperado</th></tr></thead>
+    <tbody>
+      <tr><td><strong>80</strong></td><td>La app (nginx)</td><td>Red de la planta. Abierto (correcto).</td></tr>
+      <tr><td><strong>443</strong></td><td>Incluido en la regla del firewall</td><td>La app pública usa Cloudflare, no este puerto.</td></tr>
+      <tr><td><strong>8000</strong></td><td>API de Supabase directa</td><td>Debe quedar <strong>cerrado a la red</strong> (hallazgo, 10.3). Studio sigue funcionando desde el propio servidor.</td></tr>
+      <tr><td><strong>8770</strong> (8771-8779)</td><td>Panel IncubApp</td><td>Solo el propio servidor.</td></tr>
+      <tr><td><strong>5678</strong></td><td>n8n</td><td>Solo el propio servidor.</td></tr>
+      <tr><td><strong>3389</strong></td><td>Escritorio remoto</td><td>Solo con el modo activo y solo desde los permitidos. <strong>Nunca en el router.</strong></td></tr>
+      <tr><td><strong>4040</strong></td><td>Inspector de ngrok</td><td>Debe quedar cerrado (botón «Apagar ngrok»).</td></tr>
+      <tr><td><strong>5432</strong></td><td>PostgreSQL de Windows</td><td>Hallazgo alto (10.3).</td></tr>
+      <tr><td><strong>8025</strong> (salida)</td><td>Correo hacia SMTP2GO</td><td>Única salida de correo abierta en la red de la planta.</td></tr>
+      <tr><td><strong>23</strong>, <strong>8291</strong></td><td>Telnet y Winbox del router 192.168.5.1</td><td>Telnet deshabilitado; Winbox solo desde 192.168.5.0/24 (10.4).</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">11.5</span>Ajustes del panel (sección Ajustes)</h2>
+  <table class="t compacta">
+    <thead><tr><th style="width:60mm">Ajuste</th><th style="width:30mm">Valor actual</th><th>Qué controla</th></tr></thead>
+    <tbody>
+      <tr><td>Revisión rápida</td><td>10 segundos</td><td>Cada cuánto se revisa si los servicios responden.</td></tr>
+      <tr><td>Revisión completa</td><td>60 segundos</td><td>Cada cuánto se mide todo (memoria de contenedores, base, túnel, respaldo).</td></tr>
+      <tr><td>Dirección pública de la app</td><td class="nw">incubapp.cdhmaker.com</td><td>La dirección que el panel revisa como si fuera desde internet.</td></tr>
+      <tr><td>Avisos de Windows</td><td>Sí</td><td>Avisos en la esquina de la pantalla (4.5).</td></tr>
+      <tr><td>Abrir el panel al iniciar sesión</td><td>Sí</td><td>Abre el panel solo al entrar a Windows.</td></tr>
+      <tr><td>Vigilar internet</td><td>Sí</td><td>Mide la conexión todo el tiempo.</td></tr>
+      <tr><td>Medición de internet</td><td>30 segundos</td><td>Cada cuánto se mide internet.</td></tr>
+      <tr><td>Red que se escanea</td><td>auto</td><td>«auto» usa la red del servidor (192.168.5.0/24).</td></tr>
+      <tr><td>Buscar equipos nuevos en la red</td><td>30 minutos</td><td>Frecuencia del escaneo de la red (0 lo apaga).</td></tr>
+      <tr><td>Repetir la auditoría de seguridad</td><td>360 minutos</td><td>Frecuencia de la auditoría (0 la apaga).</td></tr>
+      <tr><td>Tema · Sonido (esta ventana)</td><td>—</td><td>Claro u oscuro; sonido cuando algo falla. Se guarda solo en este equipo.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ 12 ════════════════════════ -->
+<section class="capitulo" id="c12">
+  <div class="cap-cabecera"><div class="cap-num">12</div><div class="cap-titulos"><span class="antetitulo">Capítulo 12</span><h1>Listas de chequeo y soporte</h1></div></div>
+
+  <div class="dos-col">
+    <div>
+      <h2><span class="n">12.1</span>Diaria (1 minuto)</h2>
+      <ul class="chequeo">
+        <li>Panel → Inicio: estado general <strong>«IncubApp funcionando»</strong>.</li>
+        <li>Pieza <strong>Respaldo</strong> en verde (respaldo de anoche).</li>
+        <li>Pieza <strong>URL pública</strong> y <strong>Túnel</strong> en verde.</li>
+        <li>Últimos eventos: ¿hubo caídas en la noche?</li>
+        <li>RAM y CPU sin picos sostenidos.</li>
+        <li>Nada abierto en el servidor además del panel; pantalla bloqueada.</li>
+      </ul>
+      <h2><span class="n">12.2</span>Semanal</h2>
+      <ul class="chequeo">
+        <li>Seguridad: puntaje y hallazgos nuevos.</li>
+        <li>Red: equipos nuevos sin identificar; cortes de internet.</li>
+        <li>Recursos: espacio en discos y disponibilidad de la semana.</li>
+        <li>Servicios: ningún contenedor con reinicios que suben.</li>
+        <li>Carpeta de respaldos: archivo de cada día; OneDrive sin errores.</li>
+        <li>Windows Update: si pide reiniciar, hacerlo en horario de poco uso.</li>
+        <li>Abrir la app desde un celular con datos móviles (fuera de la red).</li>
+      </ul>
+    </div>
+    <div>
+      <h2><span class="n">12.3</span>Mensual</h2>
+      <ul class="chequeo">
+        <li><span class="boton">Probar el correo</span> con una cuenta propia.</li>
+        <li>Análisis rápido del antivirus si la auditoría lo pide.</li>
+        <li><span class="boton">Estado de Docker</span>; liberar espacio si el disco crece.</li>
+        <li>Tailscale: revisar la lista de equipos y borrar desconocidos.</li>
+        <li>Probar el acceso remoto desde su PC (capítulo 9).</li>
+        <li>Revisar «Usuarios nuevos» en Seguridad → ingresos a la app.</li>
+        <li>Consumo de correo en SMTP2GO (límite 1.000 al mes).</li>
+        <li>Revisar que el equipo siga protegido físicamente (gabinete o cuarto con llave).</li>
+        <li>Anotar en la bitácora lo que se hizo.</li>
+      </ul>
+      <h2><span class="n">12.4</span>Antes de llamar a soporte</h2>
+      <ol class="pasos">
+        <li>Panel → Soporte → <span class="boton">Reporte de soporte</span>. Al terminar, Abrir → <strong>Carpeta de reportes</strong> (<code>logs\panel\reportes\</code>).</li>
+        <li>Una foto o captura de la sección Inicio.</li>
+        <li>Qué pasó, desde qué hora, a quién afecta y qué botones pulsó.</li>
+      </ol>
+      <div class="recuadro atencion">
+        <span class="etiqueta">Atención</span>
+        <p>El reporte lleva las claves tachadas, pero es información interna: mándelo solo a soporte, nunca a grupos ni redes.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="n">12.5</span>Contactos (llenar a mano)</h2>
+  <table class="t">
+    <thead><tr><th style="width:56mm">Quién</th><th>Nombre</th><th style="width:48mm">Teléfono / correo</th></tr></thead>
+    <tbody>
+      <tr><td>Responsable del servidor</td><td></td><td></td></tr>
+      <tr><td>Soporte / desarrollo de IncubApp</td><td></td><td></td></tr>
+      <tr><td>Administrador de la red (router MikroTik)</td><td></td><td></td></tr>
+      <tr><td>Proveedor de internet</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">12.6</span>Bitácora de intervenciones</h2>
+  <table class="t bitacora">
+    <thead><tr><th style="width:24mm">Fecha</th><th style="width:34mm">Quién</th><th>Qué se hizo y por qué</th><th style="width:34mm">Resultado</th></tr></thead>
+    <tbody>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  <p class="pequeno" style="margin-top:4mm">Manual de manipulación del Servidor IncubApp · versión 1.0 · 01-10-2026. Basado en la configuración real del servidor a esa fecha (ESTADO.md, diseño del panel, scripts de <code>servidor-local</code> y auditoría del 01-10-2026). Si el servidor cambia, actualice este manual.</p>
+</section>
+
+</body>
+</html>

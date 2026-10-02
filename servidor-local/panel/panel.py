@@ -51,7 +51,7 @@ IMPORTANTES = {'app', 'api', 'base', 'publico', 'tunel', 'wsl', 'docker', 'respa
 # ── Módulos (protegidos: si uno no carga, el resto del panel sigue) ──────────
 MODULOS: dict[str, object] = {}
 ERRORES: dict[str, str] = {}
-for _nombre in ('estado', 'acciones', 'seguridad', 'red'):
+for _nombre in ('estado', 'acciones', 'seguridad', 'red', 'modo'):
     try:
         MODULOS[_nombre] = __import__(f'nucleo.{_nombre}', fromlist=[_nombre])
     except Exception as _e:  # noqa: BLE001
@@ -424,6 +424,27 @@ def r_fabricantes(p, q, c):
                                        exclusivo='fabricantes').como_dict()}
 
 
+def r_modo(p, q, c):
+    return modulo('modo').estado()
+
+
+def r_modo_activar(p, q, c):
+    m = modulo('modo')
+    permitidos = c.get('permitidos')
+    _valor(lambda: m.validar_permitidos(permitidos))
+    return {'trabajo': TRABAJOS.lanzar('modo', 'Activar modo servidor', m.activar, permitidos, bool(c.get('bloquear')),
+                                       exclusivo='modo').como_dict()}
+
+
+def r_modo_desactivar(p, q, c):
+    m = modulo('modo')
+    return {'trabajo': TRABAJOS.lanzar('modo', 'Desactivar modo servidor', m.desactivar, exclusivo='modo').como_dict()}
+
+
+def r_modo_bloquear(p, q, c):
+    return modulo('modo').bloquear_pantalla()
+
+
 def r_ajustes(p, q, c):
     return {**PANEL.ajustes.como_dict(), 'puerto': PANEL.puerto, 'version': sistema.VERSION,
             'datos': str(sistema.DATOS), 'errores_modulos': ERRORES}
@@ -473,6 +494,10 @@ RUTAS = [
     ('GET', r'/api/red/auditoria', r_red_auditoria),
     ('POST', r'/api/red/auditar', r_red_auditar),
     ('POST', r'/api/red/fabricantes', r_fabricantes),
+    ('GET', r'/api/modo', r_modo),
+    ('POST', r'/api/modo/activar', r_modo_activar),
+    ('POST', r'/api/modo/desactivar', r_modo_desactivar),
+    ('POST', r'/api/modo/bloquear', r_modo_bloquear),
     ('GET', r'/api/ajustes', r_ajustes),
     ('POST', r'/api/ajustes', r_ajustes_guardar),
     ('POST', r'/api/salir', r_salir),
@@ -693,6 +718,21 @@ def panel_vivo() -> dict | None:
     return None
 
 
+_CANDADO = None
+
+
+def candado_unico():
+    """Mutex con nombre de Windows. Devuelve (manija, ya_existía). La manija vive lo que viva el proceso."""
+    try:
+        import ctypes
+        k = ctypes.WinDLL('kernel32', use_last_error=True)
+        k.CreateMutexW.restype = ctypes.c_void_p
+        h = k.CreateMutexW(None, False, 'Local\\PanelIncubApp')
+        return h, ctypes.get_last_error() == 183      # ERROR_ALREADY_EXISTS
+    except Exception:  # noqa: BLE001
+        return None, False
+
+
 def crear_servidor(desde: int) -> ThreadingHTTPServer:
     ultimo = None
     for puerto in range(desde, desde + 10):
@@ -714,9 +754,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument('--puerto', type=int, default=PUERTO)
     args = ap.parse_args(argv)
 
+    # Candado de Windows: dos arranques en el mismo segundo (doble clic, acceso directo + .bat)
+    # creaban dos paneles. El segundo espera a que el primero publique su sesión y solo abre la ventana.
+    global _CANDADO
+    _CANDADO, ya_hay_otro = candado_unico()
     vivo = panel_vivo()
-    if vivo:
-        if not args.sin_ventana:
+    if ya_hay_otro and not vivo:
+        for _ in range(40):
+            time.sleep(1)
+            vivo = panel_vivo()
+            if vivo:
+                break
+    if vivo or ya_hay_otro:
+        if vivo and not args.sin_ventana:
             abrir_ventana(int(vivo['puerto']), vivo['llave'])
         return 0
 

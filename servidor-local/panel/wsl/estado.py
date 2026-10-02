@@ -256,7 +256,7 @@ def main():
     if modo == 'completo':
         trabajos.update({
             'stats': stats, 'base': base, 'tunel': tunel, 'asistente': asistente, 'lector': lector,
-            'n8n': lambda: http('http://127.0.0.1:5678/healthz', 4), 'vigilante': vigilante, 'correo': correo,
+            'n8n': lambda: http('http://127.0.0.1:5678/healthz', 8), 'vigilante': vigilante, 'correo': correo,
             'docker_version': lambda: correr(['docker', 'version', '-f', '{{.Server.Version}}'], 6)[1].strip() or None,
             'respaldo_destino': lambda: leer('/opt/incubapp/respaldo-destino'),
             'tunel_configurado': lambda: os.path.exists('/opt/incubapp/tunel.env'),
