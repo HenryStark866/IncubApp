@@ -81,6 +81,13 @@ import {
   FarmBatchesPanel,
   EggReportPanel,
   ReceptionPanel,
+  ClassificationPanel,
+  LoadLiquidationPanel,
+  EggAuditPanel,
+  DataAuthorizationPanel,
+  ReceptionRequestsPanel,
+  ReceptionReportsPanel,
+  ReceptionInfoPanel,
   ColdStorageLoadPanel,
   OperationsDataCenter,
   MisionalesPanel,
@@ -131,9 +138,16 @@ const OMNISCIENT_TABS = [
   'granjas',
   'produccion',
   'huevos',
+  'clasificacion',
   'recepcion',
+  'liquidar-cargues',
+  'auditoria-huevos',
+  'autorizar-datos',
   'cargue',
   'horarios',
+  'solicitudes',
+  'reportes-informes',
+  'informacion',
   'gerencia',
   'informes',
   'ventas',
@@ -978,6 +992,8 @@ function Workspace({
               area={area}
               coordinatorName={profileApi.profile?.full_name ?? session.user.email}
             />
+          ) : tab === 'clasificacion' && org && can('clasificacion') ? (
+            <ClassificationPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
           ) : tab === 'recepcion' && org && can('recepcion') ? (
             <ReceptionPanel
               orgId={org.id}
@@ -986,7 +1002,20 @@ function Workspace({
               showReception
               showColdRoom
               coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={setTab}
             />
+          ) : tab === 'liquidar-cargues' && org && can('liquidar-cargues') ? (
+            <LoadLiquidationPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'auditoria-huevos' && org && can('auditoria-huevos') ? (
+            <EggAuditPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'autorizar-datos' && org && can('autorizar-datos') ? (
+            <DataAuthorizationPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'solicitudes' && org && can('solicitudes') ? (
+            <ReceptionRequestsPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'reportes-informes' && org && can('reportes-informes') ? (
+            <ReceptionReportsPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'informacion' && org && can('informacion') ? (
+            <ReceptionInfoPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
           ) : tab === 'cargue' && org && can('cargue') ? (
             <ColdStorageLoadPanel
               orgId={org.id}

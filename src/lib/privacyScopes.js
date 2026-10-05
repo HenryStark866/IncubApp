@@ -84,26 +84,43 @@ export const PRIVACY_DOMAINS = [
       'panel',
       'monitoreo',
       'plantas',
+      'clasificacion',
       'recepcion',
+      'liquidar-cargues',
+      'auditoria-huevos',
+      'autorizar-datos',
       'cargue',
       'supervision',
       'calibracion',
       'horarios',
+      'asistencia',
+      'solicitudes',
+      'reportes-informes',
+      'informacion',
       'huevos',
       'historial',
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
-     * herramientas de ejecución (actividades, cargue, historial). Sin «Monitoreo»:
-     * es un tablero de coordinación y al operario solo le mostraba un bloqueo; el
-     * estado de las máquinas lo ve en su inicio y en la ronda (30-09-2026).
+     * herramientas de ejecución (actividades, cargue, historial).
      */
     tabsFor: (role, _area) => {
       if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production') {
         return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
-        return ['recepcion', 'cargue', 'supervision', 'horarios', 'historial']
+        return [
+          'clasificacion',
+          'recepcion',
+          'liquidar-cargues',
+          'auditoria-huevos',
+          'autorizar-datos',
+          'horarios',
+          'asistencia',
+          'solicitudes',
+          'reportes-informes',
+          'informacion',
+        ]
       }
       if (role === 'management' || role === 'management_auxiliary') {
         return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion']

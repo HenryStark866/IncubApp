@@ -37,8 +37,9 @@ def _h(id_, categoria, titulo, nivel, detalle='', recomendacion='', arreglo=None
 PS_WINDOWS = r'''
 $r = [ordered]@{}
 try { $m = Get-MpComputerStatus -ErrorAction Stop
+  $terceros = @(Get-CimInstance -Namespace root\SecurityCenter2 -ClassName AntivirusProduct -ErrorAction SilentlyContinue | Where-Object { $_.displayName -notlike '*Windows Defender*' } | ForEach-Object { [string]$_.displayName })
   $r.defender = @{ activo=[bool]$m.AntivirusEnabled; tiempo_real=[bool]$m.RealTimeProtectionEnabled; firmas_dias=$m.AntivirusSignatureAge;
-    rapido_dias=$m.QuickScanAge; servicio=[bool]$m.AMServiceEnabled; manipulacion=[bool]$m.IsTamperProtected } }
+    rapido_dias=$m.QuickScanAge; servicio=[bool]$m.AMServiceEnabled; manipulacion=[bool]$m.IsTamperProtected; modo=[string]$m.AMRunningMode; terceros=$terceros } }
 catch { $r.defender = @{ error = $_.Exception.Message } }
 try { $r.firewall = @(Get-NetFirewallProfile -ErrorAction Stop | ForEach-Object { @{ nombre=[string]$_.Name; activo=[bool]$_.Enabled } }) } catch { $r.firewall = $null }
 $regla = Get-NetFirewallRule -DisplayName 'IncubApp servidor local' -ErrorAction SilentlyContinue
@@ -209,21 +210,31 @@ def _rev_defender(w: dict) -> list:
         return [_h('defender', 'windows', 'No se pudo revisar Windows Defender', 'medio', d['error'],
                    'Revise que Windows Defender (Seguridad de Windows) esté instalado y activo.')]
     res = []
-    if not d.get('activo'):
+    terceros = d.get('terceros') or []
+    modo = str(d.get('modo') or '')
+    es_pasivo = modo.lower() == 'passive mode' or bool(terceros)
+
+    if not d.get('activo') and not terceros:
         res.append(_h('defender_apagado', 'windows', 'El antivirus de Windows está apagado', 'critico',
                       'Sin antivirus, un programa malicioso que llegue por USB, correo o descarga corre sin control.',
                       'Active Windows Defender o instale otro antivirus.', 'activar_defender'))
     if d.get('activo') and not d.get('tiempo_real'):
-        res.append(_h('defender_tiempo_real', 'windows', 'La protección en tiempo real de Windows Defender está apagada', 'alto',
-                      'El antivirus solo revisa cuando alguien lo pide: un archivo malicioso se puede ejecutar sin que lo detenga.',
-                      'Active la protección en tiempo real (botón «Arreglar»; Windows pedirá permiso de administrador).',
-                      'activar_defender', 'RealTimeProtectionEnabled = False'))
+        if es_pasivo:
+            nombres = ', '.join(terceros) if terceros else 'otro antivirus'
+            res.append(_h('defender_pasivo', 'windows', f'Protección en tiempo real a cargo de {nombres}', 'ok',
+                          f'Windows Defender está en Modo Pasivo porque {nombres} gestiona la protección en tiempo real.',
+                          'No requiere acción: el servidor está protegido por un antivirus de terceros.'))
+        else:
+            res.append(_h('defender_tiempo_real', 'windows', 'La protección en tiempo real de Windows Defender está apagada', 'alto',
+                          'El antivirus solo revisa cuando alguien lo pide: un archivo malicioso se puede ejecutar sin que lo detenga.',
+                          'Active la protección en tiempo real (botón «Arreglar»; Windows pedirá permiso de administrador).',
+                          'activar_defender', 'RealTimeProtectionEnabled = False'))
     f = d.get('firmas_dias')
     if isinstance(f, int) and f > 3:
         res.append(_h('defender_firmas', 'windows', f'Las firmas del antivirus tienen {f} días', 'medio' if f < 14 else 'alto',
                       'El antivirus no reconoce las amenazas más nuevas.', 'Actualice las firmas.', 'actualizar_firmas_defender'))
     q = d.get('rapido_dias')
-    if isinstance(q, int) and q > 7:
+    if isinstance(q, int) and q > 7 and not es_pasivo:
         res.append(_h('defender_analisis', 'windows', f'No se hace un análisis del antivirus desde hace {q} días', 'medio',
                       'Un análisis rápido revisa los lugares donde suele esconderse el malware.',
                       'Haga un análisis rápido (tarda unos minutos y no detiene la app).', 'analisis_rapido_defender'))

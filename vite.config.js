@@ -48,6 +48,16 @@ export default defineConfig({
     host: true,
     strictPort: false,
     hmr: true,
+    proxy: {
+      '/auth': 'http://127.0.0.1:8000',
+      '/rest': 'http://127.0.0.1:8000',
+      '/storage': 'http://127.0.0.1:8000',
+      '/functions': 'http://127.0.0.1:8000',
+      '/realtime': {
+        target: 'http://127.0.0.1:8000',
+        ws: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['@supabase/supabase-js', 'react', 'react-dom'],

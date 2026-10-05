@@ -114,7 +114,9 @@ body {
 }
 
 .role-preview-chip {
+  border: 1px dashed var(--line);
   border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--bg-1);
   background: color-mix(in srgb, var(--bg-1) 90%, var(--accent));
   color: var(--text-dim);
   border-radius: 999px;
@@ -441,6 +443,7 @@ body {
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size: 48px 48px;
   opacity: 0.06;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent);
   pointer-events: none;
 }
@@ -584,6 +587,7 @@ body {
   border: 1px solid color-mix(in srgb, #35d6e8 35%, var(--line));
   background: linear-gradient(135deg, rgba(12, 24, 48, 0.92), rgba(18, 16, 42, 0.88));
   box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.15), 0 12px 40px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 
@@ -812,6 +816,7 @@ body {
   background-size: 48px 48px;
   transform: perspective(500px) rotateX(58deg);
   transform-origin: center top;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
   mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
 }
 
@@ -820,7 +825,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #35d6e8, #7c5cff, transparent);
+  background: linear-gradient(90deg, transparent, #35d6e8, #7d5cfff8, transparent);
   opacity: 0.5;
   animation: platform-scan 5s linear infinite;
 }
@@ -847,6 +852,7 @@ body {
     0 0 0 1px rgba(124, 92, 255, 0.2),
     0 24px 80px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
@@ -987,6 +993,7 @@ body {
   border-radius: 14px;
   background: color-mix(in srgb, var(--bg-1) 88%, transparent);
   border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -2607,6 +2614,7 @@ button.ghost.small {
   cursor: grab;
   padding: 4px;
   overflow: hidden;
+  -webkit-user-select: none;
   user-select: none;
   /* En táctil: el dedo panea el plano; el arrastre de salas es con mouse */
   touch-action: pan-x pan-y;
@@ -3491,6 +3499,7 @@ button.ghost.small {
   position: absolute;
   z-index: 3;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   display: flex !important;
   flex-direction: row;
@@ -4691,6 +4700,7 @@ button.ghost.small {
   margin: 0 !important;
   font-size: 12.5px;
   color: var(--text-dim);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -5092,6 +5102,7 @@ button.ghost.small {
   background: rgba(15, 22, 38, 0.88);
   color: #c8d4ee;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
@@ -6003,6 +6014,7 @@ button.ghost.small {
   align-items: center;
   justify-content: center;
   background: rgba(5, 10, 20, 0.85);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -9156,6 +9168,7 @@ button.primary:hover:not(:disabled) {
 
 /* Encabezado con vidrio (glassmorphism discreto) */
 .workspace-header {
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
   backdrop-filter: blur(10px) saturate(1.15);
 }
 
@@ -10379,6 +10392,7 @@ button.primary:hover:not(:disabled) {
   gap: 6px;
   padding: 5px 6px;
   background: rgba(10, 17, 32, 0.4);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
@@ -11004,6 +11018,7 @@ a.plant3d-link:hover {
   border: 1px solid rgba(53, 214, 232, 0.15);
   border-radius: 12px;
   padding: 10px 14px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -11554,13 +11569,14 @@ a.plant3d-link:hover {
 
 /* ── Variables de espacio seguro (notch / barra de navegación) ─────────────── */
 :root {
-  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left:   env(safe-area-inset-left,   0px);
-  --safe-right:  env(safe-area-inset-right,  0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 @media (max-width: 768px) {
+
   /* ── Shell base ─────────────────────────────────────────────────────────── */
   .shell {
     padding: 0;
@@ -11659,9 +11675,17 @@ a.plant3d-link:hover {
   }
 
   /* ── Tipografía táctil ──────────────────────────────────────────────────── */
-  h1 { font-size: 22px; }
-  h2 { font-size: 18px; }
-  h3 { font-size: 15px; }
+  h1 {
+    font-size: 22px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  h3 {
+    font-size: 15px;
+  }
 
   /* ── KPIs: 2 columnas en móvil, 1 columna en muy angosto ───────────────── */
   .kpi-grid,
@@ -11697,11 +11721,13 @@ a.plant3d-link:hover {
   }
 
   table {
-    min-width: 480px; /* permite scroll si la tabla es ancha */
+    min-width: 480px;
+    /* permite scroll si la tabla es ancha */
     font-size: 13px;
   }
 
-  th, td {
+  th,
+  td {
     padding: 8px 10px;
     white-space: nowrap;
   }
@@ -11710,7 +11736,8 @@ a.plant3d-link:hover {
   input,
   select,
   textarea {
-    font-size: 16px !important; /* iOS zooma si < 16 px */
+    font-size: 16px !important;
+    /* iOS zooma si < 16 px */
     min-height: 44px;
     border-radius: 10px;
   }
@@ -11734,7 +11761,8 @@ a.plant3d-link:hover {
     min-height: 44px;
     font-size: 14px;
     border-radius: 10px;
-    touch-action: manipulation; /* elimina delay de 300 ms en iOS */
+    touch-action: manipulation;
+    /* elimina delay de 300 ms en iOS */
   }
 
   button.small,
@@ -11874,8 +11902,15 @@ a.plant3d-link:hover {
   }
 
   @keyframes ws-menu-drawer-up {
-    from { transform: translateY(40px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
+    from {
+      transform: translateY(40px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   .ws-menu-panel-head {
@@ -12024,6 +12059,7 @@ a.plant3d-link:hover {
 
 /* ── Pantalla apaisada en móvil (landscape) ─────────────────────────────────── */
 @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+
   .workspace-header,
   .workspace-header.wide,
   .workspace-header.social {

@@ -94,7 +94,14 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'monitoreo', label: 'Monitoreo', group: 'Operación', tab: 'monitoreo' },
     { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
-    { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Operación', tab: 'recepcion' },
+    { id: 'clasificacion', label: 'Clasificación', group: 'Recepción y Planta', tab: 'clasificacion', hint: 'Ovoscopia, bandejas y descarte' },
+    { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Recepción y Planta', tab: 'recepcion', hint: 'Llegadas a planta y certificación' },
+    { id: 'liquidar-cargues', label: 'Liquidar cargues', group: 'Recepción y Planta', tab: 'liquidar-cargues', hint: 'Liquidación y balance de cargues' },
+    { id: 'auditoria-huevos', label: 'Auditoría de huevos', group: 'Control de Calidad', tab: 'auditoria-huevos', hint: 'Control de calidad, fisuras y muestras' },
+    { id: 'autorizar-datos', label: 'Autorizar datos', group: 'Control de Calidad', tab: 'autorizar-datos', hint: 'Aprobación y validación de lotes' },
+    { id: 'solicitudes', label: 'Solicitudes', group: 'Mi Turno', tab: 'solicitudes', hint: 'Permisos, insumos y novedades' },
+    { id: 'reportes-informes', label: 'Reportes e informes', group: 'Informes', tab: 'reportes-informes', hint: 'Consolidados y balances' },
+    { id: 'informacion', label: 'Información', group: 'Ayuda y Guías', tab: 'informacion', hint: 'Guías, bioseguridad y manuales' },
     {
       id: 'cargue',
       label: 'Cargue',
@@ -160,6 +167,11 @@ function navLabelFor(item, role) {
   if (item.id === 'supervision' && isShiftWorker) return 'Mis actividades'
   if (item.id === 'cargue' && isShiftWorker) return 'Órdenes de cargue'
   if (item.id === 'hoy' && isShiftWorker) return 'Mi turno'
+  if (role === 'reception_operator') {
+    if (item.id === 'horarios') return 'Mi horario'
+    if (item.id === 'recepcion') return 'Recepción'
+    if (item.id === 'reportes-informes' || item.id === 'reportes') return 'Reportes e informes'
+  }
   // Líder de área: su home «Hoy» es el tablero combinado con monitoreo y widgets
   if (item.id === 'hoy' && role === 'coordinator') return 'Panel principal del líder'
   return item.label

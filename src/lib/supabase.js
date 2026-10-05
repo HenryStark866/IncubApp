@@ -36,8 +36,8 @@ function resolveSupabaseUrl() {
     if (hostname.includes('ngrok') || hostname.includes('trycloudflare.com') || protocol === 'https:' || !port || port === '80') {
       return origin
     }
-    // Si se accede por Vite dev server (puerto 5173) en la máquina o red
-    if (port === '5173') {
+    // Si se accede por Vite dev server (puerto 3000 o 5173) en la máquina o red
+    if (port === '3000' || port === '5173') {
       return `${protocol}//${hostname}:8000`
     }
     if (baseIncludesLocalhost(rawUrl) && hostname && !['localhost', '127.0.0.1'].includes(hostname)) {
@@ -117,7 +117,8 @@ async function fetchOnce(input, init) {
   // Si estamos en el navegador y la URL apunta a localhost:8000 pero estamos en ngrok o puerto 80
   if (typeof window !== 'undefined' && url) {
     const origin = window.location.origin
-    if (url.startsWith('http://localhost:8000') && !window.location.port.includes('5173')) {
+    const isDevPort = window.location.port === '3000' || window.location.port === '5173'
+    if (url.startsWith('http://localhost:8000') && !isDevPort) {
       url = `${origin}${url.slice('http://localhost:8000'.length)}`
     }
   }
