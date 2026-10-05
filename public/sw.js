@@ -9,7 +9,9 @@
    caparazón de la app, así que quien hubiera entrado a /reparar.html (o al
    recorrido 3D) abría IncubApp sin red y le salía esa página en vez del login.
    Al cambiar de nombre la caché, esos caparazones envenenados se descartan. */
-const CACHE = 'incubapp-shell-v14'
+// v15 (05-10-2026): Clasificación del operario y lecturas de ronda por foto: que todos los
+// equipos descarten la caché vieja al abrir la app.
+const CACHE = 'incubapp-shell-v15'
 const PRECACHE = [
   '/',
   '/index.html',
