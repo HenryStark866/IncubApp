@@ -66,6 +66,7 @@ def vuelta(conn):
 
 
 if __name__ == '__main__':
+    print('Lector de fotos IncubApp iniciado (RapidOCR). Monitoreando...', flush=True)
     conn = None
     while True:
         try:

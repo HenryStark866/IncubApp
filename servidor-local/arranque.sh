@@ -122,6 +122,13 @@ revisar_asistente() {
   log "Vigilante: el asistente no responde; se reinicia."
   docker restart incubapp-asistente >/dev/null 2>&1 || true
 }
+revisar_lector() {
+  docker inspect incubapp-lector >/dev/null 2>&1 || return 0
+  if ! docker ps --filter "name=incubapp-lector" --filter "status=running" --format '{{.Names}}' | grep -qx 'incubapp-lector'; then
+    log "Vigilante: el lector no está corriendo; se inicia."
+    docker start incubapp-lector >/dev/null 2>&1 || true
+  fi
+}
 
 # Algún servicio de Supabase o de la app detenido (aunque la página principal responda).
 falta_servicio() {
@@ -220,9 +227,10 @@ case "${1:-}" in
       responde || { log "Vigilante: sigue sin responder; se reintenta en el próximo minuto."; exit 0; }
       log "Vigilante: la app volvió a responder."
     fi
-    # Túnel y asistente se revisan desde el contenedor de la app: solo con la app arriba.
+    # Túnel, asistente y lector se revisan regularmente
     revisar_tunel
     revisar_asistente
+    revisar_lector
     exit 0
     ;;
 esac
