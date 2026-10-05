@@ -825,7 +825,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #35d6e8, #7d5cfff8, transparent);
+  background: linear-gradient(90deg, transparent, #35d6e8, #7c5cff, transparent);
   opacity: 0.5;
   animation: platform-scan 5s linear infinite;
 }
@@ -12079,3 +12079,35 @@ a.plant3d-link:hover {
     padding-top: 0;
   }
 }
+/* ── Operario de recepción: pantallas nuevas (ReceptionScaffold y paneles) ─────── */
+.rx-panel { display: grid; gap: 16px; }
+.rx-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+.rx-head h2 { margin: 0; font-size: 20px; }
+.rx-head .hint { margin: 4px 0 0; max-width: 72ch; }
+.rx-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rx-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.rx-table { width: 100%; border-collapse: collapse; }
+.rx-table th, .rx-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+.rx-table th.num, .rx-table td.num { text-align: right; }
+.rx-table th.centro, .rx-table td.centro { text-align: center; }
+.rx-table td.fuerte { font-weight: 600; }
+.rx-table td.rx-vacio { text-align: center; padding: 24px; color: var(--text-dim); }
+.rx-pending h3 { margin: 0 0 8px; font-size: 15px; }
+.rx-pending-banner {
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5;
+}
+.rx-list { margin: 0; padding-left: 20px; line-height: 1.7; }
+.rx-chips { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.rx-chips li { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; color: var(--text-dim); }
+.rx-pending-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rx-info { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+.rx-temas { display: flex; flex-direction: column; gap: 4px; padding: 10px; }
+.rx-temas .tab { text-align: left; padding: 8px 10px; border-radius: 6px; }
+.rx-tema h3 { margin-top: 0; }
+.rx-contactos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.rx-contacto { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.rx-pendiente { font-size: 12.5px; color: var(--text-dim); font-style: italic; }
+.rx-nota { margin-top: 14px; }
+@media (max-width: 760px) { .rx-info { grid-template-columns: 1fr; } }

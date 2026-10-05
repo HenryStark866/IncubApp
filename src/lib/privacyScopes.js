@@ -102,23 +102,31 @@ export const PRIVACY_DOMAINS = [
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
-     * herramientas de ejecución (actividades, cargue, historial).
+     * herramientas de ejecución (actividades, cargue, historial). Sin «Monitoreo»:
+     * es un tablero de coordinación y al operario solo le mostraba un bloqueo; el
+     * estado de las máquinas lo ve en su inicio y en la ronda (30-09-2026).
      */
     tabsFor: (role, _area) => {
       if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production') {
         return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
+        // 05-10-2026: menú propio del operario de recepción. Se conservan «supervision»
+        // (sus rondas por turno: el cumplimiento le exige 6), «cargue» e «historial»
+        // (su inicio los enlaza; sin ellos esos accesos lo devolvían al inicio).
         return [
           'clasificacion',
           'recepcion',
           'liquidar-cargues',
+          'cargue',
           'auditoria-huevos',
           'autorizar-datos',
+          'supervision',
           'horarios',
           'asistencia',
           'solicitudes',
           'reportes-informes',
+          'historial',
           'informacion',
         ]
       }
