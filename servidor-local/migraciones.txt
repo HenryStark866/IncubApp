@@ -15,3 +15,4 @@
 20260930_transferencia_por_incubadora.sql
 20260930_indices_rendimiento.sql
 20261005_bot_lecturas_foto_manda.sql
+20261005_bot_lecturas_pendientes_por_foto.sql
