@@ -20,6 +20,8 @@ import {
   buildLoadGroups,
   renderLoadMapImage,
   summarizeClassification,
+  isCurrentLoadMapImagePath,
+  loadMapImageFileName,
   CARTS_PER_MACHINE,
   TRAYS_PER_CART,
   tapeById,
@@ -46,7 +48,8 @@ const CARPETA_MAPAS = 'load-maps'
  * perder el mapa, que es lo que de verdad importa.
  */
 async function uploadMapImage(orgId, mapId, blob) {
-  const path = `${orgId}/${CARPETA_MAPAS}/${mapId}.png`
+  // Con la versión del dibujo en el nombre: así se sabe qué imágenes hay que regenerar.
+  const path = `${orgId}/${CARPETA_MAPAS}/${loadMapImageFileName(mapId)}`
   const { error } = await supabase.storage
     .from('machine-checks')
     .upload(path, blob, { contentType: 'image/png', upsert: true })
@@ -76,8 +79,15 @@ async function signMapImages(lista) {
   )
 }
 
+/** Imágenes que se regeneran por cada carga de la lista (no subir 91 de golpe desde un celular). */
+const REGENERAR_POR_CARGA = 4
+
 async function backfillMapImages(orgId, lista) {
-  const pending = lista.filter((map) => !map.imagePath && !map.imageDataUrl && map.slots?.length);
+  // Sin imagen, o con una de una versión vieja del dibujo: 91 PNG del 22-09-2026 se subieron
+  // dañadas desde fuera de la app (texto encimado, sin grilla). Se rehacen de a pocas.
+  const pending = lista
+    .filter((map) => map.slots?.length && !isCurrentLoadMapImagePath(map.imagePath))
+    .slice(0, REGENERAR_POR_CARGA);
   if (!pending.length) return lista;
 
   const completed = await Promise.all(pending.map(async (map) => {
@@ -98,7 +108,7 @@ async function backfillMapImages(orgId, lista) {
         console.warn('backfillMapImages update', error.message);
         return map;
       }
-      return { ...map, imagePath };
+      return { ...map, imagePath, imageDataUrl: rendered.dataUrl || null };
     } catch (error) {
       console.warn('backfillMapImages render', error);
       return map;
@@ -203,12 +213,16 @@ export function useLoadClassification(orgId, userId) {
         orderedBy: r.ordered_by,
         rejectedReason: r.rejected_reason,
       }))
-      const withImages = await backfillMapImages(orgId, lista)
-      setMaps(withImages)
-      // Las URL firmadas se piden aparte para no demorar el pintado de la lista.
-      signMapImages(withImages)
+      setMaps(lista)
+      // Imágenes que faltan o son de una versión vieja del dibujo, y URL firmadas: en segundo
+      // plano, para no demorar el pintado de la lista.
+      backfillMapImages(orgId, lista)
+        .then((withImages) => {
+          setMaps((prev) => (prev.length === withImages.length ? withImages : prev))
+          return signMapImages(withImages)
+        })
         .then((con) => setMaps((prev) => (prev.length === con.length ? con : prev)))
-        .catch((e) => console.warn('signMapImages', e))
+        .catch((e) => console.warn('mapas: imágenes', e))
     }
     setLoading(false)
   }, [orgId])
@@ -248,6 +262,16 @@ export function useLoadClassification(orgId, userId) {
 
   /** Carros disponibles agrupados en cargues de 12 (FIFO por fecha) */
   const groups = useMemo(() => buildLoadGroups(available), [available])
+
+  // Carros que quedaron guardados SOLO en este equipo (modo local). Se releen
+  // cuando cambian los carros o al subirlos/olvidarlos (localTick).
+  const [localTick, setLocalTick] = useState(0)
+  const localOnlyEntries = useMemo(
+    () => (orgId ? localListTape(orgId).map(normalizeCart) : []),
+    // entries, localMode y localTick no se usan adentro: solo marcan cuándo releer el equipo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId, entries, localMode, localTick]
+  )
 
   /** Fila de Supabase a partir de un carro normalizado */
   const cartRow = useCallback(
@@ -525,16 +549,43 @@ export function useLoadClassification(orgId, userId) {
     [orgId, localMode]
   )
 
+  /**
+   * Cambia el estado de varios carros. Devuelve { errors: [...] } con los que la
+   * base rechazó (antes se ignoraban: el carro quedaba «cargado» en pantalla y
+   * «reservado» en la base sin que nadie se enterara).
+   */
   const setEntriesStatus = useCallback(
     async (ids, status) => {
-      if (!ids?.length) return
-      setEntries((list) => list.map((e) => (ids.includes(e.id) ? { ...e, status } : e)))
+      if (!ids?.length) return { errors: [] }
+      // Cambio optimista en pantalla; los que la base rechace vuelven a su estado anterior
+      // (05-10-2026: si no, la pantalla los veía «loaded» y el lote/orden se cerraban de más).
+      const antes = new Map()
+      setEntries((list) =>
+        list.map((e) => {
+          if (!ids.includes(e.id)) return e
+          antes.set(e.id, e.status)
+          return { ...e, status }
+        })
+      )
+      const errors = []
+      const fallidos = []
       for (const id of ids) {
         if (localMode) localUpdateTape(orgId, id, { status })
         else {
-          await supabase.from('egg_tape_classifications').update({ status }).eq('id', id)
+          const { error: err } = await supabase.from('egg_tape_classifications').update({ status }).eq('id', id)
+          if (err) {
+            errors.push(err.message)
+            fallidos.push(id)
+          }
         }
       }
+      if (fallidos.length) {
+        setEntries((list) =>
+          list.map((e) => (fallidos.includes(e.id) && antes.has(e.id) ? { ...e, status: antes.get(e.id) } : e))
+        )
+        console.warn('setEntriesStatus', status, errors)
+      }
+      return { errors }
     },
     [orgId, localMode]
   )
@@ -787,15 +838,25 @@ export function useLoadClassification(orgId, userId) {
         }
       }
 
+      // Avisos que no deshacen el cambio de estado pero que alguien debe ver
+      // (la pantalla del operario los muestra; los demás usos los ignoran).
+      const warnings = []
+
       // Liberar carros si se rechaza o cancela
       if (status === 'rejected' || status === 'cancelled') {
         const ids = map?.cartIds || map?.slots?.map((s) => s.entry?.id).filter(Boolean) || []
-        await setEntriesStatus(ids, 'available')
+        const { errors: errLiberar } = await setEntriesStatus(ids, 'available')
+        if (errLiberar.length) {
+          warnings.push(`${errLiberar.length} carro(s) no volvieron a la cola en la base: ${errLiberar[0]}`)
+        }
       }
       if (status === 'completed' || status === 'ordered') {
         const ids = map?.cartIds || map?.slots?.map((s) => s.entry?.id).filter(Boolean) || []
         if (status === 'completed') {
-          await setEntriesStatus(ids, 'loaded')
+          const { errors: errCargados } = await setEntriesStatus(ids, 'loaded')
+          if (errCargados.length) {
+            warnings.push(`${errCargados.length} carro(s) no quedaron como cargados en la base: ${errCargados[0]}`)
+          }
 
           // Insertar en setter_loads para cada lote único en el mapa de cargue
           const uniqueLotsMap = new Map()
@@ -836,6 +897,7 @@ export function useLoadClassification(orgId, userId) {
             const { error: insErr } = await supabase.from('setter_loads').insert(rows)
             if (insErr) {
               console.error('Error inserting setter_loads:', insErr.message)
+              warnings.push(`El cargue no quedó registrado en la incubadora (cargues de máquina): ${insErr.message}`)
             }
           }
         }
@@ -865,7 +927,7 @@ export function useLoadClassification(orgId, userId) {
         }
       }
 
-      return { error: null }
+      return warnings.length ? { error: null, warning: warnings.join(' · ') } : { error: null }
     },
     [orgId, userId, maps, localMode, setEntriesStatus]
   )
@@ -968,6 +1030,106 @@ export function useLoadClassification(orgId, userId) {
     [updateMapStatus]
   )
 
+  /**
+   * Borrador → «pendiente de aprobación» (lo usa el operario de recepción con
+   * un borrador que quedó sin enviar). Avisa al líder igual que generateMap.
+   */
+  const submitMapForApproval = useCallback(
+    async (mapId) => {
+      const mapa = maps.find((m) => m.id === mapId)
+      if (!mapa) return { error: 'No se encontró el mapa. Actualice la pantalla.' }
+      if (mapa.status !== 'draft') return { error: 'Solo un borrador se puede enviar a aprobación.' }
+      const res = await updateMapStatus(mapId, 'pending_approval')
+      if (res.error) return res
+      showBrowserNotification({
+        title: 'Mapa de cargue pendiente',
+        body: `Aprobar mapa · ${mapa.machineName || 'Petersime'}`,
+        tag: `loadmap-${mapId}`,
+      })
+      try {
+        await supabase.from('notifications').insert({
+          org_id: orgId,
+          title: 'Mapa de cargue pendiente de aprobación',
+          body: `${mapa.machineName || 'Máquina'}: ${(mapa.summary?.totalEggs || 0).toLocaleString('es-CO')} huevos. Revisar en Cargue.`,
+          kind: 'load_map',
+          created_by: userId,
+        })
+      } catch {
+        /* la notificación no debe frenar el envío */
+      }
+      return res
+    },
+    [maps, updateMapStatus, orgId, userId]
+  )
+
+  /**
+   * Sube a la base los carros que quedaron guardados SOLO en este equipo
+   * mientras no había conexión. Lo dispara el operario con un botón (nunca
+   * solo). Sube únicamente carros «disponibles» cuyo número no choque con uno
+   * que ya esté en la cola de la base; los demás se informan uno por uno.
+   */
+  const uploadLocalEntries = useCallback(async () => {
+    if (!orgId || !userId) return { error: 'Sesión inválida' }
+    if (localMode) {
+      return { error: 'Todavía no hay conexión con la base. Toque «Reintentar conexión» primero.' }
+    }
+    const pendientes = localListTape(orgId).map(normalizeCart)
+    const skipped = []
+    let uploaded = 0
+    for (const cart of pendientes) {
+      const nombre = `Carro ${cart.cartNumber || '?'}`
+      if (cart.status !== 'available') {
+        skipped.push(`${nombre}: quedó dentro de un mapa hecho sin conexión; regístrelo de nuevo.`)
+        continue
+      }
+      // Un carro guardado en el equipo hace más de 3 días ya no es confiable (pudo cargarse
+      // o registrarse por otro lado): no se sube solo a la cola FIFO.
+      const dias = (Date.now() - new Date(cart.classifiedAt).getTime()) / 86400000
+      if (Number.isFinite(dias) && dias > LOCAL_MAX_DAYS) {
+        skipped.push(`${nombre}: es de hace ${Math.floor(dias)} días; si sigue en el cuarto frío, regístrelo de nuevo.`)
+        continue
+      }
+      const dup = available.find((c) => String(c.cartNumber) === String(cart.cartNumber) && c.id !== cart.id)
+      if (dup) {
+        skipped.push(`${nombre}: ya hay un carro ${cart.cartNumber} en la cola de la base.`)
+        continue
+      }
+      const { error: err } = await supabase
+        .from('egg_tape_classifications')
+        .upsert(cartRow(cart), { onConflict: 'id' })
+      if (err) {
+        skipped.push(`${nombre}: ${err.message}`)
+        continue
+      }
+      localDeleteTape(orgId, cart.id)
+      uploaded += 1
+    }
+    setLocalTick((t) => t + 1)
+    if (uploaded) await loadAll()
+    return { error: null, uploaded, skipped }
+  }, [orgId, userId, localMode, available, cartRow, loadAll])
+
+  /** Quita de este equipo un carro guardado solo aquí (el operario ya lo registró de nuevo). */
+  const forgetLocalEntry = useCallback(
+    (id) => {
+      if (!orgId || !id) return
+      localDeleteTape(orgId, id)
+      setLocalTick((t) => t + 1)
+    },
+    [orgId]
+  )
+
+  /** Descarta un borrador: el mapa queda «cancelado» y sus carros vuelven a la cola. */
+  const discardDraftMap = useCallback(
+    async (mapId) => {
+      const mapa = maps.find((m) => m.id === mapId)
+      if (!mapa) return { error: 'No se encontró el mapa. Actualice la pantalla.' }
+      if (mapa.status !== 'draft') return { error: 'Solo se puede descartar un borrador.' }
+      return updateMapStatus(mapId, 'cancelled')
+    },
+    [maps, updateMapStatus]
+  )
+
   return {
     entries,
     available,
@@ -991,5 +1153,60 @@ export function useLoadClassification(orgId, userId) {
     rejectMap,
     orderLoad,
     completeLoad,
+    submitMapForApproval,
+    discardDraftMap,
+    localOnlyEntries,
+    uploadLocalEntries,
+    forgetLocalEntry,
   }
+}
+
+/** Pasos del trabajo del operario de recepción en la pantalla de Clasificación. */
+export const CLASSIFICATION_STEPS = [
+  { id: 'orden', label: 'Orden del día' },
+  { id: 'carros', label: 'Registrar carros' },
+  { id: 'mapa', label: 'Mapa de cargue' },
+  { id: 'cargar', label: 'Cargar la máquina' },
+]
+
+/** Estados de mapa que siguen «vivos» (aún no se cargan ni se descartaron). */
+export const OPEN_MAP_STATUSES = ['draft', 'pending_approval', 'approved', 'ordered']
+
+/** Días tras los cuales un mapa abierto se considera viejo (nadie lo terminó). */
+export const STALE_MAP_DAYS = 7
+/** Carros guardados solo en el equipo con más de estos días no se suben solos a la base. */
+export const LOCAL_MAX_DAYS = 3
+
+/**
+ * Mapa abierto (borrador, por aprobar, aprobado u ordenado) creado hace más de
+ * STALE_MAP_DAYS días. En producción hay un borrador de julio con 12 carros:
+ * no puede dejar al operario «atascado» en el paso del mapa ni ofrecerse para
+ * enviar o descartar como si fuera de hoy.
+ */
+export function isStaleOpenMap(map, now = new Date(), days = STALE_MAP_DAYS) {
+  if (!OPEN_MAP_STATUSES.includes(map?.status)) return false
+  const t = Date.parse(map?.createdAt || '')
+  if (!Number.isFinite(t)) return false
+  return now.getTime() - t > days * 86400000
+}
+
+/**
+ * En qué paso va el operario según los datos REALES (no según la pestaña que
+ * tenga abierta). Los mapas abiertos viejos (isStaleOpenMap) no cuentan.
+ *   - hay un mapa con la orden de cargue dada → «Cargar la máquina»;
+ *   - hay un mapa en borrador / esperando al líder / aprobado, o ya hay un
+ *     cargue completo de 12 carros en la cola → «Mapa de cargue»;
+ *   - hay carros en la cola o la orden del día ya empezó → «Registrar carros»;
+ *   - si no → «Orden del día».
+ */
+export function deriveClassificationStep(
+  { maps = [], groups = [], available = [], orderStarted = false } = {},
+  now = new Date()
+) {
+  const vivos = maps.filter((m) => !isStaleOpenMap(m, now))
+  if (vivos.some((m) => m?.status === 'ordered')) return 'cargar'
+  if (vivos.some((m) => ['draft', 'pending_approval', 'approved'].includes(m?.status))) return 'mapa'
+  if (groups.some((g) => g?.complete)) return 'mapa'
+  if (available.length > 0 || orderStarted) return 'carros'
+  return 'orden'
 }

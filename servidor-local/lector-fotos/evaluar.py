@@ -4,6 +4,7 @@ Por campo: acierto (igual a lo digitado ±0,05), error (distinto) y sin lectura.
 Lo importante es el error: el bot solo escribe lo que lee, así que un «sin lectura»
 cuesta poco (queda para el operario) y un error es un dato falso en el formato.
 """
+TOL = {'turn_count': 10, 'co2': 0.05}  # cuánto se acepta como «cerca» por campo
 import csv
 import sys
 import time
@@ -30,7 +31,7 @@ for f in filas:
             tot[c]['nada'] += 1
         elif abs(v[c] - real) <= (5 if c == 'turn_count' else 0.05):
             tot[c]['ok'] += 1
-        elif abs(v[c] - real) <= (10 if c == 'turn_count' else 0.8):
+        elif abs(v[c] - real) <= TOL.get(c, 0.8):
             tot[c]['cerca'] += 1
         else:
             tot[c]['mal'] += 1

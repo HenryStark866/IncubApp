@@ -388,7 +388,7 @@ export function cartLotsLabel(cart) {
     .map((l) => {
       const n = l.lot || '?'
       const type = l.eggType ? ` T${l.eggType}` : ''
-      if (l.isTreated) return `${n} TRAT.${type}`
+      if (l.isTreated) return /^trat/i.test(n) ? `${n}${type}` : `${n} TRAT.${type}`
       return `${n} (${l.trays}b${type})`
     })
     .join(' + ')
@@ -409,6 +409,12 @@ export function entryLabel(entry) {
   const t2 = l.colorSecondary ? tapeById(l.colorSecondary) : null
   const colors = t2 ? `${t1.label}/${t2.label}` : t1.label
   return `${cartPrefix}Lote ${l.lot || '?'} · ${colors} · ${l.trays || 0} band.${typeSuffix}`
+}
+
+/** «TRATADO» una sola vez: el lote tratado suele llamarse así. */
+function treatedLotLabel(lot) {
+  const name = String(lot || '?')
+  return /^trat/i.test(name) ? name : `${name} TRATADO`
 }
 
 /**
@@ -441,7 +447,7 @@ export function buildOperatorPlacementGuide(map) {
       cargo: e.isMixed
         ? `${e.lots.length} lotes: ${cartLotsLabel(e)} · ${(e.eggs || 0).toLocaleString('es-CO')} h`
         : e.isTreated
-          ? `Lote ${e.lots?.[0]?.lot || '?'} TRATADO`
+          ? `Lote ${treatedLotLabel(e.lots?.[0]?.lot)}`
           : `Lote ${e.lots?.[0]?.lot || '?'} · ${e.trays || 0} band. · ${(e.eggs || 0).toLocaleString('es-CO')} h`,
     })
   }
@@ -888,17 +894,211 @@ export function checkLoadBalance(map) {
   }
 }
 
+/* ─── Mapa guardado → mapa listo para dibujar o imprimir ─────── */
+
+const LOAD_MAP_ZONES = new Set(Object.keys(ZONE_POSITIONS))
+
+function firstPresent(...values) {
+  for (const v of values) {
+    if (v != null && v !== '') return v
+  }
+  return null
+}
+
+/**
+ * Deja cualquier forma de mapa de cargue en una sola forma.
+ *
+ * Acepta:
+ *  - la fila de `load_maps` tal como viene de la base ({ id, status, machine_name,
+ *    created_at, approved_by, …, payload: { slots, balance, … } }), con el payload
+ *    como objeto o como texto JSON;
+ *  - el mapa «aplanado» que arma useLoadClassification ({ id, ...payload, machineName });
+ *  - el objeto del Centro SIG ({ rawId, mapStatus, ...fila, ...payload });
+ *  - el mapa recién construido en memoria por buildLoadMap().
+ *
+ * Devuelve siempre las 12 posiciones (las que no traen carro quedan vacías), los
+ * carros normalizados con su número, la guía del operario, el balance y el
+ * resumen recalculados desde las posiciones —lo que se dibuja y lo que se resume
+ * salen del mismo dato— y las fechas/responsables con un solo nombre de campo.
+ * La columna de la fila manda sobre la copia del payload (la regularización de una
+ * máquina corrige la columna).
+ */
+export function normalizeLoadMapRecord(input) {
+  const src = input && typeof input === 'object' ? input : {}
+  let payload = src.payload
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload)
+    } catch {
+      payload = null
+    }
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) payload = {}
+
+  const rawSlots = Array.isArray(src.slots) && src.slots.length
+    ? src.slots
+    : Array.isArray(payload.slots)
+      ? payload.slots
+      : []
+
+  const byPos = new Map()
+  for (const raw of rawSlots) {
+    if (!raw || typeof raw !== 'object') continue
+    const pos = Number(raw.machinePos ?? raw.machine_pos ?? raw.pos)
+    if (!Number.isInteger(pos) || pos < 1 || pos > CARTS_PER_MACHINE || byPos.has(pos)) continue
+    byPos.set(pos, raw)
+  }
+
+  const slots = MACHINE_SLOTS.map(({ pos }) => {
+    const raw = byPos.get(pos) || {}
+    const zone = LOAD_MAP_ZONES.has(raw.zone) ? raw.zone : zoneOfPosition(pos)
+    let entry = null
+    if (raw.entry && typeof raw.entry === 'object') {
+      const cart = normalizeCart({ ...raw.entry, status: 'available' })
+      const cartNumber = cartNumberOf(cart) || (raw.cartNo != null ? String(raw.cartNo).trim() : '')
+      entry = { ...cart, cartNumber, cartLabel: cart.cartLabel || (cartNumber ? `Carro ${cartNumber}` : '') }
+    }
+    return {
+      zone,
+      zonePos: raw.zonePos ?? null,
+      machinePos: pos,
+      location: machineLocationLabel(pos, zone),
+      locationShort: machineLocationShort(pos, zone),
+      cartNo: entry ? cartNumberOf(entry) || null : null,
+      entry,
+    }
+  })
+
+  const storedBalance = firstPresent(src.balance, payload.balance)
+  const balance = checkLoadBalance({
+    slots,
+    treatedOverflowCount: Number(storedBalance?.treatedOverflowCount) || 0,
+    treatedForcedToSerpentinCount: Number(storedBalance?.treatedForcedToSerpentinCount) || 0,
+  })
+  const entries = slots.map((s) => s.entry).filter(Boolean)
+
+  return {
+    id: firstPresent(src.rawId, src.id, payload.id),
+    status: firstPresent(src.mapStatus, src.status, payload.status) || 'draft',
+    machineName: firstPresent(src.machine_name, src.machineName, payload.machineName),
+    machineId: firstPresent(src.machine_id, src.machineId, payload.machineId),
+    plantId: firstPresent(src.plant_id, src.plantId, payload.plantId),
+    createdAt: firstPresent(src.created_at, src.createdAt, payload.createdAt),
+    createdBy: firstPresent(src.created_by, src.createdBy, payload.createdBy),
+    approvedAt: firstPresent(src.approved_at, src.approvedAt, payload.approvedAt),
+    approvedBy: firstPresent(src.approved_by, src.approvedBy, payload.approvedBy),
+    orderedAt: firstPresent(src.ordered_at, src.orderedAt, payload.orderedAt),
+    orderedBy: firstPresent(src.ordered_by, src.orderedBy, payload.orderedBy),
+    // loadedAt = cuándo entró el cargue a la máquina; loaded_at = cuándo se marcó completo en la app.
+    loadedAt: firstPresent(src.loadedAt, payload.loadedAt, src.loaded_at, payload.loaded_at),
+    completedAt: firstPresent(src.loaded_at, payload.loaded_at),
+    loadedBy: firstPresent(src.loaded_by, src.loadedBy, payload.loaded_by, payload.loadedBy),
+    cycleStartAt: firstPresent(src.cycleStartAt, payload.cycleStartAt),
+    rejectedReason: firstPresent(src.rejected_reason, src.rejectedReason, payload.rejectedReason),
+    regularizado: firstPresent(src.regularizado, payload.regularizado),
+    imagePath: firstPresent(src.image_path, src.imagePath, payload.imagePath),
+    groupIndex: firstPresent(src.groupIndex, payload.groupIndex),
+    slots,
+    placementGuide: buildOperatorPlacementGuide({ slots }),
+    balance,
+    summary: summarizeClassification(entries),
+  }
+}
+
+/* ─── Imagen PNG del mapa ──────────────────────────────────────── */
+
+/**
+ * Versión del dibujo. Las imágenes guardadas con otra versión (o sin versión en la
+ * ruta, como las de septiembre de 2026, que no salieron de este dibujo) se deben
+ * volver a generar: ver loadMapImageFileName / isCurrentLoadMapImagePath.
+ */
+export const LOAD_MAP_IMAGE_VERSION = 2
+
+/** Nombre del archivo de la imagen en el bucket: `<id>.v2.png`. */
+export function loadMapImageFileName(mapId) {
+  return `${mapId}.v${LOAD_MAP_IMAGE_VERSION}.png`
+}
+
+/** ¿La ruta guardada es de una imagen de la versión actual del dibujo? */
+export function isCurrentLoadMapImagePath(path) {
+  return typeof path === 'string' && path.endsWith(`.v${LOAD_MAP_IMAGE_VERSION}.png`)
+}
+
+const LOAD_MAP_TIME_ZONE = 'America/Bogota'
+
+function formatMapDateTime(value) {
+  const d = value ? new Date(value) : null
+  if (!d || Number.isNaN(d.getTime())) return ''
+  try {
+    return d.toLocaleString('es-CO', {
+      timeZone: LOAD_MAP_TIME_ZONE,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+  } catch {
+    return d.toISOString().slice(0, 16).replace('T', ' ')
+  }
+}
+
+/** Recorta el texto con «…» para que no pase de maxWidth (no se encima con lo vecino). */
+function fitCanvasText(ctx, text, maxWidth) {
+  const s = String(text ?? '')
+  if (!(maxWidth > 0) || typeof ctx.measureText !== 'function') return s
+  if (ctx.measureText(s).width <= maxWidth) return s
+  let lo = 0
+  let hi = s.length
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (ctx.measureText(`${s.slice(0, mid)}…`).width <= maxWidth) lo = mid
+    else hi = mid - 1
+  }
+  return `${s.slice(0, lo).trimEnd()}…`
+}
+
+/**
+ * Pone la letra más grande (de maxPx a minPx) con la que el texto cabe en maxWidth.
+ * Para el número de carro: cortarlo («CARRO…») escondería justo el dato que importa.
+ */
+function fitCanvasFont(ctx, text, maxWidth, maxPx, minPx, weight = 'bold') {
+  for (let px = maxPx; px >= minPx; px -= 1) {
+    ctx.font = `${weight} ${px}px system-ui, sans-serif`
+    if (typeof ctx.measureText !== 'function' || ctx.measureText(String(text)).width <= maxWidth) return px
+  }
+  return minPx
+}
+
 /**
  * Genera imagen PNG del mapa (canvas) y devuelve dataURL + Blob.
  * Vista operario: número de carro grande + color del carro + ubicación en máquina.
+ *
+ * Recibe cualquier forma de mapa (ver normalizeLoadMapRecord): con la fila cruda de
+ * la base salía la grilla vacía («— vacío —» en las 12 posiciones, «Incubadora» y la
+ * fecha de hoy). Todo texto se recorta a su casilla y el alto crece con los avisos.
  */
-export function renderLoadMapImage(map, opts = {}) {
+export function renderLoadMapImage(input, opts = {}) {
+  const map = normalizeLoadMapRecord(input)
+  const balance = map.balance
+  const warnings = balance.ok ? [] : balance.warnings
+  const guide = map.placementGuide.slice(0, CARTS_PER_MACHINE)
+
   const W = opts.width || 1240
-  const H = opts.height || 980
+  const warnLines = Math.max(1, warnings.length)
+  const topY = 132 + warnLines * 16
+  const compH = 380
+  const tableTop = topY + compH + 32
+  const rowH = 24
+  const footerY = tableTop + 48 + guide.length * rowH + 14
+  const H = opts.height || footerY + 18
+
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext('2d')
+  const text = (s, x, y, maxWidth) => ctx.fillText(fitCanvasText(ctx, s, maxWidth), x, y)
 
   // Fondo
   ctx.fillStyle = '#0b1428'
@@ -907,25 +1107,30 @@ export function renderLoadMapImage(map, opts = {}) {
   // Título
   ctx.fillStyle = '#e8eefc'
   ctx.font = 'bold 26px system-ui, sans-serif'
-  ctx.fillText('MAPA DE CARGUE — Nº carro → ubicación', 32, 40)
+  text('MAPA DE CARGUE — Nº carro → ubicación', 32, 40, W - 64)
   ctx.font = '14px system-ui, sans-serif'
   ctx.fillStyle = '#8fa3c8'
-  ctx.fillText(
-    `${map.machineName || 'Incubadora'} · ${new Date(map.createdAt || Date.now()).toLocaleString('es-CO')}`,
+  const created = formatMapDateTime(map.createdAt)
+  text(
+    [map.machineName || 'Incubadora', created ? `Generado ${created}` : '', map.id ? `ID ${map.id}` : '']
+      .filter(Boolean)
+      .join(' · '),
     32,
-    64
+    64,
+    W - 64
   )
-  ctx.fillText(
+  text(
     'Operario: busque el número del carro y colóquelo en la posición indicada de la máquina.',
     32,
-    86
+    86,
+    W - 64
   )
 
   // Leyenda zonas
   const legend = [
-    { z: 'centro', c: ZONE_COLOR.centro, t: 'Centro (fechas viejas)' },
-    { z: 'paredes', c: ZONE_COLOR.paredes, t: 'Paredes (intermedias)' },
-    { z: 'serpentin', c: ZONE_COLOR.serpentin, t: 'Serpentín (nuevas)' },
+    { c: ZONE_COLOR.centro, t: 'Centro (fechas viejas)' },
+    { c: ZONE_COLOR.paredes, t: 'Paredes (intermedias)' },
+    { c: ZONE_COLOR.serpentin, t: 'Serpentín (nuevas)' },
   ]
   legend.forEach((L, i) => {
     const x = 32 + i * 230
@@ -933,52 +1138,47 @@ export function renderLoadMapImage(map, opts = {}) {
     ctx.fillRect(x, 100, 16, 16)
     ctx.fillStyle = '#c5d0e6'
     ctx.font = '13px system-ui, sans-serif'
-    ctx.fillText(L.t, x + 22, 113)
+    text(L.t, x + 22, 113, 200)
   })
 
-  // Aviso de balance (Petersime)
-  const balance = map.balance || checkLoadBalance(map)
-  if (!balance.ok) {
+  // Aviso de balance (Petersime): todos los avisos, uno por renglón
+  ctx.font = 'bold 12px system-ui, sans-serif'
+  if (warnings.length) {
     ctx.fillStyle = '#f0b34a'
-    ctx.font = 'bold 12px system-ui, sans-serif'
-    ctx.fillText(`⚠ ${balance.warnings[0]}`, 32, 132)
+    warnings.forEach((w, i) => text(`⚠ ${w}`, 32, 132 + i * 16, W - 64))
   } else {
     ctx.fillStyle = '#57d9a3'
-    ctx.font = 'bold 12px system-ui, sans-serif'
-    ctx.fillText('✓ Carga balanceada y completa (12/12, simétrica)', 32, 132)
+    text('✓ Carga balanceada y completa (12/12, simétrica)', 32, 132, W - 64)
   }
 
-  const topY = 148
+  const slotByPos = new Map(map.slots.map((s) => [s.machinePos, s]))
 
   // Dos compartimentos — celdas con CARRO grande
   const drawComp = (title, x0, y0, positions) => {
     const cw = 560
-    const ch = 380
     ctx.strokeStyle = '#1c2c52'
     ctx.lineWidth = 2
-    ctx.strokeRect(x0, y0, cw, ch)
+    ctx.strokeRect(x0, y0, cw, compH)
     ctx.fillStyle = '#8fa3c8'
     ctx.font = 'bold 14px system-ui, sans-serif'
-    ctx.fillText(title, x0 + 12, y0 + 22)
+    text(title, x0 + 12, y0 + 22, cw - 24)
 
     const cellW = 160
     const cellH = 140
     const gap = 12
     const startY = y0 + 40
+    const inner = cellW - 16 // ancho útil del texto dentro de la casilla
 
-    const grid = [
-      [positions[0], positions[1], positions[2]],
-      [positions[3], positions[4], positions[5]],
-    ]
+    const grid = [positions.slice(0, 3), positions.slice(3, 6)]
     const rowLabels = ['Fondo', 'Frente']
 
     grid.forEach((row, ri) => {
       ctx.fillStyle = '#6d7688'
       ctx.font = '11px system-ui, sans-serif'
-      ctx.fillText(rowLabels[ri], x0 + 10, startY + ri * (cellH + gap) - 4)
+      text(rowLabels[ri], x0 + 10, startY + ri * (cellH + gap) - 4, 60)
 
       row.forEach((pos, ci) => {
-        const slot = (map.slots || []).find((s) => s.machinePos === pos)
+        const slot = slotByPos.get(pos)
         const x = x0 + 36 + ci * (cellW + gap)
         const y = startY + ri * (cellH + gap)
         const zone = slot?.zone || zoneOfPosition(pos)
@@ -993,16 +1193,16 @@ export function renderLoadMapImage(map, opts = {}) {
         // Ubicación máquina (pequeña)
         ctx.fillStyle = border
         ctx.font = 'bold 11px system-ui, sans-serif'
-        ctx.fillText(`UBICACIÓN Pos. ${pos}`, x + 8, y + 16)
+        text(`UBICACIÓN Pos. ${pos}`, x + 8, y + 16, inner)
         ctx.fillStyle = '#8fa3c8'
         ctx.font = '10px system-ui, sans-serif'
-        ctx.fillText(ZONE_LABEL[zone] || zone, x + 8, y + 30)
+        text(ZONE_LABEL[zone] || zone, x + 8, y + 30, inner)
 
         const e = slot?.entry
         if (!e) {
           ctx.fillStyle = '#4a5568'
           ctx.font = '14px system-ui, sans-serif'
-          ctx.fillText('— vacío —', x + 8, y + 80)
+          text('— vacío —', x + 8, y + 80, inner)
           return
         }
 
@@ -1015,34 +1215,34 @@ export function renderLoadMapImage(map, opts = {}) {
 
         // NÚMERO DE CARRO (protagonista) sobre su color
         ctx.fillStyle = readableTextOn(cartColor)
-        ctx.font = 'bold 30px system-ui, sans-serif'
-        ctx.fillText(`CARRO ${cartNo}`, x + 10, y + 68)
+        fitCanvasFont(ctx, `CARRO ${cartNo}`, cellW - 20, 30, 14)
+        text(`CARRO ${cartNo}`, x + 10, y + 68, cellW - 20)
 
         // Qué lleva (referencia secundaria) — soporta varios lotes
-        ctx.fillStyle = '#c5d0e6'
-        ctx.font = '11px system-ui, sans-serif'
         const lots = e.lots || []
         if (lots.length > 1) {
           ctx.fillStyle = '#fdc15c'
-          ctx.font = 'bold 11px system-ui, sans-serif'
-          ctx.fillText(`${lots.length} LOTES EN ESTE CARRO`, x + 8, y + 94)
+          fitCanvasFont(ctx, `${lots.length} LOTES EN ESTE CARRO`, inner, 11, 8)
+          text(`${lots.length} LOTES EN ESTE CARRO`, x + 8, y + 94, inner)
           ctx.fillStyle = '#c5d0e6'
           ctx.font = '10px system-ui, sans-serif'
-          lots.slice(0, 3).forEach((l, li) => {
+          // Caben 3 renglones en la casilla: con más lotes, 2 + «… +N más».
+          const shown = lots.length > 3 ? lots.slice(0, 2) : lots
+          shown.forEach((l, li) => {
             const txt = l.isTreated
-              ? `• Lote ${l.lot} · TRATADO`
-              : `• Lote ${l.lot} · ${l.trays}b · ${l.productionDate || 's/f'}`
-            ctx.fillText(txt, x + 8, y + 108 + li * 12)
+              ? `• Lote ${treatedLotLabel(l.lot)} · ${l.trays}b`
+              : `• Lote ${l.lot || '?'} · ${l.trays}b · ${l.productionDate || 's/f'}`
+            text(txt, x + 8, y + 108 + li * 12, inner)
           })
           if (lots.length > 3) {
-            ctx.fillText(`… +${lots.length - 3} más`, x + 8, y + 108 + 3 * 12)
+            text(`… +${lots.length - 2} lotes más`, x + 8, y + 108 + 2 * 12, inner)
           }
         } else {
           const l = lots[0] || {}
           // Nº de lote metido en el color de su cinta (chip con el número dentro)
           const tape = l.isTreated ? { hex: '#607d8b', text: '#fff' } : tapeById(l.colorPrimary)
-          const lotTxt = l.isTreated ? `${l.lot} TRAT.` : String(l.lot || '?')
           ctx.font = 'bold 13px system-ui, sans-serif'
+          const lotTxt = fitCanvasText(ctx, l.isTreated ? treatedLotLabel(l.lot) : String(l.lot || '?'), 76)
           const chipW = Math.max(34, ctx.measureText(lotTxt).width + 14)
           ctx.fillStyle = tape.hex
           ctx.fillRect(x + 8, y + 84, chipW, 18)
@@ -1050,14 +1250,15 @@ export function renderLoadMapImage(map, opts = {}) {
           ctx.fillText(lotTxt, x + 15, y + 97)
           ctx.fillStyle = '#c5d0e6'
           ctx.font = '11px system-ui, sans-serif'
-          ctx.fillText(`Lote · ${l.trays || 0} band.`, x + 8 + chipW + 6, y + 97)
+          text(`${l.trays || 0} band.`, x + 8 + chipW + 6, y + 97, inner - chipW - 6)
 
           ctx.fillStyle = '#8fa3c8'
           ctx.font = '11px system-ui, sans-serif'
-          ctx.fillText(
+          text(
             `${(e.eggs || 0).toLocaleString('es-CO')} huevos${e.productionDate ? ` · ${e.productionDate}` : ''}`,
             x + 8,
-            y + 116
+            y + 116,
+            inner
           )
         }
       })
@@ -1074,7 +1275,7 @@ export function renderLoadMapImage(map, opts = {}) {
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.moveTo(fanX, topY)
-  ctx.lineTo(fanX, topY + 380)
+  ctx.lineTo(fanX, topY + compH)
   ctx.stroke()
   ctx.setLineDash([])
   ctx.save()
@@ -1086,11 +1287,9 @@ export function renderLoadMapImage(map, opts = {}) {
   ctx.restore()
 
   // Tabla guía rápida: Carro → Ubicación
-  const guide = map.placementGuide || buildOperatorPlacementGuide(map)
-  const tableTop = topY + 412
   ctx.fillStyle = '#e8eefc'
   ctx.font = 'bold 16px system-ui, sans-serif'
-  ctx.fillText('Guía rápida para el operario (nº carro → dónde va)', 32, tableTop)
+  text('Guía rápida para el operario (nº carro → dónde va)', 32, tableTop, W - 64)
 
   ctx.fillStyle = '#1c2c52'
   ctx.fillRect(24, tableTop + 12, W - 48, 28)
@@ -1101,43 +1300,42 @@ export function renderLoadMapImage(map, opts = {}) {
   ctx.fillText('LOTE(S) / CARGA', 560, tableTop + 30)
 
   let y = tableTop + 48
-  const rowH = 24
-  guide.slice(0, 12).forEach((r, i) => {
+  guide.forEach((r, i) => {
     ctx.fillStyle = i % 2 === 0 ? '#101d3a' : '#0d1830'
     ctx.fillRect(24, y - 15, W - 48, rowH)
 
     // Punto de color del carro
-    const c = normalizeCartColor(r.color)
-    ctx.fillStyle = c
+    ctx.fillStyle = normalizeCartColor(r.color)
     ctx.beginPath()
     ctx.arc(40, y - 4, 7, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold 14px system-ui, sans-serif'
-    ctx.fillText(String(r.cartNo), 56, y)
+    fitCanvasFont(ctx, String(r.cartNo), 100, 14, 9)
+    text(String(r.cartNo), 56, y, 100)
     ctx.fillStyle = ZONE_COLOR[r.zone] || '#35d6e8'
     ctx.font = '13px system-ui, sans-serif'
-    ctx.fillText(r.locationShort || r.location, 170, y)
+    text(r.locationShort || r.location, 170, y, 380)
     ctx.fillStyle = r.isMixed ? '#fdc15c' : '#c5d0e6'
     ctx.font = r.isMixed ? 'bold 12px system-ui, sans-serif' : '12px system-ui, sans-serif'
-    ctx.fillText(r.cargo || '', 560, y)
+    text(r.cargo || '', 560, y, W - 24 - 560 - 8)
     y += rowH
   })
 
   ctx.fillStyle = '#6d7688'
   ctx.font = '11px system-ui, sans-serif'
-  ctx.fillText(
+  text(
     'Solo fíjese en el NÚMERO y COLOR DEL CARRO y la POSICIÓN. No reubicar sin autorización del coordinador.',
     32,
-    H - 20
+    Math.min(footerY, H - 8),
+    W - 64
   )
 
   const dataUrl = canvas.toDataURL('image/png')
   return new Promise((resolve) => {
     canvas.toBlob(
       (blob) => {
-        resolve({ dataUrl, blob, width: W, height: H })
+        resolve({ dataUrl, blob, width: W, height: H, version: LOAD_MAP_IMAGE_VERSION })
       },
       'image/png',
       0.92
@@ -1146,20 +1344,18 @@ export function renderLoadMapImage(map, opts = {}) {
 }
 
 /**
- * Descarga el PNG del mapa.
+ * Descarga el PNG del mapa (acepta la fila de la base o el mapa en memoria).
  */
 export async function downloadLoadMapImage(map, filename) {
   const { dataUrl, blob } = await renderLoadMapImage(map)
   const a = document.createElement('a')
-  if (blob) {
-    a.href = URL.createObjectURL(blob)
-  } else {
-    a.href = dataUrl
-  }
-  a.download = filename || `mapa-cargue-${Date.now()}.png`
+  const objectUrl = blob ? URL.createObjectURL(blob) : null
+  a.href = objectUrl || dataUrl
+  a.download = filename || `mapa-cargue-${normalizeLoadMapRecord(map).id || Date.now()}.png`
   document.body.appendChild(a)
   a.click()
   a.remove()
+  if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
   return { dataUrl, blob }
 }
 

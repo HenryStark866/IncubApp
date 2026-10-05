@@ -1,0 +1,551 @@
+/*
+ * Pantalla de Clasificación del operario de recepción (ClassificationPanel).
+ * Pensada para tablet/celular en el muelle: toques de 48 px, letra grande y
+ * todo en una columna en pantallas angostas. Usa los colores del tema.
+ */
+
+.cls-op {
+  position: relative;
+}
+
+/* ── Franja roja: guardado SOLO en este equipo ── */
+.cls-local-strip {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: #fff;
+  line-height: 1.45;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.cls-local-strip strong {
+  flex: 1 1 260px;
+  font-size: 1.05rem;
+}
+.cls-local-help {
+  border: 2px solid var(--danger);
+  border-radius: 10px;
+  padding: 10px 14px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.cls-btn-strip {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cls-local-leftovers {
+  border: 2px solid var(--danger);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  line-height: 1.5;
+}
+.cls-local-leftovers ul {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.cls-local-leftovers li {
+  margin: 4px 0;
+}
+.cls-skipped {
+  color: var(--danger);
+}
+
+/* ── Indicador de pasos ── */
+.cls-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.cls-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-1, transparent);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.cls-step-n {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: var(--bg-2);
+  color: var(--text-dim);
+}
+.cls-step-label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.cls-step-label small {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+.cls-step.is-done .cls-step-n {
+  background: var(--ok);
+  color: #fff;
+}
+.cls-step.is-current {
+  border-color: var(--accent);
+}
+.cls-step.is-current .cls-step-n {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+}
+.cls-step.is-shown {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1, transparent));
+}
+
+/* ── Secciones ── */
+.cls-section {
+  display: grid;
+  gap: 12px;
+}
+.cls-section-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.cls-subtitle {
+  margin: 8px 0 0;
+  font-size: 1rem;
+}
+.cls-empty {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.cls-empty .hint {
+  margin: 0;
+}
+.cls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+button.cls-btn-lg {
+  min-height: 48px;
+  padding: 10px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.cls-role-note {
+  margin: 0;
+}
+.cls-op button.linkish {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}
+.cls-sync-error ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* ── Etiquetas de estado ── */
+.cls-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.cls-tag.accent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cls-tag.ok {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.cls-tag.warn {
+  border-color: var(--amber, var(--accent-dim));
+  color: var(--amber, var(--accent-dim));
+}
+.cls-tag.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ── Orden del día ── */
+.cls-order-state {
+  margin: 0;
+}
+.cls-lot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.cls-lot {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.cls-lot.in-order {
+  border-left: 5px solid var(--accent);
+}
+.cls-lot header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.cls-lot-code {
+  font-size: 1.1rem;
+}
+.cls-lot .hint {
+  margin: 0;
+}
+.cls-progress small {
+  color: var(--text-dim);
+}
+.cls-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  overflow: hidden;
+  margin: 4px 0;
+}
+.cls-bar.big {
+  height: 14px;
+}
+.cls-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+
+/* ── Registrar carros ── */
+.cls-load-progress {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+.cls-load-progress.is-complete {
+  border-color: var(--ok);
+}
+.cls-load-progress.is-complete .cls-bar span {
+  background: var(--ok);
+}
+.cls-load-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cls-load-count strong {
+  font-size: 1.4rem;
+}
+.cls-load-count span {
+  color: var(--text-dim);
+}
+.cls-lot-banner {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* ── Mapa de cargue ── */
+.cls-generate {
+  display: grid;
+  gap: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.cls-generate .hint,
+.cls-generate-info {
+  margin: 0;
+}
+.cls-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.cls-chip {
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cls-chip.is-on {
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+}
+.cls-machine-pick summary {
+  cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+}
+.cls-map-pick {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cls-map-pick small {
+  color: var(--text-dim);
+}
+.cls-map-pick.is-on {
+  border: 2px solid var(--accent);
+}
+.cls-map-detail,
+.cls-order-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.cls-map-status {
+  display: grid;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border-left: 6px solid var(--line);
+  background: var(--bg-2);
+}
+.cls-map-status strong {
+  font-size: 1.1rem;
+}
+.cls-map-status span,
+.cls-map-status .hint {
+  margin: 0;
+  color: var(--text-dim);
+}
+.cls-map-status.accent {
+  border-left-color: var(--accent);
+}
+.cls-map-status.ok {
+  border-left-color: var(--ok);
+}
+.cls-map-status.warn {
+  border-left-color: var(--amber, var(--accent-dim));
+}
+.cls-map-status.danger {
+  border-left-color: var(--danger);
+}
+.cls-reject {
+  margin: 4px 0 0;
+  color: var(--danger);
+}
+.cls-warnings {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--amber, #b75b08) 10%, transparent);
+}
+.cls-stale {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.cls-stale ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--text-dim);
+}
+
+/* ── Cargar la máquina ── */
+.cls-placed-count {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.cls-placed-count.is-done {
+  color: var(--ok);
+}
+.cls-complete {
+  display: grid;
+  gap: 12px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.cls-when {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px 10px;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.cls-when legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+.cls-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.cls-time input {
+  min-height: 48px;
+  font-size: 1.1rem;
+  width: auto;
+}
+.cls-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+.cls-check input {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── Aviso flotante ── */
+.cls-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(560px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg-1, #fff);
+  color: var(--text);
+  border: 2px solid var(--ok);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  line-height: 1.45;
+}
+.cls-toast span {
+  flex: 1;
+}
+.cls-toast.is-error {
+  border-color: var(--danger);
+}
+.cls-toast.is-warn {
+  border-color: var(--amber, var(--accent-dim));
+}
+
+/* ── Celular ── */
+@media (max-width: 760px) {
+  .cls-local-strip {
+    padding: 8px 12px;
+  }
+  .cls-local-strip strong {
+    font-size: 0.95rem;
+  }
+  .cls-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cls-step {
+    min-height: 52px;
+    padding: 6px 10px;
+  }
+  .cls-actions > button {
+    flex: 1 1 100%;
+  }
+  .cls-lot-grid {
+    grid-template-columns: 1fr;
+  }
+  .cls-lot .cls-btn-lg {
+    width: 100%;
+  }
+}
+
+/* ── Que nada se salga del ancho del celular ──
+   .rx-panel es una grilla: sin min-width 0 sus hijos crecen hasta el ancho
+   mínimo de su contenido (la grilla de 6 carros, la cola) y la página se corre
+   de lado. Solo aplica en esta pantalla. */
+.cls-op {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cls-op > *,
+.cls-section > * {
+  min-width: 0;
+}
+.cls-op .card.wide {
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.cls-op .load-group-head,
+.cls-op .load-group .admin-row.compact {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .cls-op .card.wide {
+    padding: 14px;
+  }
+  /* El asistente pinta la grilla de carros con estilo en línea (6 columnas). */
+  .cls-op .cart-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    max-width: none !important;
+  }
+  .cls-op .petersime-grid {
+    overflow-x: auto;
+  }
+  .cls-op .load-group-head > .hint {
+    flex: 1 1 100%;
+    order: 3;
+  }
+}

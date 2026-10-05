@@ -41,6 +41,161 @@ function missingTable(msg) {
   return /does not exist|schema cache|Could not find|relation|PGRST205|column/i.test(String(msg || ''))
 }
 
+/* ─── Avance real de la orden de clasificación ────────────────────────────── */
+
+/** Orden de los estados del lote: solo se avanza, nunca se devuelve. */
+export const LOT_STATUS_RANK = { planned: 0, arrived: 1, classifying: 2, classified: 3, loaded: 4, closed: 5 }
+
+/** Desde qué estados puede pasar cada transición automática (guarda en la base). */
+const LOT_FROM = {
+  classified: ['planned', 'arrived', 'classifying'],
+  loaded: ['planned', 'arrived', 'classifying', 'classified'],
+}
+const ORDER_FROM = {
+  in_progress: ['published'],
+  done: ['published', 'in_progress'],
+}
+
+const codeKey = (v) => String(v ?? '').trim().toUpperCase()
+
+/**
+ * Cruza una orden de clasificación con los carros registrados.
+ *
+ * egg_tape_classifications guarda el lote como CÓDIGO de texto (sin lotId), así
+ * que el cruce es por código y SOLO con carros registrados desde que se publicó
+ * la orden (published_at). Si en la misma orden dos lotes distintos comparten
+ * código, ese código queda «ambiguo»: cuenta para el avance de la orden pero no
+ * mueve el estado de ninguno de los dos lotes.
+ *
+ * Un lote está «todo en carros» cuando los huevos de sus carros alcanzan los de
+ * la orden con una tolerancia de una bandeja (336) por fecha de postura: cada
+ * fecha puede cerrar con una bandeja incompleta.
+ *
+ * @param {object} order  fila de classification_orders ({ id, status, items, published_at, created_at })
+ * @param {object[]} carts carros normalizados (useLoadClassification.entries)
+ */
+export function orderProgress(order, carts = []) {
+  if (!order?.items?.length) return null
+  const since = order.published_at || order.created_at || null
+  const sinceMs = since ? Date.parse(since) : NaN
+
+  const byCode = new Map()
+  for (const it of order.items) {
+    const key = codeKey(it.code)
+    if (!key) continue
+    const row =
+      byCode.get(key) ||
+      {
+        code: String(it.code).trim(),
+        lotIds: new Set(),
+        isTreated: false,
+        items: 0,
+        orderEggs: 0,
+        classifiedEggs: 0,
+        cartIds: new Set(),
+        loadedCartIds: new Set(),
+      }
+    if (it.lotId) row.lotIds.add(it.lotId)
+    row.isTreated = row.isTreated || !!it.isTreated
+    row.items += 1
+    row.orderEggs += Number(it.eggs) || 0
+    byCode.set(key, row)
+  }
+
+  const orderCartIds = new Set()
+  const loadedCartIds = new Set()
+  for (const c of carts || []) {
+    if (!c) continue
+    const t = Date.parse(c.classifiedAt || '')
+    if (Number.isFinite(sinceMs) && Number.isFinite(t) && t < sinceMs) continue
+    let matched = false
+    for (const l of c.lots || []) {
+      const row = byCode.get(codeKey(l.lot))
+      if (!row) continue
+      matched = true
+      row.classifiedEggs += Number(l.eggs) || 0
+      row.cartIds.add(c.id)
+      if (c.status === 'loaded') row.loadedCartIds.add(c.id)
+    }
+    if (matched) {
+      orderCartIds.add(c.id)
+      if (c.status === 'loaded') loadedCartIds.add(c.id)
+    }
+  }
+
+  const lots = [...byCode.values()].map((r) => {
+    const tolerance = EGGS_PER_TRAY * r.items
+    // Sin carros nunca está «todo en carros»: con fechas de menos de una bandeja la
+    // tolerancia superaba lo pedido y el lote quedaba «clasificado» sin un solo carro.
+    const fullyClassified = r.orderEggs > 0 && r.cartIds.size > 0 && r.classifiedEggs >= r.orderEggs - tolerance
+    const allLoaded = r.cartIds.size > 0 && r.loadedCartIds.size === r.cartIds.size
+    return {
+      code: r.code,
+      lotId: r.lotIds.size === 1 ? [...r.lotIds][0] : null,
+      ambiguous: r.lotIds.size > 1,
+      isTreated: r.isTreated,
+      orderEggs: r.orderEggs,
+      classifiedEggs: r.classifiedEggs,
+      carts: r.cartIds.size,
+      loadedCarts: r.loadedCartIds.size,
+      fullyClassified,
+      allLoaded,
+    }
+  })
+
+  const carts_ = orderCartIds.size
+  return {
+    orderId: order.id,
+    status: order.status,
+    since,
+    lots,
+    carts: carts_,
+    loadedCarts: loadedCartIds.size,
+    started: carts_ > 0,
+    allClassified: lots.length > 0 && lots.every((l) => l.fullyClassified),
+    allLoaded: carts_ > 0 && loadedCartIds.size === carts_,
+    ambiguousCodes: lots.filter((l) => l.ambiguous).map((l) => l.code),
+  }
+}
+
+/**
+ * Qué cambios de estado tocan según el avance (solo hacia adelante):
+ *   - orden publicada con al menos un carro → 'in_progress';
+ *   - orden con todos sus lotes en carros y todos esos carros en mapas
+ *     completados (carro 'loaded') → 'done';
+ *   - lote con todos sus huevos de la orden en carros → 'classified';
+ *   - lote además con todos sus carros cargados → 'loaded'.
+ * @param {object} order
+ * @param {ReturnType<typeof orderProgress>} progress
+ * @param {object[]} lots filas de incubation_lots ({ id, code, status })
+ */
+export function planOrderTransitions(order, progress, lots = []) {
+  const plan = { order: null, lots: [] }
+  if (!order || !progress) return plan
+
+  if (['published', 'in_progress'].includes(order.status) && progress.started) {
+    if (progress.allClassified && progress.allLoaded) {
+      plan.order = { id: order.id, from: order.status, to: 'done' }
+    } else if (order.status === 'published') {
+      plan.order = { id: order.id, from: order.status, to: 'in_progress' }
+    }
+  }
+
+  const byId = new Map((lots || []).map((l) => [l.id, l]))
+  for (const row of progress.lots) {
+    if (row.ambiguous || !row.lotId || !row.fullyClassified) continue
+    const lot = byId.get(row.lotId)
+    if (!lot) continue
+    const rank = LOT_STATUS_RANK[lot.status]
+    if (rank == null) continue
+    const to = row.allLoaded ? 'loaded' : 'classified'
+    if (rank < LOT_STATUS_RANK[to]) {
+      plan.lots.push({ id: lot.id, code: lot.code || row.code, from: lot.status, to })
+    }
+  }
+  return plan
+}
+
 /** Export «useIncubationLots»: API pública de este módulo. Henry Stark Desarrollador */
 export function useIncubationLots(orgId, userId) {
   const [lots, setLots] = useState([])
@@ -424,6 +579,66 @@ export function useIncubationLots(orgId, userId) {
     return { error: null }
   }, [])
 
+  /**
+   * Aplica en la base el plan de planOrderTransitions. Cada cambio va con guarda
+   * de estado (`.in('status', …)`): si otro equipo ya lo movió, no se pisa.
+   * Devuelve { applied: [...textos], errors: [...textos] } en español; los
+   * errores NO se tragan: la pantalla los muestra.
+   */
+  const applyOrderTransitions = useCallback(
+    async (plan) => {
+      const applied = []
+      const errors = []
+      if (!plan) return { applied, errors }
+      const now = new Date().toISOString()
+      const ORDER_TEXT = { in_progress: 'en clasificación', done: 'terminada' }
+      const LOT_TEXT = { classified: 'clasificado', loaded: 'cargado' }
+      let needsReload = false
+
+      if (plan.order) {
+        const { id, to } = plan.order
+        const { data, error: err } = await supabase
+          .from('classification_orders')
+          .update({ status: to, updated_at: now })
+          .eq('id', id)
+          .in('status', ORDER_FROM[to] || [])
+          .select('id')
+        if (err) {
+          errors.push(`No se pudo marcar la orden del día como ${ORDER_TEXT[to] || to}: ${err.message}`)
+        } else if (data?.length) {
+          applied.push(`Orden del día: ${ORDER_TEXT[to] || to}`)
+          setOrders((list) => list.map((o) => (o.id === id ? { ...o, status: to, updated_at: now } : o)))
+        } else {
+          // Otro equipo ya la movió (o la anularon): se relee en vez de suponer.
+          needsReload = true
+        }
+      }
+
+      for (const ch of plan.lots || []) {
+        const { data, error: err } = await supabase
+          .from('incubation_lots')
+          .update({ status: ch.to, updated_at: now })
+          .eq('id', ch.id)
+          .in('status', LOT_FROM[ch.to] || [])
+          .select('id')
+        if (err) {
+          errors.push(`No se pudo marcar el lote ${ch.code} como ${LOT_TEXT[ch.to] || ch.to}: ${err.message}`)
+          continue
+        }
+        if (!data?.length) {
+          needsReload = true
+          continue
+        }
+        applied.push(`Lote ${ch.code}: ${LOT_TEXT[ch.to] || ch.to}`)
+        setLots((list) => list.map((l) => (l.id === ch.id ? { ...l, status: ch.to, updated_at: now } : l)))
+      }
+
+      if (needsReload) await loadAll()
+      return { applied, errors }
+    },
+    [loadAll],
+  )
+
   /** Órdenes publicadas activas (lo que recepción debe clasificar hoy). */
   const activeOrders = useMemo(
     () => orders.filter((o) => o.status === 'published' || o.status === 'in_progress'),
@@ -445,6 +660,7 @@ export function useIncubationLots(orgId, userId) {
     buildClassificationOrder,
     publishClassificationOrder,
     cancelOrder,
+    applyOrderTransitions,
     // constantes de conversión para la UI
     eggsPerTray: EGGS_PER_TRAY,
     traysPerCart: TRAYS_PER_CART,

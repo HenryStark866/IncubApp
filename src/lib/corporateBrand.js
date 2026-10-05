@@ -49,6 +49,9 @@ export const SIG_FORMATS = {
   FONAC01: { code: 'FONAC01', name: 'CONTROL DIARIO DE NACEDORAS', version: '01', date: '15-09-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
   // Código siguiente del proceso de incubación; confirmar con la asesora del SIG (23-09-2026).
   FOINC02: { code: 'FOINC02', name: 'REPORTE CONSOLIDADO DE OPERACIÓN Y RONDAS', version: '01', date: '23-09-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
+  // Formato impreso del mapa de cargue (src/lib/loadMapPrint.js). Código por confirmar con la
+  // asesora del SIG (05-10-2026): es el siguiente libre del proceso de incubación, como FOINC02.
+  FOINC03: { code: 'FOINC03', name: 'MAPA DE CARGUE DE INCUBADORA', version: '01', date: '05-10-2026', process: 'PRODUCCIÓN · INCUBACIÓN' },
 }
 
 /**

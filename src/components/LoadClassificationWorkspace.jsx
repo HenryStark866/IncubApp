@@ -58,7 +58,7 @@ const fmtPostureDate = (v) =>
  * orden (FIFO), según la última orden de clasificación publicada por gerencia.
  * Recibe los datos del hook ÚNICO del workspace (no monta otra suscripción).
  */
-function TodayClassificationOrder({ activeOrders }) {
+export function TodayClassificationOrder({ activeOrders }) {
   const order = activeOrders?.[0]
   if (!order || !order.items?.length) return null
 
@@ -906,14 +906,26 @@ function autoTapeFor(code) {
  * Asistente de clasificación en 5 pasos: carro → lotes → fechas (solo el día
  * del mes, nunca futuras) → tipo de huevo (1–5) → confirmar y registrar.
  * Todo se elige con chips; solo se digita el nº de carro (y lotes no listados).
+ *
+ * Props opcionales (solo las usa la pantalla del operario de recepción):
+ *   - initialLot: { code, isTreated, postures } (o el código en texto) que queda
+ *     ya elegido en el paso «Lotes». Para elegir otro lote, el padre vuelve a
+ *     montar el asistente con otra `key`.
+ *   - onRegistered(entry): aviso después de registrar el carro con éxito.
  */
-function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
+export function CartWizard({ api, incubation, busy, setBusy, setMsg, initialLot = null, onRegistered }) {
   const { lots: catalogLots, activeOrders } = incubation
 
   const [step, setStep] = useState(0)
   const [cartNo, setCartNo] = useState('')
   const [lotCount, setLotCount] = useState(1)
-  const [picked, setPicked] = useState([]) // [{ code, isTreated, postures }]
+  const [picked, setPicked] = useState(() => {
+    if (!initialLot) return []
+    const lot = typeof initialLot === 'string' ? { code: initialLot } : initialLot
+    const code = String(lot.code || '').trim()
+    if (!code) return []
+    return [{ code, isTreated: !!lot.isTreated, postures: lot.postures || [], fromOrder: !!lot.fromOrder }]
+  }) // [{ code, isTreated, postures }]
   const [manualLot, setManualLot] = useState('')
   const [dateCounts, setDateCounts] = useState({}) // code → nº de fechas
   const [daysByLot, setDaysByLot] = useState({}) // code → [día,…]
@@ -1117,6 +1129,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
         text: `✅ Carro ${cartNumberOf(res.entry)} registrado · ${res.entry.lotCount} lote(s) · ${res.entry.eggs.toLocaleString('es-CO')} huevos. Puede clasificar el siguiente carro.`,
       })
       reset()
+      onRegistered?.(res.entry)
     }
   }
 
@@ -1337,7 +1350,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
               )
             })}
             {picked
-              .filter((p) => p.manual)
+              .filter((p) => p.manual || !knownLots.some((k) => k.code === p.code))
               .map((p) => (
                 <WizChip key={p.code} big selected onClick={() => togglePick(p)}>
                   Lote {p.code}
@@ -1595,7 +1608,7 @@ function CartWizard({ api, incubation, busy, setBusy, setMsg }) {
 }
 
 /** Número de lote pintado con el color de su cinta */
-function LotChip({ lot, colorId, treated, trays, eggType }) {
+export function LotChip({ lot, colorId, treated, trays, eggType }) {
   const typeSuffix = eggType ? ` T${eggType}` : ''
   if (treated) {
     return (
@@ -1636,10 +1649,25 @@ function CartLotChips({ cart }) {
  * Cola de carros disponibles, agrupada por cargue de 12.
  * El COLOR se asigna por cargue completo (diferencia un cargue de otro en
  * cuarto frío); los lotes se distinguen por el color de su cinta en el número.
+ *
+ * confirmRemove (opcional, por defecto false): antes de borrar un carro pide
+ * confirmación en pantalla y avisa si la base no lo dejó borrar. Lo usa la
+ * pantalla del operario de recepción; los demás usos quedan como estaban.
  */
-function CartQueue({ api, setMsg }) {
+export function CartQueue({ api, setMsg, confirmRemove = false }) {
   const [openCart, setOpenCart] = useState(null)
+  const [confirmingId, setConfirmingId] = useState(null)
+  const [removingId, setRemovingId] = useState(null)
   const groups = api.groups || []
+
+  const removeConfirmed = async (cart) => {
+    setRemovingId(cart.id)
+    const r = await api.removeEntry(cart.id)
+    setRemovingId(null)
+    setConfirmingId(null)
+    if (r?.error) setMsg?.({ kind: 'error', text: `No se pudo borrar el carro ${cartNumberOf(cart) || ''}: ${r.error}` })
+    else setMsg?.({ kind: 'ok', text: `Carro ${cartNumberOf(cart) || ''} borrado de la cola.` })
+  }
 
   if (!api.available.length) {
     return (
@@ -1732,12 +1760,37 @@ function CartQueue({ api, setMsg }) {
                     <button
                       type="button"
                       className="ghost small"
-                      onClick={() => api.removeEntry(e.id)}
+                      onClick={() => (confirmRemove ? setConfirmingId(e.id) : api.removeEntry(e.id))}
                       title="Eliminar carro"
+                      aria-label={`Borrar el carro ${cartNumberOf(e) || ''}`}
                     >
                       ✕
                     </button>
                   </div>
+                  {confirmRemove && confirmingId === e.id && (
+                    <div className="msg error" role="alertdialog" style={{ margin: '6px 0 6px 44px' }}>
+                      <strong>¿Borrar el carro {cartNumberOf(e) || '—'}?</strong> Se quita de la cola con sus{' '}
+                      {e.lotCount} lote(s) y {e.eggs.toLocaleString('es-CO')} huevos registrados. No se puede deshacer.
+                      <div className="actions row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={removingId === e.id}
+                          onClick={() => removeConfirmed(e)}
+                        >
+                          {removingId === e.id ? 'Borrando…' : 'Sí, borrar el carro'}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost"
+                          disabled={removingId === e.id}
+                          onClick={() => setConfirmingId(null)}
+                        >
+                          No, dejarlo
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {openCart === e.id && <CartLotsEditor cart={e} api={api} setMsg={setMsg} />}
                 </div>
               ))}
@@ -2187,7 +2240,7 @@ function readPlaced(id) {
     return new Set()
   }
 }
-function OperatorPlacementTable({ map, placed, onToggle }) {
+export function OperatorPlacementTable({ map, placed, onToggle }) {
   const guide = map?.placementGuide || buildOperatorPlacementGuide(map || {})
   if (!guide.length) {
     return <p className="hint">Sin carros en este mapa.</p>
@@ -2238,7 +2291,7 @@ function OperatorPlacementTable({ map, placed, onToggle }) {
   )
 }
 
-function MapAscii({ view }) {
+export function MapAscii({ view }) {
   return (
     <div className="petersime-grid">
       <div className="petersime-comp">
@@ -2271,7 +2324,7 @@ function MapAscii({ view }) {
   )
 }
 
-function SlotCard({ slot, pos }) {
+export function SlotCard({ slot, pos }) {
   const zone = slot?.zone || 'centro'
   const e = slot?.entry
   const cartNo = slot?.cartNo || cartNumberOf(e)

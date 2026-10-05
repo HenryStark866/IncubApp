@@ -16,7 +16,7 @@ for f in csv.DictReader(open(etiquetas, encoding='utf-8')):
     r = lector.leer(img, tipo)
     leido = r.get('valores', {}).get(campo)
     digitado = float(f[campo])
-    if leido is not None and abs(leido - digitado) <= 0.8:
+    if leido is not None and abs(leido - digitado) <= (0.05 if campo == 'co2' else 0.8):
         continue
     print(f'\n{f["code"]} {f["id"][:8]} digitado {digitado} leído {leido} · {r.get("detalle", {}).get(campo)}')
     e = 1280 / max(img.shape[:2])
