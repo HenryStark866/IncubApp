@@ -14,3 +14,4 @@
 20260930_bot_lecturas_revision.sql
 20260930_transferencia_por_incubadora.sql
 20260930_indices_rendimiento.sql
+20261005_bot_lecturas_foto_manda.sql

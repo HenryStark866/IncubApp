@@ -35,11 +35,7 @@ import {
 } from '../lib/transferPlan'
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
-import {
-  READING_COLUMNS,
-  readingFieldsFor,
-  readingsFromCheck,
-} from '../lib/machineReadings'
+import { READING_COLUMNS, readingFieldsFor } from '../lib/machineReadings'
 
 // Incubadoras (cargue)
 const SETTER_TYPES = ['setter', 'combo']
@@ -162,14 +158,17 @@ function MachineCapture({ machine, mc, orgId, userId, onDone, onMarkOff }) {
   const [statusMsg, setStatusMsg] = useState(null)
   const openedRef = useRef(false)
 
-  /* Lecturas de pantalla del FORMATO CONTROL DIARIO: opcionales, prellenadas con la
-   * última toma de la misma máquina para que solo se corrija lo que se movió. */
+  /* Lecturas de pantalla del FORMATO CONTROL DIARIO. Las llena el LECTOR DE FOTOS
+   * (05-10-2026): ya no se prellenan con la ronda anterior —esos valores viejos
+   * contaban como digitados y el lector no podía poner lo que leyó—. El operario solo
+   * las escribe si abre «Corregir a mano» (foto borrosa, pantalla apagada…). */
   const campos = readingFieldsFor(machine.type)
   const ultima = useMemo(
     () => mc.checks.find((c) => c.machine_id === machine.id && READING_COLUMNS.some((k) => c[k] != null)),
     [mc.checks, machine.id]
   )
-  const [readings, setReadings] = useState(() => readingsFromCheck(ultima))
+  const [readings, setReadings] = useState({})
+  const [aMano, setAMano] = useState(false)
   const setReading = (key, value) => setReadings((prev) => ({ ...prev, [key]: value }))
   const lastText = ultima
     ? `Última ronda (${fmtTime(ultima.taken_at)}): ${campos.filter((c) => ultima[c.key] != null).map((c) => ultima[c.key]).join(' · ') || 'sin lecturas'}`
@@ -316,9 +315,21 @@ function MachineCapture({ machine, mc, orgId, userId, onDone, onMarkOff }) {
             <img src={preview} alt={`Foto de la pantalla de ${machine.code || machine.name}`} />
             <button type="button" className="rf-btn" onClick={retake} disabled={busy}>📷 Repetir</button>
           </div>
-          {campos.length > 0 && (
+          {campos.length > 0 && !aMano && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              <span className="rf-label">Lecturas de la pantalla</span>
+              <span className="rf-dim">
+                📷 Las lee el sistema de la foto y llenan el control diario solas. No hace falta digitarlas.
+              </span>
+              <button type="button" className="rf-btn" onClick={() => setAMano(true)} disabled={busy}>
+                ✏️ Corregir a mano (solo si la foto no se ve bien)
+              </button>
+              {lastText && <span className="rf-last">{lastText}</span>}
+            </div>
+          )}
+          {campos.length > 0 && aMano && (
             <div style={{ display: 'grid', gap: 8 }}>
-              <span className="rf-label">Lecturas de la pantalla · llenan el control diario</span>
+              <span className="rf-label">Lecturas a mano · solo si la foto no se ve bien</span>
               <div className="rf-readings">
                 {campos.map((c) => (
                   <label key={c.key}>
