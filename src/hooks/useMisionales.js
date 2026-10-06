@@ -123,6 +123,9 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
         lng: payload.lng ?? null,
         gps_accuracy: payload.gps_accuracy ?? null,
         signature_data: payload.signature_data || null,
+        // ES: Datos adicionales del formato FOSST22 (cédula, turno, vencimientos, compromisos…).
+        // EN: Extra FOSST22 form data (ID, shift, expiries, commitments…).
+        formato: payload.formato || {},
         status: 'submitted',
       }
 
@@ -137,7 +140,14 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
         return { error: null, row, local: true }
       }
 
-      const { error: err } = await supabase.from('mission_inspections').insert(row)
+      let { error: err } = await supabase.from('mission_inspections').insert(row)
+      // ES: Servidor sin la columna «formato» (migración 20261006_misionales_fosst22 pendiente):
+      //     se guarda sin ella para no perder la inspección.
+      // EN: Server without the "formato" column: save without it so the inspection is not lost.
+      if (err && /formato/.test(err.message || '')) {
+        const { formato: _sinFormato, ...sinFormato } = row
+        ;({ error: err } = await supabase.from('mission_inspections').insert(sinFormato))
+      }
       if (err) {
         if (missingTable(err.message)) {
           setLocalMode(true)

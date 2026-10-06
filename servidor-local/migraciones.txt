@@ -22,3 +22,4 @@
 20261006_transferencias_whatsapp.sql
 20261006_corregir_inicio_ciclo_inc05.sql
 20261006_codigos_ot.sql
+20261006_misionales_fosst22.sql
