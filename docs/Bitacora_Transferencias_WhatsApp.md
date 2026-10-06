@@ -162,7 +162,7 @@ Para analizar la baja de nacimiento del 06-10 hacían falta las rondas, lecturas
 | 7 | Rondas con datos imposibles: el 04-10 22:10 la INC-05 (vacía) aparece con lecturas de máquina cargada. El 06-10 06:16 el aire de la INC-05 es 88,5 °F (humedad leída como temperatura). | Fotos asignadas a la máquina equivocada o mal leídas. Afecta la confianza en los registros SIG. |
 | 8 | **Cargue de la INC-05 del 14-09 con inicio de ciclo 01-10** (real: 14-09 22:05). Además, cada máquina tiene el cargue del 14-09 registrado dos veces. | Corregido con `20261006_corregir_inicio_ciclo_inc05.sql`. Los duplicados se dejan para revisión de planta. |
 | 9 | **Cargues nuevos del 05-10:** INC-05 con inicio de ciclo 5 h 45 min **antes** del cargue e INC-23 con 20 h 45 min **antes**. Por el volteo, ambas arrancaron cerca de las 22:00 del 05-10. | La app les calcula más edad de la real (ventanas de calibración y transferencia adelantadas). Corregir con el contador de la pantalla en Corrección de datos. |
-| 10 | 9 OTs de calibración desde el 26-09 con código **`OT-#####`**. | Sucede cuando el número no cabe en el formato del código (`to_char` desborda). El generador vive en la base; el script 15 lo extrae para corregirlo. |
+| 10 | 10 OTs de calibración de estas máquinas desde el 26-09 con código **`OT-#####`**. | Sucede cuando el número no cabe en el formato del código (`to_char` desborda). El generador vive en la base; el script 15 lo extrae para corregirlo. |
 
 **Script agregado:** `servidor-local/15-VERIFICAR-SERVIDOR.bat`. Es de solo lectura y muestra:
 - la versión del código y las últimas líneas del registro de actualización;
