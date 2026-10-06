@@ -27,6 +27,7 @@ import {
 } from '../lib/leaderHome'
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import BotReadingsReview from './BotReadingsReview'
+import WorkOrdersSheet from './WorkOrdersSheet'
 import './LeaderAreaHome.css'
 
 const TITLES = {
@@ -181,6 +182,7 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
   // Optimización: los demás líderes no lo usan; sin orgId el hook no consulta nada.
   const perf = usePerformance({ orgId: kind === 'plant' ? orgId : null, userId, role, area })
   const [busyId, setBusyId] = useState(null)
+  const [sheet, setSheet] = useState(null)
   const [msg, setMsg] = useState(null)
   const { data, slot } = home
   const today = bogotaDate()
@@ -295,6 +297,17 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
   const decisions = board?.decisions || []
   return (
     <div className="lh-root" data-kind={kind}>
+      {sheet && (
+        <WorkOrdersSheet
+          workOrders={data?.workOrders || []}
+          machines={data?.machines || []}
+          technicians={data?.technicians || []}
+          peopleName={peopleName}
+          filtroInicial={sheet.filter}
+          onCerrar={() => setSheet(null)}
+          onCambio={() => home.reload()}
+        />
+      )}
       {kind === 'management' && (
         <header className="lh-head">
           <h1>La empresa hoy</h1>
@@ -331,13 +344,29 @@ export default function LeaderAreaHome({ orgId, userId, role, area, userName, on
 
           {board && (
             <div className="lh-kpis">
-              {board.kpis.map((k) => (
-                <div key={k.label} className={`lh-card lh-kpi${k.tone ? ` tone-${k.tone}` : ''}`}>
-                  <span>{k.label}</span>
-                  <b>{k.value}</b>
-                  <small>{k.sub}</small>
-                </div>
-              ))}
+              {board.kpis.map((k) =>
+                k.open?.kind === 'work-orders' && data?.workOrders ? (
+                  // Tocar abre el listado de OT para asignar técnico
+                  <button
+                    type="button"
+                    key={k.label}
+                    className={`lh-card lh-kpi lh-kpi-btn${k.tone ? ` tone-${k.tone}` : ''}`}
+                    onClick={() => setSheet(k.open)}
+                    title="Ver y asignar"
+                  >
+                    <span>{k.label}</span>
+                    <b>{k.value}</b>
+                    <small>{k.sub}</small>
+                    <em className="lh-kpi-ir">Ver y asignar ›</em>
+                  </button>
+                ) : (
+                  <div key={k.label} className={`lh-card lh-kpi${k.tone ? ` tone-${k.tone}` : ''}`}>
+                    <span>{k.label}</span>
+                    <b>{k.value}</b>
+                    <small>{k.sub}</small>
+                  </div>
+                ),
+              )}
             </div>
           )}
 

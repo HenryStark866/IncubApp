@@ -1491,7 +1491,14 @@ export default function App() {
         className={`app-bg${showClientBg ? ' client-bg' : ' platform-bg'}${isPlatformAdmin ? ' platform-immersive' : ''
           }`}
         aria-hidden="true"
-      />
+      >
+        {/* Fondo corporativo animado (como la ventana original de Misionales) */}
+        <span className="mx-glow" />
+        <span className="mx-huevo mx-huevo-1" />
+        <span className="mx-huevo mx-huevo-2" />
+        <span className="mx-huevo mx-huevo-3" />
+        <span className="mx-pollito" />
+      </div>
       <SplashScreen />
       <div className="grid-bg" aria-hidden="true" />
       {content}

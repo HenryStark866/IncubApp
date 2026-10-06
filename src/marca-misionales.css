@@ -1,0 +1,434 @@
+/* =============================================================================
+ * ARCHIVO: src/marca-misionales.css
+ * PROPÓSITO: Toda la app con la apariencia de la ventana original de Misionales
+ * (repo_misionales, static/css/incubant-theme.css), pedida el 06-10-2026:
+ *  - paleta cálida de Incubant (crema / ámbar / brasa) en claro y oscuro;
+ *  - letra geométrica tipo Futura (Jost, libre);
+ *  - fondo corporativo animado: puntos, brillo ámbar, huevos que flotan y el
+ *    pollito de Incubant de marca de agua;
+ *  - botones con el degradado de marca;
+ *  - íconos con volumen (realismo) y animación 3D.
+ * Va después de index.css e incubant-theme.css. Respeta «reducir movimiento».
+ * ============================================================================= */
+@import '@fontsource/jost/400.css';
+@import '@fontsource/jost/500.css';
+@import '@fontsource/jost/600.css';
+@import '@fontsource/jost/700.css';
+
+/* ── Paleta (claro) ── */
+:root {
+  --mx-amber: #f59c00;
+  --mx-golden: #ffcc00;
+  --mx-ember: #eb6608;
+  --mx-grad: linear-gradient(135deg, #ffcc00 0%, #f59c00 40%, #eb6608 100%);
+  --mx-dots: rgba(245, 156, 0, 0.2);
+  --mx-egg: linear-gradient(135deg, rgba(245, 156, 0, 0.1), rgba(235, 102, 8, 0.05));
+  --mx-egg-border: rgba(245, 156, 0, 0.16);
+  --mx-glow: radial-gradient(ellipse at center, rgba(245, 156, 0, 0.16) 0%, transparent 70%);
+
+  --bg-0: #f5f3ee;
+  --bg-2: #f0ede6;
+  --line: #e2ddd4;
+  --text: #1a1510;
+  --text-dim: #5c5044;
+  --paper-2: #fafaf8;
+  --paper-line: #e2ddd4;
+  --ink: #1a1510;
+  --ink-dim: #5c5044;
+  --radius: 14px;
+  font-family: 'Jost', 'Futura', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Paleta (oscuro, como el original) ── */
+:root[data-theme='dark'] {
+  --mx-dots: rgba(245, 156, 0, 0.12);
+  --mx-egg: linear-gradient(135deg, rgba(245, 156, 0, 0.08), rgba(235, 102, 8, 0.04));
+  --mx-egg-border: rgba(245, 156, 0, 0.08);
+  --mx-glow: radial-gradient(ellipse at center, rgba(245, 156, 0, 0.14) 0%, transparent 70%);
+
+  --bg-0: #0d0e10;
+  --bg-1: #13151a;
+  --bg-2: #1a1d24;
+  --line: #2e3444;
+  --text: #f0ede8;
+  --text-dim: #b8b0a4;
+  --accent: #f59c00;
+  --accent-dim: #eb6608;
+  --on-accent: #1a0f00;
+  --cyan: #f59c00;
+  --cyan-dim: #eb6608;
+  --orange: #f59c00;
+  --amber: #f59c00;
+  --paper: #13151a;
+  --paper-2: #1a1d24;
+  --paper-line: #2e3444;
+  --ink: #f0ede8;
+  --ink-dim: #b8b0a4;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Jost', 'Futura', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ═════════════ Fondo corporativo animado ═════════════ */
+.app-bg.client-bg,
+:root[data-theme='dark'] .app-bg.client-bg {
+  background-color: var(--bg-0);
+  background-image: none;
+  overflow: hidden;
+}
+/* Retícula de puntos de marca que se desplaza muy despacio */
+.app-bg.client-bg::before,
+:root[data-theme='dark'] .app-bg.client-bg::before,
+:root[data-theme='light'] .app-bg.client-bg::before {
+  content: '';
+  position: absolute;
+  inset: -80px;
+  opacity: 0.55;
+  background: radial-gradient(circle, var(--mx-dots) 1.2px, transparent 1.4px) 0 0 / 40px 40px;
+  animation: mx-puntos 60s linear infinite;
+  filter: none;
+}
+/* Franja de marca arriba */
+.app-bg.client-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--mx-grad);
+  background-size: 200% 100%;
+  animation: mx-franja 8s ease-in-out infinite alternate;
+}
+.app-bg .mx-glow {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  left: 50%;
+  top: 45%;
+  border-radius: 50%;
+  background: var(--mx-glow);
+  transform: translate(-50%, -50%);
+  animation: mx-respira 9s ease-in-out infinite;
+}
+.app-bg .mx-huevo {
+  position: absolute;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: var(--mx-egg);
+  border: 1px solid var(--mx-egg-border);
+  will-change: transform;
+}
+.app-bg .mx-huevo-1 {
+  width: 520px;
+  height: 620px;
+  right: -140px;
+  top: -80px;
+  animation: mx-flota-1 18s ease-in-out infinite;
+}
+.app-bg .mx-huevo-2 {
+  width: 280px;
+  height: 330px;
+  left: -80px;
+  bottom: -60px;
+  animation: mx-flota-2 22s ease-in-out infinite;
+}
+.app-bg .mx-huevo-3 {
+  width: 120px;
+  height: 142px;
+  left: 18%;
+  top: 22%;
+  opacity: 0.7;
+  animation: mx-flota-3 26s ease-in-out infinite;
+}
+/* El pollito de Incubant de marca de agua, dentro del huevo grande */
+.app-bg .mx-pollito {
+  position: absolute;
+  /* Solo el pollito del logo oficial (transparente): recorte de incubant-mark.png */
+  width: 260px;
+  height: 343px;
+  right: 40px;
+  top: 70px;
+  background: url('/incubant-mark.png') -135px -156px / 1208px auto no-repeat;
+  opacity: 0.08;
+  animation: mx-pollito 14s ease-in-out infinite;
+}
+:root[data-theme='dark'] .app-bg .mx-pollito {
+  opacity: 0.1;
+}
+/* Solo en el fondo de las empresas (la consola de plataforma conserva el suyo) */
+.app-bg:not(.client-bg) .mx-glow,
+.app-bg:not(.client-bg) .mx-huevo,
+.app-bg:not(.client-bg) .mx-pollito {
+  display: none;
+}
+@media (max-width: 640px) {
+  .app-bg .mx-huevo-1 {
+    width: 300px;
+    height: 360px;
+    right: -110px;
+    top: -60px;
+  }
+  .app-bg .mx-huevo-2 {
+    width: 170px;
+    height: 200px;
+  }
+  .app-bg .mx-huevo-3 {
+    display: none;
+  }
+  .app-bg .mx-pollito {
+    width: 150px;
+    height: 198px;
+    right: 10px;
+    top: 40px;
+    background-position: -78px -90px;
+    background-size: 697px auto;
+  }
+}
+
+@keyframes mx-puntos {
+  to {
+    transform: translate(40px, 40px);
+  }
+}
+@keyframes mx-franja {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+@keyframes mx-respira {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@keyframes mx-flota-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-24px, 28px) rotate(-5deg);
+  }
+}
+@keyframes mx-flota-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(26px, -22px) rotate(6deg);
+  }
+}
+@keyframes mx-flota-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-8deg);
+  }
+  50% {
+    transform: translate(40px, 30px) rotate(10deg);
+  }
+}
+@keyframes mx-pollito {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(3deg);
+  }
+}
+
+/* ═════════════ Tarjetas y botones de la marca ═════════════ */
+:root:not([data-theme='dark']) .card {
+  background:
+    var(--mx-grad) top / 100% 2px no-repeat,
+    rgba(255, 255, 255, 0.97);
+  border-color: var(--line);
+  box-shadow: 0 6px 22px rgba(26, 21, 16, 0.07);
+}
+:root[data-theme='dark'] .card {
+  background:
+    var(--mx-grad) top / 100% 2px no-repeat,
+    linear-gradient(160deg, rgba(26, 29, 36, 0.94), rgba(19, 21, 26, 0.96));
+  border-color: var(--line);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+}
+button.primary,
+.lh-btn-p,
+.wos-btn.p,
+.sh-btn-primary {
+  background: var(--mx-grad);
+  border-color: transparent;
+  color: #1a0f00;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 18px rgba(245, 156, 0, 0.3);
+}
+button.primary:hover:not(:disabled),
+.lh-btn-p:hover:not(:disabled),
+.wos-btn.p:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 26px rgba(245, 156, 0, 0.45);
+}
+
+/* ═════════════ Íconos con volumen y animación 3D ═════════════
+ * Baldosa con brillo arriba y sombra abajo (realismo) y el emoji con relieve; se
+ * mece en 3D y al pasar el dedo / cursor da una vuelta completa. */
+.mis-root .section-icon,
+.lom-menu-icon,
+.sig-hub-ico,
+.ldr-kpi-icon,
+.ldr-quick-icon,
+.iot-card-icon,
+.evidence-icon {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background:
+    radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, #fff4dc 0%, #ffd27a 55%, #f59c00 100%);
+  border: 1px solid rgba(235, 102, 8, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -3px 6px rgba(181, 82, 0, 0.28),
+    0 4px 10px rgba(235, 102, 8, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.18);
+  transform-style: preserve-3d;
+  animation: mx-ico-mece 5.5s ease-in-out infinite;
+  text-shadow: 0 2px 2px rgba(80, 30, 0, 0.35);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.4));
+}
+:root[data-theme='dark'] .mis-root .section-icon,
+:root[data-theme='dark'] .lom-menu-icon,
+:root[data-theme='dark'] .sig-hub-ico,
+:root[data-theme='dark'] .ldr-kpi-icon,
+:root[data-theme='dark'] .ldr-quick-icon,
+:root[data-theme='dark'] .iot-card-icon,
+:root[data-theme='dark'] .evidence-icon {
+  background:
+    radial-gradient(120% 90% at 30% 15%, rgba(255, 220, 150, 0.45) 0%, rgba(255, 220, 150, 0) 55%),
+    linear-gradient(160deg, #3a2a12 0%, #6b3f08 55%, #b85b0a 100%);
+  border-color: rgba(245, 156, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 160, 0.35),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+/* Que no todos se muevan a la vez */
+.mis-root .section-card:nth-child(2n) .section-icon,
+.lom-menu-icon:nth-of-type(2n) {
+  animation-delay: -1.8s;
+}
+.mis-root .section-card:nth-child(3n) .section-icon {
+  animation-delay: -3.4s;
+}
+.mis-root .section-head:hover .section-icon,
+button:hover > .lom-menu-icon,
+button:hover > .sig-hub-ico,
+a:hover > .ldr-quick-icon,
+button:hover > .ldr-quick-icon {
+  animation: mx-ico-gira 0.9s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+/* Íconos grandes del tipo de vehículo: relieve y vaivén 3D; el elegido salta */
+.mis-root .tipo-btn-icon {
+  display: inline-block;
+  filter: drop-shadow(0 6px 5px rgba(120, 50, 0, 0.35)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6));
+  transform-style: preserve-3d;
+  animation: mx-ico-mece 6s ease-in-out infinite;
+}
+.mis-root .tipo-btn:nth-child(2) .tipo-btn-icon {
+  animation-delay: -2s;
+}
+.mis-root .tipo-btn:nth-child(3) .tipo-btn-icon {
+  animation-delay: -4s;
+}
+.mis-root .tipo-btn.active .tipo-btn-icon {
+  animation:
+    mx-ico-salta 0.7s cubic-bezier(0.3, 1.5, 0.5, 1),
+    mx-ico-mece 4s ease-in-out 0.7s infinite;
+}
+.mis-root .tipo-btn {
+  perspective: 400px;
+}
+.mis-root .empty-icon,
+.mis-root .firma-upload-icon,
+.mis-root .firma-placeholder-icon {
+  display: inline-block;
+  filter: drop-shadow(0 4px 4px rgba(120, 50, 0, 0.3));
+  animation: mx-ico-mece 6s ease-in-out infinite;
+}
+
+@keyframes mx-ico-mece {
+  0%,
+  100% {
+    transform: perspective(240px) rotateY(-14deg) rotateX(6deg) translateY(0);
+  }
+  50% {
+    transform: perspective(240px) rotateY(14deg) rotateX(-4deg) translateY(-2px);
+  }
+}
+@keyframes mx-ico-gira {
+  from {
+    transform: perspective(240px) rotateY(0deg) scale(1);
+  }
+  50% {
+    transform: perspective(240px) rotateY(180deg) scale(1.12);
+  }
+  to {
+    transform: perspective(240px) rotateY(360deg) scale(1);
+  }
+}
+@keyframes mx-ico-salta {
+  0% {
+    transform: perspective(240px) translateY(0) scale(1) rotateY(0);
+  }
+  40% {
+    transform: perspective(240px) translateY(-10px) scale(1.18) rotateY(200deg);
+  }
+  100% {
+    transform: perspective(240px) translateY(0) scale(1) rotateY(360deg);
+  }
+}
+
+/* Sin animaciones para quien pidió reducir el movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .app-bg.client-bg::before,
+  .app-bg.client-bg::after,
+  .app-bg .mx-glow,
+  .app-bg .mx-huevo,
+  .app-bg .mx-pollito,
+  .mis-root .section-icon,
+  .lom-menu-icon,
+  .sig-hub-ico,
+  .ldr-kpi-icon,
+  .ldr-quick-icon,
+  .iot-card-icon,
+  .evidence-icon,
+  .mis-root .tipo-btn-icon,
+  .mis-root .empty-icon,
+  .mis-root .firma-upload-icon,
+  .mis-root .firma-placeholder-icon {
+    animation: none !important;
+  }
+}
+
+/* Encabezado de la app en oscuro: grafito cálido del original (antes azul marino) */
+:root[data-theme='dark'] .workspace-header,
+:root[data-theme='dark'] .workspace-header.social {
+  background: linear-gradient(180deg, rgba(19, 21, 26, 0.96), rgba(13, 14, 16, 0.94));
+  border-color: var(--line);
+}
