@@ -116,6 +116,13 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'plantas', label: 'Plantas y planos', group: 'Instalaciones', tab: 'plantas' },
     { id: 'granjas', label: 'Granjas', group: 'Instalaciones', tab: 'granjas' },
     { id: 'inventarios', label: 'Inventarios', group: 'Recursos', tab: 'inventarios' },
+    {
+      id: 'calidad',
+      label: 'Calidad de incubación',
+      group: 'Operación',
+      tab: 'calidad',
+      hint: 'Peso del huevo, humedad, ovoscopia, embriodiagnóstico y pollito',
+    },
     { id: 'veterinaria', label: 'Sanidad veterinaria', group: 'Sanidad', tab: 'veterinaria' },
     { id: 'sst', label: 'SST', group: 'Cumplimiento', tab: 'sst' },
     { id: 'ambiental', label: 'Gestión ambiental', group: 'Cumplimiento', tab: 'ambiental' },

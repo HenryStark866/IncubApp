@@ -17,6 +17,13 @@ export const COLD_TYPES = [
 ]
 
 const DAY = 86400000
+const QUALITY_LABEL = {
+  egg_weight: 'peso del huevo',
+  moisture_loss: 'pérdida de humedad',
+  candling: 'ovoscopia',
+  breakout: 'embriodiagnóstico',
+  chick_quality: 'calidad del pollito',
+}
 const num = (n) => Number(n || 0).toLocaleString('es-CO')
 const dayKey = (v) => (v ? new Date(v).toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) : '')
 export const fmtDay = (v) =>
@@ -192,7 +199,7 @@ export function machineStates({ machines = [], loads = [], transfers = [], check
 /**
  * Registros recientes de cada persona del equipo (lo que «sube» cada auxiliar).
  */
-export function teamRecords({ members = [], arrivals = [], stock = [], classifications = [], maps = [], vet = [], tasks = [], loads = [], transfers = [], hatches = [] }) {
+export function teamRecords({ members = [], arrivals = [], stock = [], classifications = [], maps = [], vet = [], tasks = [], loads = [], transfers = [], hatches = [], quality = [] }) {
   const add = (list, by, item) => {
     if (!by) return
     if (!list.has(by)) list.set(by, [])
@@ -207,6 +214,7 @@ export function teamRecords({ members = [], arrivals = [], stock = [], classific
   for (const l of loads) add(byUser, l.created_by, { kind: 'Cargue de incubadora', at: l.loaded_at || l.created_at, text: `Lote ${l.lote || '—'}${l.machine_code ? ` · ${l.machine_code}` : ''}`, tab: 'cargue' })
   for (const x of transfers) add(byUser, x.created_by, { kind: 'Transferencia', at: x.transferred_at, text: `Lote ${x.lote || '—'}`, tab: 'supervision' })
   for (const h of hatches) add(byUser, h.created_by, { kind: 'Nacimiento', at: h.ended_at || h.started_at || h.created_at, text: `Lote ${h.lote || '—'}${h.actual_chicks ? ` · ${num(h.actual_chicks)} pollitos` : ''}`, tab: 'supervision' })
+  for (const q of quality) add(byUser, q.created_by, { kind: `Calidad · ${QUALITY_LABEL[q.kind] || q.kind}`, at: q.sampled_at, text: `Lote ${q.lote || '—'} · ${q.results?.resumen || ''}${q.status === 'alert' ? ' · ⚠ alerta' : q.status === 'watch' ? ' · vigilar' : ''}`, tab: 'calidad' })
   for (const t of tasks) {
     if (t.status === 'completed' || t.status === 'done') add(byUser, t.assigned_to, { kind: 'Tarea cerrada', at: t.completed_at || t.updated_at, text: `${t.title}${t.result_note ? ` · ${t.result_note}` : ''}`, tab: 'supervision', photo: t.photo_path })
   }
@@ -225,7 +233,7 @@ export function teamRecords({ members = [], arrivals = [], stock = [], classific
 }
 
 // ─────────────────────────── Tablero ───────────────────────────
-export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = [], states = [], transfers = [], hatches = [], tasks = [], now = new Date() }) {
+export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = [], states = [], transfers = [], hatches = [], tasks = [], quality = [], now = new Date() }) {
   const today = dayKey(now)
   const decisions = []
 
@@ -274,6 +282,16 @@ export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = 
         tab: 'supervision',
       })
     }
+  }
+  // Muestreos de calidad en alerta de los últimos 2 días
+  for (const q of quality.filter((x) => x.status === 'alert' && now - new Date(x.sampled_at) < 2 * DAY)) {
+    decisions.push({
+      id: `cal-${q.id}`,
+      tone: 'warn',
+      title: `Calidad en alerta · ${QUALITY_LABEL[q.kind] || q.kind} · lote ${q.lote || '—'}`,
+      detail: `${q.results?.resumen || ''} · ${fmtDay(q.sampled_at)} ${fmtTime(q.sampled_at)}`,
+      tab: 'calidad',
+    })
   }
   const late = tasks.filter((t) => t.status === 'pending' && now - new Date(t.created_at) > 4 * 3600000)
   if (late.length) {

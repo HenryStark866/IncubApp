@@ -15,7 +15,8 @@
 // líderes: que todos los equipos descarten la caché vieja al abrir la app.
 // v17 (06-10-2026): apariencia de Misionales en toda la app, Misionales nuevo y OT del líder.
 // v18 (06-10-2026): inicio de la líder de producción y avisos «En desarrollo».
-const CACHE = 'incubapp-shell-v18'
+// v19 (06-10-2026): formatos de calidad de incubación.
+const CACHE = 'incubapp-shell-v19'
 const PRECACHE = [
   '/',
   '/index.html',

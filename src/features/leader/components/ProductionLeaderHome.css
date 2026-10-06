@@ -488,3 +488,12 @@
     grid-column: 1 / -1;
   }
 }
+.prod-cal {
+  border-left: 4px solid transparent;
+}
+.prod-cal.s-watch {
+  border-left-color: #e0a000;
+}
+.prod-cal.s-alert {
+  border-left-color: var(--danger);
+}

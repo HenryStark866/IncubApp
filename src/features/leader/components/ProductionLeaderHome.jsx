@@ -10,7 +10,6 @@ import { useLeaderHome } from '../hooks/useLeaderHome'
 import { useLoadClassification } from '../../../hooks/useLoadClassification'
 import { createShiftActivity } from '../../../hooks/useShiftOps'
 import { supabase } from '../../../lib/supabase'
-import EnDesarrollo from '../../../components/EnDesarrollo'
 import {
   COLD_TYPES,
   coldRoomGroups,
@@ -32,6 +31,7 @@ const SECCIONES = [
   ['frio', '❄️', 'Cuarto frío'],
   ['mapas', '🗺️', 'Mapas de cargue'],
   ['movimientos', '🐣', 'Transferencias y nacimientos'],
+  ['calidad', '🔬', 'Calidad'],
   ['equipo', '👥', 'Equipo y tareas'],
 ]
 
@@ -176,6 +176,7 @@ export default function ProductionLeaderHome({ orgId, userId, userName, onNaviga
                 }}
               />
             )}
+            {seccion === 'calidad' && <CalidadResumen quality={data.quality || []} onNavigate={onNavigate} />}
             {seccion === 'movimientos' && (
               <Movimientos transfers={data.transfers} hatches={data.hatches} machines={data.machines} onNavigate={onNavigate} />
             )}
@@ -711,9 +712,11 @@ function Equipo({ team, tasks, machines, orgId, userId, onNavigate, onDone }) {
               </button>
               {abierto === p.id && (
                 <div className="prod-persona-det">
-                  {p.role === 'quality_auxiliary' && (
+                  {(p.role === 'quality_auxiliary' || p.role === 'auxiliary_production') && (
                     <p className="prod-nota">
-                      Formatos de calidad (pesos, fertilidad, embriodiagnóstico) <EnDesarrollo />
+                      <button type="button" className="lh-btn" onClick={() => onNavigate?.('calidad')}>
+                        Ver formatos de calidad
+                      </button>
                     </p>
                   )}
                   {p.records.length === 0 && <p className="lh-empty">Sin registros en los últimos 7 días.</p>}
@@ -798,5 +801,44 @@ function Equipo({ team, tasks, machines, orgId, userId, onNavigate, onDone }) {
         )}
       </Seccion>
     </>
+  )
+}
+
+/* ─────────────── Calidad (formatos del auxiliar de calidad) ─────────────── */
+const ETIQUETA_CAL = {
+  egg_weight: '⚖️ Peso del huevo',
+  moisture_loss: '💧 Pérdida de humedad',
+  candling: '🔦 Ovoscopia',
+  breakout: '🥚 Embriodiagnóstico',
+  chick_quality: '🐣 Calidad del pollito',
+}
+const ESTADO_CAL = { ok: 'Normal', watch: 'Vigilar', alert: 'Alerta' }
+
+function CalidadResumen({ quality, onNavigate }) {
+  const alertas = quality.filter((q) => q.status !== 'ok').length
+  return (
+    <Seccion titulo={`Calidad · ${quality.length} muestreos`} sub={`últimos 7 días${alertas ? ` · ${alertas} para revisar` : ''}`}>
+      <div className="lh-card prod-lista">
+        {quality.length === 0 && <p className="lh-empty">Sin muestreos de calidad en los últimos 7 días.</p>}
+        {quality.slice(0, 30).map((q) => (
+          <div key={q.id} className={`prod-fila prod-cal s-${q.status}`}>
+            <b>
+              {ETIQUETA_CAL[q.kind] || q.kind} · Lote {q.lote || '—'}
+            </b>
+            <span>
+              {ESTADO_CAL[q.status] || q.status} · {q.results?.resumen || ''}
+            </span>
+            <em>
+              {fmtDay(q.sampled_at)} {fmtTime(q.sampled_at)}
+            </em>
+          </div>
+        ))}
+      </div>
+      <div className="prod-links">
+        <button type="button" className="lh-btn" onClick={() => onNavigate?.('calidad')}>
+          Abrir Calidad de incubación
+        </button>
+      </div>
+    </Seccion>
   )
 }
