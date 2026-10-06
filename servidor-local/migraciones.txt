@@ -24,3 +24,5 @@
 20261006_codigos_ot.sql
 20261006_misionales_fosst22.sql
 20261006_misionales_consolidado.sql
+20261006_area_produccion.sql
+20261006_corregir_parejas_y_cargues_repetidos.sql
