@@ -35,7 +35,7 @@ async function loadMachines(orgId) {
 
 async function loadPlant({ orgId, slot }) {
   const since = daysAgo(2).toISOString()
-  const [checks, machines, workOrders, loadMaps, lots, arrivals, loads, transfers, hatches] = await Promise.all([
+  const [checks, machines, workOrders, loadMaps, lots, arrivals, loads, transfers, hatches, techs] = await Promise.all([
     rows('machine_checks', (q) =>
       q
         .select(
@@ -82,6 +82,8 @@ async function loadPlant({ orgId, slot }) {
         .or(`scheduled_at.gte.${since},started_at.gte.${since},created_at.gte.${since}`)
         .limit(200),
     ),
+    // Para asignar las OT abiertas desde el indicador (06-10-2026)
+    loadTechnicians(orgId),
   ])
   const codeOf = new Map(machines.data.map((m) => [m.id, m.code || m.name]))
   return {
@@ -97,9 +99,31 @@ async function loadPlant({ orgId, slot }) {
     })),
     transfers: transfers.data,
     hatches: hatches.data,
-    errors: [checks, machines, workOrders, loadMaps, lots, arrivals, loads, transfers, hatches]
+    technicians: techs.data,
+    errors: [checks, machines, workOrders, loadMaps, lots, arrivals, loads, transfers, hatches, techs]
       .map((r) => r.error)
       .filter(Boolean),
+  }
+}
+
+/** Técnicos de mantenimiento (y el líder de mantenimiento) a quienes se asignan OT */
+async function loadTechnicians(orgId) {
+  const members = await rows('organization_members', (q) =>
+    q
+      .select('user_id, role, area, profiles ( full_name, email )')
+      .eq('org_id', orgId)
+      .in('role', ['maintenance_auxiliary', 'coordinator']),
+  )
+  return {
+    error: members.error,
+    data: members.data
+      .filter((m) => m.role === 'maintenance_auxiliary' || (m.role === 'coordinator' && m.area === 'maintenance'))
+      .map((m) => ({
+        id: m.user_id,
+        name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
+        role: m.role,
+        roleLabel: m.role === 'coordinator' ? 'Líder de mantenimiento' : ROLE_LABEL[m.role] || m.role,
+      })),
   }
 }
 
@@ -117,21 +141,9 @@ async function loadMaintenance({ orgId }) {
         .limit(400),
     ),
     loadMachines(orgId),
-    rows('organization_members', (q) =>
-      q
-        .select('user_id, role, area, profiles ( full_name, email )')
-        .eq('org_id', orgId)
-        .in('role', ['maintenance_auxiliary', 'coordinator']),
-    ),
+    loadTechnicians(orgId),
   ])
   const technicians = members.data
-    .filter((m) => m.role === 'maintenance_auxiliary' || (m.role === 'coordinator' && m.area === 'maintenance'))
-    .map((m) => ({
-      id: m.user_id,
-      name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
-      role: m.role,
-      roleLabel: m.role === 'coordinator' ? 'Líder de mantenimiento' : ROLE_LABEL[m.role] || m.role,
-    }))
   return {
     workOrders: [...new Map([...open.data, ...recent.data].map((w) => [w.id, w])).values()],
     machines: machines.data,
@@ -576,6 +588,22 @@ export function useLeaderHome({ kind, orgId }) {
 export async function assignWorkOrder(orderId, technicianId) {
   const { error } = await supabase.from('work_orders').update({ assigned_to: technicianId }).eq('id', orderId)
   return { error: error?.message || null }
+}
+
+/** Asigna varias OT al mismo técnico de una vez. */
+export async function assignWorkOrders(orderIds, technicianId) {
+  if (!orderIds?.length) return { error: null, count: 0 }
+  const { data, error } = await supabase
+    .from('work_orders')
+    .update({ assigned_to: technicianId })
+    .in('id', orderIds)
+    .select('id')
+  if (error) return { error: error.message, count: 0 }
+  // Sin filas devueltas = la base no dejó cambiarlas (permisos)
+  if (Array.isArray(data) && data.length < orderIds.length) {
+    return { error: `Solo se asignaron ${data.length} de ${orderIds.length}: revise los permisos sobre las OT.`, count: data.length }
+  }
+  return { error: null, count: data?.length ?? orderIds.length }
 }
 
 /** El líder da el visto bueno al cierre de una OT. */

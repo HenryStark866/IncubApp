@@ -663,3 +663,16 @@ describe('sstLeaderBoard · espacios confinados', () => {
     expect(ec[1].title).toContain('S80')
   })
 })
+
+describe('indicador de OT abiertas (06-10-2026)', () => {
+  it('abre el listado filtrado en las OT sin técnico', () => {
+    const now = new Date('2026-10-06T15:00:00')
+    const workOrders = [
+      { id: 'a', status: 'open', priority: 'high', assigned_to: null, created_at: '2026-10-05T10:00:00' },
+      { id: 'b', status: 'in_progress', priority: 'medium', assigned_to: 't1', created_at: '2026-10-05T11:00:00' },
+    ]
+    const b = maintenanceLeaderBoard({ workOrders, machines: [], technicians: [], now })
+    expect(b.kpis[0].open).toEqual({ kind: 'work-orders', filter: 'all' })
+    expect(b.kpis[1].open).toEqual({ kind: 'work-orders', filter: 'unassigned' })
+  })
+})

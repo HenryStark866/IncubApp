@@ -307,3 +307,16 @@ orden: `0-DIAGNOSTICO.bat` → `1-PREPARAR-WINDOWS.bat` (pide administrador) →
   `docker compose up` lo levanta. `arranque.sh` ahora apaga studio/supavisor/imgproxy al terminar de levantar.
 - Panel: un solo panel aunque se abra dos veces a la vez (mutex de Windows); n8n recién arrancado o sin
   respuesta por carga ya no sale como falla (se reiniciaba a mano sin necesidad).
+
+## Actualización 06-10-2026 — seguridad del servidor (17-SEGURIDAD-SERVIDOR)
+
+- `17-SEGURIDAD-SERVIDOR.bat` cierra los hallazgos del panel que dependen del Lenovo. Modos: 1 revisar
+  (no cambia nada), 2 aplicar (pregunta en cada paso), 3 deshacer.
+  - Bloquea la entrada desde otros equipos (redes privadas y Tailscale) a 5432 (PostgreSQL de Windows),
+    4040 (inspector de ngrok, ya no se usa) y 8000 (API de Supabase: la app usa el puerto 80 y el túnel).
+    Crea reglas «IncubApp seguridad · …» en el firewall de Windows y en el de WSL (Hyper-V).
+    127.0.0.1 queda libre: los scripts locales siguen funcionando.
+  - Enciende la protección en tiempo real de Defender, con exclusión solo del disco de Ubuntu (ext4.vhdx).
+    Si hay otro antivirus o la protección contra alteraciones lo impide, lo informa.
+  - No cambia la red «Pública» (es el perfil más estricto). La zona Wi-Fi y el MikroTik se informan
+    con instrucciones.

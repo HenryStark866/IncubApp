@@ -7,6 +7,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './incubant-theme.css'
+// Apariencia de la ventana original de Misionales para toda la app (06-10-2026)
+import './marca-misionales.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { initTheme } from './lib/theme'

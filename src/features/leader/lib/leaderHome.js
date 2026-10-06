@@ -198,6 +198,8 @@ export function plantLeaderBoard({
       value: String(openOrders.length),
       sub: unassigned ? `${unassigned} sin técnico` : 'todas con técnico',
       tone: unassigned ? 'warn' : null,
+      // Tocar el indicador abre el listado para asignar técnico
+      open: openOrders.length ? { kind: 'work-orders', filter: unassigned ? 'unassigned' : 'all' } : null,
     },
     {
       label: 'Cargues de hoy',
@@ -316,12 +318,14 @@ export function maintenanceLeaderBoard({ workOrders = [], machines = [], technic
       value: String(open.length),
       sub: urgentOpen ? `${urgentOpen} de prioridad alta` : 'ninguna de prioridad alta',
       tone: urgentOpen ? 'danger' : null,
+      open: open.length ? { kind: 'work-orders', filter: 'all' } : null,
     },
     {
       label: 'En ejecución',
       value: String(open.filter((w) => w.status === 'in_progress').length),
       sub: `${unassigned.length} sin técnico`,
       tone: unassigned.length ? 'warn' : null,
+      open: unassigned.length ? { kind: 'work-orders', filter: 'unassigned' } : null,
     },
     {
       label: 'Cerradas en el mes',

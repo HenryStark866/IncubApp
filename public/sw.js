@@ -13,7 +13,8 @@
 // equipos descarten la caché vieja al abrir la app.
 // v16 (06-10-2026): Plan AM y manuales de Granja La Fe, inicio del líder de granja y menú de
 // líderes: que todos los equipos descarten la caché vieja al abrir la app.
-const CACHE = 'incubapp-shell-v16'
+// v17 (06-10-2026): apariencia de Misionales en toda la app, Misionales nuevo y OT del líder.
+const CACHE = 'incubapp-shell-v17'
 const PRECACHE = [
   '/',
   '/index.html',
