@@ -416,13 +416,14 @@ function PlanRow({ item, onOpen }) {
   )
 }
 
-export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate }) {
+export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate, defaultSede = null }) {
   const api = useMaintenanceAuxHome({ orgId, userId, userName })
   const go = (tab) => onNavigate?.(tab)
   const first = (userName || '').trim().split(/\s+/)[0] || ''
   const [screen, setScreen] = useState({ kind: 'home' })
   const [specialty, setSpecialty] = useState('')
-  const [sede, setSede] = useState('PLANTA INCUBANT')
+  // Con sede asignada (p. ej. auxiliares de G-GRANJA LA FE) abre en el plan de esa sede.
+  const [sede, setSede] = useState(defaultSede || 'PLANTA INCUBANT')
   const [query, setQuery] = useState('')
   const [showLate, setShowLate] = useState(false)
   const [showAllLate, setShowAllLate] = useState(false)

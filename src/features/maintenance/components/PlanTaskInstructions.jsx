@@ -8,6 +8,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { normalizePlanTask, planTaskSteps, PROCEDURE_SOURCE, RECORD_RETENTION } from '../../../lib/planTaskInstructions';
+import { manualsForTask, manualTitle } from '../../../lib/planManuals';
 import './PlanTaskInstructions.css';
 
 export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
@@ -25,6 +26,11 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
 
   const info = normalizePlanTask(task);
   const steps = planTaskSteps(task);
+  // Tareas con instructivo propio (Plan AM de granja): pasos técnicos, seguridad y manual de la empresa.
+  const technical = Array.isArray(task.technicalSteps) ? task.technicalSteps : [];
+  const safety = Array.isArray(task.safety) ? task.safety : [];
+  const tools = Array.isArray(task.tools) ? task.tools : [];
+  const docs = manuals.length ? manuals : manualsForTask(task);
   const facts = [
     ['Código', info.code],
     ['Sede', info.sede],
@@ -38,6 +44,8 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
     ['Parada', info.shutdown],
     ['Responsable', info.responsible],
     ['Evidencia', info.evidenceFormat],
+    ['Criterio de aceptación', task.acceptanceCriteria],
+    ['Manual', task.manual],
   ].filter(([, value]) => value);
 
   return createPortal(
@@ -65,18 +73,42 @@ export default function PlanTaskInstructions({ task, manuals = [], onClose }) {
             </li>
           ))}
         </ol>
-        <h3>Manual del fabricante</h3>
-        {manuals.length ? (
+        {technical.length > 0 && (
+          <>
+            <h3>Cómo se hace (paso 2, según el manual)</h3>
+            <ol className="sig-modal-tech">
+              {technical.map((line) => <li key={line}>{line}</li>)}
+            </ol>
+          </>
+        )}
+        {safety.length > 0 && (
+          <>
+            <h3 className="sig-modal-danger">Seguridad</h3>
+            <ul className="sig-modal-safety">
+              {safety.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          </>
+        )}
+        {tools.length > 0 && <p className="sig-modal-tools"><strong>Herramientas y materiales:</strong> {tools.join(', ')}.</p>}
+        <h3>{technical.length ? 'Manual del equipo' : 'Manual del fabricante'}</h3>
+        {docs.length ? (
           <ul className="sig-modal-manuals">
-            {manuals.map((manual) => (
-              <li key={manual.id}><a href={manual.url} target="_blank" rel="noopener noreferrer">{manual.file_name} ↗</a></li>
+            {docs.map((manual) => (
+              <li key={manual.id}>
+                <a href={manual.url} target="_blank" rel="noopener noreferrer" download={manual.file_name}>{manualTitle(manual)} ↓</a>
+              </li>
             ))}
           </ul>
         ) : (
           <p className="sig-modal-muted">No hay un manual del fabricante cargado en IncubApp para estos equipos.</p>
         )}
         <p className="sig-modal-muted">{RECORD_RETENTION}</p>
-        <p className="sig-modal-source">Fuente: {PROCEDURE_SOURCE}, y programa PRGMAT01. El instructivo técnico propio de esta tarea todavía no está estandarizado en el programa: los pasos son el procedimiento general aprobado.</p>
+        <p className="sig-modal-source">
+          Fuente: {PROCEDURE_SOURCE}, y programa PRGMAT01.{' '}
+          {technical.length
+            ? 'Los pasos técnicos salen del manual del equipo aprobado por Mantenimiento.'
+            : 'El instructivo técnico propio de esta tarea todavía no está estandarizado en el programa: los pasos son el procedimiento general aprobado.'}
+        </p>
       </section>
     </div>,
     document.body

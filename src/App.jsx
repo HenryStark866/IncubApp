@@ -53,6 +53,8 @@ import {
   LeaderAreaHome,
   ShiftHome,
   MaintenanceAuxHome,
+  PlanAmCenter,
+  FarmLeaderHome,
   LeaderDashboard,
   LeaderOpsMap,
   SiloReportsPanel,
@@ -108,6 +110,7 @@ import {
   canManageOrgUsers,
 } from './lib/roles'
 import { capabilitiesFromTabs, primarySiloLabel } from './lib/privacyScopes'
+import { sedeOfSite } from './lib/planManuals'
 import { applyBrandToDocument, resolveBrandContext } from './lib/platform'
 import { recordAccess } from './lib/accessLog'
 import { requestOperationalDevicePermissions } from './lib/devicePermissions'
@@ -169,6 +172,26 @@ const OMNISCIENT_TABS = [
   'calibracion',
 ]
 
+/**
+ * Líder con sede asignada (organization_members.site_id, p. ej. el líder de G-GRANJA LA FE):
+ * solo estas pestañas. Sin planta, sin otras sedes y sin la gestión de usuarios de toda la
+ * empresa (su equipo lo ve en su inicio). Pedido de Mantenimiento 2026-10-06.
+ */
+const SITE_LEADER_TABS = new Set([
+  'hoy',
+  'perfil',
+  'accesos',
+  'reportes',
+  'asistencia',
+  'misionales',
+  'plan-am',
+  'granjas',
+  'produccion',
+  'huevos',
+  'veterinaria',
+  'inventarios',
+])
+
 const VIEW_AS_KEY = 'incubapp_view_as_v1'
 
 function readViewAs() {
@@ -192,6 +215,7 @@ function Workspace({
   org: membershipOrg,
   role: realRole,
   area: realArea,
+  site: realSite = null,
   isPlatformAdmin,
   profileApi,
   memberships = [],
@@ -285,6 +309,9 @@ function Workspace({
         ? null
         : realArea
   const previewing = !!(isPlatformAdmin && viewAs)
+  // Sede asignada: solo la real del usuario (la vista previa de plataforma no la tiene).
+  const site = isPlatformAdmin ? null : realSite
+  const siteScoped = !!site?.id && role === 'coordinator'
 
   const presence = useOrgPresence({
     orgId: org?.id,
@@ -349,8 +376,12 @@ function Workspace({
     if (isOmniscient && org) {
       OMNISCIENT_TABS.forEach((t) => s.add(t))
     }
+    // Líder con sede asignada: solo su sede (ver SITE_LEADER_TABS).
+    if (siteScoped) {
+      for (const t of [...s]) if (!SITE_LEADER_TABS.has(t)) s.delete(t)
+    }
     return s
-  }, [access.tabs, taskGrants.reception, taskGrants.plans, isPlatformAdmin, org, role, isOmniscient])
+  }, [access.tabs, taskGrants.reception, taskGrants.plans, isPlatformAdmin, org, role, isOmniscient, siteScoped])
 
   const cap = useMemo(
     () => capabilitiesFromTabs(tabs, { isOmniscient }),
@@ -608,7 +639,6 @@ function Workspace({
           pendingOffline={pendingOffline}
           uploadAvatar={profileApi.uploadAvatar}
           removeAvatar={profileApi.removeAvatar}
-          hideMenu={role === 'coordinator'}
         />
       </header>
       {isPlatformAdmin && (
@@ -655,6 +685,16 @@ function Workspace({
             />
           ) : tab === 'platform-access' && isPlatformAdmin && !previewing ? (
             <AccessRegistryPanel />
+          ) : tab === 'hoy' && org && role === 'coordinator' && area === 'farm' ? (
+            // Líder de granja: solo su granja, su equipo y el Plan AM de la sede.
+            <FarmLeaderHome
+              orgId={org.id}
+              userId={session.user.id}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              site={site}
+              navItems={navItems}
+              onNavigate={setTab}
+            />
           ) : tab === 'hoy' && org && role === 'coordinator' ? (
             // Líder de área: panel de control completo (dashboard KPIs + acceso rápido + mini-mapa + feed)
             // El LeaderOpsMap queda accesible con los botones de acción del dashboard.
@@ -697,6 +737,7 @@ function Workspace({
             <MaintenanceAuxHome
               orgId={org.id}
               userId={session.user.id}
+              defaultSede={sedeOfSite(site)}
               userName={profileApi.profile?.full_name ?? session.user.email}
               onNavigate={(t) => {
                 if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
@@ -951,9 +992,15 @@ function Workspace({
               currentUserId={session.user.id}
               isPlatformStaff={!!isPlatformAdmin}
             />
+          ) : tab === 'plan-am' && org && can('plan-am') ? (
+            <PlanAmCenter
+              sede={sedeOfSite(site) || (area === 'farm' ? 'GRANJA LA FE' : 'PLANTA INCUBANT')}
+              lockSede={siteScoped || area === 'farm'}
+            />
           ) : tab === 'granjas' && org && can('granjas') ? (
             <FarmManager
               orgId={org.id}
+              siteId={siteScoped ? site.id : null}
               role={role}
               presence={presence}
               currentUserId={session.user.id}
@@ -1220,6 +1267,7 @@ export default function App() {
     org,
     role,
     area,
+    site,
     memberships,
     switchOrg,
     loading: orgLoading,
@@ -1418,6 +1466,7 @@ export default function App() {
         org={org}
         role={role}
         area={area}
+        site={site}
         isPlatformAdmin={isPlatformAdmin}
         profileApi={profileApi}
         memberships={memberships}

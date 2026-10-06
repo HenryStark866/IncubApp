@@ -90,6 +90,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
       hint: 'Actividades realizadas y comparativos entre períodos',
     },
     { id: 'mantenimiento', label: 'Órdenes de trabajo', group: 'Operación', tab: 'mantenimiento' },
+    { id: 'plan-am', label: 'Plan AM y manuales', group: 'Mantenimiento', tab: 'plan-am', hint: 'Actividades de la semana, instructivos y manuales para descargar' },
     { id: 'horarios', label: 'Horarios de turno', group: 'Operación', tab: 'horarios' },
     { id: 'monitoreo', label: 'Monitoreo', group: 'Operación', tab: 'monitoreo' },
     { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },

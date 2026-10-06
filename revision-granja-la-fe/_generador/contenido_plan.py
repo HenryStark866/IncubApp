@@ -1,0 +1,757 @@
+# -*- coding: utf-8 -*-
+"""
+Contenido del Plan AM (mantenimiento) de G-GRANJA LA FE — propuesta para revisión.
+Mismo esquema de columnas que la hoja «06.2 PLAN LA FE» del PRGMAT01 v05 y mismos
+pasos de ejecución que PROMAT01 v02 sección 4 (los que muestra IncubApp al abrir
+una actividad del plan).
+"""
+
+PROD_M2 = ["G201", "G202", "G203", "G204"]
+PROD_M3 = ["G301", "G302", "G303", "G304"]
+PROD_M4 = ["G401", "G402", "G403", "G404"]
+LEV_M1 = ["G101", "G102", "G103", "G104", "G105", "G106"]
+LEV_M5 = ["G501", "G502", "G503", "G504", "G505", "G506"]
+PROD = PROD_M2 + PROD_M3 + PROD_M4
+LEV = LEV_M1 + LEV_M5
+TODOS = LEV_M1 + PROD + LEV_M5
+TANQUES = ["S4", "S8", "S9", "S10", "S13", "S14", "S17", "S18", "S20", "S24", "S25"]
+# Equipos sin código todavía: van entre paréntesis para que IncubApp no los tome como códigos.
+# El levantamiento LF-100 les asigna código (MB-LF-nn, SI-LF-nn, TG-LF-nn) y se registran en la hoja 05.
+MOTOBOMBAS = ["(motobombas de la granja — código MB-LF-nn asignado en el levantamiento LF-100)"]
+SILOS = ["(silos de la granja — código SI-LF-nn asignado en el levantamiento LF-100)"]
+TABLEROS = TODOS + ["(tablero general, transferencia y tablero de bombeo — código TG-LF-nn en el levantamiento LF-100)"]
+
+MODULOS = [
+    ("Módulo 1", "Levante", LEV_M1, "Galpones 101-102, 103-104 y 105-106 (2 pisos cada uno), 14 x 80 m"),
+    ("Módulo 2", "Producción", PROD_M2, "Galpones 201-202 y 203-204 (2 pisos cada uno)"),
+    ("Módulo 3", "Producción", PROD_M3, "Galpones 301-302 y 303-304 (2 pisos cada uno)"),
+    ("Módulo 4", "Producción", PROD_M4, "Galpones 401-402 y 403-404 (2 pisos cada uno)"),
+    ("Módulo 5", "Levante", LEV_M5, "Galpones 501-502, 503-504 (14 x 80 m) y 505-506 (14 x 100 m)"),
+]
+
+# Manuales que acompañan el plan
+MANUALES = {
+    "MAN-LF-01": "Banda recolectora de huevo",
+    "MAN-LF-02": "Sistema de apertura y cierre de nidos",
+    "MAN-LF-03": "Sistema de alimentación: silos, tolvas, canal y cadena",
+    "MAN-LF-04": "Sistema de agua (bebederos de niple) y sistema antipercheo",
+    "MAN-LF-05": "Sistema de iluminación inteligente",
+    "MAN-LF-06": "Tableros eléctricos, motobombas, tanques de agua y chumaceras",
+}
+
+ICA = "Res. ICA 3651/2014 An. núm. 1.9"
+ICA_BIO = "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad"
+EMP = "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman)"
+BPI = "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento"
+LEGAL = "Requisito legal externo (ver hoja 03 MARCO NORMATIVO del PRGMAT01)"
+
+LOTO = "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+SIN_AVES_CADENA = "Con aves en el galpón trabajar solo entre repartos de alimento y avisar al galponero; nunca con la cadena en movimiento."
+
+# Cada tarea: código, sistema, clase, equipos, descripción, tipo, frecuencia,
+# parada, duración (h por equipo), responsable, criterio, sustento, evidencia,
+# crítica (seguridad), bioseguridad, rotación, reemplaza (código v05), manual,
+# pasos técnicos, seguridad, herramientas.
+TAREAS = [
+    # ───────────────────────── LEVANTAMIENTO DE CAMPO (única vez) ─────────────────────────
+    dict(code="LF-LEV-00", system="Inventario", eq_class="Levantamiento inicial de equipos de la granja",
+         equipos=TODOS, desc="Levantamiento de campo: placa de cada motor (alimentación, transportador silo-tolva, banda, nidos, motobombas), energizadores antipercheo, controladores de luz y de nidos, chumaceras (referencia y cantidad por galpón), silos, tanques, tableros, planta eléctrica y ATS; equipo de levante y comederos de machos. Asignar códigos y fotografiar placas.",
+         tipo="Inventario (única vez)", freq="Única vez (semanas 42-43)", parada="No", dur=1.5, resp="Téc. mantenimiento + Aux. mantenimiento",
+         crit="Hoja «LEVANTAMIENTO» del plan diligenciada al 100 %, con foto de cada placa; datos trasladados a la hoja 05 INVENTARIO y a IncubApp.", sust="Pendientes 2 a 5 del plan — necesarios para los criterios «corriente ≤ In» y para los repuestos", evid="Hoja LEVANTAMIENTO + fotos", cs=False, bio=False, rot="Un módulo por día, levante primero", reemplaza="Pendiente 7 del PRGMAT01 v05", manual="Todos (MAN-LF-01 a 06)",
+         pasos=[
+             "Imprimir la hoja «LEVANTAMIENTO» del plan; ya trae una fila por cada equipo esperado en cada galpón.",
+             "Recorrer un módulo por día en orden de bioseguridad (levante → producción), con ducha y ropa del módulo.",
+             "Para cada motor: fotografiar la placa y anotar marca, modelo, potencia (kW/HP), tensión, frecuencia, corriente nominal (In), velocidad y número de serie.",
+             "Energizador antipercheo: marca, modelo, energía (J) y tensión de salida de placa. Controladores de luz y nidos: marca y modelo.",
+             "Chumaceras: contar las de cada equipo y anotar la referencia grabada (p. ej. UCP 205, UCF 206) y si tienen grasera.",
+             "Silos: cuántos hay, capacidad (t) y a qué galpón alimentan. Motobombas, tableros generales, planta y ATS: ubicación y datos de placa.",
+             "Levante (módulos 1 y 5): tipo y marca de comedero, bebedero, iluminación y si tiene antipercheo. Producción: si hay comederos separados para machos.",
+             "Asignar códigos: SI-LF-nn (silos), MB-LF-nn (motobombas), TG-LF-nn (tableros generales/bombeo), PE-LF-01 (planta), y marcarlos en el equipo con etiqueta.",
+             "Trasladar los datos a la hoja 05 INVENTARIO del PRGMAT01 y crear los equipos en IncubApp; actualizar los ⚠ de los manuales con los datos de placa.",
+         ],
+         seg=["No abrir cajas de conexión para leer placas: si la placa está tapada, pedir apoyo al técnico eléctrico con LOTO.", "Silos y tanques elevados: leer la placa desde el piso; subir solo con permiso de alturas."],
+         herr=["Celular con cámara", "Hoja LEVANTAMIENTO impresa", "Etiquetas y marcador indeleble", "Linterna"]),
+    # ───────────────────────── ALIMENTACIÓN — PRODUCCIÓN ─────────────────────────
+    dict(code="LF-ALI-01", system="Alimentación", eq_class="Comedero de canal y cadena + tolvas (Big Herdsman)",
+         equipos=PROD, desc="Ronda del primer reparto: nivel de silo, llenado de tolvas, arranque de la cadena, recorrido completo del canal y retorno a la tolva; sin saltos de cadena, ruidos ni derrames.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.2, resp="Operario galponero",
+         crit="El alimento llega al final del circuito en el tiempo de reparto del programa; cadena sin saltos; sin derrame ni canal vacío.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="LF-001", manual="MAN-LF-03 §6 y §8.1",
+         pasos=[
+             "Antes del reparto: mirar el indicador de nivel del silo y anotar si queda menos de un día de alimento.",
+             "Verificar que las tolvas estén llenas y que el transportador silo-tolva se haya detenido por el sensor de nivel (no debe seguir girando con la tolva llena).",
+             "Al arrancar el reparto, caminar el circuito: la cadena corre continua, sin saltos ni golpes en las esquinas, y la capa de alimento es pareja en todo el canal.",
+             "Cronometrar cuánto tarda el alimento en llegar al final del circuito y comparar con el tiempo del programa de alimentación del lote.",
+             "Revisar que no haya alimento derramado bajo las esquinas, uniones de canal o la tolva, ni aves atrapadas en las rejillas.",
+             "Cualquier anomalía (ruido, cadena floja, canal vacío, motor caliente): parar el reparto solo si hay riesgo para las aves y reportar en IncubApp como solicitud de mantenimiento (FOMAT06).",
+         ],
+         seg=["No tocar la cadena ni las ruedas de esquina con el sistema en marcha: riesgo de atrapamiento.", "No retirar guardas de la unidad motriz."],
+         herr=["Celular con IncubApp", "Cronómetro (celular)"]),
+    dict(code="LF-ALI-02", system="Alimentación", eq_class="Comedero de canal y cadena + tolvas (Big Herdsman)",
+         equipos=PROD, desc="Revisar unidad motriz (temperatura, ruido), recorrido disponible del tensor, ruedas de esquina y uniones del canal; limpiar alimento apelmazado en tolvas y esquinas; probar el sensor de nivel de la tolva.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.5, resp="Aux. mantenimiento",
+         crit="Tensor con recorrido disponible; esquinas giran libres; tolva sin alimento apelmazado; el sensor detiene el llenado.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="Todos los galpones cada semana", reemplaza="LF-001", manual="MAN-LF-03 §8.2",
+         pasos=[
+             "Con el sistema detenido entre repartos y bloqueado (LOTO), abrir la tapa de inspección de la unidad motriz.",
+             "Verificar el recorrido que le queda al tensor de cadena: si está a menos de un tercio de su recorrido, programar acortar cadena (tarea trimestral LF-ALI-04).",
+             "Girar a mano cada rueda de esquina: debe girar libre, sin juego ni ruido de rodamiento.",
+             "Revisar uniones de canal (empalmes) y soportes: sin desalineación ni bordes levantados que hagan saltar la cadena.",
+             "Retirar alimento apelmazado o húmedo de las esquinas de la tolva y del fondo de los canales; desecharlo fuera del galpón (bioseguridad).",
+             "Probar el sensor de nivel de la tolva: cubrirlo con alimento o accionarlo manualmente y comprobar que el transportador silo-tolva se detiene.",
+             "Retirar el bloqueo, arrancar en vacío 1 minuto y escuchar el motorreductor (sin golpes ni chillido).",
+         ],
+         seg=[LOTO, SIN_AVES_CADENA],
+         herr=["Candado y tarjeta LOTO", "Llaves mixtas", "Linterna", "Espátula plástica", "Bolsa para residuos"]),
+    dict(code="LF-ALI-03", system="Alimentación", eq_class="Comedero de canal y cadena + tolvas (Big Herdsman)",
+         equipos=PROD, desc="Medir amperaje del motorreductor de la cadena y del transportador silo-tolva contra placa; verificar guardamotor y pasador de seguridad (pin fusible) de la rueda motriz; medir elongación de la cadena y desgaste de las ruedas de esquina.",
+         tipo="Predictivo", freq="Mensual", parada="Sí", dur=0.6, resp="Téc. mantenimiento",
+         crit="Corriente ≤ In de placa (diferencia entre fases ≤ 10 %); guardamotor ajustado a In; pin de seguridad original; elongación de cadena dentro del límite del manual.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-002", manual="MAN-LF-03 §8.3",
+         pasos=[
+             "Si la placa del motor aún no está en la hoja 05, fotografiarla y registrarla (LF-100). Con la línea trabajando en un reparto, medir la corriente de las tres fases del motor de la cadena y del motor del transportador silo-tolva con pinza amperimétrica. Anotar valores y la In de placa.",
+             "Verificar que el guardamotor/relé térmico esté ajustado a la In de placa (no por encima).",
+             "Detener y bloquear (LOTO). Revisar el pasador de seguridad (pin fusible) de la rueda motriz: debe ser el original del fabricante; nunca reemplazarlo por un perno de acero.",
+             "Medir la elongación de la cadena: tomar 10 eslabones tensados y comparar contra la medida nueva del manual; registrar el % de alargamiento.",
+             "Revisar desgaste de ruedas de esquina y del fondo del canal (marcas de roce brillantes indican cadena montada o desalineada).",
+             "Registrar todas las mediciones en la OT para ver la tendencia mes a mes.",
+         ],
+         seg=[LOTO, "La medición de corriente se hace con el tablero abierto y energizado: solo personal calificado, con guantes dieléctricos y gafas."],
+         herr=["Pinza amperimétrica", "Destornillador aislado", "Flexómetro o pie de rey", "Guantes dieléctricos", "Candado y tarjeta LOTO"]),
+    dict(code="LF-ALI-04", system="Alimentación", eq_class="Comedero de canal y cadena + tolvas (Big Herdsman)",
+         equipos=PROD, desc="Revisar el reductor (nivel y fuga de aceite); ajustar tensión de la cadena y acortarla si el tensor llegó al límite; revisar nivelación y altura del canal y estado de los cables del sistema de elevación.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.0, resp="Téc. mantenimiento",
+         crit="Sin fuga de aceite; nivel en la mirilla; tensión de cadena según manual; canal nivelado a la altura del programa; cables de elevación sin deshilache.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-003", manual="MAN-LF-03 §8.4 y §9",
+         pasos=[
+             "Detener y bloquear (LOTO).",
+             "Revisar el nivel de aceite del reductor en la mirilla o tapón de nivel; completar con el aceite indicado en la placa del reductor. Limpiar y revisar retenedores si hay fuga.",
+             "Las chumaceras y rodamientos se lubrican en la tarea de chumaceras (LF-CHU-02), en la misma semana.",
+             "Ajustar la tensión de la cadena con el tensor según el manual. Si el tensor está al final de su recorrido, cortar el tramo de cadena indicado en el manual y volver a unir con el eslabón de unión.",
+             "Verificar la altura del canal respecto al lomo de las aves según el programa del lote, y que esté nivelado en toda la longitud (sin tramos colgados).",
+             "Inspeccionar cables, poleas y el malacate (winche) de elevación: cable sin hilos rotos, grapas apretadas, freno del malacate operativo.",
+             "Retirar el bloqueo y hacer un reparto de prueba completo.",
+         ],
+         seg=[LOTO, SIN_AVES_CADENA, "Trabajo sobre escalera: tres puntos de apoyo; si supera 2 m aplicar procedimiento de trabajo en alturas (Res. 4272/2021)."],
+         herr=["Grasera y grasa según manual", "Aceite para reductor según placa", "Llaves", "Herramienta de unión de cadena", "Nivel", "Candado y tarjeta LOTO"]),
+    dict(code="LF-ALI-05", system="Alimentación", eq_class="Silos de alimento",
+         equipos=SILOS, desc="Inspección externa del silo: tapa superior cerrada y sellada, escalera y guarda, anclajes, corrosión, condensación, mirilla; verificar que no haya alimento apelmazado y que se respete la rotación de llenado.",
+         tipo="Preventivo", freq="Mensual", parada="No", dur=0.3, resp="Aux. mantenimiento",
+         crit="Tapa cerrada y hermética; sin entrada de agua ni vectores; sin alimento apelmazado; anclajes completos.",
+         sust=ICA_BIO, evid="OT preventiva", cs=True, bio=True, rot="Todos los silos · un módulo por semana", reemplaza="LF-005", manual="MAN-LF-03 §7",
+         pasos=[
+             "Desde el piso, verificar con binoculares o fotografía que la tapa superior esté cerrada y su cable de apertura asegurado.",
+             "Revisar la escalera, su guarda y la plataforma: peldaños completos, sin corrosión que comprometa la estructura.",
+             "Revisar pernos de anclaje de las patas, soldaduras y riostras: sin pernos faltantes ni fisuras.",
+             "Mirar por la mirilla el nivel de alimento y la presencia de condensación o costra; golpear suavemente el cono con mazo de caucho: un sonido apagado en zona sin alimento indica costra pegada.",
+             "Verificar el registro de llenados (fecha y proveedor) y que no se mezcle alimento viejo con nuevo por mucho tiempo.",
+             "Reportar cualquier hallazgo en IncubApp (FOMAT06).",
+         ],
+         seg=["No subir al silo para esta inspección. Subir solo con permiso de trabajo en alturas (Res. 4272/2021) y arnés anclado a línea de vida.", "Nunca ingresar al silo: es espacio confinado (Res. 0491/2020)."],
+         herr=["Binoculares o celular con zoom", "Mazo de caucho", "Linterna"]),
+    dict(code="LF-ALI-06", system="Alimentación", eq_class="Silos de alimento",
+         equipos=SILOS, desc="Inspección estructural del silo y del transportador de descarga (sinfín flexible): corrosión, soldaduras, anclajes, sellos de tapa; amperaje del motor del sinfín, desgaste de tubo y codos, bota y sensor de fin de línea.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.5, resp="Téc. mantenimiento",
+         crit="Sin corrosión activa ni deformación; sellos herméticos; corriente del motor ≤ In; tubo sin perforaciones; sensor de fin de línea operativo.",
+         sust=ICA_BIO, evid="OT preventiva", cs=True, bio=True, rot="Por módulo (3 + 2 lotes)", reemplaza="LF-005", manual="MAN-LF-03 §7 y §8.5",
+         pasos=[
+             "Con permiso de trabajo en alturas, subir y revisar la tapa superior, su empaque y el mecanismo de apertura; cambiar empaque si está cuarteado.",
+             "Revisar soldaduras, tornillería de las láminas y riostras; marcar puntos de corrosión para tratamiento (lija + anticorrosivo galvanizado en frío).",
+             "En la bota (salida inferior): revisar la compuerta de corte, el sello y que no haya fuga de alimento.",
+             "Medir la corriente del motor del sinfín de descarga con carga; comparar con placa.",
+             "Revisar el tubo del sinfín, codos y soportes: sin perforación, sin roce del espiral (ruido metálico), soportes completos.",
+             "Probar el sensor de fin de línea (o de nivel de tolva) y el temporizador de seguridad que apaga el sinfín si gira en vacío.",
+         ],
+         seg=["Trabajo en alturas: permiso, arnés, línea de vida, persona de apoyo en tierra (Res. 4272/2021).", "Nunca ingresar al silo: espacio confinado (Res. 0491/2020).", LOTO],
+         herr=["Equipo de trabajo en alturas", "Pinza amperimétrica", "Llaves", "Lija y galvanizado en frío", "Empaque de tapa de repuesto"]),
+    dict(code="LF-ALI-07", system="Alimentación", eq_class="Silos de alimento",
+         equipos=SILOS, desc="Limpieza total del silo vacío: retirar costras y residuos desde el exterior, limpiar bota y sinfín, desinfectar/fumigar según protocolo de bioseguridad; secar antes de volver a llenar.",
+         tipo="Bioseguridad", freq="Por vacío sanitario (≈ semestral)", parada="Sí", dur=3.0, resp="Aux. mantenimiento",
+         crit="Silo sin residuos de alimento, costras ni hongos visibles; seco antes del llenado; registro de producto desinfectante y concentración.",
+         sust=ICA_BIO, evid="Registro de lavado", cs=True, bio=True, rot="Al vaciar el silo / entre lotes", reemplaza="(nueva)", manual="MAN-LF-03 §10",
+         pasos=[
+             "Coordinar con Producción para dejar el silo vacío (no pedir alimento).",
+             "Abrir la compuerta de la bota y retirar el alimento residual; desecharlo fuera del área de aves.",
+             "Desde la tapa superior (con permiso de alturas) o desde la bota, desprender costras con varilla o raspador de mango largo. NO ingresar al silo.",
+             "Desmontar la tapa de inspección del sinfín de descarga y retirar residuos.",
+             "Aplicar el desinfectante o fumigante definido por Bioseguridad, con la concentración y el tiempo de contacto de su ficha técnica; registrar producto, lote y concentración.",
+             "Dejar ventilar y secar completamente; verificar que no queden olores ni humedad antes de autorizar el llenado.",
+         ],
+         seg=["Espacio confinado: está prohibido ingresar al silo sin permiso, medición de atmósfera, vigía y plan de rescate (Res. 0491/2020).", "Fumigantes: EPP según la hoja de seguridad del producto (respirador, gafas, guantes)."],
+         herr=["Raspador de mango largo", "Equipo de trabajo en alturas", "Desinfectante/fumigante del protocolo", "EPP químico"]),
+    dict(code="LF-ALI-08", system="Alimentación", eq_class="Comedero de canal y cadena + tolvas (Big Herdsman)",
+         equipos=PROD, desc="Overhaul de la línea en el vacío sanitario: cambio de tramos de cadena y ruedas de esquina según desgaste, rodamientos, revisión del reductor; limpieza en seco, lavado y desinfección de canales y tolvas.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=5.0, resp="Téc. mantenimiento",
+         crit="Cadena y esquinas dentro de tolerancia de desgaste; acta de overhaul; canal y tolvas limpios y desinfectados (lista de chequeo de bioseguridad).",
+         sust=EMP + " · " + ICA, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="LF-004", manual="MAN-LF-03 §9 y §10",
+         pasos=[
+             "Bloquear (LOTO). Vaciar tolvas y canales: hacer correr la cadena con la tolva cerrada hasta que no salga alimento, luego barrer y aspirar.",
+             "Revisar cada tramo de cadena y cada rueda de esquina; cambiar los que superen el límite de desgaste del manual.",
+             "Las chumaceras se cambian por condición en LF-CHU-03; cambiar aceite del reductor si cumple horas o si está oscuro/con agua.",
+             "Revisar el fondo del canal y las rejillas anti-desperdicio: reemplazar tramos perforados o deformados.",
+             "Lavar con agua a presión moderada y detergente, enjuagar, desinfectar con el producto del protocolo y dejar secar. Proteger motor y tablero del agua (bolsa plástica).",
+             "Rearmar, tensar la cadena, lubricar y hacer prueba con alimento antes del ingreso del lote.",
+         ],
+         seg=[LOTO, "Hidrolavado: no dirigir el chorro a motores, cajas eléctricas ni sensores."],
+         herr=["Repuestos de cadena y esquinas", "Rodamientos", "Aceite y grasa según manual", "Hidrolavadora", "Detergente y desinfectante del protocolo"]),
+
+    # ───────────────────────── ALIMENTACIÓN — LEVANTE ─────────────────────────
+    dict(code="LF-ALI-09", system="Alimentación", eq_class="Comedero de levante (tipo y marca por confirmar)",
+         equipos=LEV, desc="Ronda del reparto: llenado completo de los comederos, sensor de fin de línea, sin derrames ni atascos; altura del comedero según edad.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.2, resp="Operario galponero",
+         crit="Reparto completo en el tiempo del programa; sin atasco; altura acorde a la edad del lote.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="LF-001", manual="MAN-LF-03 (aplicación general — levante por confirmar)",
+         pasos=[
+             "Verificar nivel del silo y llenado de la tolva de la línea.",
+             "Al arrancar, recorrer la línea: todos los comederos se llenan y el sensor de fin de línea detiene el motor.",
+             "Revisar derrames, comederos rotos o descolgados y la altura respecto al lomo de las aves.",
+             "Reportar anomalías en IncubApp (FOMAT06).",
+         ],
+         seg=["No meter las manos en la línea en movimiento."], herr=["Celular con IncubApp"]),
+    dict(code="LF-ALI-10", system="Alimentación", eq_class="Comedero de levante (tipo y marca por confirmar)",
+         equipos=LEV, desc="Medir amperaje de los motores de la línea y del transportador; probar sensores de nivel; lubricar y revisar reductor, acoples y sistema de elevación.",
+         tipo="Preventivo", freq="Mensual", parada="Sí", dur=0.6, resp="Téc. mantenimiento",
+         crit="Corriente ≤ In; sensores detienen el motor; sin fuga en reductor; cables de elevación en buen estado.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 2 lotes de 6 (por módulo)", reemplaza="LF-002 / LF-003", manual="MAN-LF-03 §8 (adaptar al equipo de levante)",
+         pasos=[
+             "Medir corriente de los motores con carga y comparar con placa.",
+             "Bloquear (LOTO). Probar los sensores de nivel/fin de línea.",
+             "Revisar nivel de aceite del reductor, acoples y engrasar rodamientos.",
+             "Revisar cables, poleas y malacate de elevación.",
+             "Arrancar y verificar un reparto completo.",
+         ],
+         seg=[LOTO], herr=["Pinza amperimétrica", "Grasera", "Llaves", "Candado y tarjeta LOTO"]),
+    dict(code="LF-ALI-11", system="Alimentación", eq_class="Comedero de levante (tipo y marca por confirmar)",
+         equipos=LEV, desc="Overhaul y lavado-desinfección de la línea de levante en el vacío sanitario: cambio de piezas desgastadas, limpieza en seco, lavado y desinfección.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=4.0, resp="Téc. mantenimiento",
+         crit="Acta de overhaul; línea limpia y desinfectada antes del ingreso del lote.",
+         sust=EMP + " · " + ICA_BIO, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="LF-004", manual="MAN-LF-03 §9 y §10 (adaptar)",
+         pasos=[
+             "Vaciar la línea y bloquear (LOTO).",
+             "Cambiar las piezas desgastadas (sinfín, comederos, rodamientos) según inspección.",
+             "Limpieza en seco, lavado, desinfección con el producto del protocolo y secado.",
+             "Prueba con alimento antes del ingreso del lote.",
+         ],
+         seg=[LOTO], herr=["Repuestos", "Hidrolavadora", "Desinfectante del protocolo"]),
+
+    # ───────────────────────── RECOLECCIÓN DE HUEVO ─────────────────────────
+    dict(code="LF-REC-01", system="Recolección de huevo", eq_class="Banda recolectora de huevo (Big Herdsman)",
+         equipos=PROD, desc="Antes y durante cada recolección: banda limpia, arranque, recorrido y parada en el ciclo programado; el huevo llega a la mesa sin choques; sin huevo atascado ni roto en la banda.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.3, resp="Operario galponero",
+         crit="Banda cumple el ciclo sin atasco; % de huevo roto/fisurado dentro de la meta de Producción; banda sin restos de huevo al terminar.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="LF-014", manual="MAN-LF-01 §6 y §8.1",
+         pasos=[
+             "Antes de arrancar: mirar la banda en la mesa de recolección; debe estar limpia, sin huevo roto ni heces.",
+             "Arrancar la banda desde el tablero/controlador y caminar el galpón: la banda avanza pareja, centrada, sin saltos ni frenadas.",
+             "En la mesa: los huevos llegan sin chocar entre sí; si se acumulan, bajar la velocidad o recoger más seguido.",
+             "Si aparece huevo roto en la banda: detener, retirar el huevo y limpiar la zona con paño humedecido en desinfectante antes de seguir (evita contaminar el resto del huevo).",
+             "Al final de la recolección, detener la banda y dejarla limpia.",
+             "Registrar en la ronda y reportar fallas (FOMAT06).",
+         ],
+         seg=["No limpiar ni recoger huevo de la banda en movimiento cerca de los rodillos de tracción: riesgo de atrapamiento.", "Conocer la ubicación de la parada de emergencia."],
+         herr=["Paño y desinfectante aprobado", "Celular con IncubApp"]),
+    dict(code="LF-REC-02", system="Recolección de huevo", eq_class="Banda recolectora de huevo (Big Herdsman)",
+         equipos=PROD, desc="Revisar tensión y alineación de la banda en los rodillos, limpiar rodillos de tracción y raspadores; revisar el amortiguador (buffer) de huevo, la transición nido-banda y la mesa de recolección.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.6, resp="Aux. mantenimiento",
+         crit="Banda centrada (no roza la estructura); rodillos limpios; raspadores en contacto; transición sin escalones que golpeen el huevo.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="Todos los galpones cada semana", reemplaza="LF-015", manual="MAN-LF-01 §8.2",
+         pasos=[
+             "Con la banda detenida y bloqueada (LOTO), revisar los rodillos de tracción y de retorno: retirar restos de huevo, plumas y suciedad.",
+             "Revisar los raspadores/limpiadores de banda: deben apoyar parejo sobre la banda; ajustar o cambiar si están gastados.",
+             "Retirar el bloqueo y hacer correr la banda: observar en cabeza y cola que vaya centrada. Si se desvía, corregir con el tornillo tensor del lado hacia el que se va (¼ de vuelta a la vez) y volver a observar.",
+             "Verificar la tensión: la banda no debe patinar en el rodillo de tracción con carga, ni estar tan tensa que deforme el canal.",
+             "Revisar la transición nido-banda y el amortiguador (cortina/buffer) a la entrada de la mesa: sin bordes, tornillos ni escalones que golpeen el huevo.",
+             "Revisar la mesa de recolección: superficie limpia, rodillos o cepillos completos.",
+         ],
+         seg=[LOTO, "Ajustar tensores solo con la banda detenida; observar el comportamiento con la banda en marcha desde fuera de los puntos de atrapamiento."],
+         herr=["Candado y tarjeta LOTO", "Llaves", "Cepillo y paño", "Desinfectante aprobado"]),
+    dict(code="LF-REC-03", system="Recolección de huevo", eq_class="Banda recolectora de huevo (Big Herdsman)",
+         equipos=PROD, desc="Medir amperaje del motorreductor de la banda (y del elevador/transportador transversal si existe) contra placa; revisar cadena y piñones de la caja de transmisión, acoples, guardas y parada de emergencia.",
+         tipo="Predictivo", freq="Mensual", parada="Sí", dur=0.7, resp="Téc. mantenimiento",
+         crit="Corriente ≤ In; cadena de transmisión sin juego excesivo; guardas instaladas; la parada de emergencia detiene la banda.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-016", manual="MAN-LF-01 §8.3",
+         pasos=[
+             "Con la banda trabajando, medir la corriente en las tres fases del motor y comparar con placa.",
+             "Probar la parada de emergencia: debe detener la banda de inmediato y no rearrancar sola al soltarla.",
+             "Detener y bloquear (LOTO). Abrir la caja de transmisión: revisar desgaste de piñones (dientes en punta) y elongación de la cadena.",
+             "Revisar acoples, chavetas y prisioneros del eje de tracción.",
+             "Verificar que todas las guardas estén instaladas y aseguradas.",
+             "Registrar mediciones y hallazgos en la OT.",
+         ],
+         seg=[LOTO, "Medición eléctrica: solo personal calificado, con EPP dieléctrico."],
+         herr=["Pinza amperimétrica", "Llaves", "Linterna", "Candado y tarjeta LOTO"]),
+    dict(code="LF-REC-04", system="Recolección de huevo", eq_class="Banda recolectora de huevo (Big Herdsman)",
+         equipos=PROD, desc="Lubricar la cadena de transmisión, revisar nivel de aceite del reductor, ajustar tensores y revisar los empalmes de la banda.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.0, resp="Téc. mantenimiento",
+         crit="Sin juego; lubricación según manual; empalmes íntegros (sin hilos sueltos ni grapas levantadas).",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-017", manual="MAN-LF-01 §8.4",
+         pasos=[
+             "Detener y bloquear (LOTO).",
+             "Lubricar la cadena de transmisión con el lubricante del manual (grado alimenticio si puede tener contacto con el huevo).",
+             "Los rodamientos de los rodillos (chumaceras) se lubrican en LF-CHU-02, en la misma semana.",
+             "Revisar nivel de aceite del reductor; completar con el aceite de la placa.",
+             "Revisar a lo largo del galpón los empalmes de la banda: sin hilos sueltos, sin grapas levantadas; rehacer el empalme si está abierto.",
+             "Ajustar tensión y alinear; prueba de funcionamiento de un ciclo completo.",
+         ],
+         seg=[LOTO], herr=["Grasera y grasa grado alimenticio (H1)", "Aceite según placa", "Kit de empalme de banda", "Candado y tarjeta LOTO"]),
+    dict(code="LF-REC-05", system="Recolección de huevo", eq_class="Banda recolectora de huevo (Big Herdsman)",
+         equipos=PROD, desc="Overhaul en el vacío sanitario: lavar y desinfectar la banda (o cambiarla si está deshilachada), cambio de rodamientos y cadena de transmisión según desgaste, revisión estructural del canal de la banda.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=4.0, resp="Téc. mantenimiento",
+         crit="Acta de overhaul; banda limpia, sin deshilache; rodillos y cadena dentro de tolerancia; lista de chequeo de bioseguridad conforme.",
+         sust=EMP + " · " + ICA_BIO, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="LF-018", manual="MAN-LF-01 §9 y §10",
+         pasos=[
+             "Bloquear (LOTO). Soltar el tensor y revisar la banda en toda su longitud.",
+             "Lavar la banda (con lavador de banda si existe, o con cepillo, detergente y agua), enjuagar y desinfectar; dejar secar antes de tensar.",
+             "Cambiar la banda si presenta deshilache, cortes o encogimiento que impidan alinearla.",
+             "Cambiar piñones y cadena de transmisión desgastados (chumaceras: LF-CHU-03).",
+             "Revisar el canal de la banda bajo los nidos: soportes, uniones, bordes que puedan cortar la banda.",
+             "Rearmar, tensar, alinear y hacer prueba de un ciclo completo.",
+         ],
+         seg=[LOTO, "Hidrolavado: proteger motores y tableros."],
+         herr=["Banda de repuesto y kit de empalme", "Rodamientos", "Hidrolavadora", "Detergente y desinfectante del protocolo"]),
+
+    # ───────────────────────── NIDOS ─────────────────────────
+    dict(code="LF-NID-01", system="Nidos", eq_class="Sistema de apertura y cierre de nidos (Big Herdsman)",
+         equipos=PROD, desc="Verificar que la apertura y el cierre/expulsión ocurran en el horario programado; ningún nido trabado; ninguna ave dentro al cierre; esterillas en su sitio; el huevo rueda a la banda.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.3, resp="Operario galponero",
+         crit="Apertura y cierre completos en el horario programado; ningún nido trabado; ninguna ave dentro al cierre; sin huevo retenido en el nido.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="LF-019", manual="MAN-LF-02 §6 y §8.1",
+         pasos=[
+             "En la mañana, a la hora de apertura: recorrer el galpón y verificar que todos los nidos abrieron completamente.",
+             "Revisar esterillas: completas, en su sitio y sin huevo retenido o roto.",
+             "En la tarde, a la hora de cierre: verificar que el piso del nido se inclinó/expulsó y que ninguna ave quedó dentro (aves dentro de noche ensucian el nido y el huevo).",
+             "Si un tramo no abre o no cierra: no forzarlo a mano; reportar de inmediato (FOMAT06).",
+             "Registrar en la ronda diaria.",
+         ],
+         seg=["No meter las manos en el mecanismo durante la apertura o cierre."], herr=["Celular con IncubApp"]),
+    dict(code="LF-NID-02", system="Nidos", eq_class="Sistema de apertura y cierre de nidos (Big Herdsman)",
+         equipos=PROD, desc="Revisar el accionamiento (motorreductor, eje, cable o cadena, poleas y tensores) y la sincronía entre módulos de nido; limpiar esterillas y retirar plumas, heces y huevo atascado.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.7, resp="Aux. mantenimiento",
+         crit="Apertura uniforme en todos los módulos; cables sin deshilache; esterillas limpias y completas.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="Todos los galpones cada semana", reemplaza="LF-020", manual="MAN-LF-02 §8.2",
+         pasos=[
+             "Accionar un ciclo manual de apertura y cierre desde el controlador y observar a lo largo del galpón: todos los módulos se mueven a la vez y llegan al final de carrera.",
+             "Bloquear (LOTO). Revisar el cable o la cadena de accionamiento, las poleas y los tensores: sin hilos rotos, sin poleas trabadas, grapas apretadas.",
+             "Revisar uniones del eje entre módulos (acoples, pasadores): sin juego.",
+             "Retirar esterillas sucias, sacudir/cepillar y reponer las faltantes; retirar plumas, heces y huevo roto de los pisos del nido.",
+             "Retirar el bloqueo y dejar el sistema en modo automático. Verificar la hora del controlador.",
+         ],
+         seg=[LOTO], herr=["Candado y tarjeta LOTO", "Llaves", "Cepillo", "Esterillas de repuesto"]),
+    dict(code="LF-NID-03", system="Nidos", eq_class="Sistema de apertura y cierre de nidos (Big Herdsman)",
+         equipos=PROD, desc="Medir amperaje del motorreductor contra placa; verificar finales de carrera, el temporizador/programación del controlador y que la hora se mantenga tras un corte de energía.",
+         tipo="Predictivo", freq="Mensual", parada="Sí", dur=0.6, resp="Téc. mantenimiento",
+         crit="Corriente ≤ In; finales de carrera accionan en la posición correcta y detienen el motor; horario programado conforme al programa de producción.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-021", manual="MAN-LF-02 §8.3",
+         pasos=[
+             "Medir la corriente del motorreductor durante una apertura y un cierre; comparar con placa. Un pico alto indica mecanismo trabado o tensor muy apretado.",
+             "Verificar que cada final de carrera (abierto y cerrado) detiene el motor en la posición correcta; ajustar la leva si se pasa o se queda corto.",
+             "Revisar la programación: hora de apertura y cierre según el programa de producción vigente; corregir la hora del reloj.",
+             "Simular un corte de energía (apagar y encender el breaker del controlador) y comprobar que conserva hora y programa (batería de respaldo).",
+             "Registrar valores y ajustes en la OT.",
+         ],
+         seg=[LOTO, "Medición eléctrica: solo personal calificado, con EPP dieléctrico."],
+         herr=["Pinza amperimétrica", "Destornilladores", "Candado y tarjeta LOTO"]),
+    dict(code="LF-NID-04", system="Nidos", eq_class="Sistema de apertura y cierre de nidos (Big Herdsman)",
+         equipos=PROD, desc="Lubricar cadenas y bisagras; ajustar tensión de cables; revisar estructura, pendiente de los pisos del nido y cortinas.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.2, resp="Téc. mantenimiento",
+         crit="Sin juego ni roce; lubricación según manual; pisos con la pendiente original (el huevo rueda solo); cortinas completas.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="LF-022", manual="MAN-LF-02 §8.4",
+         pasos=[
+             "Bloquear (LOTO).",
+             "Lubricar la cadena del motorreductor y las bisagras del piso/puerta con el lubricante del manual (grado alimenticio). Las chumaceras del eje se lubrican en LF-CHU-02.",
+             "Revisar nivel de aceite del reductor.",
+             "Ajustar la tensión de los cables de accionamiento para que todos los módulos se muevan juntos.",
+             "Verificar la pendiente de los pisos del nido: colocar un huevo en el fondo; debe rodar solo hasta la banda.",
+             "Revisar cortinas de entrada, techos y separadores; reemplazar los dañados.",
+             "Prueba de ciclo completo en manual y dejar en automático.",
+         ],
+         seg=[LOTO], herr=["Grasa grado alimenticio (H1)", "Llaves", "Huevo de prueba", "Candado y tarjeta LOTO"]),
+    dict(code="LF-NID-05", system="Nidos", eq_class="Sistema de apertura y cierre de nidos (Big Herdsman)",
+         equipos=PROD, desc="Overhaul y lavado-desinfección en el vacío sanitario: desmontar y lavar esterillas, lavar y desinfectar nidos; cambiar rodamientos, cadenas, cables y esterillas según desgaste.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=5.0, resp="Téc. mantenimiento",
+         crit="Acta de overhaul; mecanismo dentro de tolerancia; esterillas en estado conforme; lista de chequeo de bioseguridad conforme.",
+         sust=EMP + " · " + ICA_BIO, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="LF-023", manual="MAN-LF-02 §9 y §10",
+         pasos=[
+             "Bloquear (LOTO). Retirar todas las esterillas; lavarlas por inmersión con detergente y desinfectante; secar al sol.",
+             "Limpieza en seco de los nidos (plumas, polvo, heces), luego lavado a baja presión, enjuague y desinfección.",
+             "Revisar y cambiar cadenas, cables, poleas y pasadores desgastados (chumaceras: LF-CHU-03).",
+             "Revisar bisagras, pisos y estructura; enderezar o cambiar piezas deformadas.",
+             "Reinstalar esterillas, lubricar y probar varios ciclos completos antes del ingreso del lote.",
+         ],
+         seg=[LOTO, "Hidrolavado: proteger motor y controlador."],
+         herr=["Esterillas, cables y rodamientos de repuesto", "Hidrolavadora", "Detergente y desinfectante del protocolo"]),
+
+    # ───────────────────────── AGUA ─────────────────────────
+    dict(code="LF-AGU-01", system="Agua", eq_class="Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+         equipos=TODOS, desc="Verificar presión en las columnas (visor) según la edad, ausencia de goteo, cama seca bajo las líneas, altura del niple y lectura del medidor de agua.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.2, resp="Operario galponero",
+         crit="Columna a la altura del programa; cero goteo; cama seca; niple a la altura de la cabeza del ave; consumo dentro de ± 10 % del día anterior.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="LF-006", manual="MAN-LF-04 §6 y §8.1",
+         pasos=[
+             "Leer el medidor de agua del galpón (si lo tiene) y registrar el consumo; una caída o subida mayor al 10 % frente al día anterior se reporta de inmediato al veterinario.",
+             "Revisar el visor/columna de cada regulador: altura según la tabla del programa por edad.",
+             "Caminar las líneas: sin niples goteando, sin cama húmeda debajo, sin vasos (tacitas) rotos.",
+             "Verificar la altura: el ave debe estirarse levemente para alcanzar el niple; ajustar con el malacate si hace falta.",
+             "Reportar fallas (FOMAT06).",
+         ],
+         seg=["No colgarse ni apoyarse en las líneas."], herr=["Celular con IncubApp"]),
+    dict(code="LF-AGU-02", system="Agua", eq_class="Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+         equipos=TODOS, desc="Limpiar filtros de la línea, verificar el dosificador de medicamentos/vitaminas por aforo, purgar el final de las líneas y probar caudal de niples al azar.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.5, resp="Aux. mantenimiento",
+         crit="Filtro limpio; dosificación verificada por aforo (± 5 % del valor ajustado); caudal de niple dentro de la tabla del manual/edad.",
+         sust=ICA_BIO, evid="OT preventiva", cs=True, bio=True, rot="Todos los galpones cada semana", reemplaza="LF-007", manual="MAN-LF-04 §8.2",
+         pasos=[
+             "Cerrar la válvula de entrada, abrir el filtro, lavar el cartucho/malla con agua limpia y cepillo suave; cambiarlo si está roto. Cerrar y purgar el aire.",
+             "Aforo del dosificador: medir el agua que pasa (contador o recipiente) y el producto que aspira el dosificador en el mismo tiempo; calcular el % y comparar con el valor ajustado.",
+             "Abrir la purga del final de cada línea hasta que salga agua clara.",
+             "Probar caudal en 3 niples por línea (inicio, medio, final) con una probeta durante 1 minuto; comparar con la tabla.",
+             "Registrar valores en la OT.",
+         ],
+         seg=["Medicamentos/desinfectantes: guantes y gafas según la hoja de seguridad."],
+         herr=["Llave de filtro", "Cepillo suave", "Probeta graduada", "Cronómetro", "Guantes y gafas"]),
+    dict(code="LF-AGU-03", system="Agua", eq_class="Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+         equipos=TODOS, desc="Verificar y ajustar los reguladores de presión de cabecera y de línea; medir caudal en 10 niples por línea; revisar malacates, cables y nivelación de las líneas.",
+         tipo="Preventivo", freq="Mensual", parada="No", dur=0.6, resp="Téc. mantenimiento",
+         crit="Reguladores responden al ajuste y la columna se estabiliza; caudal de niples dentro de la tabla; diferencia de caudal inicio-final de línea ≤ 20 %; línea nivelada.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="Por módulo (3 + 2 lotes)", reemplaza="(nueva)", manual="MAN-LF-04 §8.3",
+         pasos=[
+             "En cada regulador: girar la perilla un paso arriba y abajo y comprobar que la columna responde y vuelve al valor; si no responde, desarmar y limpiar el diafragma o cambiar el regulador.",
+             "Medir el caudal de 10 niples por línea repartidos a lo largo (probeta, 1 minuto); anotar mínimo, máximo y promedio.",
+             "Cambiar los niples con goteo o caudal fuera de rango.",
+             "Verificar con nivel o manguera de nivel que la línea no tenga pendientes mayores a las del manual (afectan la presión al final).",
+             "Revisar malacates, cables, poleas y grapas del sistema de elevación.",
+         ],
+         seg=["Trabajo sobre escalera: tres puntos de apoyo."],
+         herr=["Probeta graduada", "Cronómetro", "Nivel o manguera de nivel", "Niples y reguladores de repuesto"]),
+    dict(code="LF-AGU-04", system="Agua", eq_class="Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+         equipos=TODOS, desc="Lavado (flushing) y desinfección de las líneas de agua entre lotes: remoción de biofilm, enjuague, cambio de niples dañados y prueba de presión.",
+         tipo="Bioseguridad", freq="Por ciclo (entre lotes)", parada="Sí", dur=1.5, resp="Aux. mantenimiento",
+         crit="Biofilm removido; enjuague sin residual de desinfectante; registro de producto, concentración y tiempo de contacto.",
+         sust=ICA_BIO, evid="Registro de lavado", cs=True, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="LF-008", manual="MAN-LF-04 §10",
+         pasos=[
+             "Poner los reguladores en posición de lavado (flush) y abrir las purgas de los extremos.",
+             "Lavar con agua a alta caudal hasta que salga clara.",
+             "Llenar las líneas con la solución desinfectante del protocolo (producto y concentración de Bioseguridad) y dejarla el tiempo de contacto indicado en la ficha técnica.",
+             "Lavar de nuevo con agua limpia hasta que no quede residual (comprobar con tira reactiva).",
+             "Cambiar niples con goteo, revisar mangueras y uniones, regresar los reguladores a modo normal y ajustar la presión del lote entrante.",
+             "Diligenciar el registro de lavado.",
+         ],
+         seg=["Desinfectantes: EPP según la hoja de seguridad; nunca mezclar productos clorados con ácidos."],
+         herr=["Desinfectante del protocolo", "Tiras reactivas", "Niples de repuesto", "EPP químico"]),
+    # ───────────────────────── TANQUES DE AGUA ─────────────────────────
+    dict(code="LF-TAN-01", system="Agua", eq_class="Tanques de almacenamiento de agua",
+         equipos=TANQUES, desc="Verificar nivel, flotador y válvula de llenado, tapa, rebose, válvulas de salida y ausencia de fugas o de acceso de fauna/vectores.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.3, resp="Aux. mantenimiento",
+         crit="Tapa sellada; sin ingreso de luz ni vectores; flotador corta el llenado; rebose con malla; sin fugas.", sust=ICA_BIO, evid="OT preventiva", cs=True, bio=True, rot="Todos cada semana", reemplaza="LF-009", manual="MAN-LF-06 §5",
+         pasos=["Verificar el nivel y que el flotador o la válvula de llenado corte cuando el tanque está lleno (no debe salir agua por el rebose).", "Revisar tapa: cerrada, asegurada, sin rendijas que dejen entrar luz, insectos o roedores.", "Revisar el tubo de rebose y el respiradero: con malla en la salida.", "Abrir y cerrar las válvulas de salida y de lavado: sin fugas, sin manijas trabadas.", "Revisar alrededores del tanque: sin agua estancada ni vegetación alta."],
+         seg=["Tanques elevados: trabajo en alturas (Res. 4272/2021)."], herr=["Linterna"]),
+    dict(code="LF-TAN-02", system="Agua", eq_class="Tanques de almacenamiento de agua",
+         equipos=TANQUES, desc="Verificar cloración residual y registrar; ajustar dosificación.",
+         tipo="Bioseguridad", freq="Mensual", parada="No", dur=0.4, resp="Aux. mantenimiento",
+         crit="Cloro residual libre dentro del rango definido por el protocolo sanitario.", sust=ICA_BIO, evid="Registro sanitario", cs=True, bio=True, rot="Todos cada mes", reemplaza="LF-010", manual="MAN-LF-06 §5",
+         pasos=["Tomar muestra a la salida del tanque y al final de una línea de niples.", "Medir cloro libre residual con kit (DPD) y pH.", "Registrar y ajustar la dosificación si está fuera de rango."],
+         seg=["Guantes y gafas al manipular cloro."], herr=["Kit de cloro y pH (DPD)"]),
+    dict(code="LF-TAN-03", system="Agua", eq_class="Tanques de almacenamiento de agua",
+         equipos=TANQUES, desc="Lavado y desinfección completa del tanque.",
+         tipo="Bioseguridad", freq="Trimestral", parada="Sí", dur=2.0, resp="Aux. mantenimiento",
+         crit="Sin sedimento ni biofilm; acta de lavado.", sust=ICA_BIO, evid="Registro de lavado", cs=True, bio=True, rot="Escalonado", reemplaza="LF-011", manual="MAN-LF-06 §5",
+         pasos=["Garantizar agua para las aves desde otro tanque durante el lavado.", "Vaciar, retirar sedimentos, cepillar paredes y fondo.", "Desinfectar con la solución del protocolo y respetar el tiempo de contacto.", "Enjuagar, llenar y verificar cloro residual."],
+         seg=["Tanques en los que haya que ingresar: espacio confinado (Res. 0491/2020)."], herr=["Cepillos", "Desinfectante del protocolo"]),
+    dict(code="LF-TAN-04", system="Agua", eq_class="Tanques de almacenamiento de agua",
+         equipos=TANQUES, desc="Inspección estructural del tanque y de su base o torre: fisuras, deformación, corrosión, anclajes, escalera, tapa y empaques; tuberías y soportes de entrada y salida.",
+         tipo="Preventivo", freq="Semestral", parada="No", dur=0.8, resp="Téc. mantenimiento",
+         crit="Sin fisuras ni deformación; base y anclajes firmes; sin corrosión activa en torre o escalera; empaques de tapa en buen estado.", sust=BPI + " · " + ICA_BIO, evid="OT preventiva", cs=True, bio=True, rot="Escalonado", reemplaza="(nueva)", manual="MAN-LF-06 §5",
+         pasos=["Revisar las paredes del tanque por fuera: fisuras, abombamiento o manchas de humedad (tanques plásticos: decoloración y cristalización por sol).", "Revisar la base o torre: losa sin fisuras, perfiles sin corrosión, pernos y anclajes completos y apretados.", "Revisar escalera, guarda y plataforma.", "Revisar el empaque y el cierre de la tapa; cambiar el empaque si está cuarteado.", "Revisar tuberías de entrada y salida y sus soportes: sin fugas ni tramos colgados.", "Registrar hallazgos con fotografía."],
+         seg=["Trabajo en alturas en tanques elevados (Res. 4272/2021)."], herr=["Linterna", "Llaves", "Equipo de trabajo en alturas", "Cámara"]),
+    dict(code="LF-TAN-05", system="Agua", eq_class="Tanques de almacenamiento de agua",
+         equipos=TANQUES, desc="Análisis fisicoquímico y microbiológico del agua por laboratorio acreditado.",
+         tipo="Legal", freq="Anual", parada="No", dur=1.0, resp="Laboratorio externo",
+         crit="Resultado conforme a los parámetros de agua para consumo animal.", sust=LEGAL, evid="Informe de laboratorio", cs=False, bio=True, rot="Anual", reemplaza="LF-012", manual="—",
+         pasos=["Programar la toma de muestra con el laboratorio.", "Acompañar la toma (fuente, tanque y final de línea).", "Archivar el informe y tratar las no conformidades."],
+         seg=[], herr=[]),
+
+    # ───────────────────────── MOTOBOMBAS ─────────────────────────
+    dict(code="LF-MOT-01", system="Agua", eq_class="Motobombas de suministro de agua",
+         equipos=MOTOBOMBAS, desc="Ronda de la motobomba: presión en el manómetro dentro del rango, arranque y parada automáticos (presostato o flotador), sin ruido anormal, sin fuga por el sello, sin arranques demasiado seguidos.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.1, resp="Operario galponero",
+         crit="Presión dentro del rango marcado en el manómetro; arranca y para sola; sin goteo por el sello; sin ciclado rápido.", sust=BPI, evid="Ronda diaria IncubApp", cs=True, bio=True, rot="Ronda diaria", reemplaza="LF-013", manual="MAN-LF-06 §6 y §8.1",
+         pasos=["Leer el manómetro: la aguja debe estar entre las marcas de presión mínima y máxima (rango pintado en el manómetro).", "Escuchar la bomba en marcha: ruido de grava o golpeteo = cavitación o rodamiento dañado.", "Mirar bajo la bomba: sin goteo por el sello mecánico ni por las uniones.", "Observar si arranca y para muy seguido (cada pocos segundos): indica tanque hidroneumático sin aire o fuga en la red.", "Reportar (FOMAT06). Si la bomba no da agua: avisar de inmediato; las aves no pueden quedar sin agua."],
+         seg=["No tocar la carcasa del motor: puede estar caliente.", "No abrir la caja de conexiones."], herr=["Celular con IncubApp"]),
+    dict(code="LF-MOT-02", system="Agua", eq_class="Motobombas de suministro de agua",
+         equipos=MOTOBOMBAS, desc="Medir tensión y corriente en las tres fases contra placa; verificar presiones de arranque y parada del presostato y la precarga del tanque hidroneumático; revisar sello mecánico, válvula de pie/cheque, vibración, temperatura y base.",
+         tipo="Predictivo", freq="Mensual", parada="No", dur=0.7, resp="Téc. mantenimiento",
+         crit="Corriente ≤ In de placa y desbalance entre fases ≤ 10 %; tensión dentro de ± 10 % de la nominal; precarga del hidroneumático ≈ 2 psi por debajo de la presión de arranque; sin goteo por el sello; base firme.", sust=BPI, evid="OT preventiva", cs=True, bio=True, rot="Todas cada mes", reemplaza="LF-013", manual="MAN-LF-06 §8.2",
+         pasos=["Con la bomba trabajando, medir tensión entre fases y corriente en cada fase; comparar con la placa y anotar.", "Abrir una llave aguas abajo y anotar la presión a la que ARRANCA la bomba; cerrarla y anotar la presión a la que PARA. Comparar con el ajuste del presostato.", "Si tiene tanque hidroneumático: apagar la bomba (LOTO), vaciar el agua del tanque y medir la presión de aire en la válvula; ajustarla a unos 2 psi por debajo de la presión de arranque.", "Revisar el sello mecánico (goteo), la válvula de pie o cheque (la columna no se debe descebar) y la canastilla de succión.", "Medir la temperatura de la carcasa del motor y de los rodamientos con termómetro infrarrojo; anotar.", "Revisar la base, los pernos de anclaje y que no haya vibración fuera de lo normal.", "Registrar valores en la OT para ver la tendencia."],
+         seg=[LOTO, "Mediciones eléctricas: personal calificado con EPP dieléctrico."], herr=["Pinza amperimétrica", "Multímetro", "Medidor de presión de llantas (precarga)", "Termómetro infrarrojo"]),
+    dict(code="LF-MOT-03", system="Agua", eq_class="Motobombas de suministro de agua",
+         equipos=MOTOBOMBAS, desc="Limpiar canastilla y filtro de succión, revisar alineación del acople (bombas con acople), apretar bornes de la caja de conexiones, lubricar rodamientos con grasera y alternar o probar la bomba de respaldo.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.0, resp="Téc. mantenimiento",
+         crit="Succión limpia; acople alineado; bornes firmes; bomba de respaldo arranca y entrega presión.", sust=BPI, evid="OT preventiva", cs=True, bio=True, rot="Escalonado", reemplaza="(nueva)", manual="MAN-LF-06 §8.3",
+         pasos=["Garantizar el agua de las aves con la bomba de respaldo o con el tanque elevado durante el trabajo.", "Bloquear (LOTO). Limpiar la canastilla de la válvula de pie y el filtro de succión.", "Bombas con acople: revisar la alineación con regla o galgas y el estado del elemento elástico.", "Abrir la caja de conexiones del motor: bornes apretados, sin señales de calentamiento ni humedad; cerrar con su empaque.", "Si el motor o la bomba tienen grasera: lubricar con la grasa indicada (1 a 2 bombazos); los rodamientos sellados no se lubrican.", "Cebar, arrancar y verificar presión. Probar la bomba de respaldo y dejar alternadas las bombas si el sistema lo permite."],
+         seg=[LOTO], herr=["Candado y tarjeta LOTO", "Llaves", "Regla y galgas", "Grasera"]),
+    dict(code="LF-MOT-04", system="Agua", eq_class="Motobombas de suministro de agua",
+         equipos=MOTOBOMBAS, desc="Mantenimiento mayor: megado del motor, revisión de impulsor y voluta, cambio de sello mecánico y rodamientos por condición, verificación del manómetro y del presostato.",
+         tipo="Preventivo mayor", freq="Anual", parada="Sí", dur=4.0, resp="Téc. mantenimiento",
+         crit="Aislamiento del motor ≥ 1 MΩ a 500 V; impulsor sin desgaste ni cavitación severa; sello y rodamientos nuevos o en buen estado; manómetro verificado; acta en hoja de vida.", sust=BPI, evid="Hoja de vida", cs=True, bio=True, rot="Escalonado", reemplaza="(nueva)", manual="MAN-LF-06 §9",
+         pasos=["Garantizar agua de respaldo. Bloquear (LOTO) y desconectar el motor.", "Megar el motor (fases contra tierra) a 500 V y anotar el valor.", "Desarmar la bomba: revisar impulsor, voluta y anillos de desgaste.", "Cambiar el sello mecánico y los rodamientos si presentan desgaste, ruido o goteo (o según horas del fabricante).", "Verificar el manómetro contra uno patrón y el ajuste del presostato.", "Armar, cebar, arrancar y medir corriente y presión. Registrar en la hoja de vida (FOMAT03)."],
+         seg=[LOTO, "Megado: solo personal calificado; descargar el motor después de medir."], herr=["Megóhmetro", "Kit de sello mecánico", "Rodamientos", "Extractor", "Manómetro patrón"]),
+
+    # ───────────────────────── ANTIPERCHEO ─────────────────────────
+    dict(code="LF-APC-01", system="Antipercheo", eq_class="Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
+         equipos=PROD, desc="Verificar que el energizador esté encendido y pulsando, que no haya aves posadas sobre las líneas de comedero y bebedero y que nada toque el cable electrificado.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.1, resp="Operario galponero",
+         crit="Indicador del energizador pulsando; ninguna ave posada sobre las líneas; cable libre de contactos.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=True, rot="Ronda diaria", reemplaza="(nueva)", manual="MAN-LF-04 §11 y §13.1",
+         pasos=[
+             "Mirar el indicador (luz/pantalla) del energizador: debe pulsar aproximadamente una vez por segundo.",
+             "Caminar las líneas: si hay aves posadas sobre el comedero o el bebedero, el cable no está electrificado en ese tramo.",
+             "Buscar objetos, plumas acumuladas, cama o cables que toquen el alambre electrificado (lo descargan a tierra).",
+             "Reportar fallas (FOMAT06).",
+         ],
+         seg=["No tocar el cable electrificado. Aunque el impulso es de baja energía, produce descarga dolorosa."], herr=["Celular con IncubApp"]),
+    dict(code="LF-APC-02", system="Antipercheo", eq_class="Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
+         equipos=PROD, desc="Medir la tensión del cable con probador de cerca eléctrica al inicio y al final de cada línea; revisar aisladores, tensión del alambre, empalmes y que no toque partes metálicas.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.4, resp="Aux. mantenimiento",
+         crit="Tensión al final de cada línea ≥ 3 kV (estándar adoptado por la empresa; si la placa o el manual del energizador exigen más, prevalece ese valor); aisladores completos; alambre tenso sin contacto con metal.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="Todos los galpones cada semana", reemplaza="(nueva)", manual="MAN-LF-04 §13.2",
+         pasos=[
+             "Con el probador de cerca eléctrica, medir la tensión en la salida del energizador y al final de cada línea. Anotar los valores.",
+             "Si al final de la línea la tensión cae mucho frente a la salida, buscar la fuga: aislador roto, alambre tocando el canal, el niple o la estructura, o vegetación/cama en contacto.",
+             "Revisar aisladores: sin fisuras ni suciedad conductora; cambiar los rotos.",
+             "Revisar tensión del alambre y empalmes (sin nudos sueltos ni oxidación).",
+             "Registrar los valores para ver la tendencia.",
+         ],
+         seg=["Medir solo con el probador; no tocar el alambre con la mano."],
+         herr=["Probador de cerca eléctrica (kV)", "Aisladores de repuesto", "Alambre y grapas"]),
+    dict(code="LF-APC-03", system="Antipercheo", eq_class="Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
+         equipos=PROD, desc="Revisar el energizador (alimentación, fusible, batería si tiene), la conexión y la varilla de puesta a tierra del sistema, interruptores de corte por sección y tensores.",
+         tipo="Preventivo", freq="Mensual", parada="No", dur=0.4, resp="Téc. mantenimiento",
+         crit="Energizador sin alarmas; conexión a tierra apretada y sin corrosión; interruptores de sección funcionan; tensión de salida estable.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="(nueva)", manual="MAN-LF-04 §13.3",
+         pasos=[
+             "Revisar el energizador: alimentación eléctrica, fusible, indicadores de alarma; si tiene batería, medir su tensión.",
+             "Revisar la conexión del cable de tierra en el energizador y en la varilla: apretada, sin corrosión; limpiar y apretar si hace falta.",
+             "Probar los interruptores de corte por sección (si existen): al abrirlos se corta la tensión en esa sección.",
+             "Medir la tensión de salida del energizador sin carga y con carga (conectado a las líneas).",
+             "Registrar valores.",
+         ],
+         seg=["Desconectar el energizador de la red antes de abrirlo."],
+         herr=["Probador de cerca", "Multímetro", "Cepillo de alambre", "Llaves"]),
+    dict(code="LF-APC-04", system="Antipercheo", eq_class="Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
+         equipos=PROD, desc="En el vacío sanitario: desconectar el energizador, desmontar o proteger el cable para el lavado, reemplazar aisladores y alambre desgastados y probar el sistema antes de alojar las aves.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=1.5, resp="Téc. mantenimiento",
+         crit="Sistema probado con tensión conforme en todas las líneas antes del ingreso del lote; acta de revisión.",
+         sust=EMP + " · " + ICA_BIO, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="(nueva)", manual="MAN-LF-04 §13.4",
+         pasos=[
+             "Desconectar el energizador de la red y del cable antes de empezar el lavado del galpón (el agua y el energizador conectado son riesgo).",
+             "Lavar y desinfectar el alambre y los aisladores junto con las líneas.",
+             "Cambiar aisladores fisurados y tramos de alambre oxidados o con muchos empalmes.",
+             "Reconectar y medir tensión al final de cada línea.",
+             "Dejar el sistema energizado y probado antes del ingreso de las aves.",
+         ],
+         seg=["Energizador DESCONECTADO durante todo el lavado.", LOTO],
+         herr=["Alambre y aisladores de repuesto", "Probador de cerca"]),
+    dict(code="LF-APC-05", system="Antipercheo", eq_class="Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
+         equipos=PROD, desc="Medir la resistencia de la puesta a tierra del sistema antipercheo.",
+         tipo="Predictivo", freq="Anual", parada="No", dur=0.5, resp="Téc. eléctrico",
+         crit="Resistencia de puesta a tierra dentro del valor que pide el fabricante del energizador; informe de medición.",
+         sust=LEGAL + " · RETIE", evid="Informe de medición", cs=False, bio=False, rot="Anual", reemplaza="(nueva)", manual="MAN-LF-04 §13.5",
+         pasos=["Medir con telurómetro la resistencia de la varilla de tierra del energizador.", "Comparar con el valor del manual; si es alto, agregar varillas o mejorar el terreno.", "Archivar el informe."],
+         seg=["Personal calificado (RETIE)."], herr=["Telurómetro"]),
+
+    # ───────────────────────── ILUMINACIÓN INTELIGENTE ─────────────────────────
+    dict(code="LF-ILU-01", system="Iluminación", eq_class="Iluminación inteligente: controlador, dimmer y luminarias LED",
+         equipos=TODOS, desc="Verificar encendido y apagado en el horario del programa de luz (fotoperiodo), el amanecer y atardecer gradual, y que no haya luminarias apagadas o parpadeando.",
+         tipo="Preventivo", freq="Diaria", parada="No", dur=0.1, resp="Operario galponero",
+         crit="Horario de luz igual al programa vigente del lote; 0 luminarias apagadas o parpadeando.",
+         sust=EMP + " · " + ICA, evid="Ronda diaria IncubApp", cs=False, bio=False, rot="Ronda diaria", reemplaza="(nueva)", manual="MAN-LF-05 §6 y §8.1",
+         pasos=[
+             "Al encendido y al apagado, comprobar que la hora coincida con el programa de luz del lote publicado en el galpón.",
+             "Recorrer el galpón y contar luminarias apagadas, parpadeando o con luz desigual.",
+             "Revisar en la pantalla del controlador que no haya alarmas.",
+             "Reportar (FOMAT06). No cambiar el programa: solo lo cambia el responsable autorizado.",
+         ],
+         seg=[], herr=["Celular con IncubApp"]),
+    dict(code="LF-ILU-02", system="Iluminación", eq_class="Iluminación inteligente: controlador, dimmer y luminarias LED",
+         equipos=TODOS, desc="Revisar el controlador: fecha y hora correctas, programa cargado igual al programa de luz vigente por edad del lote, alarmas e historial; tomar foto de la pantalla del programa.",
+         tipo="Preventivo", freq="Semanal", parada="No", dur=0.2, resp="Aux. mantenimiento",
+         crit="Hora del controlador con diferencia ≤ 5 min; programa igual al aprobado por Producción/Veterinaria; sin alarmas activas.",
+         sust=EMP + " · " + ICA, evid="OT preventiva + foto", cs=False, bio=False, rot="Todos los galpones cada semana", reemplaza="(nueva)", manual="MAN-LF-05 §7 y §8.2",
+         pasos=[
+             "Comparar la fecha y la hora del controlador con la hora oficial; corregir si difiere más de 5 minutos.",
+             "Abrir el programa activo: horas de luz, hora de encendido/apagado, intensidad (%) y duración del amanecer/atardecer. Compararlo con el programa de luz vigente por edad del lote.",
+             "Si no coincide, NO modificarlo: reportar al responsable de Producción para que lo autorice.",
+             "Revisar el historial de alarmas y eventos (cortes de energía, fallas de driver).",
+             "Tomar foto de la pantalla del programa y adjuntarla a la OT.",
+         ],
+         seg=[], herr=["Celular"]),
+    dict(code="LF-ILU-03", system="Iluminación", eq_class="Iluminación inteligente: controlador, dimmer y luminarias LED",
+         equipos=TODOS, desc="Medir intensidad lumínica con luxómetro a la altura del ave en una cuadrícula de puntos; verificar la respuesta del dimmer en 3 niveles; revisar sensor de luz, drivers y contactores.",
+         tipo="Predictivo", freq="Mensual", parada="No", dur=0.6, resp="Téc. mantenimiento",
+         crit="Lux promedio igual al del programa del lote (± 10 %); uniformidad (mínimo/promedio) ≥ 0,6 — referencia a confirmar con Producción; dimmer responde de forma proporcional.",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=False, rot="Por módulo (3 + 2 lotes)", reemplaza="(nueva)", manual="MAN-LF-05 §8.3",
+         pasos=[
+             "Con el programa al 100 % de la intensidad del día, medir con luxómetro a la altura de la cabeza del ave en 9 puntos por piso (3 a lo ancho x 3 a lo largo), incluyendo zona de nidos y de comederos.",
+             "Calcular el promedio y el mínimo; uniformidad = mínimo / promedio.",
+             "Bajar la intensidad desde el controlador a 75 % y 25 % (en un horario que no afecte a las aves, o con autorización) y verificar que la medición baje de forma proporcional.",
+             "Revisar el sensor de luz (si lo tiene): limpio y con lectura coherente.",
+             "Revisar drivers, contactores y bornes del tablero de iluminación: sin calentamiento ni olor a quemado.",
+             "Registrar todos los valores en la OT.",
+         ],
+         seg=["Revisión de tablero: solo personal calificado con EPP dieléctrico."], herr=["Luxómetro", "Multímetro", "Destornillador aislado"]),
+    dict(code="LF-ILU-04", system="Iluminación", eq_class="Iluminación inteligente: controlador, dimmer y luminarias LED",
+         equipos=TODOS, desc="Limpiar las luminarias (el polvo reduce la luz), revisar conexiones, cables, cajas de empalme y fijaciones; respaldar el programa del controlador.",
+         tipo="Preventivo", freq="Trimestral", parada="No", dur=0.8, resp="Aux. mantenimiento",
+         crit="Luminarias limpias; conexiones firmes y selladas; respaldo del programa guardado (foto o archivo).",
+         sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=False, rot="Por módulo (3 + 2 lotes)", reemplaza="(nueva)", manual="MAN-LF-05 §8.4",
+         pasos=[
+             "Cortar la energía del circuito de iluminación del tramo a limpiar (LOTO) o hacerlo en horas de luz natural según autorización.",
+             "Limpiar cada luminaria con paño húmedo (no hidrolavar con aves; ver grado IP).",
+             "Revisar conexiones, cajas de empalme, prensaestopas y cables: sin cables pelados ni cajas abiertas.",
+             "Revisar fijaciones de las luminarias (cadenas, ganchos).",
+             "Respaldar el programa: exportar el archivo si el controlador lo permite, o fotografiar todas las pantallas del programa.",
+         ],
+         seg=[LOTO, "Trabajo sobre escalera: tres puntos de apoyo; > 2 m aplicar trabajo en alturas."],
+         herr=["Paños", "Escalera", "Candado y tarjeta LOTO", "Cinta y conectores"]),
+    dict(code="LF-ILU-05", system="Iluminación", eq_class="Iluminación inteligente: controlador, dimmer y luminarias LED",
+         equipos=TODOS, desc="En el vacío sanitario: lavado de luminarias según su grado IP, reemplazo de luminarias y drivers defectuosos, verificación integral del sistema y carga del programa de luz del lote entrante.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=2.0, resp="Téc. mantenimiento",
+         crit="100 % de luminarias operativas; programa del lote entrante cargado y verificado por Producción; acta de revisión.",
+         sust=EMP + " · " + ICA_BIO, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="(nueva)", manual="MAN-LF-05 §9 y §10",
+         pasos=[
+             "Verificar en la ficha el grado IP de las luminarias antes de lavar: IP65 o superior admite lavado con chorro; menor, solo paño.",
+             "Lavar y desinfectar luminarias junto con el galpón, con el circuito desenergizado.",
+             "Reemplazar luminarias y drivers defectuosos por el mismo modelo (o equivalente compatible con el dimmer).",
+             "Probar el dimmer de 0 a 100 % y el amanecer/atardecer.",
+             "Cargar el programa de luz del lote entrante y hacerlo verificar y firmar por Producción.",
+         ],
+         seg=[LOTO], herr=["Luminarias y drivers de repuesto", "Luxómetro"]),
+
+    # ───────────────────────── ENERGÍA ─────────────────────────
+    dict(code="LF-ENE-01", system="Energía", eq_class="Planta eléctrica de emergencia + ATS", equipos=["(por confirmar en campo)"],
+         desc="Inspección visual: nivel de combustible, aceite, refrigerante, batería y ausencia de fugas.", tipo="Crítico / Seguridad", freq="Diaria", parada="No", dur=0.2, resp="Aux. mantenimiento",
+         crit="Niveles en rango; batería cargada; selector en AUTO.", sust=BPI, evid="Ronda diaria IncubApp", cs=True, bio=True, rot="Ronda diaria", reemplaza="LF-024", manual="Manual del fabricante de la planta",
+         pasos=["Revisar nivel de combustible, aceite y refrigerante.", "Revisar tensión de la batería en el panel.", "Buscar fugas bajo el equipo.", "Confirmar selector en AUTO."], seg=["No abrir el tapón del radiador en caliente."], herr=[]),
+    dict(code="LF-ENE-02", system="Energía", eq_class="Planta eléctrica de emergencia + ATS", equipos=["(por confirmar en campo)"],
+         desc="Arranque de prueba en vacío y verificación de transferencia automática (ATS).", tipo="Crítico / Seguridad", freq="Semanal", parada="No", dur=0.5, resp="Téc. mantenimiento",
+         crit="Arranca en ≤ 10 s; ATS transfiere y retransfiere correctamente.", sust=BPI, evid="Registro de prueba", cs=True, bio=True, rot="Semanal", reemplaza="LF-025", manual="Manual del fabricante de la planta",
+         pasos=["Arrancar en modo prueba y medir el tiempo de arranque.", "Verificar tensión y frecuencia en el panel.", "Dejar trabajar 15 min y apagar.", "Registrar horómetro."], seg=["Avisar a Producción antes de la prueba."], herr=[]),
+    dict(code="LF-ENE-03", system="Energía", eq_class="Planta eléctrica de emergencia + ATS", equipos=["(por confirmar en campo)"],
+         desc="Prueba con carga real simulando falla de red (CRÍTICO: sin energía se detienen el agua, la alimentación, los nidos, la recolección de huevo y la iluminación).", tipo="Crítico / Seguridad", freq="Mensual", parada="Sí", dur=1.0, resp="Téc. mantenimiento + Supervisor",
+         crit="Sostiene la carga de alimentación, agua, nidos, recolección e iluminación sin caída de tensión/frecuencia fuera de rango.", sust=BPI, evid="Registro de prueba", cs=True, bio=True, rot="Mensual", reemplaza="LF-026", manual="Manual del fabricante de la planta",
+         pasos=["Coordinar con Producción (fuera del horario de reparto).", "Abrir el breaker de red para simular la falla.", "Verificar transferencia, arranque de cargas y parámetros.", "Restablecer red y verificar retransferencia.", "Verificar que los controladores de nidos e iluminación conservaron la hora."], seg=["Personal calificado; avisar antes."], herr=["Multímetro", "Pinza amperimétrica"]),
+    dict(code="LF-ENE-04", system="Energía", eq_class="Planta eléctrica de emergencia + ATS", equipos=["(por confirmar en campo)"],
+         desc="Cambio de aceite, filtros y refrigerante según horas de operación.", tipo="Preventivo", freq="Trimestral", parada="Sí", dur=3.0, resp="Téc. mantenimiento",
+         crit="Consumibles según manual del fabricante; horómetro registrado.", sust=BPI, evid="Hoja de vida", cs=False, bio=True, rot="Trimestral", reemplaza="LF-027", manual="Manual del fabricante de la planta",
+         pasos=["Bloquear la planta.", "Cambiar aceite y filtros con los de referencia del manual.", "Revisar correas y mangueras.", "Prueba de arranque."], seg=[LOTO], herr=[]),
+    dict(code="LF-ENE-05", system="Energía", eq_class="Planta eléctrica de emergencia + ATS", equipos=["(por confirmar en campo)"],
+         desc="Prueba de carga plena por banco de resistencias y mantenimiento mayor.", tipo="Preventivo mayor", freq="Anual", parada="Sí", dur=6.0, resp="Proveedor certificado",
+         crit="Sostiene 100 % de carga nominal; acta del proveedor.", sust=BPI, evid="Acta + hoja de vida", cs=False, bio=True, rot="Anual", reemplaza="LF-028", manual="Manual del fabricante de la planta",
+         pasos=["Contratar y acompañar al proveedor.", "Archivar el acta en la hoja de vida."], seg=[], herr=[]),
+    # ───────────────────────── TABLEROS ELÉCTRICOS ─────────────────────────
+    dict(code="LF-TAB-01", system="Energía", eq_class="Tableros eléctricos (galpones, general y bombeo)", equipos=TABLEROS,
+         desc="Inspección del tablero: puerta cerrada con chapa y empaque, sin humedad ni condensación, sin insectos, roedores ni nidos, señalización de riesgo eléctrico y diagrama, luces piloto y selectores en AUTO, sin olor a quemado; temperatura de breakers y contactores con termómetro infrarrojo.",
+         tipo="Preventivo", freq="Mensual", parada="No", dur=0.3, resp="Téc. mantenimiento",
+         crit="Tablero cerrado y seco; sin plagas; señalización y diagrama presentes; selectores en AUTO; ningún componente > 60 °C ni 15 °C por encima de sus iguales.", sust=BPI + " · RETIE", evid="OT preventiva", cs=True, bio=True, rot="Por módulo (3 + 2 lotes)", reemplaza="(nueva)", manual="MAN-LF-06 §7 y §8.4",
+         pasos=["Antes de abrir: revisar puerta, chapa, empaque, prensaestopas y entradas de cables (sin huecos por donde entren insectos o roedores).", "Abrir con EPP dieléctrico: buscar humedad, condensación, óxido, excrementos, nidos o insectos; olor a quemado o plástico derretido.", "Verificar luces piloto, selectores en AUTO y que no haya protecciones disparadas.", "Medir con termómetro infrarrojo la temperatura de breakers, contactores, guardamotores y bornes; anotar los valores altos.", "Verificar señalización de riesgo eléctrico y que el diagrama unifilar esté en la puerta.", "Cerrar y reportar hallazgos (FOMAT06)."],
+         seg=["Tablero energizado: solo mirar y medir con instrumento; no tocar partes vivas. EPP dieléctrico (guantes, gafas, ropa sin metal).", "Personal calificado (RETIE)."], herr=["Termómetro infrarrojo", "Linterna", "Guantes dieléctricos", "Gafas"]),
+    dict(code="LF-TAB-02", system="Energía", eq_class="Tableros eléctricos (galpones, general y bombeo)", equipos=TABLEROS,
+         desc="Con el tablero desenergizado: limpieza interna (aspirar/soplar con aire seco, nunca agua), apriete de bornes, revisión de contactores y guardamotores (ajuste a la In de cada motor), sellado de entradas; prueba del botón TEST de los diferenciales.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=1.0, resp="Téc. eléctrico",
+         crit="Tablero limpio; bornes apretados; guardamotores ajustados a la In de placa; diferenciales disparan con TEST; entradas selladas.", sust=BPI + " · RETIE", evid="OT preventiva", cs=True, bio=True, rot="Por módulo (3 + 2 lotes)", reemplaza="(nueva)", manual="MAN-LF-06 §8.4",
+         pasos=["Coordinar con Producción: fuera de horario de reparto, recolección y cambio de luz; garantizar agua y luz mínima.", "Desenergizar el tablero desde el breaker aguas arriba, bloquear (LOTO) y verificar ausencia de tensión con multímetro.", "Limpiar con aspiradora o aire seco a baja presión; nunca con agua ni solventes.", "Apretar bornes de breakers, contactores, guardamotores y barras.", "Revisar contactos de contactores (picados o quemados → cambiar) y ajustar guardamotores a la In de placa del motor que protegen.", "Sellar con espuma o masilla las entradas de cables abiertas.", "Energizar y probar el botón TEST de cada diferencial (debe disparar); rearmar.", "Verificar que todos los equipos del galpón arranquen."],
+         seg=[LOTO, "Verificar ausencia de tensión antes de tocar. Personal calificado (RETIE)."], herr=["Multímetro", "Destornilladores aislados", "Aspiradora o soplador", "Espuma selladora", "Candado y tarjeta LOTO"]),
+    dict(code="LF-TAB-03", system="Energía", eq_class="Tableros eléctricos (galpones, general y bombeo)", equipos=TABLEROS,
+         desc="Termografía de tableros con carga y apriete de bornes con torque; verificar protecciones de los motores de alimentación, nidos, banda de huevo, motobombas, energizador antipercheo e iluminación.", tipo="Predictivo", freq="Semestral", parada="Sí", dur=2.0, resp="Téc. eléctrico",
+         crit="Sin punto caliente (ΔT ≤ 10 °C entre fases o elementos iguales); protecciones coordinadas (RETIE).", sust=LEGAL + " · RETIE", evid="Informe termográfico", cs=False, bio=True, rot="Por módulo", reemplaza="LF-029", manual="MAN-LF-06 §8.4",
+         pasos=["Termografía con carga (durante un reparto y una recolección).", "Desenergizar (LOTO) y apretar con torque los bornes señalados.", "Verificar ajuste de guardamotores contra placa de cada motor.", "Informe con imágenes."], seg=[LOTO, "Personal calificado (RETIE)."], herr=["Cámara termográfica", "Torquímetro"]),
+    dict(code="LF-TAB-04", system="Energía", eq_class="Tableros eléctricos (galpones, general y bombeo)", equipos=TABLEROS,
+         desc="Medición de la resistencia de puesta a tierra de la granja y megado de los motores principales (alimentación, banda, nidos y motobombas).",
+         tipo="Predictivo", freq="Anual", parada="Sí", dur=3.0, resp="Téc. eléctrico",
+         crit="Puesta a tierra dentro de los valores máximos de RETIE; aislamiento de motores ≥ 1 MΩ a 500 V; informe.", sust=LEGAL + " · RETIE", evid="Informe de medición", cs=False, bio=False, rot="Anual", reemplaza="(nueva)", manual="MAN-LF-06 §8.4",
+         pasos=["Medir con telurómetro la resistencia de las puestas a tierra (tablero general y tableros de galpón).", "Desconectar (LOTO) y megar cada motor principal a 500 V; anotar.", "Comparar con el año anterior: una caída fuerte del aislamiento anticipa la falla del motor.", "Archivar el informe y programar los correctivos."], seg=[LOTO, "Personal calificado (RETIE)."], herr=["Telurómetro", "Megóhmetro"]),
+
+    # ───────────────────────── CHUMACERAS ─────────────────────────
+    dict(code="LF-CHU-01", system="Transmisión mecánica", eq_class="Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+         equipos=PROD, desc="Inspección de chumaceras: temperatura con termómetro infrarrojo, ruido, juego del eje, pernos de fijación y prisioneros apretados, sellos y alineación.",
+         tipo="Predictivo", freq="Mensual", parada="No", dur=0.4, resp="Aux. mantenimiento",
+         crit="Temperatura de la chumacera ≤ 70 °C y sin subir más de 15 °C frente a la medición anterior; sin ruido ni juego; pernos y prisioneros apretados.", sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="(nueva)", manual="MAN-LF-06 §10",
+         pasos=["Con el equipo trabajando (banda en recolección, cadena en reparto), medir la temperatura de cada chumacera con termómetro infrarrojo; anotar.", "Escuchar cada chumacera con estetoscopio mecánico o un destornillador largo: zumbido parejo es normal; golpeteo o chirrido indica daño.", "Detener y bloquear (LOTO). Mover el eje con la mano hacia arriba/abajo y a lo largo: no debe tener juego.", "Revisar que los pernos de la chumacera y los prisioneros (o el collarín excéntrico) estén apretados.", "Revisar sellos: grasa negra o polvo saliendo indica sello dañado.", "Registrar valores; las chumaceras fuera de criterio se programan para cambio."],
+         seg=[LOTO, "No acercar manos ni ropa suelta a ejes en movimiento al medir."], herr=["Termómetro infrarrojo", "Estetoscopio mecánico", "Llaves Allen y mixtas", "Candado y tarjeta LOTO"]),
+    dict(code="LF-CHU-02", system="Transmisión mecánica", eq_class="Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+         equipos=PROD, desc="Lubricar todas las chumaceras con grasera con grasa grado alimenticio, limpiando la grasa vieja; registrar cantidad aplicada.",
+         tipo="Preventivo", freq="Trimestral", parada="Sí", dur=0.6, resp="Aux. mantenimiento",
+         crit="Todas las chumaceras con grasera lubricadas; sin exceso de grasa expulsada por los sellos; grasa NSF H1.", sust=EMP + " · " + ICA, evid="OT preventiva", cs=False, bio=True, rot="12 eq · 3 lotes de 4 (por módulo)", reemplaza="Lubricación de rodamientos de LF-003, LF-017 y LF-022", manual="MAN-LF-06 §10",
+         pasos=["Detener y bloquear (LOTO).", "Limpiar la grasera y la grasa vieja alrededor del sello.", "Aplicar grasa NSF H1 con grasera manual: 1 a 2 bombazos por chumacera (sin forzar hasta reventar el sello).", "Chumaceras sin grasera (selladas de por vida): no se lubrican; solo se inspeccionan.", "Retirar el exceso de grasa (puede contaminar el huevo o el alimento).", "Retirar el bloqueo, arrancar y verificar que no se calienten."],
+         seg=[LOTO], herr=["Grasera manual", "Grasa grado alimenticio NSF H1", "Trapo", "Candado y tarjeta LOTO"]),
+    dict(code="LF-CHU-03", system="Transmisión mecánica", eq_class="Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+         equipos=PROD, desc="En el vacío sanitario: cambiar las chumaceras con juego, ruido o temperatura fuera de criterio, por la misma referencia; alinear el eje y registrar.",
+         tipo="Preventivo mayor", freq="Por vacío sanitario (≈ anual)", parada="Sí", dur=1.5, resp="Téc. mantenimiento",
+         crit="Chumaceras cambiadas por la misma referencia; eje alineado y gira libre; registro en hoja de vida.", sust=EMP + " · " + ICA, evid="Hoja de vida", cs=False, bio=True, rot="Galpón por galpón al vaciarse", reemplaza="(nueva)", manual="MAN-LF-06 §10",
+         pasos=["Revisar el historial de inspecciones (LF-CHU-01) para saber cuáles cambiar.", "Bloquear (LOTO). Soltar tensión de banda o cadena, aflojar prisioneros y pernos y retirar la chumacera.", "Limpiar el eje (sin rebabas) y montar la nueva chumacera de la misma referencia; no golpear el rodamiento.", "Alinear, apretar pernos y luego prisioneros; lubricar si tiene grasera.", "Tensar, probar y registrar la referencia y la fecha en la hoja de vida (FOMAT03)."],
+         seg=[LOTO], herr=["Chumaceras de repuesto (según levantamiento)", "Extractor", "Llaves", "Grasa NSF H1"]),
+
+    # ───────────────────────── INFRAESTRUCTURA ─────────────────────────
+    dict(code="LF-INF-01", system="Infraestructura y servicios", eq_class="Sala de lavado (S16)", equipos=["S16"],
+         desc="Revisar hidrolavadora, dosificadores y desagües.", tipo="Preventivo", freq="Mensual", parada="No", dur=0.8, resp="Téc. mantenimiento",
+         crit="Presión nominal; dosificación verificada.", sust=BPI, evid="OT preventiva", cs=False, bio=True, rot="Mensual", reemplaza="LF-030", manual="Manual del fabricante de la hidrolavadora",
+         pasos=["Medir presión de la hidrolavadora.", "Aforar el dosificador.", "Destapar y limpiar desagües y rejillas."], seg=[], herr=["Manómetro"]),
+]
+
+# Pasos PROMAT01 v02 sección 4 — mismos que muestra IncubApp (src/lib/planTaskInstructions.js)
+def pasos_promat(t):
+    parada = t["parada"]
+    if parada.startswith("S"):
+        nota_parada = "Exige parada: el equipo detenido y sin carga biológica."
+    elif parada.startswith("No"):
+        nota_parada = "No exige parada del equipo."
+    else:
+        nota_parada = f"Parada: «{parada}». Confirmarla con Producción antes de fijar la fecha."
+    kind = (t["tipo"] + " " + t["desc"]).lower()
+    if "predictiv" in kind:
+        nota_tipo = "Predictiva: se basa en inspecciones técnicas y en el análisis del comportamiento del equipo (termografía, medición de amperaje, megado, análisis de aceite)."
+    elif "correctiv" in kind:
+        nota_tipo = "Correctiva: corrige una falla presentada durante la operación; parte de la solicitud de mantenimiento (FOMAT06)."
+    else:
+        nota_tipo = "Preventiva: actividad programada para prevenir fallas y prolongar la vida útil del equipo."
+    evid = t["evid"] or "FOMAT01 Orden de Trabajo"
+    return [
+        ("1. Programar la intervención", ["Incluirla en el cronograma mensual y semanal y coordinar la fecha con Producción para no afectar la operación y garantizar la disponibilidad del equipo.", f"Frecuencia: {t['freq']} · Rotación: {t['rot']}.", nota_parada], "Líder de Granja", "FOMAT07 Plan Anual de Mantenimiento"),
+        ("2. Ejecutar la actividad", [f"{t['desc']} Seguir los pasos técnicos de esta ficha y el manual {t['manual']}.", nota_tipo] + (["El programa la marca como crítica para la seguridad."] if t["cs"] else []), t["resp"], evid if evid != "OT preventiva" else "FOMAT01 Orden de Trabajo (OT preventiva)"),
+        ("3. Verificar el funcionamiento", ["Comprobar que el equipo opere correctamente después del mantenimiento: parámetros de funcionamiento, seguridad y cumplimiento de las especificaciones técnicas, antes de liberarlo.", f"Criterio de aceptación: {t['crit']}"], "Líder de Granja", "FOMAT05 Liberación del Equipo"),
+        ("4. Validar limpieza y bioseguridad", ["Confirmar que el equipo o el área intervenida cumpla las condiciones de limpieza, desinfección y bioseguridad antes de reiniciar la producción."] + (["El programa la marca como tarea de bioseguridad o de cumplimiento legal."] if t["bio"] else []), "Calidad / Líder de Granja", "Lista de chequeo de bioseguridad (proceso de Bioseguridad)"),
+        ("5. Registrar la intervención", ["Actualizar la hoja de vida del equipo con las actividades realizadas, los repuestos utilizados, los tiempos de intervención, los costos y el responsable."], "Auxiliar de Mantenimiento", "FOMAT03 Hoja de Vida del Equipo"),
+        ("6. Liberar el equipo y avisar", ["Confirmar que el equipo queda disponible para producción y comunicar la finalización de la intervención al área solicitante."], "Líder de Granja / Líder de Producción", "FOMAT05 Liberación del Equipo · correo de notificación"),
+    ]
+
+
+# ───────────────────────── Códigos definitivos (formato LF-NNN de IncubApp) ─────────────────────────
+# IncubApp reconoce los códigos de tarea con el patrón «XX-NNN» (PI-001, LF-001). Para no chocar con las
+# OT ya cerradas con LF-001…LF-030 (v05), la v06 numera desde LF-100. «ref» guarda el código mnemónico.
+import re as _re
+BASES = {"LEV": 100, "ALI": 101, "REC": 121, "NID": 131, "AGU": 141, "TAN": 151, "MOT": 161, "APC": 171,
+         "ILU": 181, "TAB": 191, "CHU": 201, "ENE": 211, "INF": 221}
+GRUPOS = {"LEV": "Levantamiento", "ALI": "Alimentación", "REC": "Recolección de huevo", "NID": "Nidos", "AGU": "Agua — líneas de niples",
+          "TAN": "Tanques de agua", "MOT": "Motobombas", "APC": "Antipercheo", "ILU": "Iluminación", "TAB": "Tableros eléctricos",
+          "CHU": "Chumaceras", "ENE": "Planta eléctrica y ATS", "INF": "Infraestructura"}
+_mapa = {}
+for _t in TAREAS:
+    _g, _n = _t["code"].split("-")[1], int(_t["code"].split("-")[2])
+    _nuevo = "LF-%d" % (BASES[_g] + (_n - 1 if _g != "LEV" else 0))
+    _mapa[_t["code"]] = _nuevo
+    _t["ref"], _t["grupo"], _t["code"] = _t["code"], _g, _nuevo
+
+
+def _renum(v):
+    if isinstance(v, str):
+        return _re.sub(r"LF-[A-Z]{3}-\d{2}", lambda m: _mapa.get(m.group(0), m.group(0)), v)
+    if isinstance(v, list):
+        return [_renum(x) for x in v]
+    return v
+
+
+for _t in TAREAS:
+    for _k in ("desc", "pasos", "seg", "crit", "manual"):
+        _t[_k] = _renum(_t[_k])
+assert len(set(_mapa.values())) == len(_mapa), "códigos repetidos"
+TAREAS.sort(key=lambda t: int(t["code"][3:]))

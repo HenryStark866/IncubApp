@@ -180,12 +180,13 @@ export const PRIVACY_DOMAINS = [
     id: 'farm',
     label: 'Granja / levantes',
     description: 'Planos de granja, lotes en levante y producción avícola',
-    tabs: ['granjas', 'produccion', 'huevos', 'historial'],
-    /** Galponero: registra huevo e historial; no edita planos de granja. */
+    tabs: ['granjas', 'produccion', 'huevos', 'historial', 'plan-am'],
+    /** Galponero: registra huevo e historial; no edita planos de granja.
+     *  Líder de granja: además el Plan AM de su granja con instructivos y manuales. */
     tabsFor: (role) =>
       role === 'barn_operator'
         ? ['produccion', 'huevos', 'historial']
-        : ['granjas', 'produccion', 'huevos', 'historial'],
+        : ['granjas', 'produccion', 'huevos', 'historial', 'plan-am'],
     members: (role, area) =>
       (role === 'coordinator' && area === 'farm') || role === 'barn_operator',
     canGrant: (role, area) => role === 'coordinator' && area === 'farm',
@@ -194,12 +195,12 @@ export const PRIVACY_DOMAINS = [
     id: 'maintenance',
     label: 'Mantenimiento',
     description: 'Órdenes de trabajo y coordinación de mantenimiento',
-    tabs: ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial'],
+    tabs: ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial', 'plan-am'],
     /** Auxiliar de mantenimiento ejecuta OT y calibraciones; no ve el tablero de coordinación. */
     tabsFor: (role, area) => {
-      if (role === 'maintenance_auxiliary') return ['mantenimiento', 'calibracion', 'historial']
+      if (role === 'maintenance_auxiliary') return ['mantenimiento', 'calibracion', 'historial', 'plan-am']
       if (role === 'coordinator' && area === 'maintenance') {
-        return ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial']
+        return ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial', 'plan-am']
       }
       return ['mantenimiento', 'calibracion']
     },

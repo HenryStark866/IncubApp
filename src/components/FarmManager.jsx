@@ -194,6 +194,8 @@ export default function FarmManager({
   presence,
   currentUserId,
   isPlatformStaff = false,
+  /** Sede asignada del líder: solo esa granja (null = todas). */
+  siteId = null,
 }) {
   const editPlanos = canEditPlanos(role, isPlatformStaff)
   const calibrateGps = canCalibrateGps(role, isPlatformStaff)
@@ -201,7 +203,8 @@ export default function FarmManager({
 
   // Re-use the usePlants hook; farms are distinguished by their code starting with 'G-'
   const { plants: allPlants, loading, error, createPlant, updatePlantGeo } = usePlants(orgId)
-  const farms = allPlants.filter((p) => p.code?.startsWith('G') || p.name?.startsWith('G-'))
+  // Líder con sede asignada: solo su granja.
+  const farms = allPlants.filter((p) => (siteId ? p.id === siteId : p.code?.startsWith('G') || p.name?.startsWith('G-')))
 
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)

@@ -63,6 +63,8 @@ function shutdownNote(shutdown) {
 
 export function planTaskSteps(rawTask = {}) {
   const task = normalizePlanTask(rawTask)
+  // En las granjas el que programa, verifica y libera es el Líder de Granja, no el de Planta.
+  const leader = task.sede && !/PLANTA/i.test(task.sede) ? 'Líder de Granja' : 'Líder de Planta'
   const weeks = task.weeks.length ? `Semanas del cronograma: ${task.weeks.join(', ')}.` : null
   const criteria = task.acceptanceCriteria
     ? `Criterio de aceptación en el programa: ${task.acceptanceCriteria}.`
@@ -72,7 +74,7 @@ export function planTaskSteps(rawTask = {}) {
     {
       title: 'Programar la intervención',
       detail: ['Incluirla en el cronograma mensual y semanal y coordinar la fecha con Producción para no afectar la operación y garantizar la disponibilidad del equipo.', weeks, shutdownNote(task.shutdown)],
-      responsible: 'Líder de Planta',
+      responsible: leader,
       records: 'FOMAT07 Plan Anual de Mantenimiento',
     },
     {
@@ -88,7 +90,7 @@ export function planTaskSteps(rawTask = {}) {
     {
       title: 'Verificar el funcionamiento',
       detail: ['Comprobar que el equipo opere correctamente después del mantenimiento: parámetros de funcionamiento, seguridad y cumplimiento de las especificaciones técnicas, antes de liberarlo.', criteria],
-      responsible: 'Líder de Planta',
+      responsible: leader,
       records: 'FOMAT05 Liberación del Equipo',
     },
     {
@@ -97,7 +99,7 @@ export function planTaskSteps(rawTask = {}) {
         'Confirmar que el equipo o el área intervenida cumpla las condiciones de limpieza, desinfección y bioseguridad antes de reiniciar la producción.',
         task.isBiosecurity ? 'El programa la marca como tarea de bioseguridad o de cumplimiento legal.' : null,
       ],
-      responsible: 'Calidad / Líder de Planta',
+      responsible: `Calidad / ${leader}`,
       records: 'Lista de chequeo de bioseguridad (proceso de Bioseguridad)',
     },
     {
@@ -109,7 +111,7 @@ export function planTaskSteps(rawTask = {}) {
     {
       title: 'Liberar el equipo y avisar',
       detail: ['Confirmar que el equipo queda disponible para producción y comunicar la finalización de la intervención al área solicitante.'],
-      responsible: 'Líder de Planta / Líder de Producción',
+      responsible: `${leader} / Líder de Producción`,
       records: 'FOMAT05 Liberación del Equipo · correo de notificación',
     },
   ].map((step) => ({ ...step, detail: step.detail.filter(Boolean) }))

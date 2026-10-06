@@ -11,7 +11,9 @@
    Al cambiar de nombre la caché, esos caparazones envenenados se descartan. */
 // v15 (05-10-2026): Clasificación del operario y lecturas de ronda por foto: que todos los
 // equipos descarten la caché vieja al abrir la app.
-const CACHE = 'incubapp-shell-v15'
+// v16 (06-10-2026): Plan AM y manuales de Granja La Fe, inicio del líder de granja y menú de
+// líderes: que todos los equipos descarten la caché vieja al abrir la app.
+const CACHE = 'incubapp-shell-v16'
 const PRECACHE = [
   '/',
   '/index.html',

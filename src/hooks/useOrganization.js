@@ -37,6 +37,8 @@ export function useOrganization(userId) {
   const [role, setRole] = useState(null)
   const [area, setArea] = useState('general')
   const [jobTitle, setJobTitle] = useState(null)
+  /** Sede asignada (plants: { id, name, code }). null = toda la empresa. */
+  const [site, setSite] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -46,9 +48,11 @@ export function useOrganization(userId) {
       setRole(null)
       setArea('general')
       setJobTitle(null)
+      setSite(null)
       return
     }
     setOrg(row.organizations || null)
+    setSite(row.site_id ? row.plants || { id: row.site_id, name: null, code: null } : null)
     setRole(row.role)
     setArea(row.area ?? 'general')
     setJobTitle(row.job_title ?? null)
@@ -62,6 +66,7 @@ export function useOrganization(userId) {
       setRole(null)
       setArea('general')
       setJobTitle(null)
+      setSite(null)
       setLoading(false)
       return
     }
@@ -74,10 +79,12 @@ export function useOrganization(userId) {
     }
     setLoading(!(Array.isArray(cached) && cached.length))
     try {
+      // site_id (sede asignada, migración 20261006): si la columna aún no existe, el
+      // primer intento falla y los de respaldo siguen sin sede, como antes.
       const { data, error: err } = await supabase
         .from('organization_members')
         .select(
-          'role, area, job_title, org_id, organizations ( id, name, slug, nit, country, timezone, brand_key, settings )'
+          'role, area, job_title, org_id, site_id, plants ( id, name, code ), organizations ( id, name, slug, nit, country, timezone, brand_key, settings )'
         )
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
@@ -191,6 +198,7 @@ export function useOrganization(userId) {
     role,
     area,
     jobTitle,
+    site,
     memberships,
     loading,
     error,

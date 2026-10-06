@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "generatedAt": "2026-09-22T13:16:40.769Z",
-    "source": "PRGMAT01 v03 & SIG-MANTENIMIENTO REGISTROS",
-    "totalTasks": 288,
-    "totalSystems": 27,
+    "generatedAt": "2026-10-06T12:00:00.000Z",
+    "source": "PRGMAT01 v06 & SIG-MANTENIMIENTO REGISTROS",
+    "totalTasks": 316,
+    "totalSystems": 31,
     "totalCorrectives": 166,
     "totalRegistrosFiles": 601
   },
@@ -298,37 +298,33 @@
       "biosecurityCount": 0
     },
     {
+      "name": "INVENTARIO",
+      "sedes": [
+        "GRANJA LA FE"
+      ],
+      "taskCount": 1,
+      "equipmentCount": 1,
+      "equipmentClasses": [
+        "Levantamiento inicial de equipos de la granja"
+      ],
+      "criticalCount": 0,
+      "biosecurityCount": 0
+    },
+    {
       "name": "ALIMENTACIÓN",
       "sedes": [
         "GRANJA LA FE",
         "GRANJA LA ESPERANZA"
       ],
-      "taskCount": 7,
-      "equipmentCount": 3,
+      "taskCount": 13,
+      "equipmentCount": 4,
       "equipmentClasses": [
-        "Línea de alimentación Big Herdsman",
+        "Comedero de canal y cadena + tolvas (Big Herdsman)",
         "Silos de alimento",
+        "Comedero de levante (tipo y marca por confirmar)",
         "Comederos (tolva / manual)"
       ],
-      "criticalCount": 1,
-      "biosecurityCount": 7
-    },
-    {
-      "name": "AGUA",
-      "sedes": [
-        "GRANJA LA FE",
-        "GRANJA LA ESPERANZA"
-      ],
-      "taskCount": 13,
-      "equipmentCount": 5,
-      "equipmentClasses": [
-        "Sistema de bebida (niples/reguladores)",
-        "Tanques de almacenamiento",
-        "Bombas y red de conducción",
-        "Bebederos de campana / niple (manuales)",
-        "Tanques de agua (por gravedad, sin bomba)"
-      ],
-      "criticalCount": 9,
+      "criticalCount": 3,
       "biosecurityCount": 13
     },
     {
@@ -340,7 +336,7 @@
       "taskCount": 7,
       "equipmentCount": 2,
       "equipmentClasses": [
-        "Banda recolectora y elevador de huevo",
+        "Banda recolectora de huevo (Big Herdsman)",
         "Recolección manual (canastillas / bandejas)"
       ],
       "criticalCount": 0,
@@ -355,11 +351,55 @@
       "taskCount": 8,
       "equipmentCount": 2,
       "equipmentClasses": [
-        "Sistema de apertura y cierre de nidos",
+        "Sistema de apertura y cierre de nidos (Big Herdsman)",
         "Nidos manuales (sin mecanismo de apertura/cierre)"
       ],
       "criticalCount": 0,
       "biosecurityCount": 8
+    },
+    {
+      "name": "AGUA",
+      "sedes": [
+        "GRANJA LA FE",
+        "GRANJA LA ESPERANZA"
+      ],
+      "taskCount": 18,
+      "equipmentCount": 5,
+      "equipmentClasses": [
+        "Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+        "Tanques de almacenamiento de agua",
+        "Motobombas de suministro de agua",
+        "Bebederos de campana / niple (manuales)",
+        "Tanques de agua (por gravedad, sin bomba)"
+      ],
+      "criticalCount": 14,
+      "biosecurityCount": 18
+    },
+    {
+      "name": "ANTIPERCHEO",
+      "sedes": [
+        "GRANJA LA FE"
+      ],
+      "taskCount": 5,
+      "equipmentCount": 1,
+      "equipmentClasses": [
+        "Sistema antipercheo electrificado sobre líneas (Big Herdsman)"
+      ],
+      "criticalCount": 0,
+      "biosecurityCount": 4
+    },
+    {
+      "name": "ILUMINACIÓN",
+      "sedes": [
+        "GRANJA LA FE"
+      ],
+      "taskCount": 5,
+      "equipmentCount": 1,
+      "equipmentClasses": [
+        "Iluminación inteligente: controlador, dimmer y luminarias LED"
+      ],
+      "criticalCount": 0,
+      "biosecurityCount": 1
     },
     {
       "name": "ENERGÍA",
@@ -367,15 +407,28 @@
         "GRANJA LA FE",
         "GRANJA LA ESPERANZA"
       ],
-      "taskCount": 7,
+      "taskCount": 10,
       "equipmentCount": 3,
       "equipmentClasses": [
+        "Tableros eléctricos (galpones, general y bombeo)",
         "Planta eléctrica de emergencia + ATS",
-        "Tableros y redes eléctricas de galpón",
         "Iluminación y tomas básicas (sin planta de emergencia)"
       ],
-      "criticalCount": 3,
-      "biosecurityCount": 7
+      "criticalCount": 5,
+      "biosecurityCount": 9
+    },
+    {
+      "name": "TRANSMISIÓN MECÁNICA",
+      "sedes": [
+        "GRANJA LA FE"
+      ],
+      "taskCount": 3,
+      "equipmentCount": 1,
+      "equipmentClasses": [
+        "Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores"
+      ],
+      "criticalCount": 0,
+      "biosecurityCount": 3
     },
     {
       "name": "INFRAESTRUCTURA Y SERVICIOS",
@@ -11662,231 +11715,118 @@
       }
     },
     {
-      "code": "LF-001",
+      "code": "LF-100",
       "sede": "GRANJA LA FE",
-      "system": "ALIMENTACIÓN",
-      "equipmentClass": "Línea de alimentación Big Herdsman",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "system": "INVENTARIO",
+      "equipmentClass": "Levantamiento inicial de equipos de la granja",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
       "count": 24,
-      "description": "Verificar operación de sinfines, motorreductores y sensores de nivel; comprobar reparto uniforme en el comedero.",
-      "type": "Preventivo",
-      "frequency": "Diaria",
+      "description": "Levantamiento de campo: placa de cada motor (alimentación, transportador silo-tolva, banda, nidos, motobombas), energizadores antipercheo, controladores de luz y de nidos, chumaceras (referencia y cantidad por galpón), silos, tanques, tableros, planta eléctrica y ATS; equipo de levante y comederos de machos. Asignar códigos y fotografiar placas.",
+      "type": "Inventario (única vez)",
+      "frequency": "Única vez (semanas 42-43)",
       "shutdown": "No",
-      "duration": "0.2",
-      "responsible": "Operario galponero",
-      "acceptanceCriteria": "Reparto completo en el tiempo de ciclo; sin sobrecarga ni atasco.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "Ronda diaria IncubApp",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
-    },
-    {
-      "code": "LF-002",
-      "sede": "GRANJA LA FE",
-      "system": "ALIMENTACIÓN",
-      "equipmentClass": "Línea de alimentación Big Herdsman",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Medir amperaje del motorreductor del sinfín contra placa; inspeccionar acoples y cadena/tornillo.",
-      "type": "Predictivo",
-      "frequency": "Mensual",
-      "shutdown": "Sí",
-      "duration": "0.5",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Corriente ≤ In; sin desgaste anómalo del sinfín.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "24 eq · 4 lotes de 6",
-        "weeks": [
-          3,
-          7,
-          11,
-          15,
-          19,
-          23,
-          27,
-          31,
-          35,
-          39,
-          43,
-          47,
-          51
-        ]
-      }
-    },
-    {
-      "code": "LF-003",
-      "sede": "GRANJA LA FE",
-      "system": "ALIMENTACIÓN",
-      "equipmentClass": "Línea de alimentación Big Herdsman",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Lubricar rodamientos y revisar reductores (nivel/fuga de aceite) de las líneas.",
-      "type": "Preventivo",
-      "frequency": "Trimestral",
-      "shutdown": "Sí",
-      "duration": "0.8",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Sin fuga; lubricación según OEM.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "24 eq · 4 lotes de 6",
-        "weeks": [
-          1,
-          14,
-          27,
-          40
-        ]
-      }
-    },
-    {
-      "code": "LF-004",
-      "sede": "GRANJA LA FE",
-      "system": "ALIMENTACIÓN",
-      "equipmentClass": "Línea de alimentación Big Herdsman",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Overhaul de la línea: cambio de rodamientos y tramos de sinfín según desgaste, revisión de la tolva de carga y del sistema de mando.",
-      "type": "Preventivo mayor",
-      "frequency": "Anual",
-      "shutdown": "Sí",
-      "duration": "4",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Sinfín dentro de tolerancia de desgaste; acta de overhaul.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "Hoja de vida",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "24 eq · 1 c/2 semanas",
-        "weeks": [
-          9
-        ]
-      }
-    },
-    {
-      "code": "LF-005",
-      "sede": "GRANJA LA FE",
-      "system": "ALIMENTACIÓN",
-      "equipmentClass": "Silos de alimento",
-      "applyingEquipment": "(por confirmar en campo)",
-      "count": 1,
-      "description": "Inspección estructural del silo: corrosión, soldaduras, anclajes, sinfín de descarga y sellos de tapa.",
-      "type": "Preventivo",
-      "frequency": "Trimestral",
-      "shutdown": "Sí",
       "duration": "1.5",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Sin corrosión activa ni deformación; sellos herméticos (control de plagas/humedad).",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
-      "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": true,
-      "isBiosecurity": true,
+      "responsible": "Téc. mantenimiento + Aux. mantenimiento",
+      "acceptanceCriteria": "Hoja «LEVANTAMIENTO» del plan diligenciada al 100 %, con foto de cada placa; datos trasladados a la hoja 05 INVENTARIO y a IncubApp.",
+      "frequencyRationale": "Pendientes 2 a 5 del plan — necesarios para los criterios «corriente ≤ In» y para los repuestos",
+      "evidenceFormat": "Hoja LEVANTAMIENTO + fotos",
+      "isCriticalSecurity": false,
+      "isBiosecurity": false,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Un módulo por día, levante primero",
         "weeks": [
-          3,
-          16,
-          29,
-          42
-        ]
-      }
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Todos (MAN-LF-01 a 06)",
+      "replaces": "Pendiente 7 del PRGMAT01 v05",
+      "technicalSteps": [
+        "Imprimir la hoja «LEVANTAMIENTO» del plan; ya trae una fila por cada equipo esperado en cada galpón.",
+        "Recorrer un módulo por día en orden de bioseguridad (levante → producción), con ducha y ropa del módulo.",
+        "Para cada motor: fotografiar la placa y anotar marca, modelo, potencia (kW/HP), tensión, frecuencia, corriente nominal (In), velocidad y número de serie.",
+        "Energizador antipercheo: marca, modelo, energía (J) y tensión de salida de placa. Controladores de luz y nidos: marca y modelo.",
+        "Chumaceras: contar las de cada equipo y anotar la referencia grabada (p. ej. UCP 205, UCF 206) y si tienen grasera.",
+        "Silos: cuántos hay, capacidad (t) y a qué galpón alimentan. Motobombas, tableros generales, planta y ATS: ubicación y datos de placa.",
+        "Levante (módulos 1 y 5): tipo y marca de comedero, bebedero, iluminación y si tiene antipercheo. Producción: si hay comederos separados para machos.",
+        "Asignar códigos: SI-LF-nn (silos), MB-LF-nn (motobombas), TG-LF-nn (tableros generales/bombeo), PE-LF-01 (planta), y marcarlos en el equipo con etiqueta.",
+        "Trasladar los datos a la hoja 05 INVENTARIO del PRGMAT01 y crear los equipos en IncubApp; actualizar los ⚠ de los manuales con los datos de placa."
+      ],
+      "safety": [
+        "No abrir cajas de conexión para leer placas: si la placa está tapada, pedir apoyo al técnico eléctrico con LOTO.",
+        "Silos y tanques elevados: leer la placa desde el piso; subir solo con permiso de alturas."
+      ],
+      "tools": [
+        "Celular con cámara",
+        "Hoja LEVANTAMIENTO impresa",
+        "Etiquetas y marcador indeleble",
+        "Linterna"
+      ]
     },
     {
-      "code": "LF-006",
+      "code": "LF-101",
       "sede": "GRANJA LA FE",
-      "system": "AGUA",
-      "equipmentClass": "Sistema de bebida (niples/reguladores)",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Verificar presión del regulador, ausencia de fugas y funcionamiento de niples; purgar líneas.",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de canal y cadena + tolvas (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Ronda del primer reparto: nivel de silo, llenado de tolvas, arranque de la cadena, recorrido completo del canal y retorno a la tolva; sin saltos de cadena, ruidos ni derrames.",
       "type": "Preventivo",
       "frequency": "Diaria",
       "shutdown": "No",
       "duration": "0.2",
       "responsible": "Operario galponero",
-      "acceptanceCriteria": "Presión según edad del lote; cero goteo; cama seca.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "El alimento llega al final del circuito en el tiempo de reparto del programa; cadena sin saltos; sin derrame ni canal vacío.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "Ronda diaria IncubApp",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §6 y §8.1",
+      "replaces": "LF-001",
+      "technicalSteps": [
+        "Antes del reparto: mirar el indicador de nivel del silo y anotar si queda menos de un día de alimento.",
+        "Verificar que las tolvas estén llenas y que el transportador silo-tolva se haya detenido por el sensor de nivel (no debe seguir girando con la tolva llena).",
+        "Al arrancar el reparto, caminar el circuito: la cadena corre continua, sin saltos ni golpes en las esquinas, y la capa de alimento es pareja en todo el canal.",
+        "Cronometrar cuánto tarda el alimento en llegar al final del circuito y comparar con el tiempo del programa de alimentación del lote.",
+        "Revisar que no haya alimento derramado bajo las esquinas, uniones de canal o la tolva, ni aves atrapadas en las rejillas.",
+        "Cualquier anomalía (ruido, cadena floja, canal vacío, motor caliente): parar el reparto solo si hay riesgo para las aves y reportar en IncubApp como solicitud de mantenimiento (FOMAT06)."
+      ],
+      "safety": [
+        "No tocar la cadena ni las ruedas de esquina con el sistema en marcha: riesgo de atrapamiento.",
+        "No retirar guardas de la unidad motriz."
+      ],
+      "tools": [
+        "Celular con IncubApp",
+        "Cronómetro (celular)"
+      ]
     },
     {
-      "code": "LF-007",
+      "code": "LF-102",
       "sede": "GRANJA LA FE",
-      "system": "AGUA",
-      "equipmentClass": "Sistema de bebida (niples/reguladores)",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Limpiar filtros de línea y verificar dosificador de medicamentos/vitaminas (calibración de dosis).",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de canal y cadena + tolvas (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Revisar unidad motriz (temperatura, ruido), recorrido disponible del tensor, ruedas de esquina y uniones del canal; limpiar alimento apelmazado en tolvas y esquinas; probar el sensor de nivel de la tolva.",
       "type": "Preventivo",
       "frequency": "Semanal",
       "shutdown": "No",
       "duration": "0.5",
       "responsible": "Aux. mantenimiento",
-      "acceptanceCriteria": "Filtro limpio; dosificación verificada por aforo.",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
+      "acceptanceCriteria": "Tensor con recorrido disponible; esquinas giran libres; tolva sin alimento apelmazado; el sensor detiene el llenado.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": true,
+      "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todos los galpones cada semana",
         "weeks": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          40,
-          41,
           42,
           43,
           44,
@@ -11898,94 +11838,1128 @@
           50,
           51,
           52
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §8.2",
+      "replaces": "LF-001",
+      "technicalSteps": [
+        "Con el sistema detenido entre repartos y bloqueado (LOTO), abrir la tapa de inspección de la unidad motriz.",
+        "Verificar el recorrido que le queda al tensor de cadena: si está a menos de un tercio de su recorrido, programar acortar cadena (tarea trimestral LF-104).",
+        "Girar a mano cada rueda de esquina: debe girar libre, sin juego ni ruido de rodamiento.",
+        "Revisar uniones de canal (empalmes) y soportes: sin desalineación ni bordes levantados que hagan saltar la cadena.",
+        "Retirar alimento apelmazado o húmedo de las esquinas de la tolva y del fondo de los canales; desecharlo fuera del galpón (bioseguridad).",
+        "Probar el sensor de nivel de la tolva: cubrirlo con alimento o accionarlo manualmente y comprobar que el transportador silo-tolva se detiene.",
+        "Retirar el bloqueo, arrancar en vacío 1 minuto y escuchar el motorreductor (sin golpes ni chillido)."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Con aves en el galpón trabajar solo entre repartos de alimento y avisar al galponero; nunca con la cadena en movimiento."
+      ],
+      "tools": [
+        "Candado y tarjeta LOTO",
+        "Llaves mixtas",
+        "Linterna",
+        "Espátula plástica",
+        "Bolsa para residuos"
+      ]
     },
     {
-      "code": "LF-008",
+      "code": "LF-103",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de canal y cadena + tolvas (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Medir amperaje del motorreductor de la cadena y del transportador silo-tolva contra placa; verificar guardamotor y pasador de seguridad (pin fusible) de la rueda motriz; medir elongación de la cadena y desgaste de las ruedas de esquina.",
+      "type": "Predictivo",
+      "frequency": "Mensual",
+      "shutdown": "Sí",
+      "duration": "0.6",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Corriente ≤ In de placa (diferencia entre fases ≤ 10 %); guardamotor ajustado a In; pin de seguridad original; elongación de cadena dentro del límite del manual.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43,
+          45,
+          46,
+          47,
+          49,
+          50,
+          51
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §8.3",
+      "replaces": "LF-002",
+      "technicalSteps": [
+        "Si la placa del motor aún no está en la hoja 05, fotografiarla y registrarla (LF-100). Con la línea trabajando en un reparto, medir la corriente de las tres fases del motor de la cadena y del motor del transportador silo-tolva con pinza amperimétrica. Anotar valores y la In de placa.",
+        "Verificar que el guardamotor/relé térmico esté ajustado a la In de placa (no por encima).",
+        "Detener y bloquear (LOTO). Revisar el pasador de seguridad (pin fusible) de la rueda motriz: debe ser el original del fabricante; nunca reemplazarlo por un perno de acero.",
+        "Medir la elongación de la cadena: tomar 10 eslabones tensados y comparar contra la medida nueva del manual; registrar el % de alargamiento.",
+        "Revisar desgaste de ruedas de esquina y del fondo del canal (marcas de roce brillantes indican cadena montada o desalineada).",
+        "Registrar todas las mediciones en la OT para ver la tendencia mes a mes."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "La medición de corriente se hace con el tablero abierto y energizado: solo personal calificado, con guantes dieléctricos y gafas."
+      ],
+      "tools": [
+        "Pinza amperimétrica",
+        "Destornillador aislado",
+        "Flexómetro o pie de rey",
+        "Guantes dieléctricos",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-104",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de canal y cadena + tolvas (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Revisar el reductor (nivel y fuga de aceite); ajustar tensión de la cadena y acortarla si el tensor llegó al límite; revisar nivelación y altura del canal y estado de los cables del sistema de elevación.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Sin fuga de aceite; nivel en la mirilla; tensión de cadena según manual; canal nivelado a la altura del programa; cables de elevación sin deshilache.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §8.4 y §9",
+      "replaces": "LF-003",
+      "technicalSteps": [
+        "Detener y bloquear (LOTO).",
+        "Revisar el nivel de aceite del reductor en la mirilla o tapón de nivel; completar con el aceite indicado en la placa del reductor. Limpiar y revisar retenedores si hay fuga.",
+        "Las chumaceras y rodamientos se lubrican en la tarea de chumaceras (LF-202), en la misma semana.",
+        "Ajustar la tensión de la cadena con el tensor según el manual. Si el tensor está al final de su recorrido, cortar el tramo de cadena indicado en el manual y volver a unir con el eslabón de unión.",
+        "Verificar la altura del canal respecto al lomo de las aves según el programa del lote, y que esté nivelado en toda la longitud (sin tramos colgados).",
+        "Inspeccionar cables, poleas y el malacate (winche) de elevación: cable sin hilos rotos, grapas apretadas, freno del malacate operativo.",
+        "Retirar el bloqueo y hacer un reparto de prueba completo."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Con aves en el galpón trabajar solo entre repartos de alimento y avisar al galponero; nunca con la cadena en movimiento.",
+        "Trabajo sobre escalera: tres puntos de apoyo; si supera 2 m aplicar procedimiento de trabajo en alturas (Res. 4272/2021)."
+      ],
+      "tools": [
+        "Grasera y grasa según manual",
+        "Aceite para reductor según placa",
+        "Llaves",
+        "Herramienta de unión de cadena",
+        "Nivel",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-105",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Silos de alimento",
+      "applyingEquipment": "(silos de la granja — código SI-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Inspección externa del silo: tapa superior cerrada y sellada, escalera y guarda, anclajes, corrosión, condensación, mirilla; verificar que no haya alimento apelmazado y que se respete la rotación de llenado.",
+      "type": "Preventivo",
+      "frequency": "Mensual",
+      "shutdown": "No",
+      "duration": "0.3",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Tapa cerrada y hermética; sin entrada de agua ni vectores; sin alimento apelmazado; anclajes completos.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Todos los silos · un módulo por semana",
+        "weeks": [
+          45,
+          49
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §7",
+      "replaces": "LF-005",
+      "technicalSteps": [
+        "Desde el piso, verificar con binoculares o fotografía que la tapa superior esté cerrada y su cable de apertura asegurado.",
+        "Revisar la escalera, su guarda y la plataforma: peldaños completos, sin corrosión que comprometa la estructura.",
+        "Revisar pernos de anclaje de las patas, soldaduras y riostras: sin pernos faltantes ni fisuras.",
+        "Mirar por la mirilla el nivel de alimento y la presencia de condensación o costra; golpear suavemente el cono con mazo de caucho: un sonido apagado en zona sin alimento indica costra pegada.",
+        "Verificar el registro de llenados (fecha y proveedor) y que no se mezcle alimento viejo con nuevo por mucho tiempo.",
+        "Reportar cualquier hallazgo en IncubApp (FOMAT06)."
+      ],
+      "safety": [
+        "No subir al silo para esta inspección. Subir solo con permiso de trabajo en alturas (Res. 4272/2021) y arnés anclado a línea de vida.",
+        "Nunca ingresar al silo: es espacio confinado (Res. 0491/2020)."
+      ],
+      "tools": [
+        "Binoculares o celular con zoom",
+        "Mazo de caucho",
+        "Linterna"
+      ]
+    },
+    {
+      "code": "LF-106",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Silos de alimento",
+      "applyingEquipment": "(silos de la granja — código SI-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Inspección estructural del silo y del transportador de descarga (sinfín flexible): corrosión, soldaduras, anclajes, sellos de tapa; amperaje del motor del sinfín, desgaste de tubo y codos, bota y sensor de fin de línea.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.5",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Sin corrosión activa ni deformación; sellos herméticos; corriente del motor ≤ In; tubo sin perforaciones; sensor de fin de línea operativo.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Por módulo (3 + 2 lotes)",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §7 y §8.5",
+      "replaces": "LF-005",
+      "technicalSteps": [
+        "Con permiso de trabajo en alturas, subir y revisar la tapa superior, su empaque y el mecanismo de apertura; cambiar empaque si está cuarteado.",
+        "Revisar soldaduras, tornillería de las láminas y riostras; marcar puntos de corrosión para tratamiento (lija + anticorrosivo galvanizado en frío).",
+        "En la bota (salida inferior): revisar la compuerta de corte, el sello y que no haya fuga de alimento.",
+        "Medir la corriente del motor del sinfín de descarga con carga; comparar con placa.",
+        "Revisar el tubo del sinfín, codos y soportes: sin perforación, sin roce del espiral (ruido metálico), soportes completos.",
+        "Probar el sensor de fin de línea (o de nivel de tolva) y el temporizador de seguridad que apaga el sinfín si gira en vacío."
+      ],
+      "safety": [
+        "Trabajo en alturas: permiso, arnés, línea de vida, persona de apoyo en tierra (Res. 4272/2021).",
+        "Nunca ingresar al silo: espacio confinado (Res. 0491/2020).",
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Equipo de trabajo en alturas",
+        "Pinza amperimétrica",
+        "Llaves",
+        "Lija y galvanizado en frío",
+        "Empaque de tapa de repuesto"
+      ]
+    },
+    {
+      "code": "LF-107",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Silos de alimento",
+      "applyingEquipment": "(silos de la granja — código SI-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Limpieza total del silo vacío: retirar costras y residuos desde el exterior, limpiar bota y sinfín, desinfectar/fumigar según protocolo de bioseguridad; secar antes de volver a llenar.",
+      "type": "Bioseguridad",
+      "frequency": "Por vacío sanitario (≈ semestral)",
+      "shutdown": "Sí",
+      "duration": "3.0",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Silo sin residuos de alimento, costras ni hongos visibles; seco antes del llenado; registro de producto desinfectante y concentración.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "Registro de lavado",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Al vaciar el silo / entre lotes",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §10",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Coordinar con Producción para dejar el silo vacío (no pedir alimento).",
+        "Abrir la compuerta de la bota y retirar el alimento residual; desecharlo fuera del área de aves.",
+        "Desde la tapa superior (con permiso de alturas) o desde la bota, desprender costras con varilla o raspador de mango largo. NO ingresar al silo.",
+        "Desmontar la tapa de inspección del sinfín de descarga y retirar residuos.",
+        "Aplicar el desinfectante o fumigante definido por Bioseguridad, con la concentración y el tiempo de contacto de su ficha técnica; registrar producto, lote y concentración.",
+        "Dejar ventilar y secar completamente; verificar que no queden olores ni humedad antes de autorizar el llenado."
+      ],
+      "safety": [
+        "Espacio confinado: está prohibido ingresar al silo sin permiso, medición de atmósfera, vigía y plan de rescate (Res. 0491/2020).",
+        "Fumigantes: EPP según la hoja de seguridad del producto (respirador, gafas, guantes)."
+      ],
+      "tools": [
+        "Raspador de mango largo",
+        "Equipo de trabajo en alturas",
+        "Desinfectante/fumigante del protocolo",
+        "EPP químico"
+      ]
+    },
+    {
+      "code": "LF-108",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de canal y cadena + tolvas (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Overhaul de la línea en el vacío sanitario: cambio de tramos de cadena y ruedas de esquina según desgaste, rodamientos, revisión del reductor; limpieza en seco, lavado y desinfección de canales y tolvas.",
+      "type": "Preventivo mayor",
+      "frequency": "Por vacío sanitario (≈ anual)",
+      "shutdown": "Sí",
+      "duration": "5.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Cadena y esquinas dentro de tolerancia de desgaste; acta de overhaul; canal y tolvas limpios y desinfectados (lista de chequeo de bioseguridad).",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §9 y §10",
+      "replaces": "LF-004",
+      "technicalSteps": [
+        "Bloquear (LOTO). Vaciar tolvas y canales: hacer correr la cadena con la tolva cerrada hasta que no salga alimento, luego barrer y aspirar.",
+        "Revisar cada tramo de cadena y cada rueda de esquina; cambiar los que superen el límite de desgaste del manual.",
+        "Las chumaceras se cambian por condición en LF-203; cambiar aceite del reductor si cumple horas o si está oscuro/con agua.",
+        "Revisar el fondo del canal y las rejillas anti-desperdicio: reemplazar tramos perforados o deformados.",
+        "Lavar con agua a presión moderada y detergente, enjuagar, desinfectar con el producto del protocolo y dejar secar. Proteger motor y tablero del agua (bolsa plástica).",
+        "Rearmar, tensar la cadena, lubricar y hacer prueba con alimento antes del ingreso del lote."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Hidrolavado: no dirigir el chorro a motores, cajas eléctricas ni sensores."
+      ],
+      "tools": [
+        "Repuestos de cadena y esquinas",
+        "Rodamientos",
+        "Aceite y grasa según manual",
+        "Hidrolavadora",
+        "Detergente y desinfectante del protocolo"
+      ]
+    },
+    {
+      "code": "LF-109",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de levante (tipo y marca por confirmar)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506",
+      "count": 12,
+      "description": "Ronda del reparto: llenado completo de los comederos, sensor de fin de línea, sin derrames ni atascos; altura del comedero según edad.",
+      "type": "Preventivo",
+      "frequency": "Diaria",
+      "shutdown": "No",
+      "duration": "0.2",
+      "responsible": "Operario galponero",
+      "acceptanceCriteria": "Reparto completo en el tiempo del programa; sin atasco; altura acorde a la edad del lote.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Ronda diaria IncubApp",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 (aplicación general — levante por confirmar)",
+      "replaces": "LF-001",
+      "technicalSteps": [
+        "Verificar nivel del silo y llenado de la tolva de la línea.",
+        "Al arrancar, recorrer la línea: todos los comederos se llenan y el sensor de fin de línea detiene el motor.",
+        "Revisar derrames, comederos rotos o descolgados y la altura respecto al lomo de las aves.",
+        "Reportar anomalías en IncubApp (FOMAT06)."
+      ],
+      "safety": [
+        "No meter las manos en la línea en movimiento."
+      ],
+      "tools": [
+        "Celular con IncubApp"
+      ]
+    },
+    {
+      "code": "LF-110",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de levante (tipo y marca por confirmar)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506",
+      "count": 12,
+      "description": "Medir amperaje de los motores de la línea y del transportador; probar sensores de nivel; lubricar y revisar reductor, acoples y sistema de elevación.",
+      "type": "Preventivo",
+      "frequency": "Mensual",
+      "shutdown": "Sí",
+      "duration": "0.6",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Corriente ≤ In; sensores detienen el motor; sin fuga en reductor; cables de elevación en buen estado.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 2 lotes de 6 (por módulo)",
+        "weeks": [
+          44,
+          48,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §8 (adaptar al equipo de levante)",
+      "replaces": "LF-002 / LF-003",
+      "technicalSteps": [
+        "Medir corriente de los motores con carga y comparar con placa.",
+        "Bloquear (LOTO). Probar los sensores de nivel/fin de línea.",
+        "Revisar nivel de aceite del reductor, acoples y engrasar rodamientos.",
+        "Revisar cables, poleas y malacate de elevación.",
+        "Arrancar y verificar un reparto completo."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Pinza amperimétrica",
+        "Grasera",
+        "Llaves",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-111",
+      "sede": "GRANJA LA FE",
+      "system": "ALIMENTACIÓN",
+      "equipmentClass": "Comedero de levante (tipo y marca por confirmar)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506",
+      "count": 12,
+      "description": "Overhaul y lavado-desinfección de la línea de levante en el vacío sanitario: cambio de piezas desgastadas, limpieza en seco, lavado y desinfección.",
+      "type": "Preventivo mayor",
+      "frequency": "Por vacío sanitario (≈ anual)",
+      "shutdown": "Sí",
+      "duration": "4.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Acta de overhaul; línea limpia y desinfectada antes del ingreso del lote.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-03 §9 y §10 (adaptar)",
+      "replaces": "LF-004",
+      "technicalSteps": [
+        "Vaciar la línea y bloquear (LOTO).",
+        "Cambiar las piezas desgastadas (sinfín, comederos, rodamientos) según inspección.",
+        "Limpieza en seco, lavado, desinfección con el producto del protocolo y secado.",
+        "Prueba con alimento antes del ingreso del lote."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Repuestos",
+        "Hidrolavadora",
+        "Desinfectante del protocolo"
+      ]
+    },
+    {
+      "code": "LF-121",
+      "sede": "GRANJA LA FE",
+      "system": "RECOLECCIÓN DE HUEVO",
+      "equipmentClass": "Banda recolectora de huevo (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Antes y durante cada recolección: banda limpia, arranque, recorrido y parada en el ciclo programado; el huevo llega a la mesa sin choques; sin huevo atascado ni roto en la banda.",
+      "type": "Preventivo",
+      "frequency": "Diaria",
+      "shutdown": "No",
+      "duration": "0.3",
+      "responsible": "Operario galponero",
+      "acceptanceCriteria": "Banda cumple el ciclo sin atasco; % de huevo roto/fisurado dentro de la meta de Producción; banda sin restos de huevo al terminar.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Ronda diaria IncubApp",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-01 §6 y §8.1",
+      "replaces": "LF-014",
+      "technicalSteps": [
+        "Antes de arrancar: mirar la banda en la mesa de recolección; debe estar limpia, sin huevo roto ni heces.",
+        "Arrancar la banda desde el tablero/controlador y caminar el galpón: la banda avanza pareja, centrada, sin saltos ni frenadas.",
+        "En la mesa: los huevos llegan sin chocar entre sí; si se acumulan, bajar la velocidad o recoger más seguido.",
+        "Si aparece huevo roto en la banda: detener, retirar el huevo y limpiar la zona con paño humedecido en desinfectante antes de seguir (evita contaminar el resto del huevo).",
+        "Al final de la recolección, detener la banda y dejarla limpia.",
+        "Registrar en la ronda y reportar fallas (FOMAT06)."
+      ],
+      "safety": [
+        "No limpiar ni recoger huevo de la banda en movimiento cerca de los rodillos de tracción: riesgo de atrapamiento.",
+        "Conocer la ubicación de la parada de emergencia."
+      ],
+      "tools": [
+        "Paño y desinfectante aprobado",
+        "Celular con IncubApp"
+      ]
+    },
+    {
+      "code": "LF-122",
+      "sede": "GRANJA LA FE",
+      "system": "RECOLECCIÓN DE HUEVO",
+      "equipmentClass": "Banda recolectora de huevo (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Revisar tensión y alineación de la banda en los rodillos, limpiar rodillos de tracción y raspadores; revisar el amortiguador (buffer) de huevo, la transición nido-banda y la mesa de recolección.",
+      "type": "Preventivo",
+      "frequency": "Semanal",
+      "shutdown": "No",
+      "duration": "0.6",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Banda centrada (no roza la estructura); rodillos limpios; raspadores en contacto; transición sin escalones que golpeen el huevo.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Todos los galpones cada semana",
+        "weeks": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-01 §8.2",
+      "replaces": "LF-015",
+      "technicalSteps": [
+        "Con la banda detenida y bloqueada (LOTO), revisar los rodillos de tracción y de retorno: retirar restos de huevo, plumas y suciedad.",
+        "Revisar los raspadores/limpiadores de banda: deben apoyar parejo sobre la banda; ajustar o cambiar si están gastados.",
+        "Retirar el bloqueo y hacer correr la banda: observar en cabeza y cola que vaya centrada. Si se desvía, corregir con el tornillo tensor del lado hacia el que se va (¼ de vuelta a la vez) y volver a observar.",
+        "Verificar la tensión: la banda no debe patinar en el rodillo de tracción con carga, ni estar tan tensa que deforme el canal.",
+        "Revisar la transición nido-banda y el amortiguador (cortina/buffer) a la entrada de la mesa: sin bordes, tornillos ni escalones que golpeen el huevo.",
+        "Revisar la mesa de recolección: superficie limpia, rodillos o cepillos completos."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Ajustar tensores solo con la banda detenida; observar el comportamiento con la banda en marcha desde fuera de los puntos de atrapamiento."
+      ],
+      "tools": [
+        "Candado y tarjeta LOTO",
+        "Llaves",
+        "Cepillo y paño",
+        "Desinfectante aprobado"
+      ]
+    },
+    {
+      "code": "LF-123",
+      "sede": "GRANJA LA FE",
+      "system": "RECOLECCIÓN DE HUEVO",
+      "equipmentClass": "Banda recolectora de huevo (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Medir amperaje del motorreductor de la banda (y del elevador/transportador transversal si existe) contra placa; revisar cadena y piñones de la caja de transmisión, acoples, guardas y parada de emergencia.",
+      "type": "Predictivo",
+      "frequency": "Mensual",
+      "shutdown": "Sí",
+      "duration": "0.7",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Corriente ≤ In; cadena de transmisión sin juego excesivo; guardas instaladas; la parada de emergencia detiene la banda.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43,
+          45,
+          46,
+          47,
+          49,
+          50,
+          51
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-01 §8.3",
+      "replaces": "LF-016",
+      "technicalSteps": [
+        "Con la banda trabajando, medir la corriente en las tres fases del motor y comparar con placa.",
+        "Probar la parada de emergencia: debe detener la banda de inmediato y no rearrancar sola al soltarla.",
+        "Detener y bloquear (LOTO). Abrir la caja de transmisión: revisar desgaste de piñones (dientes en punta) y elongación de la cadena.",
+        "Revisar acoples, chavetas y prisioneros del eje de tracción.",
+        "Verificar que todas las guardas estén instaladas y aseguradas.",
+        "Registrar mediciones y hallazgos en la OT."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Medición eléctrica: solo personal calificado, con EPP dieléctrico."
+      ],
+      "tools": [
+        "Pinza amperimétrica",
+        "Llaves",
+        "Linterna",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-124",
+      "sede": "GRANJA LA FE",
+      "system": "RECOLECCIÓN DE HUEVO",
+      "equipmentClass": "Banda recolectora de huevo (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Lubricar la cadena de transmisión, revisar nivel de aceite del reductor, ajustar tensores y revisar los empalmes de la banda.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Sin juego; lubricación según manual; empalmes íntegros (sin hilos sueltos ni grapas levantadas).",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-01 §8.4",
+      "replaces": "LF-017",
+      "technicalSteps": [
+        "Detener y bloquear (LOTO).",
+        "Lubricar la cadena de transmisión con el lubricante del manual (grado alimenticio si puede tener contacto con el huevo).",
+        "Los rodamientos de los rodillos (chumaceras) se lubrican en LF-202, en la misma semana.",
+        "Revisar nivel de aceite del reductor; completar con el aceite de la placa.",
+        "Revisar a lo largo del galpón los empalmes de la banda: sin hilos sueltos, sin grapas levantadas; rehacer el empalme si está abierto.",
+        "Ajustar tensión y alinear; prueba de funcionamiento de un ciclo completo."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Grasera y grasa grado alimenticio (H1)",
+        "Aceite según placa",
+        "Kit de empalme de banda",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-125",
+      "sede": "GRANJA LA FE",
+      "system": "RECOLECCIÓN DE HUEVO",
+      "equipmentClass": "Banda recolectora de huevo (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Overhaul en el vacío sanitario: lavar y desinfectar la banda (o cambiarla si está deshilachada), cambio de rodamientos y cadena de transmisión según desgaste, revisión estructural del canal de la banda.",
+      "type": "Preventivo mayor",
+      "frequency": "Por vacío sanitario (≈ anual)",
+      "shutdown": "Sí",
+      "duration": "4.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Acta de overhaul; banda limpia, sin deshilache; rodillos y cadena dentro de tolerancia; lista de chequeo de bioseguridad conforme.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-01 §9 y §10",
+      "replaces": "LF-018",
+      "technicalSteps": [
+        "Bloquear (LOTO). Soltar el tensor y revisar la banda en toda su longitud.",
+        "Lavar la banda (con lavador de banda si existe, o con cepillo, detergente y agua), enjuagar y desinfectar; dejar secar antes de tensar.",
+        "Cambiar la banda si presenta deshilache, cortes o encogimiento que impidan alinearla.",
+        "Cambiar piñones y cadena de transmisión desgastados (chumaceras: LF-203).",
+        "Revisar el canal de la banda bajo los nidos: soportes, uniones, bordes que puedan cortar la banda.",
+        "Rearmar, tensar, alinear y hacer prueba de un ciclo completo."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Hidrolavado: proteger motores y tableros."
+      ],
+      "tools": [
+        "Banda de repuesto y kit de empalme",
+        "Rodamientos",
+        "Hidrolavadora",
+        "Detergente y desinfectante del protocolo"
+      ]
+    },
+    {
+      "code": "LF-131",
+      "sede": "GRANJA LA FE",
+      "system": "NIDOS",
+      "equipmentClass": "Sistema de apertura y cierre de nidos (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Verificar que la apertura y el cierre/expulsión ocurran en el horario programado; ningún nido trabado; ninguna ave dentro al cierre; esterillas en su sitio; el huevo rueda a la banda.",
+      "type": "Preventivo",
+      "frequency": "Diaria",
+      "shutdown": "No",
+      "duration": "0.3",
+      "responsible": "Operario galponero",
+      "acceptanceCriteria": "Apertura y cierre completos en el horario programado; ningún nido trabado; ninguna ave dentro al cierre; sin huevo retenido en el nido.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Ronda diaria IncubApp",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-02 §6 y §8.1",
+      "replaces": "LF-019",
+      "technicalSteps": [
+        "En la mañana, a la hora de apertura: recorrer el galpón y verificar que todos los nidos abrieron completamente.",
+        "Revisar esterillas: completas, en su sitio y sin huevo retenido o roto.",
+        "En la tarde, a la hora de cierre: verificar que el piso del nido se inclinó/expulsó y que ninguna ave quedó dentro (aves dentro de noche ensucian el nido y el huevo).",
+        "Si un tramo no abre o no cierra: no forzarlo a mano; reportar de inmediato (FOMAT06).",
+        "Registrar en la ronda diaria."
+      ],
+      "safety": [
+        "No meter las manos en el mecanismo durante la apertura o cierre."
+      ],
+      "tools": [
+        "Celular con IncubApp"
+      ]
+    },
+    {
+      "code": "LF-132",
+      "sede": "GRANJA LA FE",
+      "system": "NIDOS",
+      "equipmentClass": "Sistema de apertura y cierre de nidos (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Revisar el accionamiento (motorreductor, eje, cable o cadena, poleas y tensores) y la sincronía entre módulos de nido; limpiar esterillas y retirar plumas, heces y huevo atascado.",
+      "type": "Preventivo",
+      "frequency": "Semanal",
+      "shutdown": "No",
+      "duration": "0.7",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Apertura uniforme en todos los módulos; cables sin deshilache; esterillas limpias y completas.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Todos los galpones cada semana",
+        "weeks": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-02 §8.2",
+      "replaces": "LF-020",
+      "technicalSteps": [
+        "Accionar un ciclo manual de apertura y cierre desde el controlador y observar a lo largo del galpón: todos los módulos se mueven a la vez y llegan al final de carrera.",
+        "Bloquear (LOTO). Revisar el cable o la cadena de accionamiento, las poleas y los tensores: sin hilos rotos, sin poleas trabadas, grapas apretadas.",
+        "Revisar uniones del eje entre módulos (acoples, pasadores): sin juego.",
+        "Retirar esterillas sucias, sacudir/cepillar y reponer las faltantes; retirar plumas, heces y huevo roto de los pisos del nido.",
+        "Retirar el bloqueo y dejar el sistema en modo automático. Verificar la hora del controlador."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Candado y tarjeta LOTO",
+        "Llaves",
+        "Cepillo",
+        "Esterillas de repuesto"
+      ]
+    },
+    {
+      "code": "LF-133",
+      "sede": "GRANJA LA FE",
+      "system": "NIDOS",
+      "equipmentClass": "Sistema de apertura y cierre de nidos (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Medir amperaje del motorreductor contra placa; verificar finales de carrera, el temporizador/programación del controlador y que la hora se mantenga tras un corte de energía.",
+      "type": "Predictivo",
+      "frequency": "Mensual",
+      "shutdown": "Sí",
+      "duration": "0.6",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Corriente ≤ In; finales de carrera accionan en la posición correcta y detienen el motor; horario programado conforme al programa de producción.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43,
+          45,
+          46,
+          47,
+          49,
+          50,
+          51
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-02 §8.3",
+      "replaces": "LF-021",
+      "technicalSteps": [
+        "Medir la corriente del motorreductor durante una apertura y un cierre; comparar con placa. Un pico alto indica mecanismo trabado o tensor muy apretado.",
+        "Verificar que cada final de carrera (abierto y cerrado) detiene el motor en la posición correcta; ajustar la leva si se pasa o se queda corto.",
+        "Revisar la programación: hora de apertura y cierre según el programa de producción vigente; corregir la hora del reloj.",
+        "Simular un corte de energía (apagar y encender el breaker del controlador) y comprobar que conserva hora y programa (batería de respaldo).",
+        "Registrar valores y ajustes en la OT."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Medición eléctrica: solo personal calificado, con EPP dieléctrico."
+      ],
+      "tools": [
+        "Pinza amperimétrica",
+        "Destornilladores",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-134",
+      "sede": "GRANJA LA FE",
+      "system": "NIDOS",
+      "equipmentClass": "Sistema de apertura y cierre de nidos (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Lubricar cadenas y bisagras; ajustar tensión de cables; revisar estructura, pendiente de los pisos del nido y cortinas.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.2",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Sin juego ni roce; lubricación según manual; pisos con la pendiente original (el huevo rueda solo); cortinas completas.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-02 §8.4",
+      "replaces": "LF-022",
+      "technicalSteps": [
+        "Bloquear (LOTO).",
+        "Lubricar la cadena del motorreductor y las bisagras del piso/puerta con el lubricante del manual (grado alimenticio). Las chumaceras del eje se lubrican en LF-202.",
+        "Revisar nivel de aceite del reductor.",
+        "Ajustar la tensión de los cables de accionamiento para que todos los módulos se muevan juntos.",
+        "Verificar la pendiente de los pisos del nido: colocar un huevo en el fondo; debe rodar solo hasta la banda.",
+        "Revisar cortinas de entrada, techos y separadores; reemplazar los dañados.",
+        "Prueba de ciclo completo en manual y dejar en automático."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Grasa grado alimenticio (H1)",
+        "Llaves",
+        "Huevo de prueba",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-135",
+      "sede": "GRANJA LA FE",
+      "system": "NIDOS",
+      "equipmentClass": "Sistema de apertura y cierre de nidos (Big Herdsman)",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Overhaul y lavado-desinfección en el vacío sanitario: desmontar y lavar esterillas, lavar y desinfectar nidos; cambiar rodamientos, cadenas, cables y esterillas según desgaste.",
+      "type": "Preventivo mayor",
+      "frequency": "Por vacío sanitario (≈ anual)",
+      "shutdown": "Sí",
+      "duration": "5.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Acta de overhaul; mecanismo dentro de tolerancia; esterillas en estado conforme; lista de chequeo de bioseguridad conforme.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-02 §9 y §10",
+      "replaces": "LF-023",
+      "technicalSteps": [
+        "Bloquear (LOTO). Retirar todas las esterillas; lavarlas por inmersión con detergente y desinfectante; secar al sol.",
+        "Limpieza en seco de los nidos (plumas, polvo, heces), luego lavado a baja presión, enjuague y desinfección.",
+        "Revisar y cambiar cadenas, cables, poleas y pasadores desgastados (chumaceras: LF-203).",
+        "Revisar bisagras, pisos y estructura; enderezar o cambiar piezas deformadas.",
+        "Reinstalar esterillas, lubricar y probar varios ciclos completos antes del ingreso del lote."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Hidrolavado: proteger motor y controlador."
+      ],
+      "tools": [
+        "Esterillas, cables y rodamientos de repuesto",
+        "Hidrolavadora",
+        "Detergente y desinfectante del protocolo"
+      ]
+    },
+    {
+      "code": "LF-141",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Sistema de bebida (niples/reguladores)",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "equipmentClass": "Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
       "count": 24,
-      "description": "Flushing y desinfección de las líneas de agua entre lotes.",
+      "description": "Verificar presión en las columnas (visor) según la edad, ausencia de goteo, cama seca bajo las líneas, altura del niple y lectura del medidor de agua.",
+      "type": "Preventivo",
+      "frequency": "Diaria",
+      "shutdown": "No",
+      "duration": "0.2",
+      "responsible": "Operario galponero",
+      "acceptanceCriteria": "Columna a la altura del programa; cero goteo; cama seca; niple a la altura de la cabeza del ave; consumo dentro de ± 10 % del día anterior.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Ronda diaria IncubApp",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §6 y §8.1",
+      "replaces": "LF-006",
+      "technicalSteps": [
+        "Leer el medidor de agua del galpón (si lo tiene) y registrar el consumo; una caída o subida mayor al 10 % frente al día anterior se reporta de inmediato al veterinario.",
+        "Revisar el visor/columna de cada regulador: altura según la tabla del programa por edad.",
+        "Caminar las líneas: sin niples goteando, sin cama húmeda debajo, sin vasos (tacitas) rotos.",
+        "Verificar la altura: el ave debe estirarse levemente para alcanzar el niple; ajustar con el malacate si hace falta.",
+        "Reportar fallas (FOMAT06)."
+      ],
+      "safety": [
+        "No colgarse ni apoyarse en las líneas."
+      ],
+      "tools": [
+        "Celular con IncubApp"
+      ]
+    },
+    {
+      "code": "LF-142",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Limpiar filtros de la línea, verificar el dosificador de medicamentos/vitaminas por aforo, purgar el final de las líneas y probar caudal de niples al azar.",
+      "type": "Preventivo",
+      "frequency": "Semanal",
+      "shutdown": "No",
+      "duration": "0.5",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Filtro limpio; dosificación verificada por aforo (± 5 % del valor ajustado); caudal de niple dentro de la tabla del manual/edad.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Todos los galpones cada semana",
+        "weeks": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §8.2",
+      "replaces": "LF-007",
+      "technicalSteps": [
+        "Cerrar la válvula de entrada, abrir el filtro, lavar el cartucho/malla con agua limpia y cepillo suave; cambiarlo si está roto. Cerrar y purgar el aire.",
+        "Aforo del dosificador: medir el agua que pasa (contador o recipiente) y el producto que aspira el dosificador en el mismo tiempo; calcular el % y comparar con el valor ajustado.",
+        "Abrir la purga del final de cada línea hasta que salga agua clara.",
+        "Probar caudal en 3 niples por línea (inicio, medio, final) con una probeta durante 1 minuto; comparar con la tabla.",
+        "Registrar valores en la OT."
+      ],
+      "safety": [
+        "Medicamentos/desinfectantes: guantes y gafas según la hoja de seguridad."
+      ],
+      "tools": [
+        "Llave de filtro",
+        "Cepillo suave",
+        "Probeta graduada",
+        "Cronómetro",
+        "Guantes y gafas"
+      ]
+    },
+    {
+      "code": "LF-143",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Verificar y ajustar los reguladores de presión de cabecera y de línea; medir caudal en 10 niples por línea; revisar malacates, cables y nivelación de las líneas.",
+      "type": "Preventivo",
+      "frequency": "Mensual",
+      "shutdown": "No",
+      "duration": "0.6",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Reguladores responden al ajuste y la columna se estabiliza; caudal de niples dentro de la tabla; diferencia de caudal inicio-final de línea ≤ 20 %; línea nivelada.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Por módulo (3 + 2 lotes)",
+        "weeks": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §8.3",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "En cada regulador: girar la perilla un paso arriba y abajo y comprobar que la columna responde y vuelve al valor; si no responde, desarmar y limpiar el diafragma o cambiar el regulador.",
+        "Medir el caudal de 10 niples por línea repartidos a lo largo (probeta, 1 minuto); anotar mínimo, máximo y promedio.",
+        "Cambiar los niples con goteo o caudal fuera de rango.",
+        "Verificar con nivel o manguera de nivel que la línea no tenga pendientes mayores a las del manual (afectan la presión al final).",
+        "Revisar malacates, cables, poleas y grapas del sistema de elevación."
+      ],
+      "safety": [
+        "Trabajo sobre escalera: tres puntos de apoyo."
+      ],
+      "tools": [
+        "Probeta graduada",
+        "Cronómetro",
+        "Nivel o manguera de nivel",
+        "Niples y reguladores de repuesto"
+      ]
+    },
+    {
+      "code": "LF-144",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Bebederos de niple, reguladores y columnas (Big Herdsman en producción)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Lavado (flushing) y desinfección de las líneas de agua entre lotes: remoción de biofilm, enjuague, cambio de niples dañados y prueba de presión.",
       "type": "Bioseguridad",
       "frequency": "Por ciclo (entre lotes)",
       "shutdown": "Sí",
       "duration": "1.5",
       "responsible": "Aux. mantenimiento",
-      "acceptanceCriteria": "Biofilm removido; enjuague sin residual de desinfectante.",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
+      "acceptanceCriteria": "Biofilm removido; enjuague sin residual de desinfectante; registro de producto, concentración y tiempo de contacto.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "Registro de lavado",
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §10",
+      "replaces": "LF-008",
+      "technicalSteps": [
+        "Poner los reguladores en posición de lavado (flush) y abrir las purgas de los extremos.",
+        "Lavar con agua a alta caudal hasta que salga clara.",
+        "Llenar las líneas con la solución desinfectante del protocolo (producto y concentración de Bioseguridad) y dejarla el tiempo de contacto indicado en la ficha técnica.",
+        "Lavar de nuevo con agua limpia hasta que no quede residual (comprobar con tira reactiva).",
+        "Cambiar niples con goteo, revisar mangueras y uniones, regresar los reguladores a modo normal y ajustar la presión del lote entrante.",
+        "Diligenciar el registro de lavado."
+      ],
+      "safety": [
+        "Desinfectantes: EPP según la hoja de seguridad; nunca mezclar productos clorados con ácidos."
+      ],
+      "tools": [
+        "Desinfectante del protocolo",
+        "Tiras reactivas",
+        "Niples de repuesto",
+        "EPP químico"
+      ]
     },
     {
-      "code": "LF-009",
+      "code": "LF-151",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Tanques de almacenamiento",
+      "equipmentClass": "Tanques de almacenamiento de agua",
       "applyingEquipment": "S4, S8, S9, S10, S13, S14, S17, S18, S20, S24, S25",
       "count": 11,
-      "description": "Verificar nivel, tapa, rebose y ausencia de acceso de fauna/vectores.",
+      "description": "Verificar nivel, flotador y válvula de llenado, tapa, rebose, válvulas de salida y ausencia de fugas o de acceso de fauna/vectores.",
       "type": "Preventivo",
       "frequency": "Semanal",
       "shutdown": "No",
       "duration": "0.3",
       "responsible": "Aux. mantenimiento",
-      "acceptanceCriteria": "Tapa sellada; sin ingreso de luz ni vectores.",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
+      "acceptanceCriteria": "Tapa sellada; sin ingreso de luz ni vectores; flotador corta el llenado; rebose con malla; sin fugas.",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "OT preventiva",
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todos cada semana",
         "weeks": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          40,
-          41,
           42,
           43,
           44,
@@ -11997,14 +12971,30 @@
           50,
           51,
           52
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §5",
+      "replaces": "LF-009",
+      "technicalSteps": [
+        "Verificar el nivel y que el flotador o la válvula de llenado corte cuando el tanque está lleno (no debe salir agua por el rebose).",
+        "Revisar tapa: cerrada, asegurada, sin rendijas que dejen entrar luz, insectos o roedores.",
+        "Revisar el tubo de rebose y el respiradero: con malla en la salida.",
+        "Abrir y cerrar las válvulas de salida y de lavado: sin fugas, sin manijas trabadas.",
+        "Revisar alrededores del tanque: sin agua estancada ni vegetación alta."
+      ],
+      "safety": [
+        "Tanques elevados: trabajo en alturas (Res. 4272/2021)."
+      ],
+      "tools": [
+        "Linterna"
+      ]
     },
     {
-      "code": "LF-010",
+      "code": "LF-152",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Tanques de almacenamiento",
+      "equipmentClass": "Tanques de almacenamiento de agua",
       "applyingEquipment": "S4, S8, S9, S10, S13, S14, S17, S18, S20, S24, S25",
       "count": 11,
       "description": "Verificar cloración residual y registrar; ajustar dosificación.",
@@ -12014,204 +13004,382 @@
       "duration": "0.4",
       "responsible": "Aux. mantenimiento",
       "acceptanceCriteria": "Cloro residual libre dentro del rango definido por el protocolo sanitario.",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "Registro sanitario",
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todos cada mes",
         "weeks": [
-          1,
-          5,
-          9,
-          13,
-          17,
-          21,
-          25,
-          29,
-          33,
-          37,
-          41,
           45,
           49
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §5",
+      "replaces": "LF-010",
+      "technicalSteps": [
+        "Tomar muestra a la salida del tanque y al final de una línea de niples.",
+        "Medir cloro libre residual con kit (DPD) y pH.",
+        "Registrar y ajustar la dosificación si está fuera de rango."
+      ],
+      "safety": [
+        "Guantes y gafas al manipular cloro."
+      ],
+      "tools": [
+        "Kit de cloro y pH (DPD)"
+      ]
     },
     {
-      "code": "LF-011",
+      "code": "LF-153",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Tanques de almacenamiento",
+      "equipmentClass": "Tanques de almacenamiento de agua",
       "applyingEquipment": "S4, S8, S9, S10, S13, S14, S17, S18, S20, S24, S25",
       "count": 11,
       "description": "Lavado y desinfección completa del tanque.",
       "type": "Bioseguridad",
       "frequency": "Trimestral",
       "shutdown": "Sí",
-      "duration": "2",
+      "duration": "2.0",
       "responsible": "Aux. mantenimiento",
       "acceptanceCriteria": "Sin sedimento ni biofilm; acta de lavado.",
-      "frequencyRationale": "Res. ICA 3650/3651 — limpieza, desinfección y bioseguridad",
+      "frequencyRationale": "Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "Registro de lavado",
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": [
-          7,
-          20,
-          33,
-          46
-        ]
-      }
+        "rotacion": "Escalonado",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §5",
+      "replaces": "LF-011",
+      "technicalSteps": [
+        "Garantizar agua para las aves desde otro tanque durante el lavado.",
+        "Vaciar, retirar sedimentos, cepillar paredes y fondo.",
+        "Desinfectar con la solución del protocolo y respetar el tiempo de contacto.",
+        "Enjuagar, llenar y verificar cloro residual."
+      ],
+      "safety": [
+        "Tanques en los que haya que ingresar: espacio confinado (Res. 0491/2020)."
+      ],
+      "tools": [
+        "Cepillos",
+        "Desinfectante del protocolo"
+      ]
     },
     {
-      "code": "LF-012",
+      "code": "LF-154",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Tanques de almacenamiento",
+      "equipmentClass": "Tanques de almacenamiento de agua",
+      "applyingEquipment": "S4, S8, S9, S10, S13, S14, S17, S18, S20, S24, S25",
+      "count": 11,
+      "description": "Inspección estructural del tanque y de su base o torre: fisuras, deformación, corrosión, anclajes, escalera, tapa y empaques; tuberías y soportes de entrada y salida.",
+      "type": "Preventivo",
+      "frequency": "Semestral",
+      "shutdown": "No",
+      "duration": "0.8",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Sin fisuras ni deformación; base y anclajes firmes; sin corrosión activa en torre o escalera; empaques de tapa en buen estado.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Escalonado",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §5",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Revisar las paredes del tanque por fuera: fisuras, abombamiento o manchas de humedad (tanques plásticos: decoloración y cristalización por sol).",
+        "Revisar la base o torre: losa sin fisuras, perfiles sin corrosión, pernos y anclajes completos y apretados.",
+        "Revisar escalera, guarda y plataforma.",
+        "Revisar el empaque y el cierre de la tapa; cambiar el empaque si está cuarteado.",
+        "Revisar tuberías de entrada y salida y sus soportes: sin fugas ni tramos colgados.",
+        "Registrar hallazgos con fotografía."
+      ],
+      "safety": [
+        "Trabajo en alturas en tanques elevados (Res. 4272/2021)."
+      ],
+      "tools": [
+        "Linterna",
+        "Llaves",
+        "Equipo de trabajo en alturas",
+        "Cámara"
+      ]
+    },
+    {
+      "code": "LF-155",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Tanques de almacenamiento de agua",
       "applyingEquipment": "S4, S8, S9, S10, S13, S14, S17, S18, S20, S24, S25",
       "count": 11,
       "description": "Análisis fisicoquímico y microbiológico del agua por laboratorio acreditado.",
       "type": "Legal",
       "frequency": "Anual",
       "shutdown": "No",
-      "duration": "1",
+      "duration": "1.0",
       "responsible": "Laboratorio externo",
       "acceptanceCriteria": "Resultado conforme a los parámetros de agua para consumo animal.",
-      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO)",
+      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO del PRGMAT01)",
       "evidenceFormat": "Informe de laboratorio",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": [
-          15
-        ]
-      }
+        "rotacion": "Anual",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "—",
+      "replaces": "LF-012",
+      "technicalSteps": [
+        "Programar la toma de muestra con el laboratorio.",
+        "Acompañar la toma (fuente, tanque y final de línea).",
+        "Archivar el informe y tratar las no conformidades."
+      ],
+      "safety": [],
+      "tools": []
     },
     {
-      "code": "LF-013",
+      "code": "LF-161",
       "sede": "GRANJA LA FE",
       "system": "AGUA",
-      "equipmentClass": "Bombas y red de conducción",
-      "applyingEquipment": "(por confirmar en campo)",
+      "equipmentClass": "Motobombas de suministro de agua",
+      "applyingEquipment": "(motobombas de la granja — código MB-LF-nn asignado en el levantamiento LF-100)",
       "count": 1,
-      "description": "Verificar presión de descarga, ausencia de fuga en la red y estado del sello mecánico; medir amperaje del motor.",
+      "description": "Ronda de la motobomba: presión en el manómetro dentro del rango, arranque y parada automáticos (presostato o flotador), sin ruido anormal, sin fuga por el sello, sin arranques demasiado seguidos.",
       "type": "Preventivo",
+      "frequency": "Diaria",
+      "shutdown": "No",
+      "duration": "0.1",
+      "responsible": "Operario galponero",
+      "acceptanceCriteria": "Presión dentro del rango marcado en el manómetro; arranca y para sola; sin goteo por el sello; sin ciclado rápido.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
+      "evidenceFormat": "Ronda diaria IncubApp",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §6 y §8.1",
+      "replaces": "LF-013",
+      "technicalSteps": [
+        "Leer el manómetro: la aguja debe estar entre las marcas de presión mínima y máxima (rango pintado en el manómetro).",
+        "Escuchar la bomba en marcha: ruido de grava o golpeteo = cavitación o rodamiento dañado.",
+        "Mirar bajo la bomba: sin goteo por el sello mecánico ni por las uniones.",
+        "Observar si arranca y para muy seguido (cada pocos segundos): indica tanque hidroneumático sin aire o fuga en la red.",
+        "Reportar (FOMAT06). Si la bomba no da agua: avisar de inmediato; las aves no pueden quedar sin agua."
+      ],
+      "safety": [
+        "No tocar la carcasa del motor: puede estar caliente.",
+        "No abrir la caja de conexiones."
+      ],
+      "tools": [
+        "Celular con IncubApp"
+      ]
+    },
+    {
+      "code": "LF-162",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Motobombas de suministro de agua",
+      "applyingEquipment": "(motobombas de la granja — código MB-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Medir tensión y corriente en las tres fases contra placa; verificar presiones de arranque y parada del presostato y la precarga del tanque hidroneumático; revisar sello mecánico, válvula de pie/cheque, vibración, temperatura y base.",
+      "type": "Predictivo",
       "frequency": "Mensual",
       "shutdown": "No",
-      "duration": "0.6",
+      "duration": "0.7",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Presión nominal; sin cavitación; corriente ≤ In.",
+      "acceptanceCriteria": "Corriente ≤ In de placa y desbalance entre fases ≤ 10 %; tensión dentro de ± 10 % de la nominal; precarga del hidroneumático ≈ 2 psi por debajo de la presión de arranque; sin goteo por el sello; base firme.",
       "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
       "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": false,
+      "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todas cada mes",
         "weeks": [
-          4,
-          8,
-          12,
-          16,
-          20,
-          24,
-          28,
-          32,
-          36,
-          40,
-          44,
-          48,
-          52
-        ]
-      }
+          45,
+          49
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §8.2",
+      "replaces": "LF-013",
+      "technicalSteps": [
+        "Con la bomba trabajando, medir tensión entre fases y corriente en cada fase; comparar con la placa y anotar.",
+        "Abrir una llave aguas abajo y anotar la presión a la que ARRANCA la bomba; cerrarla y anotar la presión a la que PARA. Comparar con el ajuste del presostato.",
+        "Si tiene tanque hidroneumático: apagar la bomba (LOTO), vaciar el agua del tanque y medir la presión de aire en la válvula; ajustarla a unos 2 psi por debajo de la presión de arranque.",
+        "Revisar el sello mecánico (goteo), la válvula de pie o cheque (la columna no se debe descebar) y la canastilla de succión.",
+        "Medir la temperatura de la carcasa del motor y de los rodamientos con termómetro infrarrojo; anotar.",
+        "Revisar la base, los pernos de anclaje y que no haya vibración fuera de lo normal.",
+        "Registrar valores en la OT para ver la tendencia."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Mediciones eléctricas: personal calificado con EPP dieléctrico."
+      ],
+      "tools": [
+        "Pinza amperimétrica",
+        "Multímetro",
+        "Medidor de presión de llantas (precarga)",
+        "Termómetro infrarrojo"
+      ]
     },
     {
-      "code": "LF-014",
+      "code": "LF-163",
       "sede": "GRANJA LA FE",
-      "system": "RECOLECCIÓN DE HUEVO",
-      "equipmentClass": "Banda recolectora y elevador de huevo",
+      "system": "AGUA",
+      "equipmentClass": "Motobombas de suministro de agua",
+      "applyingEquipment": "(motobombas de la granja — código MB-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Limpiar canastilla y filtro de succión, revisar alineación del acople (bombas con acople), apretar bornes de la caja de conexiones, lubricar rodamientos con grasera y alternar o probar la bomba de respaldo.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Succión limpia; acople alineado; bornes firmes; bomba de respaldo arranca y entrega presión.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Escalonado",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §8.3",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Garantizar el agua de las aves con la bomba de respaldo o con el tanque elevado durante el trabajo.",
+        "Bloquear (LOTO). Limpiar la canastilla de la válvula de pie y el filtro de succión.",
+        "Bombas con acople: revisar la alineación con regla o galgas y el estado del elemento elástico.",
+        "Abrir la caja de conexiones del motor: bornes apretados, sin señales de calentamiento ni humedad; cerrar con su empaque.",
+        "Si el motor o la bomba tienen grasera: lubricar con la grasa indicada (1 a 2 bombazos); los rodamientos sellados no se lubrican.",
+        "Cebar, arrancar y verificar presión. Probar la bomba de respaldo y dejar alternadas las bombas si el sistema lo permite."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Candado y tarjeta LOTO",
+        "Llaves",
+        "Regla y galgas",
+        "Grasera"
+      ]
+    },
+    {
+      "code": "LF-164",
+      "sede": "GRANJA LA FE",
+      "system": "AGUA",
+      "equipmentClass": "Motobombas de suministro de agua",
+      "applyingEquipment": "(motobombas de la granja — código MB-LF-nn asignado en el levantamiento LF-100)",
+      "count": 1,
+      "description": "Mantenimiento mayor: megado del motor, revisión de impulsor y voluta, cambio de sello mecánico y rodamientos por condición, verificación del manómetro y del presostato.",
+      "type": "Preventivo mayor",
+      "frequency": "Anual",
+      "shutdown": "Sí",
+      "duration": "4.0",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Aislamiento del motor ≥ 1 MΩ a 500 V; impulsor sin desgaste ni cavitación severa; sello y rodamientos nuevos o en buen estado; manómetro verificado; acta en hoja de vida.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Escalonado",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §9",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Garantizar agua de respaldo. Bloquear (LOTO) y desconectar el motor.",
+        "Megar el motor (fases contra tierra) a 500 V y anotar el valor.",
+        "Desarmar la bomba: revisar impulsor, voluta y anillos de desgaste.",
+        "Cambiar el sello mecánico y los rodamientos si presentan desgaste, ruido o goteo (o según horas del fabricante).",
+        "Verificar el manómetro contra uno patrón y el ajuste del presostato.",
+        "Armar, cebar, arrancar y medir corriente y presión. Registrar en la hoja de vida (FOMAT03)."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Megado: solo personal calificado; descargar el motor después de medir."
+      ],
+      "tools": [
+        "Megóhmetro",
+        "Kit de sello mecánico",
+        "Rodamientos",
+        "Extractor",
+        "Manómetro patrón"
+      ]
+    },
+    {
+      "code": "LF-171",
+      "sede": "GRANJA LA FE",
+      "system": "ANTIPERCHEO",
+      "equipmentClass": "Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
       "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
       "count": 12,
-      "description": "Verificar arranque, recorrido y parada de la banda en el ciclo programado; revisar que no haya huevo atascado ni puntos de ruptura.",
+      "description": "Verificar que el energizador esté encendido y pulsando, que no haya aves posadas sobre las líneas de comedero y bebedero y que nada toque el cable electrificado.",
       "type": "Preventivo",
       "frequency": "Diaria",
       "shutdown": "No",
-      "duration": "0.3",
+      "duration": "0.1",
       "responsible": "Operario galponero",
-      "acceptanceCriteria": "Banda cumple el ciclo sin atasco; % de huevo roto dentro de meta.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Indicador del energizador pulsando; ninguna ave posada sobre las líneas; cable libre de contactos.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "Ronda diaria IncubApp",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §11 y §13.1",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Mirar el indicador (luz/pantalla) del energizador: debe pulsar aproximadamente una vez por segundo.",
+        "Caminar las líneas: si hay aves posadas sobre el comedero o el bebedero, el cable no está electrificado en ese tramo.",
+        "Buscar objetos, plumas acumuladas, cama o cables que toquen el alambre electrificado (lo descargan a tierra).",
+        "Reportar fallas (FOMAT06)."
+      ],
+      "safety": [
+        "No tocar el cable electrificado. Aunque el impulso es de baja energía, produce descarga dolorosa."
+      ],
+      "tools": [
+        "Celular con IncubApp"
+      ]
     },
     {
-      "code": "LF-015",
+      "code": "LF-172",
       "sede": "GRANJA LA FE",
-      "system": "RECOLECCIÓN DE HUEVO",
-      "equipmentClass": "Banda recolectora y elevador de huevo",
+      "system": "ANTIPERCHEO",
+      "equipmentClass": "Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
       "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
       "count": 12,
-      "description": "Verificar bandas, elevador, sincronía y ausencia de puntos de ruptura de huevo.",
+      "description": "Medir la tensión del cable con probador de cerca eléctrica al inicio y al final de cada línea; revisar aisladores, tensión del alambre, empalmes y que no toque partes metálicas.",
       "type": "Preventivo",
       "frequency": "Semanal",
       "shutdown": "No",
-      "duration": "0.6",
+      "duration": "0.4",
       "responsible": "Aux. mantenimiento",
-      "acceptanceCriteria": "Transporte sin rotura; sincronía correcta; % huevo roto dentro de meta.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Tensión al final de cada línea ≥ 3 kV (estándar adoptado por la empresa; si la placa o el manual del energizador exigen más, prevalece ese valor); aisladores completos; alambre tenso sin contacto con metal.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "OT preventiva",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todos los galpones cada semana",
         "weeks": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          40,
-          41,
           42,
           43,
           44,
@@ -12223,184 +13391,213 @@
           50,
           51,
           52
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §13.2",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Con el probador de cerca eléctrica, medir la tensión en la salida del energizador y al final de cada línea. Anotar los valores.",
+        "Si al final de la línea la tensión cae mucho frente a la salida, buscar la fuga: aislador roto, alambre tocando el canal, el niple o la estructura, o vegetación/cama en contacto.",
+        "Revisar aisladores: sin fisuras ni suciedad conductora; cambiar los rotos.",
+        "Revisar tensión del alambre y empalmes (sin nudos sueltos ni oxidación).",
+        "Registrar los valores para ver la tendencia."
+      ],
+      "safety": [
+        "Medir solo con el probador; no tocar el alambre con la mano."
+      ],
+      "tools": [
+        "Probador de cerca eléctrica (kV)",
+        "Aisladores de repuesto",
+        "Alambre y grapas"
+      ]
     },
     {
-      "code": "LF-016",
+      "code": "LF-173",
       "sede": "GRANJA LA FE",
-      "system": "RECOLECCIÓN DE HUEVO",
-      "equipmentClass": "Banda recolectora y elevador de huevo",
+      "system": "ANTIPERCHEO",
+      "equipmentClass": "Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
       "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
       "count": 12,
-      "description": "Medir amperaje del motorreductor de la banda y del elevador contra placa; verificar alineación y estado de la superficie de la banda.",
-      "type": "Predictivo",
-      "frequency": "Mensual",
-      "shutdown": "Sí",
-      "duration": "0.7",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Corriente ≤ In; banda alineada, sin desgarro ni desviación lateral.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "OT preventiva",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "12 eq · 4 lotes de 3",
-        "weeks": [
-          2,
-          6,
-          10,
-          14,
-          18,
-          22,
-          26,
-          30,
-          34,
-          38,
-          42,
-          46,
-          50
-        ]
-      }
-    },
-    {
-      "code": "LF-017",
-      "sede": "GRANJA LA FE",
-      "system": "RECOLECCIÓN DE HUEVO",
-      "equipmentClass": "Banda recolectora y elevador de huevo",
-      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 12,
-      "description": "Lubricar y ajustar cadenas, rodillos y tensores; revisar motorreductor.",
+      "description": "Revisar el energizador (alimentación, fusible, batería si tiene), la conexión y la varilla de puesta a tierra del sistema, interruptores de corte por sección y tensores.",
       "type": "Preventivo",
-      "frequency": "Trimestral",
-      "shutdown": "Sí",
-      "duration": "1",
+      "frequency": "Mensual",
+      "shutdown": "No",
+      "duration": "0.4",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Sin juego; lubricación según OEM.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Energizador sin alarmas; conexión a tierra apretada y sin corrosión; interruptores de sección funcionan; tensión de salida estable.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "OT preventiva",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "12 eq · 4 lotes de 3",
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
         "weeks": [
-          12,
-          25,
-          38,
+          42,
+          43,
+          45,
+          46,
+          47,
+          49,
+          50,
           51
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §13.3",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Revisar el energizador: alimentación eléctrica, fusible, indicadores de alarma; si tiene batería, medir su tensión.",
+        "Revisar la conexión del cable de tierra en el energizador y en la varilla: apretada, sin corrosión; limpiar y apretar si hace falta.",
+        "Probar los interruptores de corte por sección (si existen): al abrirlos se corta la tensión en esa sección.",
+        "Medir la tensión de salida del energizador sin carga y con carga (conectado a las líneas).",
+        "Registrar valores."
+      ],
+      "safety": [
+        "Desconectar el energizador de la red antes de abrirlo."
+      ],
+      "tools": [
+        "Probador de cerca",
+        "Multímetro",
+        "Cepillo de alambre",
+        "Llaves"
+      ]
     },
     {
-      "code": "LF-018",
+      "code": "LF-174",
       "sede": "GRANJA LA FE",
-      "system": "RECOLECCIÓN DE HUEVO",
-      "equipmentClass": "Banda recolectora y elevador de huevo",
+      "system": "ANTIPERCHEO",
+      "equipmentClass": "Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
       "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
       "count": 12,
-      "description": "Overhaul: cambio de rodamientos, cadenas y tramos de banda según desgaste; balanceo del elevador y revisión estructural.",
+      "description": "En el vacío sanitario: desconectar el energizador, desmontar o proteger el cable para el lavado, reemplazar aisladores y alambre desgastados y probar el sistema antes de alojar las aves.",
       "type": "Preventivo mayor",
-      "frequency": "Anual",
+      "frequency": "Por vacío sanitario (≈ anual)",
       "shutdown": "Sí",
-      "duration": "4",
+      "duration": "1.5",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Acta de overhaul; banda y cadenas dentro de tolerancia de desgaste.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Sistema probado con tensión conforme en todas las líneas antes del ingreso del lote; acta de revisión.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "Hoja de vida",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "12 eq · 1 c/2 semanas",
-        "weeks": [
-          20
-        ]
-      }
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §13.4",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Desconectar el energizador de la red y del cable antes de empezar el lavado del galpón (el agua y el energizador conectado son riesgo).",
+        "Lavar y desinfectar el alambre y los aisladores junto con las líneas.",
+        "Cambiar aisladores fisurados y tramos de alambre oxidados o con muchos empalmes.",
+        "Reconectar y medir tensión al final de cada línea.",
+        "Dejar el sistema energizado y probado antes del ingreso de las aves."
+      ],
+      "safety": [
+        "Energizador DESCONECTADO durante todo el lavado.",
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Alambre y aisladores de repuesto",
+        "Probador de cerca"
+      ]
     },
     {
-      "code": "LF-019",
+      "code": "LF-175",
       "sede": "GRANJA LA FE",
-      "system": "NIDOS",
-      "equipmentClass": "Sistema de apertura y cierre de nidos",
+      "system": "ANTIPERCHEO",
+      "equipmentClass": "Sistema antipercheo electrificado sobre líneas (Big Herdsman)",
       "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
       "count": 12,
-      "description": "Verificar que la apertura y el cierre ocurran en el horario programado; comprobar que ningún nido quede trabado y que no queden aves dentro al cierre.",
+      "description": "Medir la resistencia de la puesta a tierra del sistema antipercheo.",
+      "type": "Predictivo",
+      "frequency": "Anual",
+      "shutdown": "No",
+      "duration": "0.5",
+      "responsible": "Téc. eléctrico",
+      "acceptanceCriteria": "Resistencia de puesta a tierra dentro del valor que pide el fabricante del energizador; informe de medición.",
+      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO del PRGMAT01) · RETIE",
+      "evidenceFormat": "Informe de medición",
+      "isCriticalSecurity": false,
+      "isBiosecurity": false,
+      "cronograma": {
+        "rotacion": "Anual",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-04 §13.5",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Medir con telurómetro la resistencia de la varilla de tierra del energizador.",
+        "Comparar con el valor del manual; si es alto, agregar varillas o mejorar el terreno.",
+        "Archivar el informe."
+      ],
+      "safety": [
+        "Personal calificado (RETIE)."
+      ],
+      "tools": [
+        "Telurómetro"
+      ]
+    },
+    {
+      "code": "LF-181",
+      "sede": "GRANJA LA FE",
+      "system": "ILUMINACIÓN",
+      "equipmentClass": "Iluminación inteligente: controlador, dimmer y luminarias LED",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Verificar encendido y apagado en el horario del programa de luz (fotoperiodo), el amanecer y atardecer gradual, y que no haya luminarias apagadas o parpadeando.",
       "type": "Preventivo",
       "frequency": "Diaria",
       "shutdown": "No",
-      "duration": "0.3",
+      "duration": "0.1",
       "responsible": "Operario galponero",
-      "acceptanceCriteria": "Apertura y cierre completos en el horario programado; ningún nido trabado; ninguna ave dentro al cierre.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Horario de luz igual al programa vigente del lote; 0 luminarias apagadas o parpadeando.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "Ronda diaria IncubApp",
       "isCriticalSecurity": false,
-      "isBiosecurity": true,
+      "isBiosecurity": false,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-05 §6 y §8.1",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Al encendido y al apagado, comprobar que la hora coincida con el programa de luz del lote publicado en el galpón.",
+        "Recorrer el galpón y contar luminarias apagadas, parpadeando o con luz desigual.",
+        "Revisar en la pantalla del controlador que no haya alarmas.",
+        "Reportar (FOMAT06). No cambiar el programa: solo lo cambia el responsable autorizado."
+      ],
+      "safety": [],
+      "tools": [
+        "Celular con IncubApp"
+      ]
     },
     {
-      "code": "LF-020",
+      "code": "LF-182",
       "sede": "GRANJA LA FE",
-      "system": "NIDOS",
-      "equipmentClass": "Sistema de apertura y cierre de nidos",
-      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 12,
-      "description": "Revisar el accionamiento (motorreductor, cadena/cable, poleas y tensores) y la sincronía entre módulos de nido; limpiar pisos y esterillas.",
+      "system": "ILUMINACIÓN",
+      "equipmentClass": "Iluminación inteligente: controlador, dimmer y luminarias LED",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Revisar el controlador: fecha y hora correctas, programa cargado igual al programa de luz vigente por edad del lote, alarmas e historial; tomar foto de la pantalla del programa.",
       "type": "Preventivo",
       "frequency": "Semanal",
       "shutdown": "No",
-      "duration": "0.7",
+      "duration": "0.2",
       "responsible": "Aux. mantenimiento",
-      "acceptanceCriteria": "Apertura uniforme en todos los módulos; cables sin deshilache; esterillas limpias y completas.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
-      "evidenceFormat": "OT preventiva",
+      "acceptanceCriteria": "Hora del controlador con diferencia ≤ 5 min; programa igual al aprobado por Producción/Veterinaria; sin alarmas activas.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva + foto",
       "isCriticalSecurity": false,
-      "isBiosecurity": true,
+      "isBiosecurity": false,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Todos los galpones cada semana",
         "weeks": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          40,
-          41,
           42,
           43,
           44,
@@ -12412,101 +13609,492 @@
           50,
           51,
           52
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-05 §7 y §8.2",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Comparar la fecha y la hora del controlador con la hora oficial; corregir si difiere más de 5 minutos.",
+        "Abrir el programa activo: horas de luz, hora de encendido/apagado, intensidad (%) y duración del amanecer/atardecer. Compararlo con el programa de luz vigente por edad del lote.",
+        "Si no coincide, NO modificarlo: reportar al responsable de Producción para que lo autorice.",
+        "Revisar el historial de alarmas y eventos (cortes de energía, fallas de driver).",
+        "Tomar foto de la pantalla del programa y adjuntarla a la OT."
+      ],
+      "safety": [],
+      "tools": [
+        "Celular"
+      ]
     },
     {
-      "code": "LF-021",
+      "code": "LF-183",
       "sede": "GRANJA LA FE",
-      "system": "NIDOS",
-      "equipmentClass": "Sistema de apertura y cierre de nidos",
-      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 12,
-      "description": "Medir amperaje del motorreductor contra placa; verificar finales de carrera y el temporizador/programación del controlador de nidos.",
+      "system": "ILUMINACIÓN",
+      "equipmentClass": "Iluminación inteligente: controlador, dimmer y luminarias LED",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Medir intensidad lumínica con luxómetro a la altura del ave en una cuadrícula de puntos; verificar la respuesta del dimmer en 3 niveles; revisar sensor de luz, drivers y contactores.",
       "type": "Predictivo",
       "frequency": "Mensual",
-      "shutdown": "Sí",
+      "shutdown": "No",
       "duration": "0.6",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Corriente ≤ In; finales de carrera accionan en la posición correcta; horario programado conforme.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "Lux promedio igual al del programa del lote (± 10 %); uniformidad (mínimo/promedio) ≥ 0,6 — referencia a confirmar con Producción; dimmer responde de forma proporcional.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "OT preventiva",
       "isCriticalSecurity": false,
-      "isBiosecurity": true,
+      "isBiosecurity": false,
       "cronograma": {
-        "rotacion": "12 eq · 4 lotes de 3",
+        "rotacion": "Por módulo (3 + 2 lotes)",
         "weeks": [
-          2,
-          6,
-          10,
-          14,
-          18,
-          22,
-          26,
-          30,
-          34,
-          38,
           42,
+          43,
+          44,
+          45,
           46,
-          50
-        ]
-      }
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-05 §8.3",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Con el programa al 100 % de la intensidad del día, medir con luxómetro a la altura de la cabeza del ave en 9 puntos por piso (3 a lo ancho x 3 a lo largo), incluyendo zona de nidos y de comederos.",
+        "Calcular el promedio y el mínimo; uniformidad = mínimo / promedio.",
+        "Bajar la intensidad desde el controlador a 75 % y 25 % (en un horario que no afecte a las aves, o con autorización) y verificar que la medición baje de forma proporcional.",
+        "Revisar el sensor de luz (si lo tiene): limpio y con lectura coherente.",
+        "Revisar drivers, contactores y bornes del tablero de iluminación: sin calentamiento ni olor a quemado.",
+        "Registrar todos los valores en la OT."
+      ],
+      "safety": [
+        "Revisión de tablero: solo personal calificado con EPP dieléctrico."
+      ],
+      "tools": [
+        "Luxómetro",
+        "Multímetro",
+        "Destornillador aislado"
+      ]
     },
     {
-      "code": "LF-022",
+      "code": "LF-184",
       "sede": "GRANJA LA FE",
-      "system": "NIDOS",
-      "equipmentClass": "Sistema de apertura y cierre de nidos",
-      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 12,
-      "description": "Lubricar cadenas, rodillos y bisagras; ajustar tensores; revisar estructura, pisos inclinados y cortinas del nido.",
+      "system": "ILUMINACIÓN",
+      "equipmentClass": "Iluminación inteligente: controlador, dimmer y luminarias LED",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "Limpiar las luminarias (el polvo reduce la luz), revisar conexiones, cables, cajas de empalme y fijaciones; respaldar el programa del controlador.",
       "type": "Preventivo",
       "frequency": "Trimestral",
-      "shutdown": "Sí",
-      "duration": "1.2",
-      "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Sin juego ni roce; lubricación según OEM; estructura sin deformación.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "shutdown": "No",
+      "duration": "0.8",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Luminarias limpias; conexiones firmes y selladas; respaldo del programa guardado (foto o archivo).",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
       "evidenceFormat": "OT preventiva",
       "isCriticalSecurity": false,
-      "isBiosecurity": true,
+      "isBiosecurity": false,
       "cronograma": {
-        "rotacion": "12 eq · 4 lotes de 3",
+        "rotacion": "Por módulo (3 + 2 lotes)",
         "weeks": [
-          3,
-          16,
-          29,
-          42
-        ]
-      }
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-05 §8.4",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Cortar la energía del circuito de iluminación del tramo a limpiar (LOTO) o hacerlo en horas de luz natural según autorización.",
+        "Limpiar cada luminaria con paño húmedo (no hidrolavar con aves; ver grado IP).",
+        "Revisar conexiones, cajas de empalme, prensaestopas y cables: sin cables pelados ni cajas abiertas.",
+        "Revisar fijaciones de las luminarias (cadenas, ganchos).",
+        "Respaldar el programa: exportar el archivo si el controlador lo permite, o fotografiar todas las pantallas del programa."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Trabajo sobre escalera: tres puntos de apoyo; > 2 m aplicar trabajo en alturas."
+      ],
+      "tools": [
+        "Paños",
+        "Escalera",
+        "Candado y tarjeta LOTO",
+        "Cinta y conectores"
+      ]
     },
     {
-      "code": "LF-023",
+      "code": "LF-185",
       "sede": "GRANJA LA FE",
-      "system": "NIDOS",
-      "equipmentClass": "Sistema de apertura y cierre de nidos",
-      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 12,
-      "description": "Overhaul: cambio de rodamientos, cadenas, cables y esterillas según desgaste; revisión integral del mecanismo y de la estructura del nido.",
+      "system": "ILUMINACIÓN",
+      "equipmentClass": "Iluminación inteligente: controlador, dimmer y luminarias LED",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506",
+      "count": 24,
+      "description": "En el vacío sanitario: lavado de luminarias según su grado IP, reemplazo de luminarias y drivers defectuosos, verificación integral del sistema y carga del programa de luz del lote entrante.",
       "type": "Preventivo mayor",
-      "frequency": "Anual",
+      "frequency": "Por vacío sanitario (≈ anual)",
       "shutdown": "Sí",
-      "duration": "5",
+      "duration": "2.0",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Acta de overhaul; mecanismo dentro de tolerancia; esterillas en estado conforme.",
-      "frequencyRationale": "Estándar propio de la empresa · base técnica: práctica Big Herdsman · Res. ICA 3651 An. núm. 1.9",
+      "acceptanceCriteria": "100 % de luminarias operativas; programa del lote entrante cargado y verificado por Producción; acta de revisión.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.3 — limpieza, desinfección y bioseguridad",
       "evidenceFormat": "Hoja de vida",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "12 eq · 1 c/2 semanas",
-        "weeks": [
-          24
-        ]
-      }
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-05 §9 y §10",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Verificar en la ficha el grado IP de las luminarias antes de lavar: IP65 o superior admite lavado con chorro; menor, solo paño.",
+        "Lavar y desinfectar luminarias junto con el galpón, con el circuito desenergizado.",
+        "Reemplazar luminarias y drivers defectuosos por el mismo modelo (o equivalente compatible con el dimmer).",
+        "Probar el dimmer de 0 a 100 % y el amanecer/atardecer.",
+        "Cargar el programa de luz del lote entrante y hacerlo verificar y firmar por Producción."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Luminarias y drivers de repuesto",
+        "Luxómetro"
+      ]
     },
     {
-      "code": "LF-024",
+      "code": "LF-191",
+      "sede": "GRANJA LA FE",
+      "system": "ENERGÍA",
+      "equipmentClass": "Tableros eléctricos (galpones, general y bombeo)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506, (tablero general, transferencia y tablero de bombeo — código TG-LF-nn en el levantamiento LF-100)",
+      "count": 24,
+      "description": "Inspección del tablero: puerta cerrada con chapa y empaque, sin humedad ni condensación, sin insectos, roedores ni nidos, señalización de riesgo eléctrico y diagrama, luces piloto y selectores en AUTO, sin olor a quemado; temperatura de breakers y contactores con termómetro infrarrojo.",
+      "type": "Preventivo",
+      "frequency": "Mensual",
+      "shutdown": "No",
+      "duration": "0.3",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Tablero cerrado y seco; sin plagas; señalización y diagrama presentes; selectores en AUTO; ningún componente > 60 °C ni 15 °C por encima de sus iguales.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento · RETIE",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Por módulo (3 + 2 lotes)",
+        "weeks": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §7 y §8.4",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Antes de abrir: revisar puerta, chapa, empaque, prensaestopas y entradas de cables (sin huecos por donde entren insectos o roedores).",
+        "Abrir con EPP dieléctrico: buscar humedad, condensación, óxido, excrementos, nidos o insectos; olor a quemado o plástico derretido.",
+        "Verificar luces piloto, selectores en AUTO y que no haya protecciones disparadas.",
+        "Medir con termómetro infrarrojo la temperatura de breakers, contactores, guardamotores y bornes; anotar los valores altos.",
+        "Verificar señalización de riesgo eléctrico y que el diagrama unifilar esté en la puerta.",
+        "Cerrar y reportar hallazgos (FOMAT06)."
+      ],
+      "safety": [
+        "Tablero energizado: solo mirar y medir con instrumento; no tocar partes vivas. EPP dieléctrico (guantes, gafas, ropa sin metal).",
+        "Personal calificado (RETIE)."
+      ],
+      "tools": [
+        "Termómetro infrarrojo",
+        "Linterna",
+        "Guantes dieléctricos",
+        "Gafas"
+      ]
+    },
+    {
+      "code": "LF-192",
+      "sede": "GRANJA LA FE",
+      "system": "ENERGÍA",
+      "equipmentClass": "Tableros eléctricos (galpones, general y bombeo)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506, (tablero general, transferencia y tablero de bombeo — código TG-LF-nn en el levantamiento LF-100)",
+      "count": 24,
+      "description": "Con el tablero desenergizado: limpieza interna (aspirar/soplar con aire seco, nunca agua), apriete de bornes, revisión de contactores y guardamotores (ajuste a la In de cada motor), sellado de entradas; prueba del botón TEST de los diferenciales.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "1.0",
+      "responsible": "Téc. eléctrico",
+      "acceptanceCriteria": "Tablero limpio; bornes apretados; guardamotores ajustados a la In de placa; diferenciales disparan con TEST; entradas selladas.",
+      "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento · RETIE",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": true,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Por módulo (3 + 2 lotes)",
+        "weeks": [
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §8.4",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Coordinar con Producción: fuera de horario de reparto, recolección y cambio de luz; garantizar agua y luz mínima.",
+        "Desenergizar el tablero desde el breaker aguas arriba, bloquear (LOTO) y verificar ausencia de tensión con multímetro.",
+        "Limpiar con aspiradora o aire seco a baja presión; nunca con agua ni solventes.",
+        "Apretar bornes de breakers, contactores, guardamotores y barras.",
+        "Revisar contactos de contactores (picados o quemados → cambiar) y ajustar guardamotores a la In de placa del motor que protegen.",
+        "Sellar con espuma o masilla las entradas de cables abiertas.",
+        "Energizar y probar el botón TEST de cada diferencial (debe disparar); rearmar.",
+        "Verificar que todos los equipos del galpón arranquen."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Verificar ausencia de tensión antes de tocar. Personal calificado (RETIE)."
+      ],
+      "tools": [
+        "Multímetro",
+        "Destornilladores aislados",
+        "Aspiradora o soplador",
+        "Espuma selladora",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-193",
+      "sede": "GRANJA LA FE",
+      "system": "ENERGÍA",
+      "equipmentClass": "Tableros eléctricos (galpones, general y bombeo)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506, (tablero general, transferencia y tablero de bombeo — código TG-LF-nn en el levantamiento LF-100)",
+      "count": 24,
+      "description": "Termografía de tableros con carga y apriete de bornes con torque; verificar protecciones de los motores de alimentación, nidos, banda de huevo, motobombas, energizador antipercheo e iluminación.",
+      "type": "Predictivo",
+      "frequency": "Semestral",
+      "shutdown": "Sí",
+      "duration": "2.0",
+      "responsible": "Téc. eléctrico",
+      "acceptanceCriteria": "Sin punto caliente (ΔT ≤ 10 °C entre fases o elementos iguales); protecciones coordinadas (RETIE).",
+      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO del PRGMAT01) · RETIE",
+      "evidenceFormat": "Informe termográfico",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Por módulo",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §8.4",
+      "replaces": "LF-029",
+      "technicalSteps": [
+        "Termografía con carga (durante un reparto y una recolección).",
+        "Desenergizar (LOTO) y apretar con torque los bornes señalados.",
+        "Verificar ajuste de guardamotores contra placa de cada motor.",
+        "Informe con imágenes."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Personal calificado (RETIE)."
+      ],
+      "tools": [
+        "Cámara termográfica",
+        "Torquímetro"
+      ]
+    },
+    {
+      "code": "LF-194",
+      "sede": "GRANJA LA FE",
+      "system": "ENERGÍA",
+      "equipmentClass": "Tableros eléctricos (galpones, general y bombeo)",
+      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404, G501, G502, G503, G504, G505, G506, (tablero general, transferencia y tablero de bombeo — código TG-LF-nn en el levantamiento LF-100)",
+      "count": 24,
+      "description": "Medición de la resistencia de puesta a tierra de la granja y megado de los motores principales (alimentación, banda, nidos y motobombas).",
+      "type": "Predictivo",
+      "frequency": "Anual",
+      "shutdown": "Sí",
+      "duration": "3.0",
+      "responsible": "Téc. eléctrico",
+      "acceptanceCriteria": "Puesta a tierra dentro de los valores máximos de RETIE; aislamiento de motores ≥ 1 MΩ a 500 V; informe.",
+      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO del PRGMAT01) · RETIE",
+      "evidenceFormat": "Informe de medición",
+      "isCriticalSecurity": false,
+      "isBiosecurity": false,
+      "cronograma": {
+        "rotacion": "Anual",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §8.4",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Medir con telurómetro la resistencia de las puestas a tierra (tablero general y tableros de galpón).",
+        "Desconectar (LOTO) y megar cada motor principal a 500 V; anotar.",
+        "Comparar con el año anterior: una caída fuerte del aislamiento anticipa la falla del motor.",
+        "Archivar el informe y programar los correctivos."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "Personal calificado (RETIE)."
+      ],
+      "tools": [
+        "Telurómetro",
+        "Megóhmetro"
+      ]
+    },
+    {
+      "code": "LF-201",
+      "sede": "GRANJA LA FE",
+      "system": "TRANSMISIÓN MECÁNICA",
+      "equipmentClass": "Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Inspección de chumaceras: temperatura con termómetro infrarrojo, ruido, juego del eje, pernos de fijación y prisioneros apretados, sellos y alineación.",
+      "type": "Predictivo",
+      "frequency": "Mensual",
+      "shutdown": "No",
+      "duration": "0.4",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Temperatura de la chumacera ≤ 70 °C y sin subir más de 15 °C frente a la medición anterior; sin ruido ni juego; pernos y prisioneros apretados.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43,
+          45,
+          46,
+          47,
+          49,
+          50,
+          51
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §10",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Con el equipo trabajando (banda en recolección, cadena en reparto), medir la temperatura de cada chumacera con termómetro infrarrojo; anotar.",
+        "Escuchar cada chumacera con estetoscopio mecánico o un destornillador largo: zumbido parejo es normal; golpeteo o chirrido indica daño.",
+        "Detener y bloquear (LOTO). Mover el eje con la mano hacia arriba/abajo y a lo largo: no debe tener juego.",
+        "Revisar que los pernos de la chumacera y los prisioneros (o el collarín excéntrico) estén apretados.",
+        "Revisar sellos: grasa negra o polvo saliendo indica sello dañado.",
+        "Registrar valores; las chumaceras fuera de criterio se programan para cambio."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos.",
+        "No acercar manos ni ropa suelta a ejes en movimiento al medir."
+      ],
+      "tools": [
+        "Termómetro infrarrojo",
+        "Estetoscopio mecánico",
+        "Llaves Allen y mixtas",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-202",
+      "sede": "GRANJA LA FE",
+      "system": "TRANSMISIÓN MECÁNICA",
+      "equipmentClass": "Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "Lubricar todas las chumaceras con grasera con grasa grado alimenticio, limpiando la grasa vieja; registrar cantidad aplicada.",
+      "type": "Preventivo",
+      "frequency": "Trimestral",
+      "shutdown": "Sí",
+      "duration": "0.6",
+      "responsible": "Aux. mantenimiento",
+      "acceptanceCriteria": "Todas las chumaceras con grasera lubricadas; sin exceso de grasa expulsada por los sellos; grasa NSF H1.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "OT preventiva",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "12 eq · 3 lotes de 4 (por módulo)",
+        "weeks": [
+          42,
+          43
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §10",
+      "replaces": "Lubricación de rodamientos de LF-003, LF-017 y LF-022",
+      "technicalSteps": [
+        "Detener y bloquear (LOTO).",
+        "Limpiar la grasera y la grasa vieja alrededor del sello.",
+        "Aplicar grasa NSF H1 con grasera manual: 1 a 2 bombazos por chumacera (sin forzar hasta reventar el sello).",
+        "Chumaceras sin grasera (selladas de por vida): no se lubrican; solo se inspeccionan.",
+        "Retirar el exceso de grasa (puede contaminar el huevo o el alimento).",
+        "Retirar el bloqueo, arrancar y verificar que no se calienten."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Grasera manual",
+        "Grasa grado alimenticio NSF H1",
+        "Trapo",
+        "Candado y tarjeta LOTO"
+      ]
+    },
+    {
+      "code": "LF-203",
+      "sede": "GRANJA LA FE",
+      "system": "TRANSMISIÓN MECÁNICA",
+      "equipmentClass": "Chumaceras (rodamientos con soporte) de banda, nidos, unidad motriz de alimentación y transportadores",
+      "applyingEquipment": "G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
+      "count": 12,
+      "description": "En el vacío sanitario: cambiar las chumaceras con juego, ruido o temperatura fuera de criterio, por la misma referencia; alinear el eje y registrar.",
+      "type": "Preventivo mayor",
+      "frequency": "Por vacío sanitario (≈ anual)",
+      "shutdown": "Sí",
+      "duration": "1.5",
+      "responsible": "Téc. mantenimiento",
+      "acceptanceCriteria": "Chumaceras cambiadas por la misma referencia; eje alineado y gira libre; registro en hoja de vida.",
+      "frequencyRationale": "Estándar propio de la empresa · base técnica: manual MAN-LF del sistema (Big Herdsman) · Res. ICA 3651/2014 An. núm. 1.9",
+      "evidenceFormat": "Hoja de vida",
+      "isCriticalSecurity": false,
+      "isBiosecurity": true,
+      "cronograma": {
+        "rotacion": "Galpón por galpón al vaciarse",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "MAN-LF-06 §10",
+      "replaces": "(nueva)",
+      "technicalSteps": [
+        "Revisar el historial de inspecciones (LF-201) para saber cuáles cambiar.",
+        "Bloquear (LOTO). Soltar tensión de banda o cadena, aflojar prisioneros y pernos y retirar la chumacera.",
+        "Limpiar el eje (sin rebabas) y montar la nueva chumacera de la misma referencia; no golpear el rodamiento.",
+        "Alinear, apretar pernos y luego prisioneros; lubricar si tiene grasera.",
+        "Tensar, probar y registrar la referencia y la fecha en la hoja de vida (FOMAT03)."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": [
+        "Chumaceras de repuesto (según levantamiento)",
+        "Extractor",
+        "Llaves",
+        "Grasa NSF H1"
+      ]
+    },
+    {
+      "code": "LF-211",
       "sede": "GRANJA LA FE",
       "system": "ENERGÍA",
       "equipmentClass": "Planta eléctrica de emergencia + ATS",
@@ -12524,12 +14112,25 @@
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": []
-      }
+        "rotacion": "Ronda diaria",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la planta",
+      "replaces": "LF-024",
+      "technicalSteps": [
+        "Revisar nivel de combustible, aceite y refrigerante.",
+        "Revisar tensión de la batería en el panel.",
+        "Buscar fugas bajo el equipo.",
+        "Confirmar selector en AUTO."
+      ],
+      "safety": [
+        "No abrir el tapón del radiador en caliente."
+      ],
+      "tools": []
     },
     {
-      "code": "LF-025",
+      "code": "LF-212",
       "sede": "GRANJA LA FE",
       "system": "ENERGÍA",
       "equipmentClass": "Planta eléctrica de emergencia + ATS",
@@ -12547,49 +14148,8 @@
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Semanal",
         "weeks": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          40,
-          41,
           42,
           43,
           44,
@@ -12601,48 +14161,67 @@
           50,
           51,
           52
-        ]
-      }
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la planta",
+      "replaces": "LF-025",
+      "technicalSteps": [
+        "Arrancar en modo prueba y medir el tiempo de arranque.",
+        "Verificar tensión y frecuencia en el panel.",
+        "Dejar trabajar 15 min y apagar.",
+        "Registrar horómetro."
+      ],
+      "safety": [
+        "Avisar a Producción antes de la prueba."
+      ],
+      "tools": []
     },
     {
-      "code": "LF-026",
+      "code": "LF-213",
       "sede": "GRANJA LA FE",
       "system": "ENERGÍA",
       "equipmentClass": "Planta eléctrica de emergencia + ATS",
       "applyingEquipment": "(por confirmar en campo)",
       "count": 1,
-      "description": "Prueba con carga real simulando falla de red (CRÍTICO: sin energía se detienen el suministro de agua, la alimentación y la recolección de huevo).",
+      "description": "Prueba con carga real simulando falla de red (CRÍTICO: sin energía se detienen el agua, la alimentación, los nidos, la recolección de huevo y la iluminación).",
       "type": "Crítico / Seguridad",
       "frequency": "Mensual",
       "shutdown": "Sí",
-      "duration": "1",
+      "duration": "1.0",
       "responsible": "Téc. mantenimiento + Supervisor",
-      "acceptanceCriteria": "Sostiene la carga de alimentación, agua, nidos y recolección de huevo sin caída de frecuencia/tensión fuera de rango.",
+      "acceptanceCriteria": "Sostiene la carga de alimentación, agua, nidos, recolección e iluminación sin caída de tensión/frecuencia fuera de rango.",
       "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
       "evidenceFormat": "Registro de prueba",
       "isCriticalSecurity": true,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Mensual",
         "weeks": [
-          2,
-          6,
-          10,
-          14,
-          18,
-          22,
-          26,
-          30,
-          34,
-          38,
-          42,
-          46,
-          50
-        ]
-      }
+          45,
+          49
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la planta",
+      "replaces": "LF-026",
+      "technicalSteps": [
+        "Coordinar con Producción (fuera del horario de reparto).",
+        "Abrir el breaker de red para simular la falla.",
+        "Verificar transferencia, arranque de cargas y parámetros.",
+        "Restablecer red y verificar retransferencia.",
+        "Verificar que los controladores de nidos e iluminación conservaron la hora."
+      ],
+      "safety": [
+        "Personal calificado; avisar antes."
+      ],
+      "tools": [
+        "Multímetro",
+        "Pinza amperimétrica"
+      ]
     },
     {
-      "code": "LF-027",
+      "code": "LF-214",
       "sede": "GRANJA LA FE",
       "system": "ENERGÍA",
       "equipmentClass": "Planta eléctrica de emergencia + ATS",
@@ -12652,25 +14231,33 @@
       "type": "Preventivo",
       "frequency": "Trimestral",
       "shutdown": "Sí",
-      "duration": "3",
+      "duration": "3.0",
       "responsible": "Téc. mantenimiento",
-      "acceptanceCriteria": "Consumibles según OEM; horómetro registrado.",
+      "acceptanceCriteria": "Consumibles según manual del fabricante; horómetro registrado.",
       "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
       "evidenceFormat": "Hoja de vida",
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": [
-          7,
-          20,
-          33,
-          46
-        ]
-      }
+        "rotacion": "Trimestral",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la planta",
+      "replaces": "LF-027",
+      "technicalSteps": [
+        "Bloquear la planta.",
+        "Cambiar aceite y filtros con los de referencia del manual.",
+        "Revisar correas y mangueras.",
+        "Prueba de arranque."
+      ],
+      "safety": [
+        "Bloqueo y etiquetado (LOTO): apagar desde el tablero del galpón, poner candado y tarjeta personal, y probar que el equipo no arranca antes de meter las manos."
+      ],
+      "tools": []
     },
     {
-      "code": "LF-028",
+      "code": "LF-215",
       "sede": "GRANJA LA FE",
       "system": "ENERGÍA",
       "equipmentClass": "Planta eléctrica de emergencia + ATS",
@@ -12680,7 +14267,7 @@
       "type": "Preventivo mayor",
       "frequency": "Anual",
       "shutdown": "Sí",
-      "duration": "6",
+      "duration": "6.0",
       "responsible": "Proveedor certificado",
       "acceptanceCriteria": "Sostiene 100 % de carga nominal; acta del proveedor.",
       "frequencyRationale": "Estándar propio de la empresa · buena práctica de ingeniería de mantenimiento",
@@ -12688,40 +14275,21 @@
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": [
-          28
-        ]
-      }
+        "rotacion": "Anual",
+        "weeks": [],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la planta",
+      "replaces": "LF-028",
+      "technicalSteps": [
+        "Contratar y acompañar al proveedor.",
+        "Archivar el acta en la hoja de vida."
+      ],
+      "safety": [],
+      "tools": []
     },
     {
-      "code": "LF-029",
-      "sede": "GRANJA LA FE",
-      "system": "ENERGÍA",
-      "equipmentClass": "Tableros y redes eléctricas de galpón",
-      "applyingEquipment": "G101, G102, G103, G104, G105, G106, G501, G502, G503, G504, G505, G506, G201, G202, G203, G204, G301, G302, G303, G304, G401, G402, G403, G404",
-      "count": 24,
-      "description": "Termografía de tableros de galpón y apriete de bornes; verificar protecciones de los motores de alimentación, nidos y banda de huevo.",
-      "type": "Predictivo",
-      "frequency": "Semestral",
-      "shutdown": "Sí",
-      "duration": "2",
-      "responsible": "Téc. eléctrico",
-      "acceptanceCriteria": "Sin punto caliente (ΔT ≤ 10 °C); protecciones coordinadas (RETIE).",
-      "frequencyRationale": "Requisito legal externo (ver hoja 03 MARCO NORMATIVO)",
-      "evidenceFormat": "Informe termográfico",
-      "isCriticalSecurity": false,
-      "isBiosecurity": true,
-      "cronograma": {
-        "rotacion": "Lote único",
-        "weeks": [
-          9,
-          35
-        ]
-      }
-    },
-    {
-      "code": "LF-030",
+      "code": "LF-221",
       "sede": "GRANJA LA FE",
       "system": "INFRAESTRUCTURA Y SERVICIOS",
       "equipmentClass": "Sala de lavado (S16)",
@@ -12739,23 +14307,24 @@
       "isCriticalSecurity": false,
       "isBiosecurity": true,
       "cronograma": {
-        "rotacion": "Lote único",
+        "rotacion": "Mensual",
         "weeks": [
-          2,
-          6,
-          10,
-          14,
-          18,
-          22,
-          26,
-          30,
-          34,
-          38,
-          42,
-          46,
-          50
-        ]
-      }
+          45,
+          49
+        ],
+        "vigenteDesdeSemana": 42
+      },
+      "manual": "Manual del fabricante de la hidrolavadora",
+      "replaces": "LF-030",
+      "technicalSteps": [
+        "Medir presión de la hidrolavadora.",
+        "Aforar el dosificador.",
+        "Destapar y limpiar desagües y rejillas."
+      ],
+      "safety": [],
+      "tools": [
+        "Manómetro"
+      ]
     },
     {
       "code": "LE-001",
