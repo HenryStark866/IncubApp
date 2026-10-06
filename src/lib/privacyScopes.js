@@ -403,8 +403,6 @@ export function nativeTabsFor(role, area) {
   const set = new Set(COMMON_TABS)
   // Cliente externo (portal comercial): sin módulos de operación interna
   if (role === 'customer') set.delete('cargue')
-  // Operario y auxiliares de turno no salen en vehículo: sin desplazamientos misionales.
-  if (['operator', 'auxiliary', 'auxiliary_production'].includes(role)) set.delete('misionales')
   for (const d of domainsMemberOf(role, area)) {
     for (const t of domainTabsForRole(d, role, area)) set.add(t)
   }
