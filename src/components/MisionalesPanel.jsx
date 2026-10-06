@@ -1,6 +1,8 @@
 /**
  * Desplazamientos Misionales — inspección pre-operacional de vehículos.
  * Portado desde repo_misionales a IncubApp (multi-tenant).
+ * 06-10-2026 (Henry Taborda — Ing. en desarrollo de software): campos del formato real
+ * FOSST22 y PDF con descarga automática al registrar (src/lib/misionales/).
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -14,6 +16,9 @@ import {
   normalizePlaca,
 } from '../lib/misionalesCatalog'
 import { canManageOrgUsers } from '../lib/roles'
+// ES: Formato real FOSST22 y su PDF (06-10-2026, Henry Taborda). EN: Real FOSST22 form and its PDF.
+import { MANTENIMIENTOS_FOSST22, TURNOS } from '../lib/misionales/formatoFosst22'
+import { descargarPdfPreoperacional } from '../lib/misionales/descargarPdfPreoperacional'
 
 function todayIso() {
   return new Date().toLocaleDateString('sv-SE')
@@ -103,9 +108,11 @@ export default function MisionalesPanel({
             const res = await api.createInspection(payload)
             if (res.error) setMsg({ kind: 'error', text: res.error })
             else {
+              // ES: Descarga automática del PDF FOSST22 al registrar. EN: Auto-download the FOSST22 PDF.
+              const pdf = res.row ? await descargarPdfPreoperacional(res.row, { orgName }) : { error: null }
               setMsg({
-                kind: 'ok',
-                text: `Inspección registrada · cumplimiento ${res.row?.compliance_pct ?? '—'}%`,
+                kind: pdf.error ? 'error' : 'ok',
+                text: `Inspección registrada · cumplimiento ${res.row?.compliance_pct ?? '—'}%${pdf.error ? ` · ${pdf.error}` : ' · PDF FOSST22 descargado'}`,
               })
               setTab('historial')
             }
@@ -116,6 +123,7 @@ export default function MisionalesPanel({
 
       {tab === 'historial' && (
         <HistoryList
+          orgName={orgName}
           rows={api.rows}
           loading={api.loading}
           canDelete={canSeeAll}
@@ -157,6 +165,18 @@ function InspectionForm({ userName, orgName, onSubmit }) {
     optimal: true,
     observations: '',
   })
+  // ES: Campos del formato FOSST22 que no son columnas propias. EN: FOSST22 fields stored in «formato».
+  const [extra, setExtra] = useState({
+    cedula: '',
+    categoria: '',
+    turno: '',
+    soat_vence: '',
+    tecno_vence: '',
+    mantenimiento: {},
+    compromisos: '',
+    responsable_revision: '',
+  })
+  const setExtraCampo = (k) => (e) => setExtra((x) => ({ ...x, [k]: e.target.value }))
   const [busy, setBusy] = useState(false)
   const [gps, setGps] = useState({ lat: null, lng: null, accuracy: null })
   const canvasRef = useRef(null)
@@ -236,10 +256,17 @@ function InspectionForm({ userName, orgName, onSubmit }) {
   }, [])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  // ES: Conserva observación y acción correctiva al cambiar la calificación.
+  // EN: Keeps observation and corrective action when the grade changes.
   const setAspect = (idx, val) =>
     setAspectos((a) => ({
       ...a,
-      [String(idx + 1)]: { valor: val, label: aspectosList[idx] },
+      [String(idx + 1)]: { ...(a[String(idx + 1)] || {}), valor: val, label: aspectosList[idx] },
+    }))
+  const setAspectoTexto = (idx, campo, texto) =>
+    setAspectos((a) => ({
+      ...a,
+      [String(idx + 1)]: { ...(a[String(idx + 1)] || { label: aspectosList[idx] }), [campo]: texto },
     }))
 
   const done = Object.keys(aspectos).length
@@ -270,6 +297,7 @@ function InspectionForm({ userName, orgName, onSubmit }) {
       lng: gps.lng,
       gps_accuracy: gps.accuracy,
       signature_data,
+      formato: extra,
     })
     setBusy(false)
   }
@@ -376,6 +404,64 @@ function InspectionForm({ userName, orgName, onSubmit }) {
           </label>
         </div>
 
+        {/* ES: Datos del conductor y documentos como en el FOSST22. EN: Driver and documents as in FOSST22. */}
+        <div className="two-col">
+          <label>
+            C.C. del conductor
+            <input inputMode="numeric" value={extra.cedula} onChange={setExtraCampo('cedula')} />
+          </label>
+          <label>
+            Categoría de licencia
+            <input value={extra.categoria} onChange={setExtraCampo('categoria')} placeholder="A2, B1, C1…" />
+          </label>
+        </div>
+        <div className="two-col">
+          <label>
+            Turno de trabajo
+            <select value={extra.turno} onChange={setExtraCampo('turno')}>
+              <option value="">—</option>
+              {TURNOS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Vence SOAT
+            <input type="date" value={extra.soat_vence} onChange={setExtraCampo('soat_vence')} />
+          </label>
+        </div>
+        <div className="two-col">
+          <label>
+            Vence revisión tecnicomecánica
+            <input type="date" value={extra.tecno_vence} onChange={setExtraCampo('tecno_vence')} />
+          </label>
+          <label>
+            Responsable de la revisión
+            <input value={extra.responsable_revision} onChange={setExtraCampo('responsable_revision')} />
+          </label>
+        </div>
+        {tipo !== 'Moto' && (
+          <>
+            <h3 className="section-title" style={{ margin: '12px 0 6px' }}>
+              17. Últimas fechas de mantenimiento
+            </h3>
+            <div className="two-col" style={{ flexWrap: 'wrap' }}>
+              {MANTENIMIENTOS_FOSST22.map(([k, etiqueta]) => (
+                <label key={k}>
+                  {etiqueta}
+                  <input
+                    type="date"
+                    value={extra.mantenimiento[k] || ''}
+                    onChange={(e) =>
+                      setExtra((x) => ({ ...x, mantenimiento: { ...x.mantenimiento, [k]: e.target.value } }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+
         <h3 className="section-title" style={{ margin: '16px 0 8px' }}>
           Aspectos a revisar ({done}/{aspectosList.length}) · cumplimiento estimado {pct}%
         </h3>
@@ -403,6 +489,21 @@ function InspectionForm({ userName, orgName, onSubmit }) {
                     </button>
                   ))}
                 </div>
+                {/* ES: En «M» el formato pide observación y acción correctiva. EN: «M» needs observation and action. */}
+                {(cur === 'M' || cur === 'R') && (
+                  <div className="two-col" style={{ width: '100%' }}>
+                    <input
+                      placeholder="Observación"
+                      value={aspectos[key]?.obs || ''}
+                      onChange={(e) => setAspectoTexto(i, 'obs', e.target.value)}
+                    />
+                    <input
+                      placeholder="Acción correctiva (DD/MM/AAAA)"
+                      value={aspectos[key]?.accion || ''}
+                      onChange={(e) => setAspectoTexto(i, 'accion', e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             )
           })}
@@ -426,6 +527,11 @@ function InspectionForm({ userName, orgName, onSubmit }) {
             onChange={set('observations')}
             placeholder="Novedades, fallas, acciones…"
           />
+        </label>
+
+        <label>
+          Compromisos pendientes del conductor
+          <textarea rows={2} value={extra.compromisos} onChange={setExtraCampo('compromisos')} />
         </label>
 
         <h3 className="section-title" style={{ margin: '12px 0 6px' }}>
@@ -460,7 +566,7 @@ function InspectionForm({ userName, orgName, onSubmit }) {
   )
 }
 
-function HistoryList({ rows, loading, canDelete, onDelete }) {
+function HistoryList({ orgName, rows, loading, canDelete, onDelete }) {
   if (loading) return <p className="hint">Cargando…</p>
   if (!rows.length) {
     return (
@@ -493,6 +599,17 @@ function HistoryList({ rows, loading, canDelete, onDelete }) {
             <span className={`pill status ${r.optimal ? 'ok' : 'warn'}`}>
               {r.optimal ? 'Óptimo' : 'No óptimo'}
             </span>
+            {/* ES: PDF FOSST22 de esta inspección. EN: This inspection's FOSST22 PDF. */}
+            <button
+              type="button"
+              className="ghost small"
+              onClick={async () => {
+                const res = await descargarPdfPreoperacional(r, { orgName })
+                if (res.error) alert(res.error)
+              }}
+            >
+              📄 PDF
+            </button>
             {canDelete && (
               <button type="button" className="ghost small" onClick={() => onDelete(r.id)}>
                 Eliminar

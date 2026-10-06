@@ -6,7 +6,7 @@
 export const VEHICLE_TYPES = [
   { id: 'Moto', label: 'Motocicleta', grades: ['B', 'M'] },
   { id: 'Carro', label: 'Automóvil', grades: ['B', 'M', 'N/A'] },
-  { id: 'Camion', label: 'Camión', grades: ['B', 'R', 'M', 'N/A'] },
+  { id: 'Camion', label: 'Camión', grades: ['B', 'M', 'N/A'] }, // ES: FOSST22 solo tiene B / M / N/A (06-10-2026). EN: FOSST22 only has B / M / N/A.
 ]
 
 export const GRADE_LABEL = {
@@ -98,7 +98,7 @@ export const ASPECTOS_POR_TIPO = {
 export const VALORES_POR_TIPO = {
   Moto: ['B', 'M'],
   Carro: ['B', 'M', 'N/A'],
-  Camion: ['B', 'R', 'M', 'N/A'],
+  Camion: ['B', 'M', 'N/A'], // ES: igual al formato real FOSST22 / EN: same as the real FOSST22 form
 }
 
 export function aspectosForTipo(tipo) {

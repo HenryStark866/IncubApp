@@ -182,3 +182,24 @@ El resultado queda en `servidor-local/exportes/verificacion_*.txt`.
 | 29 OTs con código `OT-#####` desde el 23-09. | `work_order_defaults()` usa `to_char(n, 'FM00000')`; el contador pasó de 99.999 y `to_char` desborda. | `20261006_codigos_ot.sql`: la función usa 5 cifras mientras quepa y nunca repite un código. El contador vuelve al mayor OT-NNNNN real + 1. Las OTs dañadas reciben código nuevo en orden de creación, con nota en `regularization_note`. |
 
 La prueba local se armó con el esquema real del servidor: `mode` como enum y un contador en 150.000. Las tres migraciones del 06-10 se aplicaron dos veces cada una; la segunda vez no cambiaron nada.
+
+## 14. Misionales: formato real FOSST22 y PDF con descarga automática (06-10-2026)
+
+**Fuente del formato.** No se pudo clonar `incubantt/repo_misionales`: es privado y de otra cuenta. Tampoco se pudo entrar a misionales.incubant.co desde la sesión, que corre en la nube y no tiene navegador. Se usó el formato oficial que ya estaba en el repositorio: `docs/FOSST22-PREOPERACIONAL DE VEHICULOS.xlsx` (código FOSST22, versión 01, 07-02-2026). El catálogo de 50 aspectos de IncubApp ya venía de ese repo y coincide con el formato.
+
+| Archivo | Qué hace |
+|---|---|
+| `src/lib/misionales/formatoFosst22.js` | Encabezado del formato, texto de los 17 criterios, fechas del punto 17 y turnos. |
+| `src/lib/misionales/agruparAspectos.js` | Agrupa los aspectos guardados como en el papel: criterio, sub-ítem, B/M/N/A, observación y acción correctiva. |
+| `src/lib/misionales/generarPdfPreoperacional.js` | Arma el PDF tamaño carta: marco SIG con logo, inspección general, datos del conductor, criterios, cumplimiento, compromisos, firmas (incluida la firma dibujada) y pie controlado. |
+| `src/lib/misionales/descargarPdfPreoperacional.js` | Descarga `FOSST22_<placa>_<fecha>.pdf`. La librería se carga solo al descargar. |
+| `src/components/MisionalesPanel.jsx` | El formulario incluye ahora C.C., categoría, turno, vencimientos de SOAT y tecnicomecánica, fechas de mantenimiento, responsable de la revisión y compromisos. Cuando un aspecto es «M» pide observación y acción correctiva. **El PDF se descarga solo al registrar**, y el historial tiene un botón 📄 PDF por inspección. |
+| `src/lib/misionalesCatalog.js` | El camión se califica B / M / N/A, igual que el formato real (antes tenía también «R»). |
+| `src/hooks/useMisionales.js` | Guarda los datos extra en `formato`. Si el servidor aún no tiene la columna, guarda sin ella para no perder la inspección. |
+| `supabase/migrations/20261006_misionales_fosst22.sql` | Agrega la columna `mission_inspections.formato` (jsonb). Idempotente. |
+
+**Dependencias nuevas:** `jspdf` 4.2.1 y `jspdf-autotable` 5.0.8.
+
+**Errores durante el desarrollo:** la flecha «→» del trayecto salía como «!'» en el PDF porque la fuente estándar no la tiene. Se cambió por «a».
+
+**Pendiente:** cuando haya acceso a `repo_misionales` o a misionales.incubant.co, comparar contra lo que use la app original (por ejemplo, el formato propio de motocicletas) y ajustar.
