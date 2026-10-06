@@ -14,6 +14,8 @@
 | [Avance_Producto_Julio_2026.md](./Avance_Producto_Julio_2026.md) | Qué está construido hoy: módulos, bandeja, cumplimiento, asistencia selfie |
 | [Tecnologias_y_Lenguajes_FAQ.md](./Tecnologias_y_Lenguajes_FAQ.md) | **FAQ stack:** qué son, cómo funcionan y para qué (JS, React, Supabase, SQL…) |
 | [Offline_Operacion.md](./Offline_Operacion.md) | Operación sin red: SW, cola IndexedDB, sincronización |
+| [Cruce_Transferencias_WhatsApp.md](./Cruce_Transferencias_WhatsApp.md) | **Transferencias del WhatsApp** (jul-oct 2026) cruzadas con los mapas de cargue reales: tabla completa, hallazgos y pendientes |
+| [Bitacora_Transferencias_WhatsApp.md](./Bitacora_Transferencias_WhatsApp.md) | **Bitácora** de la importación: cada acción, errores encontrados y soluciones, cómo dar soporte |
 | [Tecnologias_y_Lenguajes_FAQ.docx](./Tecnologias_y_Lenguajes_FAQ.docx) | Misma FAQ en Word |
 | [Plan_Fidelizacion_y_Expansion_SaaS.docx](./Plan_Fidelizacion_y_Expansion_SaaS.docx) | Misma estrategia en Word (para junta / impresión) |
 | [Plan_Fidelizacion_y_Expansion_SaaS.pptx](./Plan_Fidelizacion_y_Expansion_SaaS.pptx) | Presentación dedicada al plan 90 días / SaaS |

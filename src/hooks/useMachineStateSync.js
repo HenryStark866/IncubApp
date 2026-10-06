@@ -58,7 +58,7 @@ export function useMachineStateSync(orgId, userId, { role } = {}) {
         supabase
           .from('transfers')
           .select(
-            'id, plant_id, batch_id, lote, mode, room_ids, cycle_start_at, transferred_at'
+            'id, plant_id, batch_id, lote, mode, room_ids, cycle_start_at, transferred_at, source_machine_id'
           )
           .eq('org_id', orgId)
           .order('transferred_at', { ascending: true })

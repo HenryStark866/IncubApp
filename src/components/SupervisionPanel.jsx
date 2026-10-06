@@ -36,6 +36,8 @@ import {
 import { compressImage } from '../lib/image'
 import { canOperatePlantRounds, canSupervisePlant } from '../lib/roles'
 import { READING_COLUMNS, readingFieldsFor } from '../lib/machineReadings'
+import { transferenciasPorNacer } from '../lib/transferenciasPorNacer'
+import { etiquetaOrigenTransferencia, fotoDeTransferencia } from '../lib/origenTransferencia'
 
 // Incubadoras (cargue)
 const SETTER_TYPES = ['setter', 'combo']
@@ -1224,8 +1226,11 @@ function TransferView({ loads, transfers, rooms, machines, team, onCreateTransfe
                 </span>
               </div>
               <span className="report-side">
-                <PhotoLink path={t.photo_path} getPhotoUrl={getPhotoUrl} />
-                <span className="hint" style={{ margin: 0 }}>👤 {opName(t.created_by)}</span>
+                <PhotoLink path={fotoDeTransferencia(t)} getPhotoUrl={getPhotoUrl} />
+                <span className="hint" style={{ margin: 0 }}>
+                  {/* ES: Importadas: quién la reportó por WhatsApp. EN: Imported: who reported it on WhatsApp. */}
+                  {etiquetaOrigenTransferencia(t) ?? `👤 ${opName(t.created_by)}`}
+                </span>
               </span>
             </div>
           ))}
@@ -1359,7 +1364,9 @@ function NacimientoView({ orgId, userId, transfers, hatch, rooms, team }) {
   const planned = hatch.hatches.filter((h) => h.status === 'planned')
   const completed = hatch.hatches.filter((h) => h.status === 'completed')
   const usedTransferIds = new Set(hatch.hatches.map((h) => h.transfer_id).filter(Boolean))
-  const pending = transfers.filter((t) => !usedTransferIds.has(t.id))
+  // ES: Solo transferencias recientes sin nacimiento (el histórico importado no es pendiente).
+  // EN: Only recent transfers without a hatch (imported history is not pending).
+  const pending = transferenciasPorNacer(transfers, usedTransferIds)
 
   useEffect(() => {
     if (inProgress.length === 0) return

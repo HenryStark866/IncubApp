@@ -5,6 +5,7 @@
  * Henry Stark · CDH Maker
  */
 
+import { transferenciasDeLaIncubadora } from './transferenciasDeLaIncubadora'
 import {
   INC_CALIB_MAX_HOURS,
   INC_CALIB_MIN_HOURS,
@@ -91,6 +92,14 @@ export function computeAllMachineStates({ machines, loads, transfers, hatches, n
   )
 
   // Transferencias por lote
+  // ES: …y por incubadora de origen (06-10-2026, transferencias por incubadora e importadas).
+  // EN: …and by source setter (2026-10-06, per-setter and imported transfers).
+  const transfersBySource = new Map()
+  for (const t of transfersAsc) {
+    if (!t.source_machine_id) continue
+    if (!transfersBySource.has(t.source_machine_id)) transfersBySource.set(t.source_machine_id, [])
+    transfersBySource.get(t.source_machine_id).push(t)
+  }
   const transfersByLote = new Map()
   for (const t of transfersAsc) {
     const k = loteKey(t.lote)
@@ -136,7 +145,7 @@ export function computeAllMachineStates({ machines, loads, transfers, hatches, n
     }
 
     if (isIncubatorType(m.type)) {
-      result.set(m.id, computeSetterState(m, latestLoadByMachine.get(m.id), transfersByLote, now))
+      result.set(m.id, computeSetterState(m, latestLoadByMachine.get(m.id), transfersByLote, now, transfersBySource))
       continue
     }
 
@@ -157,7 +166,7 @@ export function computeAllMachineStates({ machines, loads, transfers, hatches, n
     // combo: priorizar cargue de setter si hay; si no, hatcher por sala
     const load = latestLoadByMachine.get(m.id)
     if (load) {
-      result.set(m.id, computeSetterState(m, load, transfersByLote, now))
+      result.set(m.id, computeSetterState(m, load, transfersByLote, now, transfersBySource))
     } else {
       result.set(
         m.id,
@@ -201,13 +210,19 @@ function emptyState(m, phase = 'idle', now = Date.now()) {
   }
 }
 
-function computeSetterState(m, load, transfersByLote, now) {
+function computeSetterState(m, load, transfersByLote, now, transfersBySource = new Map()) {
   if (!load) return emptyState(m, 'idle', now)
 
   const cycleStart = load.cycle_start_at || load.loaded_at
   const hours = ageHoursFrom(cycleStart, now)
   const k = loteKey(load.lote)
-  const transfers = k ? transfersByLote.get(k) || [] : []
+  // ES: Por lote (antiguas) y por incubadora de origen (nuevas e importadas).
+  // EN: By lot (old ones) and by source setter (new and imported ones).
+  const transfers = transferenciasDeLaIncubadora({
+    maquinaId: m.id,
+    porLote: k ? transfersByLote.get(k) || [] : [],
+    porOrigen: transfersBySource,
+  })
   // ¿Este cargue ya fue transferido? (lote transferido después del cargue)
   const transferred = transfers.find(
     (t) =>

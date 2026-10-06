@@ -19,3 +19,4 @@
 20261005_bot_lecturas_automatico.sql
 20261006_bot_lecturas_releer.sql
 20261006_sede_asignada_miembros.sql
+20261006_transferencias_whatsapp.sql
