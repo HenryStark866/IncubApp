@@ -116,7 +116,7 @@ DELETE FROM public.transfers WHERE origen->>'fuente' = 'whatsapp:Transferencias'
 
 ## 9. Pendientes para planta / coordinación
 
-1. Confirmar las tres parejas cruzadas (INC-15/21, INC-24/10, INC-16/12) y, si el operario tenía razón, corregir la incubadora de esos mapas de cargue.
+1. ~~Confirmar las tres parejas cruzadas (INC-15/21, INC-24/10, INC-16/12)~~ **Hecho 06-10-2026:** planta confirmó que el operario tenía razón; `20261006_corregir_parejas_y_cargues_repetidos.sql` intercambia la incubadora de los 6 mapas y de sus cargues (ver §16).
 2. Reportar la transferencia del sábado 08-08 (probablemente INC-05 e INC-20).
 3. Confirmar el estado de la INC-04 (ya cumplía días el 06-10).
 4. De aquí en adelante, registrar cada transferencia en la app (Supervisión → Transferencia) y no solo en el WhatsApp.
@@ -209,3 +209,16 @@ La prueba local se armó con el esquema real del servidor: `mode` como enum y un
 **Misionales.** El pendiente de la sección 14 se cerró: planta subió la copia de `repo_misionales` (rama privada `material/repo-misionales` de Plataforma-de-Incubaci-n-CDH-Maker; no se copió a IncubApp porque IncubApp es público). La ventana se replicó tal cual (PR #17): listas de aspectos del original (moto 20, automóvil 24, camión 102 con B/R/M/N/A), foto obligatoria en M/R, PDF FO-SST-063, Mis inspecciones con consolidado de 15 y Admin para líderes. Misionales quedó activo para todos los usuarios (PR #15). Las inspecciones guardadas antes siguen saliendo con el PDF FOSST22.
 
 **Calibraciones.** En `useMachineCalibration.js`, si la base rechazaba la fila de `machine_calibrations` (permisos, columna, restricción), el error solo iba a la consola y la OT se cerraba igual: la calibración quedaba hecha en planta pero sin registro en la app. Ahora la app muestra «No se guardó la calibración: …» y la OT sigue abierta. Si la tabla no existe todavía, se sigue guardando solo en la OT, como antes.
+
+## 16. Corrección confirmada por planta: parejas cruzadas y cargues repetidos (06-10-2026)
+
+Planta confirmó que la información real es la del grupo de WhatsApp. Por lo tanto, el operario tenía razón en las tres parejas.
+
+| Qué | Cómo |
+|---|---|
+| Parejas INC-15/INC-21, INC-24/INC-10 e INC-16/INC-12 | `20261006_corregir_parejas_y_cargues_repetidos.sql` intercambia la incubadora de los 6 mapas de cargue (`load_maps.machine_id`, `machine_name` y `payload`). También intercambia los cargues del ciclo (`setter_loads` de 14 a 25 días antes de la transferencia). Ajusta `transfers.load_map_id` de las transferencias registradas en la app con esos mapas. Las transferencias importadas del chat y el reporte de cruce quedan con la nota de la corrección. Cada mapa corregido lleva `payload.correccionParejas`, para que no se corrija dos veces. Con el cambio, los lotes de cada incubadora coinciden con lo reportado. |
+| Cargues del 14-09-2026 registrados dos veces | Se deja un cargue por incubadora y lote, el de inicio de ciclo coherente o, si no, el registrado primero. Los borrados quedan copiados en `incubapp_ops.setter_loads_borrados`. |
+
+Prueba: se hizo en PostgreSQL local con datos del mismo formato. La migración se aplicó dos veces; la segunda no cambió nada. Si falta un mapa, se omite esa pareja y se avisa.
+
+Quedan pendientes los puntos 2 y 3 de la §9 (transferencia del 08-08 y estado de la INC-04) y el inicio de ciclo de la INC-05 y la INC-23 del 05-10. Para corregirlos hace falta el dato de planta.
