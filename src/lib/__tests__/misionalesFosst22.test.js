@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest'
 import { agruparAspectos } from '../misionales/agruparAspectos'
 import { generarPdfPreoperacional, fechaCorta } from '../misionales/generarPdfPreoperacional'
 import { nombreArchivoPreoperacional } from '../misionales/descargarPdfPreoperacional'
-import { aspectosForTipo, valoresForTipo } from '../misionalesCatalog'
+import { aspectosFosst22 } from '../misionalesCatalog'
 
-const lista = aspectosForTipo('Carro')
+const lista = aspectosFosst22('Carro')
 const aspects = Object.fromEntries(lista.map((l, i) => [String(i + 1), { valor: i === 4 ? 'M' : 'B', label: l, ...(i === 4 ? { obs: 'Fuga', accion: '08/10/2026' } : {}) }]))
 const fila = {
   id: 'mi_1', inspected_at: '2026-10-06T19:10:00Z', plate: 'ABC123', vehicle_type: 'Carro', driver_name: 'Prueba',
@@ -24,8 +24,9 @@ describe('FOSST22', () => {
     expect(f[0].sub).toMatch(/Delanteras/)
     expect(f[4]).toMatchObject({ valor: 'M', obs: 'Fuga', accion: '08/10/2026' })
   })
-  it('ES: camión con B / M / N/A como el formato / EN: truck grades like the form', () => {
-    expect(valoresForTipo('Camion')).toEqual(['B', 'M', 'N/A'])
+  it('ES: la lista vieja del FOSST22 sigue disponible / EN: old FOSST22 list kept', () => {
+    expect(lista).toHaveLength(50)
+    expect(aspectosFosst22('Moto')).toHaveLength(13)
   })
   it('ES: el PDF lleva encabezado, placa y fechas / EN: PDF has header, plate and dates', () => {
     const doc = generarPdfPreoperacional(fila, { orgName: 'Incubant' })

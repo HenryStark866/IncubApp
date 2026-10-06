@@ -19,7 +19,7 @@ import { autoTable } from 'jspdf-autotable'
 import { SIG_LOGO_DATA_URI } from '../sigLogo'
 import { FOSST22, MANTENIMIENTOS_FOSST22 } from './formatoFosst22'
 import { agruparAspectos } from './agruparAspectos'
-import { aspectosForTipo } from '../misionalesCatalog'
+import { aspectosFosst22 } from '../misionalesCatalog'
 
 // ES: Hoja carta en milímetros y márgenes. EN: Letter sheet in mm and margins.
 const ANCHO_HOJA = 215.9
@@ -124,7 +124,7 @@ export function generarPdfPreoperacional(row, opciones = {}) {
   y = doc.lastAutoTable.finalY + 2
 
   // ── ES: Criterios / EN: Criteria ───────────────────────────────────────────
-  const filas = agruparAspectos(row.aspects || row.aspectos || {}, aspectosForTipo(row.vehicle_type))
+  const filas = agruparAspectos(row.aspects || row.aspectos || {}, aspectosFosst22(row.vehicle_type))
   const cuerpo = []
   filas.forEach((f, i) => {
     // ES: Criterio en una sola celda para sus sub-ítems seguidos (como en el papel).
