@@ -146,3 +146,29 @@ Para analizar la baja de nacimiento del 06-10 hacían falta las rondas, lecturas
 - Si una tabla no existe en el servidor, esa parte sale como `no_disponible` y el resto se exporta igual.
 - El archivo queda en `servidor-local/exportes/`, que está excluido de git porque son datos de planta.
 - Se probó contra un PostgreSQL local con tablas parciales.
+
+## 12. Análisis del ciclo exportado y verificación del servidor (06-10-2026)
+
+**Hallazgos en el archivo `ciclo_2026-09-12_2026-10-06.json` (INC-05, INC-23, NAC-07 a NAC-12):**
+
+| # | Hallazgo | Consecuencia |
+|---|---|---|
+| 1 | **0 transferencias** en la base para esas máquinas y salas. | La migración `20261006_transferencias_whatsapp.sql` no quedó aplicada: o no se corrió `7-ACTUALIZAR-APP.bat` completo, o falló. Se verifica con el script 15. |
+| 2 | Las rondas de la INC-05 y la INC-23 **no tienen lecturas del día 0 al 12 del ciclo** (15 al 27-09). Del 24 al 26-09 no hay ninguna ronda. Hay lecturas solo desde el 27-09, cuando empezó el bot de lecturas. | No se puede comprobar con datos qué pasó en la primera mitad de la incubación. |
+| 3 | Días 13 a 18: OvoScan 99,3 a 100,1 °F y aire 97,2 a 98,5 °F, estables. Sin alarmas. Volteo avanzando. | No hay señal de sobrecalentamiento en las incubadoras al final del ciclo. |
+| 4 | **INC-23 sin calibración en este ciclo**: su OT de ventana (OT-00103) se anuló por vencida. La INC-05 sí se calibró el 17-09 (Δ 0). | Falla de proceso: la máquina corrió sin verificación de sensores. |
+| 5 | **Calibración antes de transferencia no hecha** en 5 de las 6 nacedoras que recibieron este huevo. Las OTs del 02-10 de NAC-09, 10, 11 y 12 siguen abiertas. La NAC-07 se calibró el 03-10 18:33, después de recibir el huevo. La **NAC-11 no se calibra desde antes del 16-09**. | Se recibió huevo en nacedoras sin verificar. Cuando se calibraron, los desvíos fueron pequeños (≤ 0,3 °F y ≤ 1,3 % HR). |
+| 6 | Nacedoras sin rondas entre la transferencia y el día siguiente: sala 3 de 03-10 07:55 a 04-10 06:06, sala 4 hasta 04-10 06:07. | Primeras 17 a 22 horas en nacedora sin vigilancia registrada. |
+| 7 | Rondas con datos imposibles: el 04-10 22:10 la INC-05 (vacía) aparece con lecturas de máquina cargada. El 06-10 06:16 el aire de la INC-05 es 88,5 °F (humedad leída como temperatura). | Fotos asignadas a la máquina equivocada o mal leídas. Afecta la confianza en los registros SIG. |
+| 8 | **Cargue de la INC-05 del 14-09 con inicio de ciclo 01-10** (real: 14-09 22:05). Además, cada máquina tiene el cargue del 14-09 registrado dos veces. | Corregido con `20261006_corregir_inicio_ciclo_inc05.sql`. Los duplicados se dejan para revisión de planta. |
+| 9 | **Cargues nuevos del 05-10:** INC-05 con inicio de ciclo 5 h 45 min **antes** del cargue e INC-23 con 20 h 45 min **antes**. Por el volteo, ambas arrancaron cerca de las 22:00 del 05-10. | La app les calcula más edad de la real (ventanas de calibración y transferencia adelantadas). Corregir con el contador de la pantalla en Corrección de datos. |
+| 10 | 9 OTs de calibración desde el 26-09 con código **`OT-#####`**. | Sucede cuando el número no cabe en el formato del código (`to_char` desborda). El generador vive en la base; el script 15 lo extrae para corregirlo. |
+
+**Script agregado:** `servidor-local/15-VERIFICAR-SERVIDOR.bat`. Es de solo lectura y muestra:
+- la versión del código y las últimas líneas del registro de actualización;
+- las migraciones pendientes;
+- el resultado de la importación del WhatsApp;
+- los inicios de ciclo dudosos;
+- las OTs con código dañado y la función que arma el código.
+
+El resultado queda en `servidor-local/exportes/verificacion_*.txt`.
