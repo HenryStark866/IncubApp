@@ -64,3 +64,6 @@ layaut/
 # Servidor local: registros y respaldos con datos (no se versionan)
 servidor-local/logs/
 servidor-local/respaldos/
+
+# Exportes de datos de planta (14-EXPORTAR-CICLO): no se suben al repositorio
+servidor-local/exportes/

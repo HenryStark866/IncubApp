@@ -136,3 +136,13 @@ DELETE FROM public.transfers WHERE origen->>'fuente' = 'whatsapp:Transferencias'
 | `src/lib/__tests__/heatScore.test.js`, `tipoHuevo.test.js` | Pruebas con el significado correcto. |
 
 **Alcance:** aplica a los mapas de cargue nuevos. Los mapas ya cerrados guardaron su puntaje de calor y no se recalculan. No hay migración de base de datos.
+
+## 11. Exportador de un ciclo para análisis (06-10-2026)
+
+Para analizar la baja de nacimiento del 06-10 hacían falta las rondas, lecturas, OTs y alarmas de las máquinas del ciclo, que solo están en la base del servidor de la oficina (no se alcanzan desde fuera). Se agregó `servidor-local/14-EXPORTAR-CICLO.bat` (→ `14-exportar-ciclo.ps1` → `exportar-ciclo.sh`):
+
+- **Solo lee** la base. Exporta en un JSON: máquinas, salas, rondas con lecturas, lecturas del bot, OTs, calibraciones, cargues, mapas de cargue, transferencias, nacimientos y actividades de turno. Las fotos no van, solo su ruta.
+- Por defecto exporta INC-05, INC-23 y NAC-07 a NAC-12 del 12-09 al 06-10-2026. Para otras máquinas o fechas: `exportar-ciclo.sh "INC-01,NAC-01" 2026-09-01 2026-09-30`.
+- Si una tabla no existe en el servidor, esa parte sale como `no_disponible` y el resto se exporta igual.
+- El archivo queda en `servidor-local/exportes/`, que está excluido de git porque son datos de planta.
+- Se probó contra un PostgreSQL local con tablas parciales.
