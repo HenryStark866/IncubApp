@@ -1,0 +1,1657 @@
+/* ═══════════════════════════════════════════════════════════
+   MISIONALES — mismo diseño que la ventana original (repo_misionales,
+   static/css/incubant-theme.css), encerrado en .mis-root.
+   Claro por defecto + oscuro con el tema de IncubApp.
+   ═══════════════════════════════════════════════════════════ */
+.mis-root {
+  --amber: #f59c00;
+  --golden: #ffcc00;
+  --ember: #eb6608;
+  --orange: #ef7d00;
+  --grad-brand: linear-gradient(135deg, #ffcc00 0%, #f59c00 40%, #eb6608 100%);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --bg-1: #ffffff;
+  --bg-2: #fafaf8;
+  --bg-3: #f0ede6;
+  --bg-4: #e8e4dc;
+  --border: #e2ddd4;
+  --text: #1a1510;
+  --text2: #5c5044;
+  --text3: #8a7e74;
+  --input-bg: #f5f2ec;
+  --shadow-amber: 0 4px 24px rgba(245, 156, 0, 0.3);
+  --ok: #1f9d63;
+
+  position: relative;
+  z-index: 1;
+  background: #f5f3ee;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0 !important;
+  overflow: hidden;
+}
+:root[data-theme='dark'] .mis-root {
+  --bg-1: #13151a;
+  --bg-2: #1a1d24;
+  --bg-3: #222730;
+  --bg-4: #2c323e;
+  --border: #2e3444;
+  --text: #f0ede8;
+  --text2: #b8b0a4;
+  --text3: #8a8278;
+  --input-bg: #222730;
+  --shadow-amber: 0 4px 24px rgba(245, 156, 0, 0.25);
+  --ok: #28c878;
+  background: #0d0e10;
+}
+.mis-root *,
+.mis-root *::before,
+.mis-root *::after {
+  box-sizing: border-box;
+}
+
+/* ── Barra superior ── */
+.mis-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.mis-topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--grad-brand);
+}
+.mis-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: auto;
+}
+.mis-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.mis-brand-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.mis-brand-sub {
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.mis-nav {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.mis-pill {
+  padding: 0.45rem 0.85rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text2);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  min-height: 36px;
+}
+.mis-pill:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.mis-pill.active {
+  background: rgba(245, 156, 0, 0.12);
+  border-color: var(--amber);
+  color: #b36b00;
+}
+:root[data-theme='dark'] .mis-pill.active {
+  color: var(--amber);
+}
+.mis-pill.amber {
+  border-color: rgba(245, 156, 0, 0.45);
+}
+.mis-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  color: var(--text2);
+  max-width: 200px;
+}
+.mis-user-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mis-user-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
+}
+.mis-conn {
+  -webkit-text-fill-color: initial;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.14);
+  color: var(--ok);
+}
+.mis-conn.offline {
+  background: rgba(239, 68, 68, 0.14);
+  color: #d13b22;
+}
+
+/* ── Página ── */
+.mis-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+.mis-page.wide {
+  max-width: 1180px;
+}
+.mis-muted {
+  color: var(--text3);
+}
+.mis-link {
+  background: none;
+  border: none;
+  color: #b36b00;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 0.4rem;
+  text-decoration: underline;
+}
+.mis-msg-error,
+.mis-msg-ok,
+.mis-msg-warn {
+  border-radius: var(--r-md);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  margin: 0.75rem 0;
+}
+.mis-root > .mis-msg-error,
+.mis-root > .mis-msg-warn {
+  margin: 0.75rem 1.25rem 0;
+}
+.mis-msg-error {
+  background: rgba(220, 60, 60, 0.1);
+  border: 1px solid rgba(220, 60, 60, 0.25);
+  color: #c63a3a;
+}
+.mis-msg-ok {
+  background: rgba(40, 200, 120, 0.1);
+  border: 1px solid rgba(40, 200, 120, 0.3);
+  color: var(--ok);
+}
+.mis-msg-warn {
+  background: rgba(245, 156, 0, 0.1);
+  border: 1px solid rgba(245, 156, 0, 0.3);
+  color: #b36b00;
+}
+
+/* ── Hero ── */
+.mis-root .form-hero,
+.mis-root .page-hero {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 1.5rem 1.75rem 1.25rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+.mis-root .form-hero::before,
+.mis-root .page-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--grad-brand);
+}
+.mis-root .hero-egg {
+  position: absolute;
+  right: -30px;
+  top: -40px;
+  width: 180px;
+  height: 210px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(135deg, rgba(245, 156, 0, 0.07), rgba(235, 102, 8, 0.03));
+  border: 1px solid rgba(245, 156, 0, 0.08);
+  pointer-events: none;
+}
+.mis-root .form-title-main,
+.mis-root .hero-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+  position: relative;
+}
+.mis-root .hero-sub {
+  font-size: 0.78rem;
+  color: var(--text3);
+  position: relative;
+}
+.mis-root .form-meta-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.55rem;
+  position: relative;
+}
+.mis-root .meta-chip {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.18rem 0.6rem;
+  color: var(--text3);
+}
+.mis-root .meta-chip em {
+  color: #b36b00;
+  font-style: normal;
+  font-weight: 800;
+}
+:root[data-theme='dark'] .mis-root .meta-chip em {
+  color: var(--amber);
+}
+.mis-root .meta-chip.pct-ok em {
+  color: var(--ok);
+}
+.mis-root .meta-chip.pct-medio em {
+  color: #d9a400;
+}
+.mis-root .meta-chip.pct-bajo em {
+  color: var(--ember);
+}
+
+/* ── Selector tipo de vehículo ── */
+.mis-root .tipo-vehiculo-selector {
+  display: flex;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+.mis-root .tipo-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.9rem 0.5rem;
+  background: var(--bg-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  color: inherit;
+}
+.mis-root .tipo-btn::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--grad-brand);
+  opacity: 0;
+}
+.mis-root .tipo-btn:hover {
+  border-color: rgba(245, 156, 0, 0.3);
+}
+.mis-root .tipo-btn.active {
+  border-color: var(--amber);
+  background: rgba(245, 156, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(245, 156, 0, 0.12);
+}
+.mis-root .tipo-btn.active::before {
+  opacity: 1;
+}
+.mis-root .tipo-btn-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.mis-root .tipo-btn-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text2);
+  text-align: center;
+}
+.mis-root .tipo-btn.active .tipo-btn-label {
+  color: #b36b00;
+}
+:root[data-theme='dark'] .mis-root .tipo-btn.active .tipo-btn-label {
+  color: var(--amber);
+}
+.mis-root .tipo-btn-check {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--amber);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  color: #1a0f00;
+  font-weight: 900;
+}
+.mis-root .tipo-btn.active .tipo-btn-check {
+  display: flex;
+}
+
+/* ── Tarjetas de sección ── */
+.mis-root .section-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.mis-root .section-card:focus-within {
+  border-color: rgba(245, 156, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+.mis-root .section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-1);
+  position: relative;
+  flex-wrap: wrap;
+}
+.mis-root .section-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--grad-brand);
+  border-radius: 0 2px 2px 0;
+}
+.mis-root .section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: rgba(245, 156, 0, 0.1);
+  border: 1px solid rgba(245, 156, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.mis-root .section-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+}
+.mis-root .section-body {
+  padding: 1.25rem;
+}
+.mis-root .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+.mis-root .field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mis-root .f-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 0.3rem;
+}
+.mis-root .f-input,
+.mis-root .f-select,
+.mis-root .f-textarea {
+  padding: 0.65rem 0.85rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+}
+.mis-root .f-input:focus,
+.mis-root .f-select:focus,
+.mis-root .f-textarea:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(245, 156, 0, 0.14);
+}
+.mis-root .f-input::placeholder,
+.mis-root .f-textarea::placeholder {
+  color: var(--text3);
+}
+.mis-root .f-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+.mis-root .f-error {
+  font-size: 0.72rem;
+  color: #d13b22;
+  margin-top: 0.25rem;
+  display: none;
+}
+.mis-root .f-error.visible {
+  display: block;
+}
+.mis-root .f-hint {
+  font-size: 0.68rem;
+  color: var(--text3);
+  margin-top: 0.25rem;
+  display: block;
+}
+.mis-root .doc-alerta {
+  color: #b36b00;
+  font-weight: 700;
+}
+.mis-root .doc-vencido {
+  color: #d13b22;
+  font-weight: 700;
+}
+.mis-root .required-star {
+  color: var(--amber);
+}
+
+/* ── GPS ── */
+.mis-root .geo-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(120, 130, 150, 0.3);
+  background: var(--input-bg);
+  color: var(--text2);
+}
+.mis-root .geo-estado.ok {
+  border-color: rgba(40, 200, 120, 0.6);
+  background: rgba(40, 200, 120, 0.05);
+  color: var(--ok);
+  font-weight: 600;
+}
+.mis-root .geo-estado.error {
+  border-color: rgba(235, 102, 8, 0.6);
+  background: rgba(235, 102, 8, 0.05);
+  color: var(--ember);
+  font-weight: 600;
+}
+.mis-root .geo-texto {
+  flex: 1;
+}
+.mis-root .geo-precision {
+  font-size: 0.7rem;
+  color: var(--text3);
+  font-weight: 400;
+}
+
+/* ── Aspectos B / R / M / N/A ── */
+.mis-root .bm-legend {
+  margin-left: auto;
+  font-size: 0.64rem;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+}
+.mis-root .aspectos-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  background: rgba(235, 102, 8, 0.1);
+  border: 1px solid rgba(235, 102, 8, 0.25);
+  color: var(--ember);
+}
+.mis-root .aspectos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mis-root .aspecto-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  gap: 0.75rem;
+}
+.mis-root .aspecto-row:hover {
+  border-color: rgba(245, 156, 0, 0.25);
+}
+.mis-root .aspecto-row.has-m {
+  border-color: rgba(235, 102, 8, 0.45);
+  background: rgba(235, 102, 8, 0.05);
+  box-shadow: inset 3px 0 0 var(--ember);
+}
+.mis-root .aspecto-row.has-r {
+  border-color: rgba(245, 196, 0, 0.45);
+  background: rgba(245, 196, 0, 0.06);
+  box-shadow: inset 3px 0 0 #d9a400;
+}
+.mis-root .aspecto-row.has-na {
+  border-color: rgba(120, 130, 150, 0.35);
+  background: rgba(120, 130, 150, 0.05);
+  box-shadow: inset 3px 0 0 rgba(120, 130, 150, 0.55);
+}
+.mis-root .aspecto-num {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #b36b00;
+  opacity: 0.7;
+  min-width: 18px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.mis-root .aspecto-label {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text2);
+  line-height: 1.4;
+}
+.mis-root .bm-toggle {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+.mis-root .bm-opt {
+  padding: 0.4rem 0.75rem;
+  min-width: 38px;
+  min-height: 34px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  background: var(--bg-4);
+  color: var(--text3);
+  border: 1px solid var(--border);
+  border-right: none;
+  font-family: inherit;
+}
+.mis-root .bm-opt:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.mis-root .bm-opt:last-child {
+  border-radius: 0 6px 6px 0;
+  border-right: 1px solid var(--border);
+}
+.mis-root .bm-b.on {
+  background: rgba(40, 200, 120, 0.18);
+  color: var(--ok);
+  border-color: rgba(40, 200, 120, 0.4);
+}
+.mis-root .bm-r.on {
+  background: rgba(245, 196, 0, 0.22);
+  color: #a67c00;
+  border-color: rgba(245, 196, 0, 0.5);
+}
+.mis-root .bm-m.on {
+  background: rgba(235, 102, 8, 0.18);
+  color: var(--ember);
+  border-color: rgba(235, 102, 8, 0.45);
+}
+.mis-root .bm-na.on {
+  background: rgba(120, 130, 150, 0.22);
+  color: var(--text2);
+  border-color: rgba(120, 130, 150, 0.45);
+}
+.mis-root .evidencia-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.6rem 0.45rem 2rem;
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.74rem;
+  color: var(--text2);
+  border-left: 3px solid rgba(235, 102, 8, 0.5);
+}
+.mis-root .evidencia-btn {
+  font-size: 0.74rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px dashed rgba(235, 102, 8, 0.6);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mis-root .evidencia-btn.tiene {
+  border-style: solid;
+  border-color: rgba(40, 200, 120, 0.5);
+  color: var(--ok);
+}
+.mis-root .evidencia-thumb {
+  height: 44px;
+  border-radius: 4px;
+  border: 1px solid rgba(120, 130, 150, 0.4);
+}
+.mis-root .evidencia-falta {
+  color: var(--ember);
+  font-weight: 700;
+}
+.mis-root .evid-ok {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+/* ── Óptimas condiciones ── */
+.mis-root .optimas-toggle {
+  display: flex;
+  width: fit-content;
+}
+.mis-root .opt {
+  padding: 0.55rem 1.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--bg-4);
+  color: var(--text3);
+  border: 1px solid var(--border);
+  min-height: 44px;
+  font-family: inherit;
+}
+.mis-root .opt-si {
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  border-right: none;
+}
+.mis-root .opt-no {
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.mis-root .opt-si.on {
+  background: rgba(40, 200, 120, 0.12);
+  color: var(--ok);
+  border-color: rgba(40, 200, 120, 0.35);
+}
+.mis-root .opt-no.on {
+  background: rgba(235, 102, 8, 0.12);
+  color: var(--ember);
+  border-color: rgba(235, 102, 8, 0.35);
+}
+.mis-root .opt:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Firma ── */
+.mis-root .firma-tabs {
+  display: flex;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-left: auto;
+}
+.mis-root .firma-tab {
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-3);
+  color: var(--text3);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+}
+.mis-root .firma-tab:first-child {
+  border-right: 1px solid var(--border);
+}
+.mis-root .firma-tab.active {
+  background: rgba(245, 156, 0, 0.12);
+  color: #b36b00;
+}
+.mis-root .firma-canvas-wrap {
+  height: 160px;
+  background: #fff;
+  border: 1.5px dashed rgba(245, 156, 0, 0.35);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  position: relative;
+}
+.mis-root .firma-canvas-wrap.has-firma {
+  border-style: solid;
+  border-color: rgba(40, 200, 120, 0.45);
+}
+.mis-root .firma-canvas-wrap canvas {
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+  width: 100%;
+  height: 100%;
+}
+.mis-root .firma-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: #9c9088;
+  gap: 0.3rem;
+}
+.mis-root .firma-placeholder-icon {
+  font-size: 1.6rem;
+  opacity: 0.4;
+}
+.mis-root .firma-placeholder-text {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mis-root .firma-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.mis-root .firma-ok {
+  font-size: 0.76rem;
+  color: var(--ok);
+  font-weight: 700;
+}
+.mis-root .firma-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 2rem 1rem;
+  border: 1.5px dashed rgba(245, 156, 0, 0.35);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: center;
+}
+.mis-root .firma-upload-area:hover {
+  background: rgba(245, 156, 0, 0.05);
+}
+.mis-root .firma-upload-icon {
+  font-size: 2rem;
+  opacity: 0.55;
+}
+.mis-root .firma-upload-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text2);
+}
+.mis-root .firma-upload-hint {
+  font-size: 0.66rem;
+  color: var(--text3);
+}
+.mis-root .mis-firma-img {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid rgba(40, 200, 120, 0.3);
+  border-radius: var(--r-lg);
+  background: #fff;
+}
+.mis-root .mis-firma-img img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+}
+
+/* ── Botones ── */
+.mis-root .btn-limpiar,
+.mis-root .btn-reset {
+  padding: 0.55rem 1rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 42px;
+}
+.mis-root .btn-limpiar:hover,
+.mis-root .btn-reset:hover {
+  border-color: var(--amber);
+  color: #b36b00;
+}
+.mis-root .submit-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+.mis-root .btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.8rem 1.75rem;
+  background: var(--grad-brand);
+  border: none;
+  border-radius: var(--r-md);
+  color: #1a0f00;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--shadow-amber);
+  min-height: 48px;
+  flex: 1;
+}
+.mis-root .btn-submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.mis-root .btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mis-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(26, 15, 0, 0.25);
+  border-top-color: #1a0f00;
+  border-radius: 50%;
+  display: inline-block;
+  animation: mis-gira 0.8s linear infinite;
+}
+@keyframes mis-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.mis-root .save-indicator {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11px;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.mis-root .save-indicator.on {
+  opacity: 1;
+}
+
+/* ── Mis inspecciones / Admin ── */
+.mis-root .kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.mis-root .kpi-row.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+.mis-kpi {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.1rem;
+  position: relative;
+  overflow: hidden;
+}
+.mis-kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.mis-kpi.amber::before {
+  background: var(--amber);
+}
+.mis-kpi.golden::before {
+  background: var(--golden);
+}
+.mis-kpi.ember::before {
+  background: var(--ember);
+}
+.mis-kpi.orange::before {
+  background: var(--orange);
+}
+.mis-kpi .kpi-label {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.mis-kpi .kpi-val {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.15;
+  margin: 0.2rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.mis-kpi .kpi-sub {
+  font-size: 0.7rem;
+  color: var(--text3);
+}
+.mis-root .progress-card,
+.mis-root .table-card,
+.mis-root .filter-card,
+.mis-root .chart-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+}
+.mis-root .progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 0.55rem;
+}
+.mis-root .progress-count {
+  color: #b36b00;
+}
+.mis-root .progress-bar-wrap {
+  height: 10px;
+  background: var(--bg-4);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.mis-root .progress-bar {
+  height: 100%;
+  background: var(--grad-brand);
+  border-radius: 10px;
+  transition: width 0.4s;
+}
+.mis-root .progress-hint {
+  font-size: 0.72rem;
+  color: var(--text3);
+  margin-top: 0.45rem;
+}
+.mis-root .table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.mis-root .table-title,
+.mis-root .chart-title,
+.mis-root .filter-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.mis-root .table-count,
+.mis-root .chart-desc {
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+.mis-root .btn-excel {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--r-md);
+  border: 1px solid #217346;
+  color: #217346;
+  background: rgba(33, 115, 70, 0.1);
+  font-weight: 700;
+  font-size: 0.76rem;
+  cursor: pointer;
+  min-height: 38px;
+  font-family: inherit;
+}
+:root[data-theme='dark'] .mis-root .btn-excel {
+  color: #4cc38a;
+  border-color: #4cc38a;
+}
+.mis-root .btn-excel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mis-root .table-scroll {
+  overflow-x: auto;
+}
+.mis-root table.hist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.mis-root table.hist th {
+  text-align: left;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.mis-root table.hist td {
+  white-space: nowrap;
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: middle;
+}
+.mis-root table.hist tr:hover td {
+  background: rgba(245, 156, 0, 0.04);
+}
+.mis-root .placa {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  background: rgba(245, 196, 0, 0.18);
+  border: 1px solid rgba(245, 156, 0, 0.35);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.78rem;
+}
+.mis-root .pct-chip {
+  font-weight: 800;
+  font-size: 0.76rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+}
+.mis-root .pct-chip.pct-ok {
+  color: var(--ok);
+  background: rgba(40, 200, 120, 0.12);
+}
+.mis-root .pct-chip.pct-medio {
+  color: #a67c00;
+  background: rgba(245, 196, 0, 0.18);
+}
+.mis-root .pct-chip.pct-bajo {
+  color: var(--ember);
+  background: rgba(235, 102, 8, 0.12);
+}
+.mis-root .cond {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.mis-root .cond.ok {
+  color: var(--ok);
+}
+.mis-root .cond.no {
+  color: var(--ember);
+}
+.mis-root .bad-m {
+  color: var(--ember);
+  font-weight: 800;
+}
+.mis-root .bad-r {
+  color: #a67c00;
+  font-weight: 800;
+}
+.mis-root .acciones {
+  white-space: nowrap;
+  text-align: right;
+}
+.mis-root .btn-ver,
+.mis-root .btn-del,
+.mis-root .btn-filter {
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(245, 156, 0, 0.45);
+  background: rgba(245, 156, 0, 0.1);
+  color: #b36b00;
+  font-weight: 700;
+  font-size: 0.74rem;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 32px;
+}
+:root[data-theme='dark'] .mis-root .btn-ver,
+:root[data-theme='dark'] .mis-root .btn-filter {
+  color: var(--amber);
+}
+.mis-root .btn-del {
+  margin-left: 0.35rem;
+  border-color: rgba(209, 59, 34, 0.4);
+  background: rgba(209, 59, 34, 0.08);
+  color: #d13b22;
+}
+.mis-root .btn-filter {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.55rem 1.2rem;
+  min-height: 42px;
+}
+.mis-root .empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text3);
+  font-size: 0.85rem;
+}
+.mis-root .empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.4rem;
+}
+.mis-root .card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mis-root .insp-card {
+  text-align: left;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.mis-root .insp-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.mis-root .insp-card-sub {
+  font-size: 0.74rem;
+  color: var(--text3);
+}
+.mis-root .mis-solo-movil {
+  display: none;
+}
+
+/* Filtros */
+.mis-root .filter-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.65rem;
+  margin: 0.65rem 0;
+}
+.mis-root .filter-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Gráficos */
+.mis-root .charts-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 0.75rem;
+}
+.mis-root .chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+.mis-root .period-btns {
+  display: flex;
+  gap: 0.25rem;
+}
+.mis-root .period-btn {
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mis-root .period-btn.active {
+  border-color: var(--amber);
+  color: #b36b00;
+  background: rgba(245, 156, 0, 0.1);
+}
+.mis-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 140px;
+  overflow-x: auto;
+}
+.mis-barra {
+  flex: 1;
+  min-width: 14px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+.mis-barra-v {
+  width: 100%;
+  background: var(--grad-brand);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+.mis-barra-n {
+  font-size: 0.6rem;
+  color: var(--text2);
+  font-weight: 700;
+}
+.mis-barra-d {
+  font-size: 0.56rem;
+  color: var(--text3);
+  margin-top: 2px;
+}
+.mis-root .rank-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 70px 28px;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  padding: 0.25rem 0;
+  color: var(--text2);
+}
+.mis-root .rank-pos {
+  color: #b36b00;
+  font-weight: 800;
+  text-align: center;
+}
+.mis-root .rank-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mis-root .rank-bar {
+  height: 8px;
+  background: var(--bg-4);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mis-root .rank-bar span {
+  display: block;
+  height: 100%;
+  background: var(--grad-brand);
+}
+
+/* ── Modal de detalle (portal en <body>) ── */
+.mis-root.mis-capa {
+  position: static;
+  z-index: auto;
+  background: none;
+  border: none;
+  overflow: visible;
+}
+.mis-root .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 8, 5, 0.55);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.mis-root .modal {
+  background: var(--bg-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  width: min(720px, 100%);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mis-root .modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.mis-root .modal-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--grad-brand);
+}
+.mis-root .modal-titulo {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.86rem;
+}
+.mis-root .modal-sub {
+  font-size: 0.74rem;
+  color: var(--text3);
+}
+.mis-root .modal-close {
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text2);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+}
+.mis-root .modal-cuerpo {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+.mis-root .modal-footer {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.mis-root .modal-footer .btn-submit {
+  flex: 0 1 auto;
+}
+.mis-root .det-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+.mis-root .det-dato {
+  background: var(--bg-3);
+  border-radius: var(--r-sm);
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+.mis-root .det-dato span {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+}
+.mis-root .det-titulo {
+  margin: 1rem 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b36b00;
+}
+.mis-root .det-aspectos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.mis-root .det-asp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--r-sm);
+  background: var(--bg-3);
+}
+.mis-root .det-asp-label {
+  flex: 1;
+  color: var(--text2);
+}
+.mis-root .det-asp-v {
+  font-weight: 800;
+  min-width: 30px;
+  text-align: center;
+}
+.mis-root .det-asp.v-b .det-asp-v {
+  color: var(--ok);
+}
+.mis-root .det-asp.v-m {
+  box-shadow: inset 3px 0 0 var(--ember);
+}
+.mis-root .det-asp.v-m .det-asp-v {
+  color: var(--ember);
+}
+.mis-root .det-asp.v-r {
+  box-shadow: inset 3px 0 0 #d9a400;
+}
+.mis-root .det-asp.v-r .det-asp-v {
+  color: #a67c00;
+}
+.mis-root .det-obs {
+  font-size: 0.84rem;
+  white-space: pre-wrap;
+  margin: 0;
+  color: var(--text2);
+}
+.mis-root .det-firma {
+  max-width: 260px;
+  max-height: 120px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+/* ── Responsive (como el original) ── */
+@media (max-width: 900px) {
+  .mis-root .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .mis-root .filter-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mis-root .kpi-row.four {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .mis-page {
+    padding: 1rem 0.875rem 2.5rem;
+  }
+  .mis-root .hero-egg {
+    display: none;
+  }
+  .mis-root .form-hero,
+  .mis-root .page-hero {
+    padding: 1rem 1.15rem 0.9rem;
+  }
+  .mis-root .section-body {
+    padding: 1rem;
+  }
+  .mis-root .mis-solo-ancho {
+    display: none;
+  }
+  .mis-root .mis-solo-movil {
+    display: flex;
+  }
+  .mis-root .firma-canvas-wrap {
+    height: 180px;
+  }
+}
+@media (max-width: 600px) {
+  .mis-root .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+  .mis-root .kpi-row {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.45rem;
+  }
+  .mis-kpi {
+    padding: 0.7rem 0.6rem;
+  }
+  .mis-kpi .kpi-val {
+    font-size: 1.35rem;
+  }
+  .mis-kpi .kpi-sub {
+    display: none;
+  }
+  .mis-topbar {
+    padding: 0.65rem 0.75rem;
+  }
+  .mis-user-chip {
+    display: none;
+  }
+  .mis-nav {
+    width: 100%;
+    order: 3;
+  }
+  .mis-pill {
+    flex: 1;
+    padding: 0.45rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  .mis-root .filter-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .mis-page {
+    padding: 0.875rem 0.65rem 2.5rem;
+  }
+  .mis-root .form-title-main {
+    font-size: 0.84rem;
+  }
+  .mis-root .meta-chip {
+    font-size: 0.58rem;
+    padding: 0.15rem 0.5rem;
+  }
+  .mis-root .tipo-vehiculo-selector {
+    gap: 0.4rem;
+  }
+  .mis-root .tipo-btn {
+    padding: 0.65rem 0.3rem;
+    border-radius: var(--r-md);
+  }
+  .mis-root .tipo-btn-icon {
+    font-size: 1.35rem;
+  }
+  .mis-root .tipo-btn-label {
+    font-size: 0.6rem;
+  }
+  .mis-root .section-head {
+    padding: 0.7rem 0.875rem;
+  }
+  .mis-root .section-body {
+    padding: 0.875rem;
+  }
+  .mis-root .aspecto-row {
+    padding: 0.55rem 0.6rem;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .mis-root .aspecto-label {
+    font-size: 0.78rem;
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .mis-root .bm-opt {
+    padding: 0.4rem 0.55rem;
+    min-width: 34px;
+  }
+  .mis-root .bm-toggle {
+    margin-left: auto;
+  }
+  .mis-root .bm-legend {
+    margin-left: 0;
+    width: 100%;
+  }
+  .mis-root .submit-row {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mis-root .btn-submit,
+  .mis-root .submit-row .btn-reset {
+    width: 100%;
+  }
+  .mis-root .firma-canvas-wrap {
+    height: 190px;
+  }
+  .mis-root .save-indicator {
+    bottom: 140px;
+    right: 12px;
+  }
+}

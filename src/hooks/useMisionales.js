@@ -1,6 +1,9 @@
 /**
  * Desplazamientos misionales — inspecciones pre-operacionales multi-tenant.
  * Supabase + fallback localStorage.
+ * 06-10-2026: como la ventana original — fotos de evidencia de cada M/R (bucket
+ * machine-checks, {org}/misionales/{id}/…) y consolidado cada 15 inspecciones
+ * (mission_reports + mission_consolidar, migración 20261006_misionales_consolidado).
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -32,6 +35,24 @@ function missingTable(msg) {
   return /does not exist|schema cache|relation|PGRST205|Could not find/i.test(String(msg || ''))
 }
 
+/** dataURL → Blob para subir la foto */
+function dataUrlABlob(dataUrl) {
+  const [cab, b64] = String(dataUrl).split(',')
+  const tipo = /data:([^;]+)/.exec(cab)?.[1] || 'image/jpeg'
+  const bin = atob(b64 || '')
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: tipo })
+}
+
+/** URL firmada (1 h) de una foto de evidencia guardada en Storage */
+export async function urlEvidencia(path) {
+  if (!path) return null
+  if (/^data:/.test(path)) return path
+  const { data } = await supabase.storage.from('machine-checks').createSignedUrl(path, 3600)
+  return data?.signedUrl || null
+}
+
 function uid() {
   return `mis_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
@@ -41,6 +62,7 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [localMode, setLocalMode] = useState(false)
+  const [reports, setReports] = useState([])
 
   const load = useCallback(async () => {
     if (!orgId) {
@@ -77,6 +99,16 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
     } else {
       setLocalMode(false)
       setRows(data || [])
+      // Consolidados de 15 (sin la tabla todavía: lista vacía)
+      let rq = supabase
+        .from('mission_reports')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (!canSeeAll && userId) rq = rq.eq('user_id', userId)
+      const { data: reps } = await rq
+      setReports(reps || [])
     }
     setLoading(false)
   }, [orgId, userId, canSeeAll])
@@ -140,6 +172,24 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
         return { error: null, row, local: true }
       }
 
+      // Fotos de evidencia (M/R): a Storage; en el registro queda la ruta.
+      const evid = payload.evidencias || {}
+      const rutas = {}
+      for (const [num, dataUrl] of Object.entries(evid)) {
+        if (!dataUrl) continue
+        const path = `${orgId}/misionales/${row.id}/aspecto-${num}.jpg`
+        const { error: upErr } = await supabase.storage
+          .from('machine-checks')
+          .upload(path, dataUrlABlob(dataUrl), { contentType: 'image/jpeg', upsert: true })
+        if (upErr) {
+          const subidas = Object.values(rutas)
+          if (subidas.length) await supabase.storage.from('machine-checks').remove(subidas)
+          return { error: `No se pudo subir la foto del aspecto ${num}: ${upErr.message}` }
+        }
+        rutas[num] = path
+      }
+      if (Object.keys(rutas).length) row.formato = { ...row.formato, evidencias: rutas }
+
       let { error: err } = await supabase.from('mission_inspections').insert(row)
       // ES: Servidor sin la columna «formato» (migración 20261006_misionales_fosst22 pendiente):
       //     se guarda sin ella para no perder la inspección.
@@ -158,8 +208,12 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
         }
         return { error: err.message }
       }
+      // Cada 15 inspecciones del conductor se agrupan en un consolidado.
+      let consolidados = []
+      const { data: reps, error: repErr } = await supabase.rpc('mission_consolidar', { p_org: orgId })
+      if (!repErr && Array.isArray(reps)) consolidados = reps
       await load()
-      return { error: null, row }
+      return { error: null, row, consolidados }
     },
     [orgId, userId, localMode, load]
   )
@@ -182,6 +236,23 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
     [orgId, localMode, load]
   )
 
+  /** Inspecciones de un consolidado (de memoria o consultadas) */
+  const filasDeReporte = useCallback(
+    async (reportId) => {
+      const enMemoria = rows.filter((r) => r.report_id === reportId)
+      const rep = reports.find((x) => x.id === reportId)
+      if (rep && enMemoria.length >= (rep.total || 15)) return enMemoria
+      const { data, error: err } = await supabase
+        .from('mission_inspections')
+        .select('*')
+        .eq('report_id', reportId)
+        .order('inspected_at', { ascending: true })
+      if (err) return enMemoria
+      return data || []
+    },
+    [rows, reports]
+  )
+
   const stats = {
     total: rows.length,
     today: rows.filter((r) => {
@@ -199,6 +270,7 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
 
   return {
     rows,
+    reports,
     loading,
     error,
     localMode,
@@ -206,5 +278,6 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
     reload: load,
     createInspection,
     removeInspection,
+    filasDeReporte,
   }
 }
