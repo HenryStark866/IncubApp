@@ -9,6 +9,7 @@
  * =============================================================================
  */
 
+import EnDesarrollo from './EnDesarrollo'
 import { ROLE_LABEL, areaLabel } from '../lib/roles'
 import { useDepartmentStats } from '../hooks/useDepartmentStats'
 import ManagementCockpit from './ManagementCockpit'
@@ -107,6 +108,14 @@ export default function DepartmentModule({
         </div>
       </div>
 
+      {mod.id === 'rrhh' && (
+        <div style={{ marginTop: 12 }}>
+          <EnDesarrollo
+            bloque
+            detalle="Recursos humanos aún no tiene pantallas propias de ingresos, egresos ni dotación. Por ahora se apoya en Horarios, Asistencia e Inventarios."
+          />
+        </div>
+      )}
       <p style={{ margin: '12px 0 8px' }}>
         Hola{first ? `, ${first}` : ''}. Este es tu módulo de <strong>{mod.label}</strong>
         {isAux

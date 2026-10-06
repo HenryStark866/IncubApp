@@ -28,6 +28,7 @@ import {
 import { approveWorkOrder, assignWorkOrder, useLeaderHome } from '../hooks/useLeaderHome'
 import BotReadingsReview from './BotReadingsReview'
 import WorkOrdersSheet from './WorkOrdersSheet'
+import ProductionLeaderHome from './ProductionLeaderHome'
 import './LeaderAreaHome.css'
 
 const TITLES = {
@@ -175,7 +176,13 @@ function Section({ title, sub, children }) {
   )
 }
 
-export default function LeaderAreaHome({ orgId, userId, role, area, userName, onNavigate, peopleName = {} }) {
+export default function LeaderAreaHome(props) {
+  // Líder de producción: inicio propio (recepción, cuarto frío, mapas, máquinas, equipo)
+  if (leaderKind(props.area) === 'production') return <ProductionLeaderHome {...props} />
+  return <AreaHome {...props} />
+}
+
+function AreaHome({ orgId, userId, role, area, userName, onNavigate, peopleName = {} }) {
   const kind = leaderKind(area)
   const home = useLeaderHome({ kind, orgId })
   // Cumplimiento del turno (misma fuente que «Cumplimiento»); solo lo usa planta.

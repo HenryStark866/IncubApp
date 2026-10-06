@@ -198,7 +198,7 @@ function roleFamily(role, area) {
     return 'plant_coord'
   }
   if (role === 'coordinator' && area === 'farm') return 'plant_coord'
-  if (['operator', 'auxiliary', 'auxiliary_production'].includes(role)) return 'operator'
+  if (['operator', 'auxiliary', 'auxiliary_production', 'quality_auxiliary'].includes(role)) return 'operator'
   if (role === 'driver') return 'driver'
   if (role === 'barn_operator') return 'barn'
   if (role === 'reception_operator') return 'reception'

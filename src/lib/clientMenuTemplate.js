@@ -57,7 +57,8 @@ export const DEFAULT_CLIENT_TEMPLATE = {
       tab: 'datos-op',
       hint: 'Lotes, cantidades, fechas y cargas actuales en incubadora',
     },
-    { id: 'rrhh', label: 'Recursos humanos', group: 'Dirección', tab: 'rrhh' },
+    // enDesarrollo: muestra el aviso «🚧 En desarrollo» en el menú (06-10-2026)
+    { id: 'rrhh', label: 'Recursos humanos', group: 'Dirección', tab: 'rrhh', enDesarrollo: true },
     { id: 'contabilidad', label: 'Contabilidad', group: 'Dirección', tab: 'contabilidad' },
     { id: 'ventas', label: 'Ventas', group: 'Comercial', tab: 'ventas' },
     { id: 'logistica', label: 'Logística', group: 'Comercial', tab: 'logistica' },
@@ -118,7 +119,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'veterinaria', label: 'Sanidad veterinaria', group: 'Sanidad', tab: 'veterinaria' },
     { id: 'sst', label: 'SST', group: 'Cumplimiento', tab: 'sst' },
     { id: 'ambiental', label: 'Gestión ambiental', group: 'Cumplimiento', tab: 'ambiental' },
-    { id: 'iot', label: 'IoT y bioseguridad', group: 'Cumplimiento', tab: 'iot' },
+    { id: 'iot', label: 'IoT y bioseguridad', group: 'Cumplimiento', tab: 'iot', enDesarrollo: true },
     { id: 'perfil', label: 'Perfil', group: null, always: true },
   ],
   /** Módulos de dominio habilitados por defecto (privacy / grants) */
@@ -157,6 +158,7 @@ const SHIFT_WORKER_ROLES = [
   'operator',
   'auxiliary',
   'auxiliary_production',
+  'quality_auxiliary',
   'reception_operator',
   'barn_operator',
 ]
@@ -187,7 +189,7 @@ export function buildClientNavItems({ can, role, template = DEFAULT_CLIENT_TEMPL
     // `always` cubre las pestañas comunes a toda la org (Hoy, Perfil, Accesos…),
     // pero igual se valida el permiso: un rol sin acceso no debe verla en el menú.
     if (m.always && (can(tab) || can(m.id))) {
-      items.push({ id: m.id, label, group: m.group, hint: m.hint })
+      items.push({ id: m.id, label, group: m.group, hint: m.hint, enDesarrollo: !!m.enDesarrollo })
       continue
     }
     if (m.always) continue
@@ -197,6 +199,7 @@ export function buildClientNavItems({ can, role, template = DEFAULT_CLIENT_TEMPL
       label,
       group: m.group || 'Operación',
       hint: m.hint,
+      enDesarrollo: !!m.enDesarrollo,
     })
   }
   return items

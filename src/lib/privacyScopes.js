@@ -39,6 +39,7 @@ export const SHIFT_WORKER_ROLES = [
   'operator',
   'auxiliary',
   'auxiliary_production',
+  'quality_auxiliary',
   'reception_operator',
   'barn_operator',
 ]
@@ -107,7 +108,7 @@ export const PRIVACY_DOMAINS = [
      * estado de las máquinas lo ve en su inicio y en la ronda (30-09-2026).
      */
     tabsFor: (role, _area) => {
-      if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production') {
+      if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production' || role === 'quality_auxiliary') {
         return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
@@ -169,7 +170,7 @@ export const PRIVACY_DOMAINS = [
       role === 'management_auxiliary' ||
       (role === 'coordinator' &&
         ['plant', 'general', 'quality', null, undefined].includes(area || 'general')) ||
-      ['operator', 'auxiliary', 'auxiliary_production', 'reception_operator'].includes(role),
+      ['operator', 'auxiliary', 'auxiliary_production', 'quality_auxiliary', 'reception_operator'].includes(role),
     canGrant: (role, area) =>
       role === 'supervisor' ||
       role === 'management' ||

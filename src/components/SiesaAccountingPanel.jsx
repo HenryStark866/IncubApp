@@ -3,6 +3,7 @@
  * Se embebe en Contabilidad y se reutiliza desde el cruce contable de Ventas.
  */
 
+import EnDesarrollo from './EnDesarrollo'
 import { useEffect, useState } from 'react'
 import { useSiesa } from '../hooks/useSiesa'
 import { useClients } from '../hooks/useClients'
@@ -83,7 +84,7 @@ export default function SiesaAccountingPanel({
       <div className="card-head" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <h3 style={{ margin: 0 }}>
-            {SIESA_PRODUCT} · integración contable
+            {SIESA_PRODUCT} · integración contable <EnDesarrollo />
           </h3>
           <p className="hint" style={{ margin: '4px 0 0' }}>
             Compatibilidad y sincronización con el ERP contable. v{SIESA_INTEGRATION_VERSION}
@@ -95,6 +96,7 @@ export default function SiesaAccountingPanel({
           {form.enabled ? 'Activo' : 'Inactivo'}
         </span>
       </div>
+      <EnDesarrollo bloque detalle="La sincronización con Siesa aún no está conectada al ERP: la cola se arma en este equipo y el envío real depende de la conexión que se configure con Siesa." />
 
       {siesa.message && (
         <p className={`msg ${siesa.message.kind === 'error' ? 'error' : 'ok'}`} style={{ marginTop: 10 }}>

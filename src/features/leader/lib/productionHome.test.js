@@ -1,0 +1,77 @@
+import { describe, expect, it } from 'vitest'
+import { coldRoomGroups, machineStates, productionBoard, teamRecords, lotsOfMap } from './productionHome'
+import { leaderKind } from './leaderHome'
+
+const now = new Date('2026-10-06T15:00:00-05:00')
+const d = (n, h = 10) => new Date(now.getTime() - n * 86400000 + (h - 15) * 3600000).toISOString()
+
+describe('inicio de producción', () => {
+  it('el área «Producción / calidad» abre el inicio de producción', () => {
+    expect(leaderKind('quality')).toBe('production')
+    expect(leaderKind('plant')).toBe('plant')
+  })
+
+  it('cuarto frío desglosable por lote, granja y galpón', () => {
+    const data = {
+      stock: [
+        { id: 's1', batch_id: 'b1', room_id: 'r1', stock_date: '2026-10-05', counts: { incubable: 1000, roto: 10 } },
+        { id: 's2', batch_id: 'b1', room_id: 'r2', stock_date: '2026-10-06', counts: { incubable: 500 } },
+        { id: 's3', batch_id: 'b2', room_id: 'r1', stock_date: '2026-10-06', counts: { incubable: 0 } },
+      ],
+      batches: [
+        { id: 'b1', code: '47', farm_id: 'f1' },
+        { id: 'b2', code: '48', farm_id: 'f1' },
+      ],
+      farms: [{ id: 'f1', name: 'La Fe' }],
+      rooms: [
+        { id: 'r1', name: 'Galpón 1' },
+        { id: 'r2', name: 'Galpón 2' },
+      ],
+    }
+    const porLote = coldRoomGroups({ ...data, groupBy: 'batch' })
+    expect(porLote.groups).toHaveLength(1)
+    expect(porLote.groups[0]).toMatchObject({ key: '47', total: 1510 })
+    expect(porLote.totals.incubable).toBe(1500)
+    expect(coldRoomGroups({ ...data, groupBy: 'barn' }).groups.map((g) => g.key)).toEqual(['La Fe · Galpón 1', 'La Fe · Galpón 2'])
+    expect(coldRoomGroups({ ...data, groupBy: 'date' }).groups[0].key).toBe('2026-10-06')
+  })
+
+  it('máquinas: día del ciclo, para transferir y nacedora con huevo', () => {
+    const machines = [
+      { id: 'm1', code: 'INC-01', type: 'setter' },
+      { id: 'm2', code: 'INC-02', type: 'setter' },
+      { id: 'h1', code: 'NAC-01', type: 'hatcher' },
+    ]
+    const loads = [
+      { machine_id: 'm1', lote: '45', loaded_at: d(18), cycle_start_at: d(18) },
+      { machine_id: 'm2', lote: '41', loaded_at: d(20), cycle_start_at: d(20) },
+    ]
+    const transfers = [{ source_machine_id: 'm2', transferred_at: d(1), hatcher_ids: ['h1'], allocations: [{ hatcher_id: 'h1', lots: [{ lot: '41' }] }], lote: '41' }]
+    const s = machineStates({ machines, loads, transfers, now })
+    const by = Object.fromEntries(s.map((x) => [x.code, x]))
+    expect(by['INC-01']).toMatchObject({ occupied: true, day: 18, dueTransfer: true, lots: ['45'] })
+    expect(by['INC-02'].occupied).toBe(false)
+    expect(by['NAC-01']).toMatchObject({ occupied: true, lots: ['41'] })
+    const board = productionBoard({ states: s, now, maps: [{ id: 'x', status: 'pending_approval', machine_name: 'INC-03', payload: { slots: [{ entry: { lots: [{ lot: '47' }] } }] } }] })
+    expect(board.decisions.map((x) => x.id)).toEqual(expect.arrayContaining(['map-x', 'due-m1']))
+    expect(board.kpis[2].value).toBe('1 de 2')
+  })
+
+  it('lo que registra cada auxiliar del equipo', () => {
+    const members = [
+      { id: 'u1', name: 'Ana', role: 'reception_operator' },
+      { id: 'u2', name: 'Luis', role: 'vaccination_auxiliary' },
+      { id: 'u3', name: 'Otro', role: 'driver' },
+    ]
+    const t = teamRecords({
+      members,
+      arrivals: [{ received_by: 'u1', arrived_at: d(0), lot_code: '47', received_postures: 1000 }],
+      vet: [{ created_by: 'u2', kind: 'vaccination', title: 'Marek', recorded_at: d(1) }],
+      tasks: [{ id: 't', assigned_to: 'u2', status: 'pending', title: 'Vacunar', created_at: d(0) }],
+    })
+    expect(t).toHaveLength(2)
+    expect(t[0].records[0].kind).toBe('Recepción de lote')
+    expect(t[1]).toMatchObject({ pending: [{ id: 't' }] })
+    expect(lotsOfMap({ payload: { slots: [{ entry: { lot: '45' } }, { entry: { lots: [{ lot: '46' }, { lot: '45' }] } }] } })).toEqual(['45', '46'])
+  })
+})

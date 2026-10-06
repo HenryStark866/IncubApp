@@ -9,6 +9,7 @@
  * =============================================================================
  */
 
+import EnDesarrollo from './EnDesarrollo'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
@@ -292,7 +293,15 @@ export default function WorkspaceNav({
                           className={`ws-menu-card${on ? ' active' : ''}`}
                           onClick={() => go(item.id)}
                         >
-                          <span className="ws-menu-card-title">{item.label}</span>
+                          <span className="ws-menu-card-title">
+                            {item.label}
+                            {item.enDesarrollo && (
+                              <>
+                                {' '}
+                                <EnDesarrollo />
+                              </>
+                            )}
+                          </span>
                           {item.hint && (
                             <span className="ws-menu-card-hint">{item.hint}</span>
                           )}

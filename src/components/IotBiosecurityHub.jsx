@@ -3,6 +3,7 @@
  * Telemetría en vivo se conecta cuando haya dispositivos; checklist ya es usable.
  * Henry Stark Desarrollador
  */
+import EnDesarrollo from './EnDesarrollo'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { ROLE_LABEL, areaLabel } from '../lib/roles'
@@ -180,7 +181,13 @@ export default function IotBiosecurityHub({ orgId, role, area, userName }) {
     <div className="card wide">
       <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <h2 style={{ margin: 0 }}>IoT y bioseguridad</h2>
+          <h2 style={{ margin: 0 }}>
+            IoT y bioseguridad <EnDesarrollo />
+          </h2>
+          <EnDesarrollo
+            bloque
+            detalle="El checklist de bioseguridad ya funciona; la lectura en vivo de sensores se conecta cuando se instalen los dispositivos."
+          />
           <p className="hint" style={{ margin: '4px 0 0' }}>
             {first ? `${first} · ` : ''}
             {ROLE_LABEL[role] ?? role}
