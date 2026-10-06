@@ -524,7 +524,103 @@ const AREA_LOADERS = {
   sales: loadSales,
 }
 
-const LOADERS = { ...AREA_LOADERS, management: loadManagement }
+
+/**
+ * Líder de producción (06-10-2026): recepción, cuarto frío, mapas de cargue, máquinas y su
+ * contenido, transferencias, nacimientos, y lo que registra y tiene asignado su equipo.
+ */
+async function loadProductionLead({ orgId }) {
+  const d1 = daysAgo(1).toISOString()
+  const d7 = daysAgo(7).toISOString()
+  const d30 = daysAgo(30).toISOString()
+  const [
+    lots, arrivals, stock, batches, plants, rooms, maps, machines, loads, transfers, hatches, checks,
+    workOrders, members, tasks, vet, classifications,
+  ] = await Promise.all([
+    rows('incubation_lots', (q) =>
+      q.select('id, code, origin, postures, expected_arrival_date, status').eq('org_id', orgId)
+        .gte('expected_arrival_date', daysAgo(14).toLocaleDateString('sv-SE')).order('expected_arrival_date').limit(300),
+    ),
+    rows('lot_arrivals', (q) => q.select('*').eq('org_id', orgId).gte('arrived_at', d7).order('arrived_at', { ascending: false }).limit(200)),
+    optionalRows('cold_room_stock', (q) =>
+      q.select('id, batch_id, room_id, stock_date, counts, notes, updated_by, updated_at').eq('org_id', orgId)
+        .order('stock_date', { ascending: false }).limit(600),
+    ),
+    optionalRows('bird_batches', (q) => q.select('id, code, farm_id, lay_date').eq('org_id', orgId).limit(800)),
+    rows('plants', (q) => q.select('id, name, code, type').eq('org_id', orgId)),
+    optionalRows('rooms', (q) => q.select('id, name, code, plant_id, type').limit(1500)),
+    rows('load_maps', (q) =>
+      q.select('id, machine_id, machine_name, status, payload, approved_at, approved_by, rejected_reason, image_path, created_at')
+        .eq('org_id', orgId).or(`status.in.(pending_approval,approved,ordered),created_at.gte.${d7}`)
+        .order('created_at', { ascending: false }).limit(120),
+    ),
+    loadMachines(orgId),
+    rows('setter_loads', (q) =>
+      q.select('id, machine_id, lote, loaded_at, cycle_start_at, created_by, created_at').eq('org_id', orgId).gte('loaded_at', d30).limit(600),
+    ),
+    rows('transfers', (q) =>
+      q.select('*').eq('org_id', orgId).gte('transferred_at', d30).order('transferred_at', { ascending: false }).limit(300),
+    ),
+    rows('hatch_events', (q) =>
+      q.select('*').eq('org_id', orgId).or(`scheduled_at.gte.${d30},started_at.gte.${d30},created_at.gte.${d30}`).limit(300),
+    ),
+    rows('machine_checks', (q) =>
+      q.select('id, machine_id, taken_by, taken_at, condition, temp_air, humidity, notes').eq('org_id', orgId)
+        .gte('taken_at', d1).order('taken_at', { ascending: false }).limit(1500),
+    ),
+    rows('work_orders', (q) => q.select('id, machine_id, status, priority, title, code').eq('org_id', orgId).in('status', ['open', 'in_progress']).limit(300)),
+    rows('organization_members', (q) =>
+      q.select('user_id, role, area, profiles ( full_name, email )').eq('org_id', orgId)
+        .in('role', ['auxiliary_production', 'quality_auxiliary', 'vaccination_auxiliary', 'reception_operator']),
+    ),
+    optionalRows('shift_activities', (q) =>
+      q.select('id, title, description, assigned_to, assigned_by, status, created_at, started_at, completed_at, result_note, photo_path, machine_id')
+        .eq('org_id', orgId).gte('created_at', d7).order('created_at', { ascending: false }).limit(400),
+    ),
+    optionalRows('veterinary_records', (q) =>
+      q.select('id, kind, title, batch_or_lote, result_status, product_name, recorded_at, created_by, created_at')
+        .eq('org_id', orgId).gte('created_at', d7).order('created_at', { ascending: false }).limit(200),
+    ),
+    optionalRows('egg_classifications', (q) =>
+      q.select('id, batch_id, activity_date, carts_count, classification_type, created_by, created_at')
+        .eq('org_id', orgId).gte('created_at', d7).limit(200),
+    ),
+  ])
+  const codeOf = new Map(machines.data.map((m) => [m.id, m.code || m.name]))
+  const all = [lots, arrivals, stock, batches, plants, rooms, maps, machines, loads, transfers, hatches, checks, workOrders, members, tasks, vet, classifications]
+  return {
+    lots: lots.data,
+    arrivals: arrivals.data,
+    stock: stock.data,
+    batches: batches.data,
+    farms: plants.data,
+    rooms: rooms.data,
+    maps: maps.data,
+    machines: machines.data,
+    loads: loads.data.map((l) => ({ ...l, machine_code: codeOf.get(l.machine_id) || null })),
+    transfers: transfers.data,
+    hatches: hatches.data,
+    checks: checks.data,
+    workOrders: workOrders.data,
+    members: members.data.map((m) => ({
+      id: m.user_id,
+      role: m.role,
+      roleLabel: ROLE_LABEL[m.role] || m.role,
+      name: m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
+    })),
+    tasks: tasks.data,
+    vet: vet.data,
+    classifications: classifications.data,
+    errors: all.map((r) => r.error).filter(Boolean),
+  }
+}
+
+/** Tablas que cambian el inicio de producción en vivo */
+const REALTIME_TABLES = {
+  production: ['lot_arrivals', 'cold_room_stock', 'load_maps', 'setter_loads', 'transfers', 'hatch_events', 'machine_checks', 'shift_activities'],
+}
+
+const LOADERS = { ...AREA_LOADERS, management: loadManagement, production: loadProductionLead }
 
 export function useLeaderHome({ kind, orgId }) {
   const [state, setState] = useState({
@@ -574,12 +670,28 @@ export function useLeaderHome({ kind, orgId }) {
       },
       kind === 'management' ? 300000 : 120000,
     )
+    // En vivo: cualquier cambio en las tablas del área recarga (agrupado en 1,5 s)
+    let canal = null
+    let espera = null
+    const tablas = REALTIME_TABLES[kind]
+    if (tablas && orgId) {
+      canal = supabase.channel(`lider-${kind}-${orgId}-${Math.random().toString(36).slice(2, 7)}`)
+      for (const table of tablas) {
+        canal.on('postgres_changes', { event: '*', schema: 'public', table, filter: `org_id=eq.${orgId}` }, () => {
+          clearTimeout(espera)
+          espera = setTimeout(() => load(), 1500)
+        })
+      }
+      canal.subscribe()
+    }
     return () => {
       window.removeEventListener('online', onChange)
       window.removeEventListener('incubapp:queue-changed', onChange)
       clearInterval(timer)
+      clearTimeout(espera)
+      if (canal) supabase.removeChannel(canal)
     }
-  }, [load, kind])
+  }, [load, kind, orgId])
 
   return { ...state, slot, reload: load }
 }

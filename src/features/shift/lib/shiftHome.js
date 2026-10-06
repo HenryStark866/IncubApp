@@ -12,6 +12,7 @@ export const PLANT_SHIFT_HOME_ROLES = [
   'operator',
   'auxiliary',
   'auxiliary_production',
+  'quality_auxiliary',
   'reception_operator',
   'supervisor',
 ]
@@ -19,7 +20,7 @@ export const PLANT_SHIFT_HOME_ROLES = [
 /** Qué pantalla abre cada rol. */
 export function shiftHomeKind(role) {
   if (role === 'supervisor') return 'supervisor'
-  if (role === 'auxiliary_production') return 'production'
+  if (role === 'auxiliary_production' || role === 'quality_auxiliary') return 'production'
   if (role === 'reception_operator') return 'reception'
   if (role === 'operator' || role === 'auxiliary') return 'operator'
   return null

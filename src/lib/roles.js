@@ -62,6 +62,7 @@ export const ROLE_LABEL = {
   operator: 'Operario de turno',
   auxiliary: 'Auxiliar de turno',
   auxiliary_production: 'Auxiliar de producción',
+  quality_auxiliary: 'Auxiliar de calidad',
   barn_operator: 'Operario galponero',
   reception_operator: 'Operario de recepción',
   viewer: 'Observador',
@@ -130,6 +131,7 @@ export const ORG_ROLES = [
   { value: 'operator', label: 'Operario de turno', group: 'Operaciones' },
   { value: 'auxiliary', label: 'Auxiliar de turno', group: 'Operaciones' },
   { value: 'auxiliary_production', label: 'Auxiliar de producción', group: 'Operaciones' },
+  { value: 'quality_auxiliary', label: 'Auxiliar de calidad', group: 'Operaciones' },
   { value: 'barn_operator', label: 'Operario galponero', group: 'Granja' },
   { value: 'reception_operator', label: 'Operario de recepción', group: 'Planta' },
 
@@ -188,7 +190,9 @@ export const WORK_AREAS = [
     moduleId: 'veterinaria',
   },
   { value: 'veterinary', label: 'Sanidad veterinaria planta', moduleId: 'veterinaria' },
-  { value: 'quality', label: 'Calidad / producción', moduleId: null },
+  // 06-10-2026: el área de la líder de producción (equipo: aux. de producción, de calidad,
+  // de vacunación y el operario de recepción). Se conserva el valor «quality».
+  { value: 'quality', label: 'Producción / calidad', moduleId: null },
 ]
 
 /** Valores canónicos de área (coinciden con UI y DB tras migration work_area) */
@@ -229,7 +233,7 @@ export const COORD_AUXILIARIES = {
   plant: ['reception_operator', 'vaccination_auxiliary', 'plant_veterinarian'],
   farm: ['barn_operator', 'vaccination_auxiliary'],
   veterinary: ['vaccination_auxiliary', 'plant_veterinarian'],
-  quality: ['auxiliary_production'],
+  quality: ['auxiliary_production', 'quality_auxiliary', 'vaccination_auxiliary', 'reception_operator'],
   general: ['auxiliary'],
 }
 
@@ -553,6 +557,7 @@ export function canOperatePlantRounds(role, area) {
     'operator',
     'auxiliary',
     'auxiliary_production',
+    'quality_auxiliary',
     'maintenance_auxiliary',
     'reception_operator',
   ].includes(role)

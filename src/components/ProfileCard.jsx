@@ -59,6 +59,7 @@ const ROLE_LABEL = {
   operator: 'Operario',
   maintenance_auxiliary: 'Auxiliar de mantenimiento',
   auxiliary_production: 'Auxiliar de producción',
+  quality_auxiliary: 'Auxiliar de calidad',
   barn_operator: 'Operario galponero',
   reception_operator: 'Operario de recepción',
   auxiliary: 'Auxiliar',

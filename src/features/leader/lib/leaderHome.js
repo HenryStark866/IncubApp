@@ -36,7 +36,9 @@ export function leaderKind(area) {
   if (a === 'sales') return 'sales'
   if (a === 'environmental') return 'environmental'
   if (a === 'logistics' || a === 'sales_logistics') return 'logistics'
-  if (!a || a === 'plant' || a === 'general' || a === 'quality') return 'plant'
+  // 06-10-2026: «quality» es el área de la líder de producción («Producción / calidad»)
+  if (a === 'quality' || a === 'production') return 'production'
+  if (!a || a === 'plant' || a === 'general') return 'plant'
   return null
 }
 
