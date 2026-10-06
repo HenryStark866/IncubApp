@@ -27,8 +27,10 @@
  *    alta) vía el registro flock_lots (src/lib/flockLots.js) — el coordinador
  *    NO vuelve a digitar la edad cada vez que el lote entra a clasificación;
  *    el sistema ya la conoce y la va sumando en el tiempo.
- *  - TIPO DE HUEVO 1–5 como proxy de tamaño/masa (5 = huevo más grande → más
- *    energía de yema → más calor; 1 = más pequeño → menos calor).
+ *  - TIPO DE HUEVO 1–5 = EDAD DEL LOTE en Incubant (1-2 = lote viejo, 5 = lote muy
+ *    joven; confirmado por planta el 06-10-2026). El huevo de lote viejo es el más
+ *    grande (más masa → más calor al final) y el de lote joven el más pequeño, así
+ *    que el tamaño va al revés del número: ver src/lib/tipoHuevo.js.
  *  - ALMACENAMIENTO: huevo más fresco produce calor antes; huevo muy
  *    almacenado lo difiere → menos calor AHORA (ventana de referencia 10 días).
  * Los tres se combinan en `computeHeatScore()` con pesos ~35/30/35%. Si un
@@ -39,6 +41,7 @@
  * por defecto, el lugar más seguro cuando no se sabe).
  */
 
+import { tamanoRelativoPorTipo } from './tipoHuevo'
 import {
   normalizeLotCode,
   currentFlockAgeWeeks,
@@ -617,11 +620,13 @@ export function computeHeatScore(cart, flockRegistry = {}, today = new Date()) {
     parts.push({ key: 'almacenamiento', label: 'Almacenamiento', weight: 0.35, value: clamp01(1 - days / 10) })
   }
 
-  const massScore = weightedLotScore(cart.lots, (l) =>
-    l.eggType ? clamp01((l.eggType - 1) / 4) : null
-  )
+  // ES: El tipo es la edad del lote (1-2 viejo, 5 muy joven); el huevo de lote viejo es el
+  //     más grande, así que el tamaño va al revés del número (corregido 06-10-2026).
+  // EN: Type is flock age (1-2 old, 5 very young); old-flock eggs are the largest, so size
+  //     runs opposite to the number (fixed 2026-10-06).
+  const massScore = weightedLotScore(cart.lots, (l) => tamanoRelativoPorTipo(l.eggType))
   if (massScore != null) {
-    parts.push({ key: 'tipo_huevo', label: 'Tamaño de huevo', weight: 0.3, value: massScore })
+    parts.push({ key: 'tipo_huevo', label: 'Tamaño de huevo (por edad del lote)', weight: 0.3, value: massScore })
   }
 
   const fertScore = weightedLotScore(cart.lots, (l) => {

@@ -36,20 +36,20 @@ describe('computeHeatScore (3 factores Petersime: fertilidad + tipo de huevo + a
     expect(computeHeatScore(cart, {})).toBeNull()
   })
 
-  it('scores a fresh, high-fertility, large egg (type 5) cart as high heat', () => {
+  it('scores a fresh, high-fertility, large egg (type 1 = old flock, largest egg) cart as high heat', () => {
     const registry = buildFlockRegistry([
       { lot_code: '42', age_weeks_at: 37, reference_date: today(), status: 'active' },
     ])
-    const cart = makeCart({ cartNumber: 1, lotCode: '42', eggType: 5, productionDate: today() })
+    const cart = makeCart({ cartNumber: 1, lotCode: '42', eggType: 1, productionDate: today() })
     const heat = computeHeatScore(cart, registry)
     expect(heat.score).toBeGreaterThan(0.8)
   })
 
-  it('scores an old-stored, low-fertility, small egg (type 1) cart as low heat', () => {
+  it('scores an old-stored, low-fertility, small egg (type 5 = very young flock, smallest egg) cart as low heat', () => {
     const registry = buildFlockRegistry([
       { lot_code: '99', age_weeks_at: 15, reference_date: today(), status: 'active' },
     ])
-    const cart = makeCart({ cartNumber: 2, lotCode: '99', eggType: 1, productionDate: isoDaysAgo(9) })
+    const cart = makeCart({ cartNumber: 2, lotCode: '99', eggType: 5, productionDate: isoDaysAgo(9) })
     const heat = computeHeatScore(cart, registry)
     expect(heat.score).toBeLessThan(0.2)
   })
@@ -71,8 +71,8 @@ describe('buildLoadMap placement using the 3-factor heat score', () => {
       { lot_code: 'COLD', age_weeks_at: 15, reference_date: today(), status: 'active' }, // low fertility
     ])
     const carts = [
-      makeCart({ cartNumber: 1, lotCode: 'HOT', eggType: 5, productionDate: today() }),
-      makeCart({ cartNumber: 2, lotCode: 'COLD', eggType: 1, productionDate: isoDaysAgo(9) }),
+      makeCart({ cartNumber: 1, lotCode: 'HOT', eggType: 1, productionDate: today() }),
+      makeCart({ cartNumber: 2, lotCode: 'COLD', eggType: 5, productionDate: isoDaysAgo(9) }),
       ...Array.from({ length: 10 }, (_, i) =>
         makeCart({ cartNumber: i + 3, lotCode: 'MID', eggType: 3, productionDate: isoDaysAgo(4) })
       ),
@@ -86,7 +86,7 @@ describe('buildLoadMap placement using the 3-factor heat score', () => {
   })
 })
 
-function makeTreatedCart(cartNumber, eggType = 5) {
+function makeTreatedCart(cartNumber, eggType = 1) {
   // Un carro tratado suele venir con máxima producción de calor "aparente"
   // (huevo grande, recién puesto) para probar que la regla de centro gana
   // aunque el puntaje de calor diga lo contrario.
@@ -111,9 +111,9 @@ function makeTreatedCart(cartNumber, eggType = 5) {
 describe('carros TRATADOS siempre van al centro (pedido explícito de Henry)', () => {
   it('un único carro tratado con puntaje de calor alto igual queda en el centro', () => {
     const carts = [
-      makeTreatedCart(1, 5), // tratado, "caliente" por tipo de huevo — debe ir a Centro igual
+      makeTreatedCart(1, 1), // tratado, "caliente" por tipo de huevo (1 = huevo más grande) — debe ir a Centro igual
       ...Array.from({ length: 11 }, (_, i) =>
-        makeCart({ cartNumber: i + 2, lotCode: 'MID', eggType: 1, productionDate: isoDaysAgo(4) })
+        makeCart({ cartNumber: i + 2, lotCode: 'MID', eggType: 5, productionDate: isoDaysAgo(4) })
       ),
     ]
     const map = buildLoadMap(carts)
@@ -170,5 +170,14 @@ describe('carros TRATADOS siempre van al centro (pedido explícito de Henry)', (
     })
     expect(cart.hasTreated).toBe(true)
     expect(cart.isTreated).toBe(false) // no está TODO tratado, solo mitad
+  })
+})
+
+describe('tipo de huevo = edad del lote (corrección de planta, 06-10-2026)', () => {
+  it('a igual fertilidad y almacenamiento, el tipo 1 (lote viejo, huevo grande) calienta más que el tipo 5 (muy joven)', () => {
+    const viejo = computeHeatScore(makeCart({ cartNumber: 1, lotCode: 'X', eggType: 1, productionDate: isoDaysAgo(3) }), {})
+    const joven = computeHeatScore(makeCart({ cartNumber: 2, lotCode: 'X', eggType: 5, productionDate: isoDaysAgo(3) }), {})
+    expect(viejo.score).toBeGreaterThan(joven.score)
+    expect(joven.breakdown.find((p) => p.key === 'tipo_huevo').value).toBe(0)
   })
 })

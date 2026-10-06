@@ -28,6 +28,7 @@ import {
   heatBreakdownLabel,
 } from '../lib/loadMapEngine'
 import { supabase } from '../lib/supabase'
+import { etiquetaTipoHuevo } from '../lib/tipoHuevo'
 
 const STATUS_LABEL = {
   draft: 'Borrador',
@@ -717,12 +718,12 @@ function ClassifyTab({ canClassify, api, incubation, flockRegistry, busy, setBus
 
               <div className="two-col">
                 <label>
-                  Tipo de huevo (1–5)
+                  Tipo de huevo (1–5 · edad del lote)
                   <select value={l.eggType} onChange={(e) => setLot(i, 'eggType', e.target.value)}>
                     <option value="">— Sin tipo —</option>
                     {EGG_TYPES.map((t) => (
                       <option key={t} value={t}>
-                        Tipo {t}
+                        {etiquetaTipoHuevo(t)}
                       </option>
                     ))}
                   </select>
@@ -1435,6 +1436,8 @@ export function CartWizard({ api, incubation, busy, setBusy, setMsg, initialLot 
           <h4 className="section-title" style={{ margin: '12px 0 4px' }}>
             4 · Tipo de huevo de cada lote (1 a 5)
           </h4>
+          {/* ES: El tipo es la edad del lote. EN: The type is the flock age. */}
+          <p className="hint" style={{ margin: '0 0 4px' }}>1 y 2 = lote viejo · 3 = edad media · 4 = joven · 5 = muy joven</p>
           {picked.map((p) => (
             <div key={p.code} className="lot-editor" style={{ marginTop: 8 }}>
               <div
@@ -1454,7 +1457,7 @@ export function CartWizard({ api, incubation, busy, setBusy, setMsg, initialLot 
                     selected={typeByLot[p.code] === t}
                     onClick={() => setTypeByLot((prev) => ({ ...prev, [p.code]: t }))}
                   >
-                    Tipo {t}
+                    {etiquetaTipoHuevo(t)}
                   </WizChip>
                 ))}
               </div>

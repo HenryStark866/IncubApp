@@ -120,3 +120,19 @@ DELETE FROM public.transfers WHERE origen->>'fuente' = 'whatsapp:Transferencias'
 2. Reportar la transferencia del sábado 08-08 (probablemente INC-05 e INC-20).
 3. Confirmar el estado de la INC-04 (ya cumplía días el 06-10).
 4. De aquí en adelante, registrar cada transferencia en la app (Supervisión → Transferencia) y no solo en el WhatsApp.
+
+## 10. Corrección del tipo de huevo en el mapa de cargue (06-10-2026)
+
+**Error encontrado:** el informe de nacimiento de las salas 3 y 4 del 06-10-2026 se armó con los mapas de cargue, y ahí se vio que IncubApp interpretaba el tipo de huevo 1 a 5 como tamaño (5 = huevo más grande, el que más calor da). Planta (David, Incubant) aclaró que **en Incubant el tipo es la edad del lote: 1 y 2 = lotes viejos, 5 = lote muy joven**. El huevo de lote viejo es el más grande, así que el modelo de calor del mapa ubicaba los carros con el criterio al revés.
+
+**Solución aplicada:**
+
+| Archivo | Cambio |
+|---|---|
+| `src/lib/tipoHuevo.js` (nuevo) | Define la edad por tipo y el tamaño relativo invertido (tipo 1 = 1, tipo 5 = 0). |
+| `src/lib/loadMapEngine.js` | El factor «Tamaño de huevo (por edad del lote)» usa `tamanoRelativoPorTipo()`. |
+| `src/components/LoadClassificationWorkspace.jsx` | La clasificación muestra «Tipo 1 · viejo» … «Tipo 5 · muy joven», con una ayuda de qué significa cada número. |
+| `src/lib/incubationKnowledge.js` | El asesor explica el tipo como edad del lote. |
+| `src/lib/__tests__/heatScore.test.js`, `tipoHuevo.test.js` | Pruebas con el significado correcto. |
+
+**Alcance:** aplica a los mapas de cargue nuevos. Los mapas ya cerrados guardaron su puntaje de calor y no se recalculan. No hay migración de base de datos.
