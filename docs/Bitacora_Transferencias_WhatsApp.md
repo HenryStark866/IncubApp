@@ -172,3 +172,13 @@ Para analizar la baja de nacimiento del 06-10 hacían falta las rondas, lecturas
 - las OTs con código dañado y la función que arma el código.
 
 El resultado queda en `servidor-local/exportes/verificacion_*.txt`.
+
+## 13. Primera aplicación en el servidor: error y corrección (06-10-2026)
+
+| Error (registro de 7-ACTUALIZAR, 13:55) | Causa | Solución |
+|---|---|---|
+| `column "mode" is of type hatch_scale but expression is of type text`: las 90 transferencias fallaron y la migración se revirtió completa, sin quedar a medias. | En el servidor, `transfers.mode` es un tipo propio (`hatch_scale`), no texto. La prueba local usaba texto. | La inserción lee el tipo real de la columna y convierte el valor (`EXECUTE … $5::<tipo>`). Probada con el enum en PostgreSQL local. |
+| El script 15 decía «Todas aplicadas» aunque la migración había fallado. | `docker exec -i` leía el resto de `migraciones.txt` como su propia entrada. | La consulta lee de `</dev/null`. |
+| 29 OTs con código `OT-#####` desde el 23-09. | `work_order_defaults()` usa `to_char(n, 'FM00000')`; el contador pasó de 99.999 y `to_char` desborda. | `20261006_codigos_ot.sql`: la función usa 5 cifras mientras quepa y nunca repite un código. El contador vuelve al mayor OT-NNNNN real + 1. Las OTs dañadas reciben código nuevo en orden de creación, con nota en `regularization_note`. |
+
+La prueba local se armó con el esquema real del servidor: `mode` como enum y un contador en 150.000. Las tres migraciones del 06-10 se aplicaron dos veces cada una; la segunda vez no cambiaron nada.

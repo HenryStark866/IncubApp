@@ -28,7 +28,9 @@ echo; echo "== 3. Migraciones listadas que AÚN NO están aplicadas"
 pend=0
 while IFS= read -r l; do
   n="$(echo "$l" | tr -d '\r' | sed 's/#.*//' | xargs)"; [ -z "$n" ] && continue
-  ya=$(q -tA -c "SELECT 1 FROM incubapp_ops.migraciones WHERE nombre = '$n'" 2>/dev/null)
+  # ES: </dev/null: sin esto «docker exec -i» se come el resto de la lista y todo sale «aplicado».
+  # EN: </dev/null: otherwise "docker exec -i" swallows the rest of the list.
+  ya=$(q -tA -c "SELECT 1 FROM incubapp_ops.migraciones WHERE nombre = '$n'" </dev/null 2>/dev/null)
   [ "$ya" = "1" ] || { echo "   PENDIENTE: $n"; pend=$((pend+1)); }
 done < "$AQUI/migraciones.txt"
 [ "$pend" = 0 ] && echo "   Todas aplicadas."

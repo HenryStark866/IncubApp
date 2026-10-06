@@ -104,6 +104,7 @@ DECLARE
   v_candidatas   text;
   n_nuevas int := 0; n_existian int := 0; n_ajustadas int := 0; n_distintas int := 0; n_error int := 0;
   v_primer_error text;
+  v_tipo_mode    text;         -- ES: tipo real de transfers.mode / EN: real type of transfers.mode
 BEGIN
   -- ES: Sin tabla de transferencias no hay nada que hacer. EN: No transfers table, nothing to do.
   IF to_regclass('public.transfers') IS NULL OR to_regclass('public.machines') IS NULL THEN
@@ -147,6 +148,11 @@ BEGIN
     SELECT created_by INTO v_autor FROM public.setter_loads
      WHERE org_id = v_org AND created_by IS NOT NULL GROUP BY created_by ORDER BY count(*) DESC LIMIT 1;
   END IF;
+
+  -- ES: Tipo real de la columna mode (text o un enum). EN: Real type of the mode column.
+  SELECT format_type(a.atttypid, a.atttypmod) INTO v_tipo_mode
+    FROM pg_attribute a WHERE a.attrelid = 'public.transfers'::regclass AND a.attname = 'mode' AND NOT a.attisdropped;
+  v_tipo_mode := coalesce(v_tipo_mode, 'text');
 
   -- ES: photo_path: NULL si la columna lo permite; si no, una marca de importación.
   -- EN: photo_path: NULL if the column allows it; otherwise an import marker.
@@ -266,21 +272,27 @@ BEGIN
 
     IF v_estado IS NULL THEN
       BEGIN
-        INSERT INTO public.transfers (
-          org_id, plant_id, batch_id, lote, mode, room_ids, weight_diff, cycle_start_at, transferred_at,
-          photo_path, created_by, source_machine_id, hatcher_ids, allocations, load_map_id, origen)
-        VALUES (
-          v_org, v_plant, v_batch, v_etiqueta,
+        -- ES: «mode» puede ser un tipo propio de la base (hatch_scale en el servidor de
+        --     Incubant), así que se convierte al tipo real de la columna.
+        -- EN: "mode" may be a custom DB type (hatch_scale on the Incubant server), so it is
+        --     cast to the column's real type.
+        EXECUTE format($ins$
+          INSERT INTO public.transfers (
+            org_id, plant_id, batch_id, lote, mode, room_ids, weight_diff, cycle_start_at, transferred_at,
+            photo_path, created_by, source_machine_id, hatcher_ids, allocations, load_map_id, origen)
+          VALUES ($1, $2, $3, $4, $5::%s, $6, NULL, $7, $8, $9, $10, $11, $12, $13, NULL, $14)
+          RETURNING id$ins$, v_tipo_mode)
+        INTO v_id
+        USING v_org, v_plant, v_batch, v_etiqueta,
           CASE WHEN cardinality(v_salas) > 1 THEN 'double' ELSE 'single' END,
-          coalesce(v_salas, '{}'), NULL, v_ciclo, v_t,
-          v_foto, v_autor, v_inc, coalesce(v_nacs, '{}'), coalesce(v_alloc, '[]'::jsonb), NULL,
+          coalesce(v_salas, '{}'), v_ciclo, v_t,
+          v_foto, v_autor, v_inc, coalesce(v_nacs, '{}'), coalesce(v_alloc, '[]'::jsonb),
           jsonb_build_object(
             'clave', r->>'clave', 'fuente', 'whatsapp:Transferencias',
             'reportado_en', r->>'reportadoEn', 'reportado_por', r->>'reportadoPor',
             'hora_estimada', (r->>'horaEstimada')::boolean, 'texto', r->>'texto',
             'correccion', r->'correccion', 'cruce_mapa', r->'cruceMapa',
-            'observaciones', to_jsonb(v_obs), 'importado_en', now()))
-        RETURNING id INTO v_id;
+            'observaciones', to_jsonb(v_obs), 'importado_en', now());
         v_estado := CASE WHEN cardinality(v_obs) > 0 THEN 'importada_con_observaciones' ELSE 'importada' END;
         n_nuevas := n_nuevas + 1;
       EXCEPTION WHEN OTHERS THEN
