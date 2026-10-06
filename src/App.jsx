@@ -93,6 +93,7 @@ import {
   ColdStorageLoadPanel,
   OperationsDataCenter,
   MisionalesPanel,
+  QualityPanel,
   OperatorHistoryPanel,
   VehiclePreopPanel,
   MachineCalibrationPanel,
@@ -167,6 +168,7 @@ const OMNISCIENT_TABS = [
   'asistencia',
   'cumplimiento',
   'misionales',
+  'calidad',
   'historial',
   'preoperacional',
   'calibracion',
@@ -1078,6 +1080,14 @@ function Workspace({
               area={area}
               userName={profileApi.profile?.full_name ?? session.user.email}
               onNavigate={setTab}
+            />
+          ) : tab === 'calidad' && org && can('calidad') ? (
+            <QualityPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
             />
           ) : tab === 'misionales' && org && can('misionales') ? (
             <MisionalesPanel

@@ -100,6 +100,7 @@ export const PRIVACY_DOMAINS = [
       'informacion',
       'huevos',
       'historial',
+      'calidad',
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
@@ -108,7 +109,10 @@ export const PRIVACY_DOMAINS = [
      * estado de las máquinas lo ve en su inicio y en la ronda (30-09-2026).
      */
     tabsFor: (role, _area) => {
-      if (role === 'operator' || role === 'auxiliary' || role === 'auxiliary_production' || role === 'quality_auxiliary') {
+      // 06-10-2026: el auxiliar de calidad y el de producción registran los formatos de calidad
+      if (role === 'quality_auxiliary') return ['calidad', 'supervision', 'horarios', 'historial']
+      if (role === 'auxiliary_production') return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial', 'calidad']
+      if (role === 'operator' || role === 'auxiliary') {
         return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
@@ -132,7 +136,7 @@ export const PRIVACY_DOMAINS = [
         ]
       }
       if (role === 'management' || role === 'management_auxiliary') {
-        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion']
+        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad']
       }
       // supervisor y líder de área de planta: dominio completo
       const completo = [
@@ -146,6 +150,7 @@ export const PRIVACY_DOMAINS = [
         'horarios',
         'huevos',
         'historial',
+        'calidad',
       ]
       // El líder ve además la producción, que es lo que dirige: la de la planta
       // (`datos-op` — lotes, cantidades, fechas y cargas actuales en incubadora,

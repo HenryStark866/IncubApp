@@ -535,7 +535,7 @@ async function loadProductionLead({ orgId }) {
   const d30 = daysAgo(30).toISOString()
   const [
     lots, arrivals, stock, batches, plants, rooms, maps, machines, loads, transfers, hatches, checks,
-    workOrders, members, tasks, vet, classifications,
+    workOrders, members, tasks, vet, classifications, quality,
   ] = await Promise.all([
     rows('incubation_lots', (q) =>
       q.select('id, code, origin, postures, expected_arrival_date, status').eq('org_id', orgId)
@@ -585,9 +585,13 @@ async function loadProductionLead({ orgId }) {
       q.select('id, batch_id, activity_date, carts_count, classification_type, created_by, created_at')
         .eq('org_id', orgId).gte('created_at', d7).limit(200),
     ),
+    optionalRows('quality_records', (q) =>
+      q.select('id, kind, sampled_at, lote, machine_id, status, results, created_by')
+        .eq('org_id', orgId).gte('sampled_at', d7).order('sampled_at', { ascending: false }).limit(300),
+    ),
   ])
   const codeOf = new Map(machines.data.map((m) => [m.id, m.code || m.name]))
-  const all = [lots, arrivals, stock, batches, plants, rooms, maps, machines, loads, transfers, hatches, checks, workOrders, members, tasks, vet, classifications]
+  const all = [lots, arrivals, stock, batches, plants, rooms, maps, machines, loads, transfers, hatches, checks, workOrders, members, tasks, vet, classifications, quality]
   return {
     lots: lots.data,
     arrivals: arrivals.data,
@@ -611,13 +615,14 @@ async function loadProductionLead({ orgId }) {
     tasks: tasks.data,
     vet: vet.data,
     classifications: classifications.data,
+    quality: quality.data,
     errors: all.map((r) => r.error).filter(Boolean),
   }
 }
 
 /** Tablas que cambian el inicio de producción en vivo */
 const REALTIME_TABLES = {
-  production: ['lot_arrivals', 'cold_room_stock', 'load_maps', 'setter_loads', 'transfers', 'hatch_events', 'machine_checks', 'shift_activities'],
+  production: ['lot_arrivals', 'cold_room_stock', 'load_maps', 'setter_loads', 'transfers', 'hatch_events', 'machine_checks', 'shift_activities', 'quality_records'],
 }
 
 const LOADERS = { ...AREA_LOADERS, management: loadManagement, production: loadProductionLead }

@@ -26,3 +26,4 @@
 20261006_misionales_consolidado.sql
 20261006_area_produccion.sql
 20261006_corregir_parejas_y_cargues_repetidos.sql
+20261006_formatos_calidad.sql
