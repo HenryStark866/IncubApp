@@ -16,3 +16,5 @@
 20260930_indices_rendimiento.sql
 20261005_bot_lecturas_foto_manda.sql
 20261005_bot_lecturas_pendientes_por_foto.sql
+20261005_bot_lecturas_automatico.sql
+20261006_bot_lecturas_releer.sql

@@ -12,7 +12,7 @@ from lector import leer
 BASE = '/storage/stub/stub/machine-checks'
 POR_VUELTA = 3
 PAUSA = 60
-MODELO = 'lector-propio-rapidocr'
+MODELO = 'lector-propio-rapidocr-v2'
 
 
 def ruta_foto(photo_path):
@@ -34,10 +34,12 @@ def resultado(fila, lectura):
     elif not valores and not dudas:
         estado, motivo = 'sin_lecturas', 'No se pudo leer ninguna lectura con certeza.'
     else:
-        estado = 'revisar' if dudas else 'aplicada'
+        # 05-10-2026: nada queda para confirmar. Lo dudoso se deja en blanco (un vacío es mejor
+        # que un dato falso) y se anota; el líder no tiene que revisar nada.
+        estado = 'aplicada'
         motivo = ' '.join(filter(None, [
             f"Leído de la foto: {', '.join(f'{k} {v}' for k, v in valores.items())}." if valores else None,
-            f"Sin llenar por duda: {', '.join(d['campo'] for d in dudas)}." if dudas else None,
+            f"En blanco por no leerse con certeza: {', '.join(d['campo'] for d in dudas)}." if dudas else None,
         ]))
     return {'check_id': str(fila['check_id']), 'status': estado, 'valores': valores, 'discrepancias': dudas,
             'motivo': motivo, 'modelo': MODELO, 'lecturas': [lectura]}
