@@ -674,9 +674,17 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
       }
 
       const { error: cErr } = await supabase.from('machine_calibrations').insert(calibRow)
-      if (cErr && !/does not exist|schema cache|relation|PGRST/i.test(cErr.message || '')) {
-        // Tabla aún no migrada: no bloquear; queda en OT
-        console.warn('machine_calibrations:', cErr.message)
+      if (cErr) {
+        if (/does not exist|schema cache|relation|PGRST205/i.test(cErr.message || '')) {
+          // Tabla aún no migrada: no bloquear; queda en la OT
+          console.warn('machine_calibrations:', cErr.message)
+        } else {
+          // 06-10-2026: antes este error se ignoraba y la OT se cerraba sin que la
+          // calibración quedara registrada. Ahora se avisa y la OT sigue abierta.
+          const msg = `No se guardó la calibración: ${cErr.message}`
+          setError(msg)
+          return { error: msg }
+        }
       }
 
       // ¿Ya hay calibración del otro sensor en esta OT reciente?

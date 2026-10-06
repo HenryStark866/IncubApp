@@ -203,3 +203,9 @@ La prueba local se armó con el esquema real del servidor: `mode` como enum y un
 **Errores durante el desarrollo:** la flecha «→» del trayecto salía como «!'» en el PDF porque la fuente estándar no la tiene. Se cambió por «a».
 
 **Pendiente:** cuando haya acceso a `repo_misionales` o a misionales.incubant.co, comparar contra lo que use la app original (por ejemplo, el formato propio de motocicletas) y ajustar.
+
+## 15. Misionales igual a la ventana original y calibraciones que no quedaban registradas (06-10-2026)
+
+**Misionales.** El pendiente de la sección 14 se cerró: planta subió la copia de `repo_misionales` (rama privada `material/repo-misionales` de Plataforma-de-Incubaci-n-CDH-Maker; no se copió a IncubApp porque IncubApp es público). La ventana se replicó tal cual (PR #17): listas de aspectos del original (moto 20, automóvil 24, camión 102 con B/R/M/N/A), foto obligatoria en M/R, PDF FO-SST-063, Mis inspecciones con consolidado de 15 y Admin para líderes. Misionales quedó activo para todos los usuarios (PR #15). Las inspecciones guardadas antes siguen saliendo con el PDF FOSST22.
+
+**Calibraciones.** En `useMachineCalibration.js`, si la base rechazaba la fila de `machine_calibrations` (permisos, columna, restricción), el error solo iba a la consola y la OT se cerraba igual: la calibración quedaba hecha en planta pero sin registro en la app. Ahora la app muestra «No se guardó la calibración: …» y la OT sigue abierta. Si la tabla no existe todavía, se sigue guardando solo en la OT, como antes.
