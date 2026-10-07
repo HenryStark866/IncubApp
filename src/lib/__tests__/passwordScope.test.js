@@ -17,7 +17,10 @@ describe('canSetPasswordFor', () => {
     expect(canSetPasswordFor(maint, m('maintenance_auxiliary'))).toBe(true)
     expect(canSetPasswordFor(maint, m('operator'))).toBe(false)
     expect(canSetPasswordFor(m('coordinator', 'hse'), m('sst_auxiliary', 'sst'))).toBe(true)
-    expect(canSetPasswordFor(m('coordinator', 'general'), m('operator'))).toBe(false)
+    expect(canSetPasswordFor(m('coordinator', 'general'), m('operator'))).toBe(true)
+    expect(canSetPasswordFor(m('coordinator', 'general'), m('maintenance_auxiliary', 'maintenance'))).toBe(true)
+    expect(canSetPasswordFor(m('coordinator', 'general'), m('coordinator', 'plant'))).toBe(false)
+    expect(canSetPasswordFor(m('coordinator', 'general'), m('management'))).toBe(false)
   })
   it('gerencia y administración siguen igual', () => {
     expect(canSetPasswordFor(m('management'), m('coordinator', 'plant'))).toBe(true)

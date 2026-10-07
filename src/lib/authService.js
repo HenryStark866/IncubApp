@@ -10,10 +10,16 @@
 
 import { supabase } from './supabase'
 
-export function buildAuthRedirectUrl(mode = 'recovery') {
+/**
+ * URL a la que vuelve el enlace del correo (recuperar clave / confirmar cuenta).
+ * Sin «#»: el servidor de Auth le PEGA «#access_token=…&type=recovery». Con la versión
+ * anterior («/#type=recovery») quedaba «#type=recovery#access_token=…», supabase-js no
+ * encontraba el token, no abría la sesión y «Guardar nueva contraseña» fallaba
+ * («Auth session missing»). El tipo (recovery/signup) ya viene en lo que pega Auth.
+ */
+export function buildAuthRedirectUrl() {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
-  const target = mode === 'recovery' ? 'type=recovery' : 'type=confirm'
-  return `${origin}/#${target}`
+  return `${origin}/`
 }
 
 export function persistPendingSignupContext(orgId, fullName) {

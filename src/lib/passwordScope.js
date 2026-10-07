@@ -6,6 +6,8 @@
  *  - gerencia: todos menos owner/admin/gerencia;
  *  - líder de área: solo la gente de rango menor de SU área (misma área, o sin área y con
  *    un cargo que depende de esa área: operario de turno → planta, conductor → logística…).
+ *  - líder con área «General» (07-10-2026): no tiene un área sola, responde por todas, así
+ *    que puede con toda la gente de rango menor. Antes no podía con nadie.
  * Henry Stark Desarrollador · 30-09-2026
  */
 
@@ -62,7 +64,8 @@ export function canSetPasswordFor(caller, target) {
   if (caller.role === 'owner' || caller.role === 'admin') return true
   if (caller.role === 'management') return !['owner', 'admin', 'management'].includes(target.role)
   if (caller.role === 'coordinator') {
-    return !HIGHER.includes(target.role) && isInLeaderArea(caller.area, target.area, target.role)
+    if (HIGHER.includes(target.role)) return false
+    return normArea(caller.area) === 'general' || isInLeaderArea(caller.area, target.area, target.role)
   }
   return false
 }

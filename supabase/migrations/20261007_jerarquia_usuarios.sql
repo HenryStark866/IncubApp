@@ -5,7 +5,8 @@
 -- temporal (20260930_admin_set_password_por_area):
 --   - owner/admin: a todos;
 --   - gerencia: a todos menos owner, admin y otra gerencia;
---   - líder de área: solo a la gente de rango menor de SU área, y al recién creado
+--   - líder de área: solo a la gente de rango menor de SU área (el líder «General»: a toda
+--     la de rango menor, como en 20261007_admin_set_password_lider_general), y al recién creado
 --     (operario de área «general», como entra al crearlo) que todavía debe ubicar.
 -- Y nadie asigna un cargo por encima del suyo. Nadie se quita ni se revoca a sí mismo.
 -- La app aplica la misma regla (src/lib/passwordScope.js). Idempotente.
@@ -28,7 +29,8 @@ AS $$
         OR (c.role::text = 'management' AND p_target_role NOT IN ('owner', 'admin', 'management'))
         OR (c.role::text = 'coordinator'
             AND p_target_role NOT IN ('owner', 'admin', 'management', 'coordinator')
-            AND (public.incubapp_same_area(c.area::text, p_target_area, p_target_role)
+            AND (public.incubapp_area_norm(c.area::text) = 'general'
+                 OR public.incubapp_same_area(c.area::text, p_target_area, p_target_role)
                  OR (p_target_role = 'operator' AND COALESCE(p_target_area, 'general') = 'general')))
       )
   )

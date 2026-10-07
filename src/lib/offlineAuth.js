@@ -44,6 +44,11 @@ export function authErrorEs(err) {
   if (/error sending|sending (recovery|confirmation|magic link|invite)|smtp|mail(er)? (server|error)|failed to send/.test(msg)) {
     return MAIL_UNAVAILABLE
   }
+  if (/auth session missing|session.?not.?found|invalid jwt|jwt expired|bad_jwt/.test(msg)) {
+    return 'Tu sesión venció o el enlace del correo ya se usó. Vuelve a entrar (o pide un enlace nuevo en «¿Olvidaste tu contraseña?») e inténtalo de nuevo.'
+  }
+  if (/should be different|same_password/.test(msg)) return 'La contraseña nueva debe ser distinta de la actual.'
+  if (/reauthenticat/.test(msg)) return 'Por seguridad, vuelve a entrar con tu contraseña actual y cámbiala enseguida.'
   if (isNetworkError(err)) {
     return 'No hay conexión con el servidor. Revisa tu red local o internet; si ya entraste antes en este dispositivo, puedes entrar sin conexión con tu mismo correo y contraseña.'
   }

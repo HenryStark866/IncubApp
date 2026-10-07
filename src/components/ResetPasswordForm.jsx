@@ -4,8 +4,9 @@
  * de recuperación recibido por correo electrónico (flujo Supabase PASSWORD_RECOVERY).
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { authErrorEs } from '../lib/offlineAuth'
 import { IncubAppProductLogo, CdhSignature } from './Brand'
 
 export default function ResetPasswordForm({ onCompleted }) {
@@ -13,6 +14,36 @@ export default function ResetPasswordForm({ onCompleted }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(null)
+  // null = comprobando · true = el enlace abrió sesión · false = enlace usado o vencido
+  const [hasSession, setHasSession] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    const check = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (alive) setHasSession(!!data?.session)
+    }
+    check()
+    // supabase-js abre la sesión del enlace al iniciar: puede llegar un instante después.
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (alive && s) setHasSession(true)
+    })
+    return () => {
+      alive = false
+      sub?.subscription?.unsubscribe()
+    }
+  }, [])
+
+  const clearUrl = () => {
+    if (window.location.hash || window.location.search) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }
+
+  const backToLogin = () => {
+    clearUrl()
+    if (typeof onCompleted === 'function') onCompleted()
+  }
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.()
@@ -39,17 +70,14 @@ export default function ResetPasswordForm({ onCompleted }) {
     setBusy(false)
 
     if (error) {
-      setMessage({ kind: 'error', text: error.message || 'No se pudo actualizar la contraseña.' })
+      setMessage({ kind: 'error', text: authErrorEs(error) || 'No se pudo actualizar la contraseña.' })
     } else {
       setMessage({
         kind: 'ok',
         text: '¡Tu contraseña ha sido actualizada con éxito! Redirigiendo a tu espacio de trabajo…',
       })
       setTimeout(() => {
-        // Limpiar fragmento de recovery en la URL
-        if (window.location.hash) {
-          window.history.replaceState(null, '', window.location.pathname)
-        }
+        clearUrl()
         if (typeof onCompleted === 'function') onCompleted()
       }, 1500)
     }
@@ -68,7 +96,21 @@ export default function ResetPasswordForm({ onCompleted }) {
         Ingresa tu nueva contraseña para actualizar el acceso a tu cuenta.
       </p>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {hasSession === false && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="msg error" style={{ margin: 0 }}>
+            Este enlace ya se usó o venció (cada enlace sirve una sola vez y solo el último que llegó al correo).
+          </p>
+          <button type="button" className="primary" onClick={backToLogin}>
+            Pedir un enlace nuevo
+          </button>
+          <p className="hint" style={{ margin: 0, textAlign: 'center' }}>
+            En la pantalla de acceso usa «¿Olvidaste tu contraseña?», o pide a tu líder una contraseña temporal.
+          </p>
+        </div>
+      )}
+
+      {hasSession !== false && <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <label>
           Nueva contraseña
           <input
@@ -103,12 +145,12 @@ export default function ResetPasswordForm({ onCompleted }) {
         <button
           type="submit"
           className="primary"
-          disabled={busy || !password || !confirmPassword}
+          disabled={busy || !hasSession || !password || !confirmPassword}
           style={{ marginTop: 8 }}
         >
           {busy ? 'Actualizando contraseña…' : 'Guardar nueva contraseña'}
         </button>
-      </form>
+      </form>}
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
         <CdhSignature label="by" />
