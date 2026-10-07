@@ -28,3 +28,4 @@
 20261006_corregir_parejas_y_cargues_repetidos.sql
 20261006_formatos_calidad.sql
 20261007_vacunacion.sql
+20261007_admin_set_password_lider_general.sql

@@ -15,8 +15,9 @@ describe('authService', () => {
     })
 
     it('genera una URL de retorno consistente para recuperación y confirmación', () => {
-        expect(buildAuthRedirectUrl('recovery')).toContain('/#type=recovery')
-        expect(buildAuthRedirectUrl('confirm')).toContain('/#')
+        // Sin «#»: Auth pega «#access_token=…&type=recovery» y supabase-js debe poder leerlo.
+        expect(buildAuthRedirectUrl('recovery')).toBe(`${window.location.origin}/`)
+        expect(buildAuthRedirectUrl('confirm')).not.toContain('#')
     })
 
     it('guarda y recupera el contexto de alta de una cuenta nueva', () => {
