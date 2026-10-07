@@ -23,7 +23,7 @@ import { PLANO_BASE_GRANJA } from '../lib/planoBaseGranja'
 /** Edición de planos de granja: administración, coordinadores, supervisores y desarrolladores */
 const canEditPlanos = (role, isPlatformStaff) =>
   !!isPlatformStaff ||
-  ['developer', 'platform_admin', 'owner', 'admin', 'coordinator', 'supervisor'].includes(role)
+  ['developer', 'platform_admin', 'owner', 'admin', 'management', 'coordinator', 'supervisor'].includes(role)
 
 const canCalibrateGps = (role, isPlatformStaff) =>
   canEditPlanos(role, isPlatformStaff) ||
@@ -286,7 +286,7 @@ export default function FarmManager({
             {editPlanos
               ? 'Edición de granja y galpones activa. Puede trazar módulos y calibrar GPS.'
               : calibrateGps
-                ? 'Líder de área: calibración GPS de la sede. Sin edición de planos.'
+                ? 'Calibración GPS de la sede. Sin edición de planos.'
                 : 'Solo consulta.'}
           </p>
         </div>

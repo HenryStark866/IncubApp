@@ -18,7 +18,8 @@
 // v19 (06-10-2026): formatos de calidad de incubación.
 // v20 (07-10-2026): perfil del auxiliar de vacunación (inventario, consumo y formatos).
 // v21 (07-10-2026): huevos recibidos y posturas esperadas leídos de la lista por fecha de postura.
-const CACHE = 'incubapp-shell-v21'
+// v22 (07-10-2026): gerencia: administración fiable, jerarquía de usuarios, producción en el inicio.
+const CACHE = 'incubapp-shell-v22'
 const PRECACHE = [
   '/',
   '/index.html',

@@ -23,6 +23,7 @@ import {
   wasteOfMonth,
   weekOverWeek,
 } from '../../environmental/lib/envRecords'
+import { machineStates, coldRoomGroups, productionBoard } from './productionHome'
 
 /** Qué inicio de líder corresponde a su área. Las demás áreas llegan en orden. */
 export function leaderKind(area) {
@@ -1020,7 +1021,7 @@ function percentOf(text) {
   return Number.isFinite(n) && n > 0 && n <= 100 ? n : null
 }
 
-export function veterinaryLeaderBoard({ records = [], hatches = [], team: members = [], now = new Date() }) {
+export function veterinaryLeaderBoard({ records = [], hatches = [], vaccineUses = [], team: members = [], now = new Date() }) {
   const today = localDate(now)
   const recent = records.filter((r) => now - new Date(r.recorded_at || r.created_at) < 30 * DAY_MS)
   const label = (r) =>
@@ -1052,10 +1053,16 @@ export function veterinaryLeaderBoard({ records = [], hatches = [], team: member
       .filter((r) => r.kind === 'vaccination' && now - new Date(r.recorded_at || r.created_at) < 3 * DAY_MS)
       .map((r) => normLote(r.batch_or_lote)),
   )
+  // También cuenta el consumo de vacunas por lote (Vacunación): «45 + 46» vacuna ambos lotes
+  for (const u of vaccineUses) {
+    if (now - new Date(u.moved_at) > 3 * DAY_MS) continue
+    vaccinated.add(normLote(u.lote))
+    for (const n of String(u.lote || '').match(/\d+/g) || []) vaccinated.add(normLote(n))
+  }
   const tomorrow = localDate(new Date(now.getTime() + DAY_MS))
   const upcoming = hatches
     .filter((h) => h.status !== 'cancelled')
-    .map((h) => ({ ...h, when: h.scheduled_at || h.started_at || h.created_at }))
+    .map((h) => ({ ...h, when: h.scheduled_at || h.started_at || h.ended_at || h.created_at }))
     .filter((h) => [today, tomorrow].includes(localDate(h.when)))
     .sort((a, b) => String(a.when).localeCompare(String(b.when)))
   for (const h of upcoming) {
@@ -1063,9 +1070,9 @@ export function veterinaryLeaderBoard({ records = [], hatches = [], team: member
     decisions.push({
       id: `hatch-${h.id}`,
       tone: localDate(h.when) === today ? 'warn' : 'info',
-      title: `Nacimiento lote ${h.lote} ${localDate(h.when) === today ? 'hoy' : 'mañana'} a las ${clock(h.when)} · sin vacunación registrada`,
+      title: `Nacimiento lote ${h.lote} ${localDate(h.when) === today ? 'hoy' : 'mañana'}${clock(h.when) ? ` a las ${clock(h.when)}` : ''} · sin vacunación registrada`,
       detail: 'Confirme biológico, dosis y quién vacuna',
-      action: { kind: 'nav', tab: 'veterinaria', label: 'Registrar vacunación' },
+      action: { kind: 'nav', tab: 'vacunacion', label: 'Registrar vacunación' },
     })
   }
 
@@ -1558,6 +1565,7 @@ export function salesLeaderBoard({ orders = [], customers = [], hatches = [], no
 /** Áreas que ve gerencia, en el orden de la operación, y el módulo al que lleva cada una. */
 export const MANAGEMENT_AREAS = [
   { kind: 'plant', label: 'Planta', tab: 'panel' },
+  { kind: 'production', label: 'Producción', tab: 'datos-op' },
   { kind: 'maintenance', label: 'Mantenimiento', tab: 'mantenimiento' },
   { kind: 'veterinary', label: 'Sanidad veterinaria', tab: 'veterinaria' },
   { kind: 'sst', label: 'SST', tab: 'sst' },
@@ -1593,6 +1601,13 @@ const MANAGEMENT_KPIS = [
  * @param {{ areas: Record<string, object|null>, slot?: object, now?: Date }} p
  *   areas: datos de cada área tal como los carga el inicio de su líder (null si no cargó)
  */
+/** Producción para gerencia: el mismo tablero de la líder (máquinas, cuarto frío, mapas, vacunas…). */
+function productionAreaBoard(data, now) {
+  const states = machineStates({ machines: data.machines, loads: data.loads, transfers: data.transfers, checks: data.checks, workOrders: data.workOrders, now })
+  const stockGroups = coldRoomGroups({ stock: data.stock, batches: data.batches, farms: data.farms, rooms: data.rooms })
+  return productionBoard({ ...data, states, stockGroups, now })
+}
+
 export function managementBoard({ areas = {}, slot = {}, now = new Date() }) {
   const boards = {}
   for (const a of MANAGEMENT_AREAS) {
@@ -1600,14 +1615,23 @@ export function managementBoard({ areas = {}, slot = {}, now = new Date() }) {
     if (!data) continue
     try {
       boards[a.kind] =
-        a.kind === 'plant' ? plantLeaderBoard({ ...data, slot, now }) : AREA_BOARDS[a.kind]({ ...data, now })
+        a.kind === 'plant'
+          ? plantLeaderBoard({ ...data, slot, now })
+          : a.kind === 'production'
+            ? productionAreaBoard(data, now)
+            : AREA_BOARDS[a.kind]({ ...data, now })
     } catch {
       boards[a.kind] = null
     }
   }
 
-  const toNav = (action, area) =>
-    action?.kind === 'nav' ? action : { kind: 'nav', tab: area.tab, label: `Ver en ${area.label}` }
+  // Las decisiones de producción traen `tab` (o un mapa por revisar) en lugar de `action`
+  const toNav = (action, area, d = {}) =>
+    action?.kind === 'nav'
+      ? action
+      : d.tab || d.mapId
+        ? { kind: 'nav', tab: d.tab || 'cargue', label: 'Abrir' }
+        : { kind: 'nav', tab: area.tab, label: `Ver en ${area.label}` }
 
   const all = []
   const team = []
@@ -1625,7 +1649,8 @@ export function managementBoard({ areas = {}, slot = {}, now = new Date() }) {
       })
       continue
     }
-    const decs = b.decisions || []
+    // El mapa por revisar ya lo trae Planta con «Revisar y aprobar»: Producción no lo repite
+    const decs = (b.decisions || []).filter((d) => !(a.kind === 'production' && boards.plant && d.mapId))
     const danger = decs.filter((d) => d.tone === 'danger').length
     const warn = decs.filter((d) => d.tone === 'warn').length
     for (const d of decs) {
@@ -1633,7 +1658,7 @@ export function managementBoard({ areas = {}, slot = {}, now = new Date() }) {
         ...d,
         id: `${a.kind}-${d.id}`,
         title: `${a.label} · ${d.title}`,
-        action: toNav(d.action, a),
+        action: toNav(d.action, a, d),
         secondary: d.secondary?.kind === 'nav' ? d.secondary : null,
       })
     }

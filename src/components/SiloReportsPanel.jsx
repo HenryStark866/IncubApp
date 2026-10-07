@@ -77,6 +77,8 @@ export default function SiloReportsPanel({
   onNotify,
   orgName = '',
   userName = '',
+  /** Dentro del Cockpit de gerencia (sin tarjeta ni título propios) */
+  embebido = false,
 }) {
   const api = useSiloDispatches({ orgId, userId, role, area })
   // Notificaciones opcionales: si la tabla no existe, no tumba la bandeja
@@ -362,13 +364,15 @@ export default function SiloReportsPanel({
   )
 
   return (
-    <div className={mode === 'reports' ? '' : 'card wide'}>
-      {mode !== 'reports' && (
+    <div className={embebido ? '' : 'card wide'}>
+      {!embebido && (
         <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <h2 style={{ margin: 0 }}>Reportes y documentos</h2>
+            <h2 style={{ margin: 0 }}>{mode === 'reports' ? 'Informes de gerencia' : 'Reportes y documentos'}</h2>
             <p className="hint" style={{ margin: '4px 0 0' }}>
-              Envía a un módulo o persona. Gerencia aprueba OC, facturas y cotizaciones.
+              {mode === 'reports'
+                ? 'Bandeja de órdenes de compra, facturas, cotizaciones y solicitudes para aprobar, rechazar o archivar.'
+                : 'Envía a un módulo o persona. Gerencia aprueba OC, facturas y cotizaciones.'}
             </p>
           </div>
         </div>

@@ -27,7 +27,7 @@ const firstName = (n) => (n || '').trim().split(/\s+/)[0] || ''
 const cellVal = (a) => (a ? (a.is_rest ? 'rest' : a.shift_number ? String(a.shift_number) : '') : '')
 
 export default function ShiftSchedule({ orgId, userId, role }) {
-  const canEdit = ['owner', 'admin', 'supervisor', 'coordinator'].includes(role)
+  const canEdit = ['owner', 'admin', 'management', 'supervisor', 'coordinator'].includes(role)
   const sch = useShiftSchedule(orgId, userId)
   const [ops, setOps] = useState([])
   const [plants, setPlants] = useState([])

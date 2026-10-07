@@ -337,7 +337,7 @@ export default function FarmBatchesPanel({ orgId, userId, role, area }) {
   // El coordinador de GRANJA (área 'farm') aprueba; el supervisor/operario de recepción registra. Owner/admin todo.
   const isFarmCoord = role === 'coordinator' && area === 'farm'
   const canReceive = ['owner', 'admin', 'supervisor', 'reception_operator'].includes(role) || isFarmCoord
-  const canApprove = ['owner', 'admin'].includes(role) || isFarmCoord
+  const canApprove = ['owner', 'admin', 'management'].includes(role) || isFarmCoord
   const canDelete = ['owner', 'admin'].includes(role)
   // El grading (paso a producción) y el registro diario: supervisor o coord. de granja
   const canGrade = ['owner', 'admin', 'supervisor'].includes(role) || isFarmCoord

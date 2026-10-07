@@ -66,3 +66,29 @@ export function canSetPasswordFor(caller, target) {
   }
   return false
 }
+
+/**
+ * Rango para administrar personas (07-10-2026): nadie revoca, quita, edita ni cambia el
+ * rol de alguien de su mismo rango o superior. Misma regla que la contraseña temporal,
+ * más el usuario recién creado (operario sin área) que el líder aún debe ubicar.
+ * La base aplica la misma regla (20261007_jerarquia_usuarios.sql).
+ */
+export const RANK = { owner: 100, admin: 90, management: 80, coordinator: 60 }
+export const rankOf = (role) => RANK[role] ?? 10
+
+export function canManageMember(caller, target) {
+  if (!caller || !target) return false
+  if (canSetPasswordFor(caller, target)) return true
+  // Recién creado: entra como operario sin área hasta que su líder le asigne el cargo
+  return caller.role === 'coordinator' && target.role === 'operator' && (!target.area || target.area === 'general')
+}
+
+/** ¿Qué cargo puede asignar? Nunca uno de rango igual o superior al propio (salvo owner). */
+export function canGrantRole(caller, role) {
+  if (!caller || !role || role === 'developer') return false
+  if (caller.role === 'owner') return true
+  if (caller.role === 'admin') return role !== 'owner'
+  if (caller.role === 'management') return !['owner', 'admin'].includes(role)
+  if (caller.role === 'coordinator') return rankOf(role) < RANK.coordinator
+  return false
+}

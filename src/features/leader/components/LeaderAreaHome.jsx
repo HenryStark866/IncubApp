@@ -318,7 +318,7 @@ function AreaHome({ orgId, userId, role, area, userName, onNavigate, peopleName 
       {kind === 'management' && (
         <header className="lh-head">
           <h1>La empresa hoy</h1>
-          <span>lo urgente de las nueve áreas, cómo va cada una y lo programado</span>
+          <span>lo urgente de las diez áreas, cómo va cada una y lo programado</span>
         </header>
       )}
       {home.error && <p className="lh-msg is-error">{home.error}</p>}

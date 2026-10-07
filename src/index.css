@@ -12111,3 +12111,73 @@ a.plant3d-link:hover {
 .rx-pendiente { font-size: 12.5px; color: var(--text-dim); font-style: italic; }
 .rx-nota { margin-top: 14px; }
 @media (max-width: 760px) { .rx-info { grid-template-columns: 1fr; } }
+
+/* ── Filas de administración y paginación (07-10-2026) ──────────────────────
+   button.ghost / button.primary son de ancho completo para formularios; en las
+   acciones de una fila y en el paginador apilaban los botones uno debajo de otro. */
+.admin-row-main {
+  flex: 1 1 220px;
+}
+
+.admin-row-actions {
+  flex: 0 0 auto;
+}
+
+.admin-row-actions button.ghost,
+.admin-row-actions button.primary,
+.admin-section-head button.ghost,
+.admin-section-head button.primary,
+.list-controls button.ghost,
+.list-pager button,
+.admin-error button {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.admin-row-actions button.ghost.danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
+
+.list-pager {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+.list-pager button {
+  min-width: 34px;
+}
+
+.admin-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .admin-row-actions {
+    flex: 1 1 100%;
+  }
+}
+
+.admin-filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.admin-filtros select {
+  flex: 1 1 180px;
+  background: var(--bg-0);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
