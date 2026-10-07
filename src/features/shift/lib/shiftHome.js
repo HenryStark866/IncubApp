@@ -231,7 +231,8 @@ export function receptionDay({ lots = [], arrivals = [], day = localDate() }) {
         id: l.id,
         code: l.code || 'Lote',
         origin: l.origin || 'Origen sin registrar',
-        postures: Number(l.postures) || null,
+        // postures es [{ productionDate, eggs }] en la base; un número en datos viejos
+        postures: (Array.isArray(l.postures) ? l.postures.reduce((n, x) => n + (Number(x?.eggs) || 0), 0) : Number(l.postures)) || null,
         arrival,
         late: !arrival && exp < day,
       }

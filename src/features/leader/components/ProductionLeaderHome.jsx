@@ -330,12 +330,12 @@ function Recepcion({ lots, arrivals, people, onNavigate }) {
         {arrivals.length === 0 && <p className="lh-empty">Sin recepciones en los últimos 7 días.</p>}
         {arrivals.map((a) => {
           const esperado = posturesOf(lotById.get(a.lot_id)?.postures)
-          const diff = esperado ? Number(a.received_postures || 0) - esperado : null
+          const diff = esperado ? posturesOf(a.received_postures) - esperado : null
           return (
             <div key={a.id} className="prod-fila">
               <b>Lote {a.lot_code || '—'}</b>
               <span>
-                {num(a.received_postures)} recibidos
+                {num(posturesOf(a.received_postures))} recibidos
                 {diff != null && diff !== 0 ? ` (${diff > 0 ? '+' : ''}${num(diff)} vs esperado)` : ''}
                 {a.photo_paths?.length ? ` · 📷 ${a.photo_paths.length}` : ''}
                 {a.received_by ? ` · ${nombre.get(a.received_by) || 'recepción'}` : ''}
