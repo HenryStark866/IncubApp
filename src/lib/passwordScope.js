@@ -6,6 +6,8 @@
  *  - gerencia: todos menos owner/admin/gerencia;
  *  - líder de área: solo la gente de rango menor de SU área (misma área, o sin área y con
  *    un cargo que depende de esa área: operario de turno → planta, conductor → logística…).
+ *  - líder con área «General» (07-10-2026): no tiene un área sola, responde por todas, así
+ *    que puede con toda la gente de rango menor. Antes no podía con nadie.
  * Henry Stark Desarrollador · 30-09-2026
  */
 
@@ -62,7 +64,34 @@ export function canSetPasswordFor(caller, target) {
   if (caller.role === 'owner' || caller.role === 'admin') return true
   if (caller.role === 'management') return !['owner', 'admin', 'management'].includes(target.role)
   if (caller.role === 'coordinator') {
-    return !HIGHER.includes(target.role) && isInLeaderArea(caller.area, target.area, target.role)
+    if (HIGHER.includes(target.role)) return false
+    return normArea(caller.area) === 'general' || isInLeaderArea(caller.area, target.area, target.role)
   }
+  return false
+}
+
+/**
+ * Rango para administrar personas (07-10-2026): nadie revoca, quita, edita ni cambia el
+ * rol de alguien de su mismo rango o superior. Misma regla que la contraseña temporal,
+ * más el usuario recién creado (operario sin área) que el líder aún debe ubicar.
+ * La base aplica la misma regla (20261007_jerarquia_usuarios.sql).
+ */
+export const RANK = { owner: 100, admin: 90, management: 80, coordinator: 60 }
+export const rankOf = (role) => RANK[role] ?? 10
+
+export function canManageMember(caller, target) {
+  if (!caller || !target) return false
+  if (canSetPasswordFor(caller, target)) return true
+  // Recién creado: entra como operario sin área hasta que su líder le asigne el cargo
+  return caller.role === 'coordinator' && target.role === 'operator' && (!target.area || target.area === 'general')
+}
+
+/** ¿Qué cargo puede asignar? Nunca uno de rango igual o superior al propio (salvo owner). */
+export function canGrantRole(caller, role) {
+  if (!caller || !role || role === 'developer') return false
+  if (caller.role === 'owner') return true
+  if (caller.role === 'admin') return role !== 'owner'
+  if (caller.role === 'management') return !['owner', 'admin'].includes(role)
+  if (caller.role === 'coordinator') return rankOf(role) < RANK.coordinator
   return false
 }

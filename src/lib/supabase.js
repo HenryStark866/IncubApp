@@ -198,6 +198,27 @@ async function fetchOnce(input, init) {
   }
 }
 
+/*
+ * Enlaces de correo enviados antes del 07-10-2026 volvían a «/#type=recovery» y Auth les
+ * pegaba «#access_token=…»: «#type=recovery#access_token=…». supabase-js lee el hash con
+ * URLSearchParams y no encontraba el token → sin sesión → no se podía guardar la clave
+ * nueva. Se arregla el hash ANTES de crear el cliente (que lo lee al iniciar).
+ */
+export function fixDoubleHash(hash) {
+  const m = /^#type=(recovery|confirm)#(.+)$/.exec(hash || '')
+  return m ? `#${m[2]}` : hash
+}
+try {
+  if (typeof window !== 'undefined') {
+    const fixed = fixDoubleHash(window.location.hash)
+    if (fixed !== window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${fixed}`)
+    }
+  }
+} catch {
+  /* */
+}
+
 let client
 try {
   client = createClient(SUPABASE_URL, keyOk ? rawKey : FALLBACK_KEY, {

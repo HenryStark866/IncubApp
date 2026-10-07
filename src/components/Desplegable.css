@@ -1,0 +1,39 @@
+.despl {
+  max-width: 1100px;
+  margin: 14px auto 0;
+}
+.despl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.despl-head:hover {
+  border-color: var(--accent);
+}
+.despl-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.despl-txt small {
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+.despl-flecha {
+  font-size: 18px;
+  color: var(--accent);
+}
+.despl-cuerpo {
+  margin-top: 10px;
+}

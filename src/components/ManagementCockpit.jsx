@@ -490,6 +490,7 @@ export default function ManagementCockpit({
                 location={location}
                 isOmniscient={isOmniscient}
                 mode="reports"
+                embebido
                 onNotify={onNotify}
                 orgName={mod?.label ? `Gerencia · ${mod.label}` : 'Gerencia'}
                 userName={first || roleName}

@@ -10,12 +10,37 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase, createIsolatedAuthClient } from '../lib/supabase'
 import { normalizeWorkArea, isPlatformStaffOrgRole } from '../lib/roles'
 import { templateSettingsPayload } from '../lib/clientMenuTemplate'
+import { queryRows } from '../lib/queryRows'
 
 /**
  * @param {boolean|object} opts
  * @param {boolean} [opts.enabled=true]
  * @param {string|null} [opts.orgId] — si se define, modo tenant (solo esa empresa)
  */
+/**
+ * La base no da error cuando RLS deja fuera la fila: devuelve 0 filas. Eso es «sin rango»
+ * (20261007_jerarquia_usuarios), no un éxito.
+ */
+async function sinRango(query) {
+  const { data, error } = await query
+  if (error) return { error }
+  if (Array.isArray(data) && data.length === 0)
+    return { error: 'No tiene rango para ese cambio: solo puede administrar a personas de menor rango de su área.' }
+  return { error: null }
+}
+
+/** Mensaje entendible para los errores de la base en Administración (07-10-2026). */
+export function mensajeAdmin(msg = '') {
+  const m = String(msg || '')
+  if (/statement timeout|canceling statement|57014/i.test(m)) return 'La base de datos tardó demasiado en responder. Intente de nuevo en un momento.'
+  if (/rango|jerarqu/i.test(m)) return m
+  if (/not allowed|row-level security|permission denied|42501|no autorizado/i.test(m))
+    return 'No tiene permiso para ese cambio: solo puede administrar a personas de menor rango que usted.'
+  if (/duplicate key|already (exists|registered)|ya existe/i.test(m)) return 'Ese usuario o dato ya existe.'
+  if (/failed to fetch|network|fetch/i.test(m)) return 'Sin conexión con el servidor. Revise la red e intente de nuevo.'
+  return m
+}
+
 /** Export «useAdmin»: API pública de este módulo. Henry Stark Desarrollador */
 export function useAdmin(opts = true) {
   const enabled = typeof opts === 'boolean' ? opts : opts?.enabled !== false
@@ -41,100 +66,96 @@ export function useAdmin(opts = true) {
 
     if (tenantMode) {
       // ── Solo la empresa de la licencia (coordinadores / gerencia) ──
-      const [o, p, m, r, mq, s, wo] = await Promise.all([
-        supabase
-          .from('organizations')
-          .select('id, name, slug, nit, created_at')
-          .eq('id', scopeOrgId)
-          .maybeSingle(),
-        supabase
-          .from('plants')
-          .select('id, org_id, name, code, city, status, created_at')
-          .eq('org_id', scopeOrgId)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('organization_members')
-          .select('org_id, user_id, role, area, job_title')
-          .eq('org_id', scopeOrgId),
-        supabase.from('rooms').select('id, plant_id, org_id, name, code, type').eq('org_id', scopeOrgId),
-        supabase
-          .from('machines')
-          .select('id, plant_id, room_id, panel_room_id, code, name, type, status, capacity_eggs'),
-        supabase
-          .from('sensors')
-          .select(
-            'id, org_id, machine_id, room_id, code, kind, unit, min_threshold, max_threshold, status'
-          )
-          .eq('org_id', scopeOrgId),
-        supabase
-          .from('work_orders')
-          .select(
-            'id, org_id, plant_id, machine_id, code, title, type, priority, status, created_at'
-          )
-          .eq('org_id', scopeOrgId)
-          .in('status', ['open', 'in_progress'])
-          .order('created_at', { ascending: false })
-          .limit(1000),
+      // 07-10-2026: cada consulta va por su lado con un reintento si la base tarda
+      // (statement timeout). Lo que no carga se nombra en el aviso y lo demás se muestra;
+      // máquinas y lecturas se piden solo de las plantas y sensores de la empresa.
+      const fallas = []
+      const pedir = async (etiqueta, table, build, { critica = true } = {}) => {
+        const r = await queryRows(table, build)
+        if (r.error) {
+          if (critica) fallas.push(etiqueta)
+          console.warn(`[IncubApp] Administración · ${etiqueta}:`, r.error)
+        }
+        return r
+      }
+      const [o, p, m, r, s, wo] = await Promise.all([
+        pedir('empresa', 'organizations', (q) => q.select('id, name, slug, nit, created_at').eq('id', scopeOrgId)),
+        pedir('plantas y granjas', 'plants', (q) =>
+          q.select('id, org_id, name, code, city, status, created_at').eq('org_id', scopeOrgId).order('created_at', { ascending: true }),
+        ),
+        pedir('miembros', 'organization_members', (q) => q.select('org_id, user_id, role, area, job_title').eq('org_id', scopeOrgId)),
+        pedir('salas', 'rooms', (q) => q.select('id, plant_id, org_id, name, code, type').eq('org_id', scopeOrgId)),
+        pedir(
+          'sensores',
+          'sensors',
+          (q) => q.select('id, org_id, machine_id, room_id, code, kind, unit, min_threshold, max_threshold, status').eq('org_id', scopeOrgId),
+          { critica: false },
+        ),
+        pedir(
+          'órdenes de trabajo',
+          'work_orders',
+          (q) =>
+            q
+              .select('id, org_id, plant_id, machine_id, code, title, type, priority, status, created_at')
+              .eq('org_id', scopeOrgId)
+              .in('status', ['open', 'in_progress'])
+              .order('created_at', { ascending: false })
+              .limit(1000),
+          { critica: false },
+        ),
       ])
 
-      const err = o.error || p.error || m.error || r.error || mq.error || s.error || wo.error
-      if (err) setError(err.message)
-
-      const orgRow = o.data
-      setOrgs(orgRow ? [orgRow] : [])
-      setPlants(p.data ?? [])
-
+      setOrgs(o.data.length ? [o.data[0]] : [])
+      setPlants(p.data)
       // Sin developer ni roles de plataforma
-      const mem = (m.data ?? []).filter((x) => !isPlatformStaffOrgRole(x.role))
+      const mem = m.data.filter((x) => !isPlatformStaffOrgRole(x.role))
       setMembers(mem)
+      setRooms(r.data)
+      setSensors(s.data)
+      setWorkOrders(wo.data)
 
-      const plantIds = new Set((p.data ?? []).map((x) => x.id))
-      setRooms(r.data ?? [])
-      setMachines((mq.data ?? []).filter((x) => plantIds.has(x.plant_id)))
-      setSensors(s.data ?? [])
-      setWorkOrders(wo.data ?? [])
-
+      const plantIds = p.data.map((x) => x.id)
       const userIds = [...new Set(mem.map((x) => x.user_id))]
-      if (userIds.length) {
-        const u = await supabase
-          .from('profiles')
-          .select('id, email, full_name, phone, platform_role, is_approved, created_at')
-          .in('id', userIds)
-          .order('created_at', { ascending: false })
-        if (u.error) setError(u.error.message)
-        // Ocultar staff CDH Maker / developer
-        setUsers(
-          (u.data ?? []).filter(
-            (row) =>
-              row.platform_role !== 'admin' &&
-              row.platform_role !== 'developer' &&
-              userIds.includes(row.id)
-          )
+      const sensorIds = s.data.map((x) => x.id)
+      const [mq, u, rd] = await Promise.all([
+        plantIds.length
+          ? pedir('máquinas', 'machines', (q) =>
+              q.select('id, plant_id, room_id, panel_room_id, code, name, type, status, capacity_eggs').in('plant_id', plantIds),
+            )
+          : { data: [] },
+        userIds.length
+          ? pedir('usuarios', 'profiles', (q) =>
+              q.select('id, email, full_name, phone, platform_role, is_approved, created_at').in('id', userIds).order('created_at', { ascending: false }),
+            )
+          : { data: [] },
+        sensorIds.length
+          ? pedir(
+              'lecturas de sensores',
+              'sensor_readings',
+              (q) =>
+                q
+                  .select('sensor_id, value, recorded_at')
+                  .in('sensor_id', sensorIds)
+                  .gte('recorded_at', new Date(Date.now() - 2 * 86400000).toISOString())
+                  .order('recorded_at', { ascending: false })
+                  .limit(500),
+              { critica: false },
+            )
+          : { data: [] },
+      ])
+      setMachines(mq.data)
+      // Ocultar staff CDH Maker / developer
+      setUsers(u.data.filter((row) => row.platform_role !== 'admin' && row.platform_role !== 'developer'))
+      const map = {}
+      for (const row of rd.data) {
+        if (!map[row.sensor_id]) map[row.sensor_id] = { value: Number(row.value), recorded_at: row.recorded_at }
+      }
+      setLatest(map)
+      if (fallas.length) {
+        setError(
+          `No cargó: ${fallas.join(', ')}. La base de datos tardó demasiado o no respondió; lo demás se muestra. Toque «Reintentar» en un momento.`,
         )
-      } else {
-        setUsers([])
       }
-
-      // Lecturas de sensores de la org
-      const sensorIds = (s.data ?? []).map((x) => x.id)
-      if (sensorIds.length) {
-        const rd = await supabase
-          .from('sensor_readings')
-          .select('sensor_id, value, recorded_at')
-          .in('sensor_id', sensorIds)
-          .order('recorded_at', { ascending: false })
-          .limit(500)
-        const map = {}
-        for (const row of rd.data ?? []) {
-          if (!map[row.sensor_id]) {
-            map[row.sensor_id] = { value: Number(row.value), recorded_at: row.recorded_at }
-          }
-        }
-        setLatest(map)
-      } else {
-        setLatest({})
-      }
-
       setLoading(false)
       return
     }
@@ -231,7 +252,7 @@ export function useAdmin(opts = true) {
     setError(null)
     const { error: err } = await fn(...args)
     if (err) {
-      const msg = typeof err === 'string' ? err : err.message
+      const msg = mensajeAdmin(typeof err === 'string' ? err : err.message)
       setError(msg)
       return { error: msg }
     }
@@ -248,6 +269,8 @@ export function useAdmin(opts = true) {
         p_approved: !!approved,
       })
       if (!orgRpc.error) return { error: null }
+      // Sin rango (o a sí mismo): la base lo negó a propósito; no se intenta por otro camino
+      if (orgRpc.error.code === '42501' || /rango|propio acceso/i.test(orgRpc.error.message || '')) return { error: orgRpc.error }
 
       const rpc = await supabase.rpc('admin_set_user_access', {
         p_user: userId,
@@ -314,11 +337,9 @@ export function useAdmin(opts = true) {
   const deleteUser = wrap(async (userId) => {
     if (tenantMode) {
       // Solo quitar de la empresa (no borrar cuenta global)
-      return supabase
-        .from('organization_members')
-        .delete()
-        .eq('org_id', scopeOrgId)
-        .eq('user_id', userId)
+      return sinRango(
+        supabase.from('organization_members').delete().eq('org_id', scopeOrgId).eq('user_id', userId).select('user_id'),
+      )
     }
     const { data, error: err } = await supabase.functions.invoke('admin-users', {
       body: { action: 'delete', user_id: userId },
@@ -400,11 +421,9 @@ export function useAdmin(opts = true) {
       patch.area = normalizeWorkArea(area) || 'general'
     }
     if (jobTitle !== undefined) patch.job_title = jobTitle?.trim() || null
-    return supabase
-      .from('organization_members')
-      .update(patch)
-      .eq('org_id', targetOrg)
-      .eq('user_id', userId)
+    return sinRango(
+      supabase.from('organization_members').update(patch).eq('org_id', targetOrg).eq('user_id', userId).select('user_id'),
+    )
   })
 
   const setMemberRole = wrap((orgId, userId, role, area = null) => {
@@ -416,11 +435,9 @@ export function useAdmin(opts = true) {
     } else {
       patch.area = normalizeWorkArea(area) || 'general'
     }
-    return supabase
-      .from('organization_members')
-      .update(patch)
-      .eq('org_id', targetOrg)
-      .eq('user_id', userId)
+    return sinRango(
+      supabase.from('organization_members').update(patch).eq('org_id', targetOrg).eq('user_id', userId).select('user_id'),
+    )
   })
 
   const setMemberArea = wrap((orgId, userId, area) =>
@@ -434,12 +451,9 @@ export function useAdmin(opts = true) {
   const removeMember = wrap((orgId, userId) => {
     const targetOrg = tenantMode ? scopeOrgId : orgId
     // No borrar developer
-    return supabase
-      .from('organization_members')
-      .delete()
-      .eq('org_id', targetOrg)
-      .eq('user_id', userId)
-      .neq('role', 'developer')
+    return sinRango(
+      supabase.from('organization_members').delete().eq('org_id', targetOrg).eq('user_id', userId).neq('role', 'developer').select('user_id'),
+    )
   })
 
   const createPlant = wrap(({ orgId, name, code, city }) => {

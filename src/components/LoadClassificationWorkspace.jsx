@@ -142,7 +142,7 @@ export default function LoadClassificationWorkspace({ orgId, userId, role, coord
   // quedó bien (pedido 2026-09-15). Antes solo aprobaba coordinación, y eso
   // dejaba el mapa esperando a alguien que no estaba en la sala.
   const canApprove =
-    ['owner', 'admin', 'supervisor', 'auxiliary_production'].includes(role) || (role === 'coordinator' && true) // coordinador de planta / general
+    ['owner', 'admin', 'management', 'supervisor', 'auxiliary_production'].includes(role) || (role === 'coordinator' && true) // coordinador de planta / general
   const canOrder = canApprove
   const isOperator = ['operator', 'auxiliary', 'auxiliary_production', 'reception_operator'].includes(role)
 

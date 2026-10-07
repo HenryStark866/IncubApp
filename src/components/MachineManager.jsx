@@ -282,7 +282,7 @@ function MachineDetail({ machine, rooms, orgId, canManage, latest, machinesApi, 
             {machine.name} <span className="machine-code">{machine.code}</span>
           </strong>
           <span className="hint" style={{ margin: 0 }}>
-            {descripcion} · 📍 {room ? `${room.name} (${room.code})` : (isFarm ? 'Sin módulo asignado' : 'Sin sala asignada')}
+            {descripcion} · 📍 {room ? `${room.name}${room.code ? ` (${room.code})` : ''}` : (isFarm ? 'Sin módulo asignado' : 'Sin sala asignada')}
           </span>
         </div>
         <span className={`pill status ${st.cls}`}>{st.label}</span>

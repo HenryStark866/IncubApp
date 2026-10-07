@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { authErrorEs } from '../lib/offlineAuth'
 import { getTheme, setTheme } from '../lib/theme'
 import { compressImage } from '../lib/image'
 import {
@@ -97,7 +98,7 @@ function PasswordForm() {
     setMsg(null)
     const { error } = await supabase.auth.updateUser({ password: pw1 })
     setBusy(false)
-    if (error) setMsg({ kind: 'error', text: error.message })
+    if (error) setMsg({ kind: 'error', text: authErrorEs(error) })
     else {
       setMsg({ kind: 'ok', text: 'Contraseña actualizada' })
       setPw1('')

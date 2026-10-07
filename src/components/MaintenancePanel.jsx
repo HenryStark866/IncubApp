@@ -464,7 +464,7 @@ function PrintReport({ orders, orgName, myName, machineOf, plantOf, nameOf, evid
 /* ══ Panel principal ═════════════════════════════════════════ */
 export default function MaintenancePanel({ orgId, userId, role }) {
   // Gestión de OT (crear/editar/asignar/cancelar): owner/admin/coordinador y el supervisor de planta.
-  const canManage = ['owner', 'admin', 'coordinator', 'supervisor'].includes(role)
+  const canManage = ['owner', 'admin', 'management', 'coordinator', 'supervisor'].includes(role)
   // Borrar OT es destructivo → solo owner/admin (coincide con la RLS work_orders_delete = is_org_admin).
   const canDelete = ['owner', 'admin'].includes(role)
   // Auxiliar de mantenimiento: solo ve y ejecuta las OT que le asignan (no crea/edita/asigna)

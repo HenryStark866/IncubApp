@@ -103,6 +103,7 @@ import {
   ProfileCard,
 } from './components/lazyPanels'
 import { useOrgPresence } from './hooks/useOrgPresence'
+import Desplegable from './components/Desplegable'
 import { shiftHomeKind } from './features/shift/lib/shiftHome'
 import { useAccessControl } from './hooks/useAccessControl'
 import {
@@ -637,6 +638,7 @@ function Workspace({
           items={navItems}
           profile={profileApi.profile}
           role={role}
+          area={area}
           orgName={org?.name}
           onlineCount={presence.onlineCount}
           online={online}
@@ -788,21 +790,29 @@ function Workspace({
                   else setTab('hoy')
                 }}
               />
-              <TodayBoard
-                orgId={org.id}
-                userId={session.user.id}
-                role={role}
-                area={area}
-                userName={profileApi.profile?.full_name ?? session.user.email}
-                orgName={org.name}
-                onNavigate={(t) => {
-                  if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
-                  else setTab('hoy')
-                }}
-                presence={presence}
-                grantedScopeIds={access.grantedScopeIds}
-                isOmniscient={isOmniscient}
-              />
+              {/* 07-10-2026: el tablero «Hoy» de siempre sigue, pero se abre a pedido: repetía
+                  datos del inicio y sumaba otra tanda de consultas al abrir la app. */}
+              <Desplegable
+                titulo="Tablero del día completo"
+                sub="Presencia en línea, cobertura, operación del día, actividad reciente y accesos"
+                storageKey="incubapp_gerencia_tablero"
+              >
+                <TodayBoard
+                  orgId={org.id}
+                  userId={session.user.id}
+                  role={role}
+                  area={area}
+                  userName={profileApi.profile?.full_name ?? session.user.email}
+                  orgName={org.name}
+                  onNavigate={(t) => {
+                    if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                    else setTab('hoy')
+                  }}
+                  presence={presence}
+                  grantedScopeIds={access.grantedScopeIds}
+                  isOmniscient={isOmniscient}
+                />
+              </Desplegable>
             </>
           ) : tab === 'hoy' && org ? (
             <TodayBoard

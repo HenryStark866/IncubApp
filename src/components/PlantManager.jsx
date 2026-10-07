@@ -220,7 +220,7 @@ export default function PlantManager({
             {editPlanos
               ? 'Modo CDH Maker: puede dibujar y editar planos.'
               : calibrateGps
-                ? 'Líder de área: puede calibrar GPS de la sede. La edición de planos es solo CDH Maker.'
+                ? 'Puede calibrar el GPS de la sede. La edición de planos la hace CDH Maker.'
                 : 'Solo consulta del plano y presencia en vivo.'}
           </p>
         </div>

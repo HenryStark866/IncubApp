@@ -13,7 +13,7 @@ import EnDesarrollo from './EnDesarrollo'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
-import { ROLE_LABEL } from '../lib/roles'
+import { ROLE_LABEL, WORK_AREAS } from '../lib/roles'
 import { isShiftWorkerRole } from '../lib/privacyScopes'
 import { compressImage } from '../lib/image'
 import { getTheme, setTheme } from '../lib/theme'
@@ -39,6 +39,7 @@ export default function WorkspaceNav({
   items,
   profile,
   role,
+  area = null,
   orgName,
   onlineCount = 0,
   online = true,
@@ -226,7 +227,9 @@ export default function WorkspaceNav({
   const name = profile?.full_name || profile?.email || 'Mi perfil'
   const first = (profile?.full_name || '').trim().split(/\s+/)[0] || name
   const av = profile?.avatar_url
-  const roleName = ROLE_LABEL[role] ?? role ?? ''
+  // El líder lleva su área («Líder · Mantenimiento»): «Líder de área» solo no dice de cuál
+  const areaName = role === 'coordinator' && area && area !== 'general' ? WORK_AREAS.find((a) => a.value === area)?.label : null
+  const roleName = areaName ? `Líder · ${areaName}` : (ROLE_LABEL[role] ?? role ?? '')
   const email = profile?.email || ''
 
   const menuPanel =

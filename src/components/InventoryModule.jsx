@@ -451,7 +451,7 @@ export default function InventoryModule({
           <h2 style={{ margin: 0 }}>Inventarios</h2>
           <p className="hint" style={{ margin: '4px 0 0' }}>
             {userName ? `${userName.split(' ')[0]} · ` : ''}
-            inventario del coordinador (personalizado) + categorías corporativas
+            inventario de su área (personalizado) + categorías corporativas
           </p>
         </div>
       </div>

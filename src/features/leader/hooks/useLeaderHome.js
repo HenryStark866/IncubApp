@@ -357,6 +357,10 @@ async function loadVeterinary({ orgId }) {
         .in('role', ['plant_veterinarian', 'vaccination_auxiliary', 'barn_operator', 'coordinator']),
     ),
   ])
+  // Vacunación registrada en el inventario de vacunas (consumo por lote de pollito, 07-10-2026)
+  const vaccineUses = await optionalRows('vaccine_movements', (q) =>
+    q.select('lote, moved_at').eq('org_id', orgId).eq('kind', 'use').gte('moved_at', daysAgo(3).toISOString()).limit(300),
+  )
   const team = members.data
     .filter(
       (m) =>
@@ -371,6 +375,7 @@ async function loadVeterinary({ orgId }) {
   return {
     records: records.data,
     hatches: hatches.data,
+    vaccineUses: vaccineUses.data,
     team,
     errors: [records, hatches, members].map((r) => r.error).filter(Boolean),
   }
@@ -492,12 +497,33 @@ async function loadSales({ orgId }) {
 }
 
 /**
- * Gerencia: carga las nueve áreas en paralelo con las mismas consultas del inicio de
+ * Gerencia: carga las diez áreas (de a tres a la vez) con las mismas consultas del inicio de
  * cada líder. Si un área falla, las demás se muestran y se avisa.
  */
+/** Corre las cargas de a `n` a la vez: todas juntas eran ~100 consultas simultáneas y la
+ *  base del servidor cortaba algunas por tiempo (statement timeout). 07-10-2026. */
+async function enLotes(tareas, n = 3) {
+  const out = new Array(tareas.length)
+  let i = 0
+  await Promise.all(
+    Array.from({ length: Math.min(n, tareas.length) }, async () => {
+      while (i < tareas.length) {
+        const k = i++
+        try {
+          out[k] = { status: 'fulfilled', value: await tareas[k]() }
+        } catch (reason) {
+          out[k] = { status: 'rejected', reason }
+        }
+      }
+    }),
+  )
+  return out
+}
+
 async function loadManagement({ orgId, slot }) {
-  const kinds = ['plant', 'maintenance', 'veterinary', 'sst', 'environmental', 'logistics', 'sales', 'hr', 'accounting']
-  const results = await Promise.allSettled(kinds.map((k) => AREA_LOADERS[k]({ orgId, slot })))
+  const kinds = ['plant', 'production', 'maintenance', 'veterinary', 'sst', 'environmental', 'logistics', 'sales', 'hr', 'accounting']
+  const loaders = { ...AREA_LOADERS, production: loadProductionLead }
+  const results = await enLotes(kinds.map((k) => () => loaders[k]({ orgId, slot })), 3)
   const areas = {}
   const errors = []
   results.forEach((r, i) => {

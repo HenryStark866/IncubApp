@@ -634,10 +634,28 @@ describe('managementBoard', () => {
   })
   it('las áreas sin datos se muestran sin romper el tablero', () => {
     const b = managementBoard({ now, areas: { plant: null } })
-    expect(b.team).toHaveLength(9)
+    expect(b.team).toHaveLength(10)
     expect(b.team.find((t) => t.id === 'plant').role).toBe('Sin datos')
     expect(b.team.find((t) => t.id === 'sales').role).toBe('Cargando…')
     expect(b.decisions).toEqual([])
+  })
+  it('producción llega a gerencia: mapa por revisar y vacuna vencida, con su enlace', () => {
+    const b = managementBoard({
+      now,
+      areas: {
+        production: {
+          maps: [{ id: 'm1', status: 'pending_approval', machine_name: 'INC-07', created_at: now.toISOString(), payload: {} }],
+          vaccineProducts: [{ id: 'v1', name: 'Marek', doses_per_vial: 1000, min_doses: 0, active: true }],
+          vaccineMovements: [{ id: 'a', product_id: 'v1', kind: 'in', doses: 2000, manufacturer_lot: 'L1', expires_on: '2020-01-01', moved_at: '2019-12-01T10:00:00Z' }],
+        },
+      },
+    })
+    const prod = b.team.find((t) => t.id === 'production')
+    expect(prod.tone).toBe('danger')
+    const vac = b.decisions.find((d) => /Marek/.test(d.title))
+    expect(vac.title).toMatch(/^Producción · /)
+    expect(vac.action).toMatchObject({ kind: 'nav', tab: 'vacunacion' })
+    expect(b.decisions.find((d) => /Mapa de cargue/.test(d.title)).action.tab).toBe('cargue')
   })
 })
 

@@ -130,7 +130,7 @@ export default function EggReportPanel({ orgId, userId, role, area, coordinatorN
   const canReport = ['owner', 'admin', 'supervisor', 'coordinator', 'barn_operator'].includes(role)
   const barnOnly = role === 'barn_operator'
   // Verifica/acepta el supervisor o el coordinador de granja
-  const canVerify = ['owner', 'admin', 'supervisor'].includes(role) || (role === 'coordinator' && area === 'farm')
+  const canVerify = ['owner', 'admin', 'management', 'supervisor'].includes(role) || (role === 'coordinator' && area === 'farm')
   const bt = useBatches(orgId, userId)
   const er = useEggReports(orgId, userId)
 

@@ -75,7 +75,7 @@ function MonPhoto({ path, getPhotoUrl, tick }) {
 }
 
 export default function MonitorMode({ orgId, userId, role }) {
-  const canMonitor = ['owner', 'admin', 'supervisor', 'coordinator'].includes(role)
+  const canMonitor = ['owner', 'admin', 'management', 'management_auxiliary', 'supervisor', 'coordinator'].includes(role)
   const mc = useMachineChecks(orgId, userId, { canSupervise: true })
   const so = useShiftOps(orgId, userId)
   const { loads, transfers } = useLoads(orgId, userId)
@@ -223,7 +223,7 @@ export default function MonitorMode({ orgId, userId, role }) {
           <h2>Monitoreo</h2>
         </div>
         <p className="hint">
-          Este módulo es solo para administradores, supervisores y coordinadores.
+          Este módulo es para gerencia, supervisores y líderes de área.
         </p>
       </div>
     )

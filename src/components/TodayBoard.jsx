@@ -29,6 +29,9 @@ import {
  * Tablero de entrada por rol: KPIs, alertas y accesos del día.
  * Dirección / gerencia usan el mismo lenguaje visual del resumen admin.
  */
+/** Saludo según la hora del equipo */
+const saludo = (h = new Date().getHours()) => (h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches')
+
 export default function TodayBoard({
   orgId,
   userId,
@@ -273,7 +276,7 @@ function ExecTodayBoard({
       <div className="exec-board">
         <ExecHero
           kicker="Hoy · Dirección"
-          title={first ? `Buen día, ${first}` : board.title || 'Hoy'}
+          title={first ? `${saludo()}, ${first}` : board.title || 'Hoy'}
           subtitle={
             board.subtitle ||
             `${context}. Panorama del día con indicadores operativos y accesos de gerencia.`

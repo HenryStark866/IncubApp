@@ -20,7 +20,7 @@ import {
   roleLabel,
 } from '../lib/roles'
 import { BRAND } from '../lib/brandIdentity'
-import { canSetPasswordFor } from '../lib/passwordScope'
+import { canSetPasswordFor, canManageMember, canGrantRole, rankOf } from '../lib/passwordScope'
 import {
   ExecEmpty,
   ExecGroup,
@@ -33,15 +33,16 @@ import {
   healthTone,
 } from './ExecBoard'
 
-function RoleSelect({ value, onChange, id }) {
-  // Nunca ofrecer developer a clientes / ni en UI de plataforma al asignar a empresas
+function RoleSelect({ value, onChange, id, canGrant = null }) {
+  // Nunca ofrecer developer a clientes / ni en UI de plataforma al asignar a empresas.
+  // canGrant (07-10-2026): solo los cargos que quien asigna puede dar (nunca uno superior al suyo).
   const groups = orgRolesGrouped({ includePlatformStaff: false })
   return (
     <select id={id} value={value} onChange={onChange}>
       {groups.map(({ group, roles }) => (
         <optgroup key={group} label={group}>
           {roles
-            .filter((r) => r.value !== 'developer')
+            .filter((r) => r.value !== 'developer' && (!canGrant || r.value === value || canGrant(r.value)))
             .map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
@@ -358,7 +359,8 @@ function EditUserForm({ user, onSave, onCancel }) {
 }
 
 /* Asignación de empresa y rol por usuario: esto define sus permisos y funcionalidades */
-function UserRoleAssign({ user, admin }) {
+function UserRoleAssign({ user, admin, myMember = null }) {
+  const canGrant = myMember ? (r) => canGrantRole(myMember, r) : null
   const memberships = admin.members.filter(
     (m) => m.user_id === user.id && m.role !== 'developer'
   )
@@ -407,6 +409,7 @@ function UserRoleAssign({ user, admin }) {
           user={user}
           admin={admin}
           showOrgName={!admin.tenantMode}
+          canGrant={canGrant}
         />
       ))}
       {(available.length > 0 || needsAssign) && (
@@ -421,7 +424,7 @@ function UserRoleAssign({ user, admin }) {
               ))}
             </select>
           )}
-          <RoleSelect value={pickRole} onChange={(e) => setPickRole(e.target.value)} />
+          <RoleSelect value={pickRole} onChange={(e) => setPickRole(e.target.value)} canGrant={canGrant} />
           {roleNeedsArea(pickRole) && (
             <AreaSelect value={pickArea} onChange={(e) => setPickArea(e.target.value)} />
           )}
@@ -504,8 +507,28 @@ function UsersSection({ admin, myId }) {
   const [editId, setEditId] = useState(null)
   const [passwordId, setPasswordId] = useState(null)
   const [roleId, setRoleId] = useState(null)
-  const lc = useListControls(admin.users, (u, q) =>
-    [u.email, u.full_name, u.phone].some((v) => v?.toLowerCase().includes(q))
+  const [estado, setEstado] = useState('')
+  const [areaF, setAreaF] = useState('')
+  const myMember = admin.tenantMode ? admin.members.find((m) => m.user_id === myId) : null
+  const membersOf = (id) => admin.members.filter((m) => m.user_id === id && m.role !== 'developer')
+  // Orden: por aprobar primero, luego por rango (gerencia, líderes…) y nombre
+  const ordenados = [...admin.users].sort((a, b) => {
+    const ra = Math.max(0, ...membersOf(a.id).map((m) => rankOf(m.role)))
+    const rb = Math.max(0, ...membersOf(b.id).map((m) => rankOf(m.role)))
+    return Number(a.is_approved) - Number(b.is_approved) || rb - ra || String(a.full_name || a.email).localeCompare(String(b.full_name || b.email), 'es')
+  })
+  const filtrados = ordenados.filter((u) => {
+    const ms = membersOf(u.id)
+    if (estado === 'pendiente' && u.is_approved) return false
+    if (estado === 'sinrol' && ms.length) return false
+    if (estado === 'lideres' && !ms.some((m) => rankOf(m.role) >= 60)) return false
+    if (areaF && !ms.some((m) => (m.area || 'general') === areaF)) return false
+    return true
+  })
+  const areasUsadas = [...new Set(admin.members.map((m) => m.area || 'general'))]
+  const pendientes = admin.users.filter((u) => !u.is_approved).length
+  const lc = useListControls(filtrados, (u, q) =>
+    [u.email, u.full_name, u.phone, ...membersOf(u.id).map((m) => roleLabel(m.role))].some((v) => v?.toLowerCase().includes(q))
   )
 
   const onDelete = async (u) => {
@@ -522,6 +545,7 @@ function UsersSection({ admin, myId }) {
         <p className="hint" style={{ margin: 0 }}>
           {admin.users.length} usuario{admin.users.length === 1 ? '' : 's'}{' '}
           {admin.tenantMode ? 'en la empresa' : `registrado${admin.users.length === 1 ? '' : 's'}`}
+          {pendientes ? ` · ${pendientes} por aprobar` : ''}
         </p>
         {!showForm && (
           <button className="chip ghost" onClick={() => setShowForm(true)}>
@@ -530,7 +554,23 @@ function UsersSection({ admin, myId }) {
         )}
       </div>
       {showForm && <NewUserForm onCreate={admin.createUser} onCancel={() => setShowForm(false)} />}
-      <ListControls lc={lc} placeholder="Buscar por nombre, correo o teléfono…" />
+      <div className="admin-filtros">
+        <select value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Estado">
+          <option value="">Todos los usuarios</option>
+          <option value="pendiente">Por aprobar{pendientes ? ` (${pendientes})` : ''}</option>
+          <option value="sinrol">Sin rol</option>
+          <option value="lideres">Gerencia y líderes</option>
+        </select>
+        <select value={areaF} onChange={(e) => setAreaF(e.target.value)} aria-label="Área">
+          <option value="">Todas las áreas</option>
+          {areasUsadas.map((a) => (
+            <option key={a} value={a}>
+              {WORK_AREAS.find((w) => w.value === a)?.label || a}
+            </option>
+          ))}
+        </select>
+      </div>
+      <ListControls lc={lc} placeholder="Buscar por nombre, correo, teléfono o cargo…" />
 
       <div className="admin-list">
         {lc.visible.map((u) => {
@@ -550,12 +590,15 @@ function UsersSection({ admin, myId }) {
                 : `${orgN}: ${roleLabel(m.role)}${areaN ? ` · ${areaN}` : ''}`
             })
             .join(' · ')
-          const needsRole = u.is_approved && memberships.length === 0 && u.platform_role !== 'admin'
+          // Rango (07-10-2026): solo se administra a personas de rango menor; con los de rango
+          // igual o superior la fila queda de solo lectura (la base aplica la misma regla).
+          const canAct =
+            !myMember || memberships.length === 0 || memberships.some((m) => m.org_id === myMember.org_id && canManageMember(myMember, m))
+          const needsRole = canAct && u.is_approved && memberships.length === 0 && u.platform_role !== 'admin'
           // Líder de área: solo ve «Contraseña» en la gente de su área (la base aplica la misma regla).
-          const myMember = admin.tenantMode ? admin.members.find((m) => m.user_id === myId) : null
           const canPassword =
             !myMember || memberships.some((m) => m.org_id === myMember.org_id && canSetPasswordFor(myMember, m))
-          const roleOpen = roleId === u.id || needsRole
+          const roleOpen = canAct && (roleId === u.id || needsRole)
           return (
             <div key={u.id} className="admin-card">
               <div className={`admin-row${u.is_approved ? '' : ' pending'}`}>
@@ -577,23 +620,36 @@ function UsersSection({ admin, myId }) {
                   <span className="pill status ok">Aprobado</span>
                 )}
                 <span className="admin-row-actions">
-                  {!needsRole && (
+                  {!isMe && !canAct && (
+                    <span className="hint" style={{ margin: 0 }} title="Solo se administra a personas de menor rango">
+                      🔒 Rango igual o superior
+                    </span>
+                  )}
+                  {canAct && !needsRole && (
                     <button className="ghost" onClick={() => setRoleId(roleId === u.id ? null : u.id)}>
                       {roleId === u.id ? '▾' : '▸'} Rol
                     </button>
                   )}
-                  <button className="ghost" onClick={() => setEditId(editId === u.id ? null : u.id)}>
-                    Editar
-                  </button>
+                  {(canAct || isMe) && (
+                    <button className="ghost" onClick={() => setEditId(editId === u.id ? null : u.id)}>
+                      Editar
+                    </button>
+                  )}
                   {!isMe && canPassword && !(admin.tenantMode && u.platform_role === 'admin') && (
                     <button className="ghost" onClick={() => setPasswordId(passwordId === u.id ? null : u.id)}>
                       Contraseña
                     </button>
                   )}
-                  {!isMe && (
+                  {!isMe && canAct && (
                     <>
                       {u.is_approved ? (
-                        <button className="ghost" onClick={() => admin.setUserAccess(u.id, { approved: false })}>
+                        <button
+                          className="ghost"
+                          onClick={() => {
+                            if (window.confirm(`¿Revocar el acceso de ${u.full_name || u.email}? No podrá entrar hasta que se apruebe de nuevo.`))
+                              admin.setUserAccess(u.id, { approved: false })
+                          }}
+                        >
                           Revocar
                         </button>
                       ) : (
@@ -609,7 +665,7 @@ function UsersSection({ admin, myId }) {
                   {isMe && <span className="hint" style={{ margin: 0 }}>(tú)</span>}
                 </span>
               </div>
-              {roleOpen && <UserRoleAssign user={u} admin={admin} />}
+              {roleOpen && <UserRoleAssign user={u} admin={admin} myMember={myMember} />}
               {editId === u.id && (
                 <EditUserForm user={u} onSave={admin.updateProfile} onCancel={() => setEditId(null)} />
               )}
@@ -687,7 +743,7 @@ function OrgForm({ initial, onSubmit, onCancel, submitLabel }) {
 }
 
 /** Fila de miembro con borrador local + «Guardar cambios» (rol + área logistics, etc.) */
-function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
+function MemberEditRow({ orgId, member, user, admin, showOrgName = false, canGrant = null }) {
   const [role, setRole] = useState(member.role)
   const [area, setArea] = useState(member.area || 'plant')
   const [busy, setBusy] = useState(false)
@@ -741,6 +797,7 @@ function MemberEditRow({ orgId, member, user, admin, showOrgName = false }) {
       </div>
       <RoleSelect
         value={role}
+        canGrant={canGrant}
         onChange={(e) => {
           const r = e.target.value
           setRole(r)
@@ -1381,7 +1438,14 @@ export default function AdminDashboard({ myId, orgId = null, orgName = null, mod
         )}
       </div>
 
-      {admin.error && <p className="msg error">{admin.error}</p>}
+      {admin.error && (
+        <div className="msg error admin-error">
+          <span>{admin.error}</span>
+          <button type="button" className="ghost small" onClick={() => admin.reload()} disabled={admin.loading}>
+            {admin.loading ? 'Cargando…' : 'Reintentar'}
+          </button>
+        </div>
+      )}
       {admin.loading ? (
         <p className="hint">Cargando…</p>
       ) : section === 'resumen' ? (
