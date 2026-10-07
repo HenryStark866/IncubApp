@@ -15,6 +15,11 @@ export const REFERENCIA = {
   contaminados: { vigilar: 0.5, alerta: 1 }, // % de los revisados
   pesoPollito: { min: 38, max: 44, alertaMin: 35, alertaMax: 47 }, // g
   segunda: { vigilar: 1, alerta: 2 }, // % de pollito de segunda
+  // Auxiliar de vacunación (07-10-2026)
+  nevera: { min: 2, max: 8, alertaMin: 0, alertaMax: 10 }, // °C nevera de vacunas
+  nitrogeno: { vigilar: 37, alerta: 34 }, // cm de nitrógeno en el tanque: rellenar
+  ombligoIII: { vigilar: 2, alerta: 5 }, // % de ombligos grado III
+  ombligoII: { vigilar: 35, alerta: 50 }, // % de ombligos grado II
 }
 
 export const ESTADOS = {
@@ -67,6 +72,7 @@ export function estadisticaPesos(pesos) {
 export const FORMATOS = [
   {
     id: 'egg_weight',
+    area: 'calidad',
     label: 'Peso del huevo',
     icon: '⚖️',
     codigo: 'FOCAL-01',
@@ -100,6 +106,7 @@ export const FORMATOS = [
   },
   {
     id: 'moisture_loss',
+    area: 'calidad',
     label: 'Pérdida de humedad',
     icon: '💧',
     codigo: 'FOCAL-02',
@@ -128,6 +135,7 @@ export const FORMATOS = [
   },
   {
     id: 'candling',
+    area: 'calidad',
     label: 'Ovoscopia / fertilidad',
     icon: '🔦',
     codigo: 'FOCAL-03',
@@ -170,6 +178,7 @@ export const FORMATOS = [
   },
   {
     id: 'breakout',
+    area: 'calidad',
     label: 'Embriodiagnóstico',
     icon: '🥚',
     codigo: 'FOCAL-04',
@@ -226,6 +235,7 @@ export const FORMATOS = [
   },
   {
     id: 'chick_quality',
+    area: 'calidad',
     label: 'Calidad del pollito',
     icon: '🐣',
     codigo: 'FOCAL-05',
@@ -266,6 +276,108 @@ export const FORMATOS = [
       }
     },
   },
+  // ─── Auxiliar de vacunación (07-10-2026), igual a los formatos en papel ───
+  {
+    id: 'nitrogen_fridge',
+    area: 'vacunacion',
+    sinLote: true,
+    label: 'Nevera y nitrógeno',
+    icon: '🧊',
+    codigo: 'PR06-1',
+    ayuda: 'Control diario: temperatura de la nevera de vacunas y medida de nitrógeno de cada tanque (cm).',
+    campos: [
+      { k: 'tempNevera', label: 'Temperatura nevera (°C)', tipo: 'numero' },
+      { k: 'tanque1', label: 'Medida tanque 1 (cm)', tipo: 'numero' },
+      { k: 'tanque2', label: 'Medida tanque 2 (cm)', tipo: 'numero' },
+      { k: 'relleno1', label: 'Relleno tanque 1', tipo: 'si' },
+      { k: 'relleno2', label: 'Relleno tanque 2', tipo: 'si' },
+    ],
+    calcular(d) {
+      const t = n(d.tempNevera)
+      const t1 = n(d.tanque1)
+      const t2 = n(d.tanque2)
+      if (t == null && t1 == null && t2 == null) return { error: 'Escriba la temperatura o la medida de los tanques.' }
+      const tanque = (v) => (v == null ? 'ok' : v <= REFERENCIA.nitrogeno.alerta ? 'alert' : v <= REFERENCIA.nitrogeno.vigilar ? 'watch' : 'ok')
+      const ajuste = [d.relleno1 === 'si' && 'relleno tanque 1', d.relleno2 === 'si' && 'relleno tanque 2'].filter(Boolean)
+      const rellenar = [t1 != null && t1 <= REFERENCIA.nitrogeno.vigilar && !ajuste.includes('relleno tanque 1') && 'tanque 1', t2 != null && t2 <= REFERENCIA.nitrogeno.vigilar && !ajuste.includes('relleno tanque 2') && 'tanque 2'].filter(Boolean)
+      return {
+        muestra: null,
+        results: { tempNevera: t, tanque1: t1, tanque2: t2, ajuste, rellenar },
+        status: peor(rango(t, REFERENCIA.nevera), ajuste.includes('relleno tanque 1') ? 'ok' : tanque(t1), ajuste.includes('relleno tanque 2') ? 'ok' : tanque(t2)),
+        resumen: [
+          t != null && `Nevera ${t} °C`,
+          t1 != null && `tanque 1: ${t1} cm`,
+          t2 != null && `tanque 2: ${t2} cm`,
+          ajuste.length && ajuste.join(' y '),
+          rellenar.length && `programar relleno de ${rellenar.join(' y ')}`,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      }
+    },
+  },
+  {
+    id: 'sexing_count',
+    area: 'vacunacion',
+    label: 'Sexaje y conteo',
+    icon: '🐥',
+    codigo: 'Sexaje',
+    ayuda: 'Verificación del lote, igual al formato en papel: sexaje (machos y hembras) y conteo (machos y hembras).',
+    campos: [
+      { k: 'sexajeMac', label: 'Sexaje · machos', tipo: 'numero' },
+      { k: 'sexajeHem', label: 'Sexaje · hembras', tipo: 'numero' },
+      { k: 'conteoMac', label: 'Conteo · machos', tipo: 'numero' },
+      { k: 'conteoHem', label: 'Conteo · hembras', tipo: 'numero' },
+    ],
+    calcular(d) {
+      const v = ['sexajeMac', 'sexajeHem', 'conteoMac', 'conteoHem'].map((k) => n(d[k]))
+      if (v.every((x) => x == null)) return { error: 'Escriba los valores de sexaje y conteo.' }
+      const [sm, sh, cm, ch] = v.map((x) => x || 0)
+      return {
+        muestra: null,
+        results: { sexajeMac: sm, sexajeHem: sh, conteoMac: cm, conteoHem: ch, sexaje: sm + sh, conteo: cm + ch },
+        status: 'ok',
+        resumen: `Sexaje: ${sm} M / ${sh} H · Conteo: ${cm} M / ${ch} H`,
+      }
+    },
+  },
+  {
+    id: 'navel_quality',
+    area: 'vacunacion',
+    label: 'Ombligo y cicatrización',
+    icon: '🩹',
+    codigo: 'Ombligo',
+    ayuda: 'Muestra de pollitos del lote: cuántos con cicatrización n II y n III, y con problema de abdomen, tarso, pico o actividad.',
+    campos: [
+      { k: 'muestra', label: 'Pollitos revisados', tipo: 'numero', placeholder: '100' },
+      { k: 'nII', label: 'Cicatrización n II', tipo: 'numero' },
+      { k: 'nIII', label: 'Cicatrización n III', tipo: 'numero' },
+      { k: 'abdomen', label: 'Abdomen', tipo: 'numero' },
+      { k: 'tarso', label: 'Tarso', tipo: 'numero' },
+      { k: 'pico', label: 'Pico', tipo: 'numero' },
+      { k: 'actividad', label: 'Actividad (sin actividad)', tipo: 'numero' },
+    ],
+    calcular(d) {
+      const claves = ['nII', 'nIII', 'abdomen', 'tarso', 'pico', 'actividad']
+      const v = Object.fromEntries(claves.map((k) => [k, n(d[k])]))
+      if (claves.every((k) => v[k] == null)) return { error: 'Escriba al menos un valor.' }
+      const muestra = n(d.muestra) || 100
+      const c = Object.fromEntries(claves.map((k) => [k, v[k] || 0]))
+      if (c.nII + c.nIII > muestra) return { error: 'Los ombligos n II y n III suman más que los pollitos revisados.' }
+      const results = { muestra, ...c, nI: muestra - c.nII - c.nIII }
+      for (const k of [...claves, 'nI']) results[`${k}Pct`] = pct(results[k], muestra)
+      const hayActividad = c.actividad > 0
+      return {
+        muestra,
+        results,
+        status: peor(maximo(results.nIIIPct, REFERENCIA.ombligoIII), maximo(results.nIIPct, REFERENCIA.ombligoII), c.actividad > 2 ? 'watch' : 'ok'),
+        resumen: `n I ${results.nIPct} % · n II ${results.nIIPct} % · n III ${results.nIIIPct} %${c.abdomen || c.tarso || c.pico ? ` · abdomen ${c.abdomen}, tarso ${c.tarso}, pico ${c.pico}` : ''} · ${hayActividad ? `${c.actividad} sin actividad` : 'actividad normal'}`,
+      }
+    },
+  },
 ]
 
 export const formatoPorId = (id) => FORMATOS.find((f) => f.id === id)
+
+/** Formatos de un área: «calidad» o «vacunacion» */
+export const formatosDe = (area) => FORMATOS.filter((f) => f.area === area)

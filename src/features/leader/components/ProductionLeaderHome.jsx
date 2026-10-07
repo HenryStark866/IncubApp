@@ -20,7 +20,9 @@ import {
   posturesOf,
   fmtDay,
   fmtTime,
+  VAC_KINDS,
 } from '../lib/productionHome'
+import { stockByProduct } from '../../../lib/vaccineStock'
 import './LeaderAreaHome.css'
 import './ProductionLeaderHome.css'
 
@@ -32,6 +34,7 @@ const SECCIONES = [
   ['mapas', '🗺️', 'Mapas de cargue'],
   ['movimientos', '🐣', 'Transferencias y nacimientos'],
   ['calidad', '🔬', 'Calidad'],
+  ['vacunacion', '💉', 'Vacunación'],
   ['equipo', '👥', 'Equipo y tareas'],
 ]
 
@@ -176,7 +179,15 @@ export default function ProductionLeaderHome({ orgId, userId, userName, onNaviga
                 }}
               />
             )}
-            {seccion === 'calidad' && <CalidadResumen quality={data.quality || []} onNavigate={onNavigate} />}
+            {seccion === 'calidad' && <CalidadResumen quality={(data.quality || []).filter((q) => !VAC_KINDS.includes(q.kind))} onNavigate={onNavigate} />}
+            {seccion === 'vacunacion' && (
+              <VacunacionResumen
+                quality={(data.quality || []).filter((q) => VAC_KINDS.includes(q.kind))}
+                products={data.vaccineProducts || []}
+                movements={data.vaccineMovements || []}
+                onNavigate={onNavigate}
+              />
+            )}
             {seccion === 'movimientos' && (
               <Movimientos transfers={data.transfers} hatches={data.hatches} machines={data.machines} onNavigate={onNavigate} />
             )}
@@ -837,6 +848,60 @@ function CalidadResumen({ quality, onNavigate }) {
       <div className="prod-links">
         <button type="button" className="lh-btn" onClick={() => onNavigate?.('calidad')}>
           Abrir Calidad de incubación
+        </button>
+      </div>
+    </Seccion>
+  )
+}
+
+/* ─────────────── Vacunación (inventario y formatos del auxiliar) ─────────────── */
+const ETIQUETA_VAC = {
+  nitrogen_fridge: '🧊 Nevera y nitrógeno (PR06-1)',
+  sexing_count: '🐥 Sexaje y conteo',
+  navel_quality: '🩹 Ombligo y cicatrización',
+}
+
+function VacunacionResumen({ quality, products, movements, onNavigate }) {
+  const stock = useMemo(() => stockByProduct({ products: products.filter((p) => p.active), movements }), [products, movements])
+  const alertas = stock.reduce((s, p) => s + p.alerts.length, 0)
+  return (
+    <Seccion titulo={`Vacunación · ${stock.length} vacuna(s)`} sub={alertas ? `${alertas} alerta(s) de inventario` : 'inventario sin alertas'}>
+      <div className="lh-card prod-lista">
+        {stock.length === 0 && <p className="lh-empty">El auxiliar de vacunación aún no ha registrado vacunas.</p>}
+        {stock.map((p) => (
+          <div key={p.id} className={`prod-fila prod-cal ${p.alerts.some((a) => a.tone === 'danger') ? 's-alert' : p.alerts.length ? 's-watch' : 's-ok'}`}>
+            <b>
+              💉 {p.name} · {num(p.doses)} dosis
+            </b>
+            <span>
+              {num(p.vials)} frascos
+              {p.diasDeStock != null ? ` · alcanza ${p.diasDeStock} día(s)` : ''}
+              {p.lots[0]?.expires ? ` · próximo vence ${fmtDay(p.lots[0].expires)}` : ''}
+              {p.alerts.length ? ` · ${p.alerts.map((a) => a.text).join(' · ')}` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="lh-card prod-lista">
+        {quality.length === 0 && <p className="lh-empty">Sin formatos de vacunación en los últimos 7 días.</p>}
+        {quality.slice(0, 20).map((q) => (
+          <div key={q.id} className={`prod-fila prod-cal s-${q.status}`}>
+            <b>
+              {ETIQUETA_VAC[q.kind] || q.kind}
+              {q.lote ? ` · Lote ${q.lote}` : ''}
+            </b>
+            <span>
+              {ESTADO_CAL[q.status] || q.status} · {q.results?.resumen || ''}
+            </span>
+            <em>
+              {fmtDay(q.sampled_at)} {fmtTime(q.sampled_at)}
+            </em>
+          </div>
+        ))}
+      </div>
+      <div className="prod-links">
+        <button type="button" className="lh-btn" onClick={() => onNavigate?.('vacunacion')}>
+          Abrir Vacunación
         </button>
       </div>
     </Seccion>

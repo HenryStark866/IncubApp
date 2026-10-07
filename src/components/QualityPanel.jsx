@@ -6,10 +6,14 @@
  */
 import { useMemo, useState } from 'react'
 import { useQualityRecords } from '../hooks/useQualityRecords'
-import { FORMATOS, ESTADOS, REFERENCIA, formatoPorId } from '../lib/qualityFormats'
+import { ESTADOS, REFERENCIA, formatoPorId, formatosDe } from '../lib/qualityFormats'
 import './QualityPanel.css'
 
-const LIDERES = ['owner', 'admin', 'management', 'coordinator', 'supervisor']
+const LIDERES = ['owner', 'admin', 'management', 'coordinator', 'supervisor', 'plant_veterinarian']
+const AREAS = {
+  calidad: { titulo: 'Calidad de incubación', sub: 'Formatos del auxiliar de calidad · los indicadores se calculan solos', archivo: 'Calidad_incubacion', modulo: 'Producción · Calidad' },
+  vacunacion: { titulo: 'Formatos de vacunación', sub: 'Nevera y nitrógeno (PR06-1), sexaje y conteo, ombligo y cicatrización', archivo: 'Formatos_vacunacion', modulo: 'Producción · Vacunación' },
+}
 const ahoraLocal = () => {
   const d = new Date()
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
@@ -18,19 +22,21 @@ const ahoraLocal = () => {
 const fecha = (v) =>
   new Date(v).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })
 
-export default function QualityPanel({ orgId, userId, role, userName, orgName }) {
-  const api = useQualityRecords(orgId)
+export default function QualityPanel({ orgId, userId, role, userName, orgName, area = 'calidad', embebido = false, formatoInicial = null, loteInicial = '' }) {
+  const FORMATOS = formatosDe(area)
+  const meta = AREAS[area] || AREAS.calidad
+  const api = useQualityRecords(orgId, FORMATOS.map((f) => f.id))
   const [vista, setVista] = useState('registrar')
-  const [formatoId, setFormatoId] = useState(FORMATOS[0].id)
+  const [formatoId, setFormatoId] = useState(formatoInicial && FORMATOS.some((f) => f.id === formatoInicial) ? formatoInicial : FORMATOS[0].id)
   const [msg, setMsg] = useState(null)
   const esLider = LIDERES.includes(role)
 
   return (
-    <div className="card wide qp-root">
+    <div className={embebido ? 'qp-root qp-embebido' : 'card wide qp-root'}>
       <div className="card-head qp-head">
         <div>
-          <h2>Calidad de incubación</h2>
-          <p className="hint">Formatos del auxiliar de calidad · los indicadores se calculan solos</p>
+          {embebido ? <h3>{meta.titulo}</h3> : <h2>{meta.titulo}</h2>}
+          <p className="hint">{meta.sub}</p>
         </div>
         <div className="qp-vistas" role="tablist">
           {[
@@ -45,7 +51,7 @@ export default function QualityPanel({ orgId, userId, role, userName, orgName })
         </div>
       </div>
       {api.missing && (
-        <p className="msg error">El servidor aún no tiene los formatos de calidad: falta ejecutar 7-ACTUALIZAR-APP en el servidor.</p>
+        <p className="msg error">El servidor aún no tiene estos formatos: falta ejecutar 7-ACTUALIZAR-APP en el servidor.</p>
       )}
       {api.error && <p className="msg error">{api.error}</p>}
       {msg && <p className={`msg ${msg.error ? 'error' : 'ok'}`}>{msg.text}</p>}
@@ -66,6 +72,7 @@ export default function QualityPanel({ orgId, userId, role, userName, orgName })
           <Formulario
             key={formatoId}
             formato={formatoPorId(formatoId)}
+            loteInicial={loteInicial}
             api={api}
             onGuardado={(text, error) => {
               setMsg({ text, error })
@@ -74,15 +81,15 @@ export default function QualityPanel({ orgId, userId, role, userName, orgName })
           />
         </>
       )}
-      {vista === 'historial' && <Historial api={api} esLider={esLider} userId={userId} orgName={orgName} userName={userName} onMsg={setMsg} />}
-      {vista === 'lotes' && <PorLote records={api.records} />}
+      {vista === 'historial' && <Historial api={api} formatos={FORMATOS} meta={meta} esLider={esLider} userId={userId} orgName={orgName} userName={userName} onMsg={setMsg} />}
+      {vista === 'lotes' && <PorLote records={api.records} area={area} />}
     </div>
   )
 }
 
-function Formulario({ formato, api, onGuardado }) {
+function Formulario({ formato, api, onGuardado, loteInicial = '' }) {
   const [d, setD] = useState({})
-  const [lote, setLote] = useState('')
+  const [lote, setLote] = useState(loteInicial)
   const [maquina, setMaquina] = useState('')
   const [cuando, setCuando] = useState(ahoraLocal)
   const [notas, setNotas] = useState('')
@@ -97,13 +104,13 @@ function Formulario({ formato, api, onGuardado }) {
   const guardar = async (e) => {
     e.preventDefault()
     if (calc.error) return onGuardado(calc.error, true)
-    if (!lote.trim()) return onGuardado('Escriba el lote.', true)
+    if (!formato.sinLote && !lote.trim()) return onGuardado('Escriba el lote.', true)
     setBusy(true)
     const res = await api.create(
       {
         kind: formato.id,
         sampled_at: new Date(cuando).toISOString(),
-        lote: lote.trim(),
+        lote: lote.trim() || null,
         machine_id: maquina || null,
         sample_size: calc.muestra ?? null,
         data: d,
@@ -123,34 +130,43 @@ function Formulario({ formato, api, onGuardado }) {
         {formato.icon} {formato.ayuda}
       </p>
       <div className="qp-grid">
-        <label>
-          Lote *
-          <input list="qp-lotes" value={lote} onChange={(e) => setLote(e.target.value)} placeholder="ej: 47" />
-          <datalist id="qp-lotes">
-            {api.lots.map((l) => (
-              <option key={l} value={l} />
-            ))}
-          </datalist>
-        </label>
-        <label>
-          Máquina
-          <select value={maquina} onChange={(e) => setMaquina(e.target.value)}>
-            <option value="">—</option>
-            {maquinas.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.code || m.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!formato.sinLote && (
+          <>
+            <label>
+              Lote *
+              <input list="qp-lotes" value={lote} onChange={(e) => setLote(e.target.value)} placeholder="ej: 47" />
+              <datalist id="qp-lotes">
+                {api.lots.map((l) => (
+                  <option key={l} value={l} />
+                ))}
+              </datalist>
+            </label>
+            <label>
+              Máquina
+              <select value={maquina} onChange={(e) => setMaquina(e.target.value)}>
+                <option value="">—</option>
+                {maquinas.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.code || m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         <label>
           Fecha y hora
           <input type="datetime-local" value={cuando} onChange={(e) => setCuando(e.target.value)} />
         </label>
         {formato.campos.map((c) => (
-          <label key={c.k} className={c.tipo === 'texto' ? 'qp-ancho' : ''}>
-            {c.label}
-            {c.tipo === 'texto' ? (
+          <label key={c.k} className={c.tipo === 'texto' ? 'qp-ancho' : c.tipo === 'si' ? 'qp-si' : ''}>
+            {c.tipo !== 'si' && c.label}
+            {c.tipo === 'si' ? (
+              <span className="qp-si-caja">
+                <input type="checkbox" checked={d[c.k] === 'si'} onChange={(e) => setD({ ...d, [c.k]: e.target.checked ? 'si' : '' })} />
+                {c.label} (SI)
+              </span>
+            ) : c.tipo === 'texto' ? (
               <textarea rows={2} value={d[c.k] || ''} placeholder={c.placeholder} onChange={(e) => setD({ ...d, [c.k]: e.target.value })} />
             ) : (
               <input inputMode="decimal" value={d[c.k] || ''} placeholder={c.placeholder} onChange={(e) => setD({ ...d, [c.k]: e.target.value })} />
@@ -183,14 +199,23 @@ function Formulario({ formato, api, onGuardado }) {
         {busy ? 'Guardando…' : `Guardar ${formato.label.toLowerCase()}`}
       </button>
       <p className="qp-ref">
+        {formato.area === 'vacunacion' ? (
+          <>
+            Referencia: nevera {REFERENCIA.nevera.min}–{REFERENCIA.nevera.max} °C · nitrógeno: vigilar ≤ {REFERENCIA.nitrogeno.vigilar} cm, rellenar ≤{' '}
+            {REFERENCIA.nitrogeno.alerta} cm · ombligo n III ≤ {REFERENCIA.ombligoIII.vigilar} % · n II ≤ {REFERENCIA.ombligoII.vigilar} %
+          </>
+        ) : (
+          <>
         Referencia: huevo {REFERENCIA.pesoHuevo.min}–{REFERENCIA.pesoHuevo.max} g · humedad {REFERENCIA.humedad.min}–{REFERENCIA.humedad.max} % al día 18 ·
         fertilidad ≥ {REFERENCIA.fertilidad.vigilar} % · pollito {REFERENCIA.pesoPollito.min}–{REFERENCIA.pesoPollito.max} g · segunda ≤ {REFERENCIA.segunda.vigilar} %
+          </>
+        )}
       </p>
     </form>
   )
 }
 
-function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
+function Historial({ api, formatos: FORMATOS, meta, esLider, userId, orgName, userName, onMsg }) {
   const [tipo, setTipo] = useState('')
   const [buscar, setBuscar] = useState('')
   const [fotos, setFotos] = useState({})
@@ -210,7 +235,7 @@ function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
         .filter((r) => r.kind === f.id)
         .map((r) => ({
           Fecha: fecha(r.sampled_at),
-          Lote: r.lote,
+          Lote: r.lote || '',
           Máquina: code.get(r.machine_id) || '',
           Muestra: r.sample_size,
           Estado: ESTADOS[r.status]?.label || r.status,
@@ -219,7 +244,7 @@ function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
           Observaciones: r.notes || '',
         })),
     }))
-    await exportToExcel('Calidad_incubacion', hojas, { title: 'Calidad de incubación', orgName, module: 'Producción · Calidad', generatedBy: userName })
+    await exportToExcel(meta.archivo, hojas, { title: meta.titulo, orgName, module: meta.modulo, generatedBy: userName })
   }
   return (
     <div className="qp-hist">
@@ -248,7 +273,8 @@ function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
             </span>
             <div className="qp-reg-main">
               <b>
-                {f?.label} · Lote {r.lote || '—'}
+                {f?.label}
+                {r.lote ? ` · Lote ${r.lote}` : ''}
                 {r.machine_id ? ` · ${code.get(r.machine_id) || ''}` : ''}
               </b>
               <span>{r.results?.resumen}</span>
@@ -278,7 +304,7 @@ function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
                   type="button"
                   className="ghost small"
                   onClick={async () => {
-                    if (!window.confirm('¿Eliminar este registro de calidad?')) return
+                    if (!window.confirm('¿Eliminar este registro?')) return
                     const res = await api.remove(r.id)
                     onMsg(res.error ? { text: res.error, error: true } : { text: 'Registro eliminado' })
                   }}
@@ -294,40 +320,54 @@ function Historial({ api, esLider, userId, orgName, userName, onMsg }) {
   )
 }
 
+/** Columnas del resumen por lote de cada área */
+const COLUMNAS = {
+  calidad: [
+    ['egg_weight', 'Peso huevo', (x) => `${x.promedio} g`],
+    ['moisture_loss', 'Humedad d18', (x) => `${x.perdidaDia18} %`],
+    ['candling', 'Fertilidad', (x) => `${x.fertilidad} %`],
+    ['breakout', 'Embriodiag.', (x) => `${x.analizados} analiz.`],
+    ['chick_quality', 'Pollito', (x) => [x.promedio != null && `${x.promedio} g`, x.segundaPct != null && `${x.segundaPct} % 2.ª`].filter(Boolean).join(' · ') || '—'],
+  ],
+  vacunacion: [
+    ['sexing_count', 'Sexaje M / H', (x) => `${x.sexajeMac} / ${x.sexajeHem}`],
+    ['sexing_count', 'Conteo M / H', (x) => `${x.conteoMac} / ${x.conteoHem}`],
+    ['navel_quality', 'Ombligo n II / n III', (x) => `${x.nIIPct} % / ${x.nIIIPct} %`],
+    ['navel_quality', 'Abd. · tarso · pico', (x) => `${x.abdomen} · ${x.tarso} · ${x.pico}`],
+    ['navel_quality', 'Sin actividad', (x) => String(x.actividad)],
+  ],
+}
+
 /** Último resultado de cada formato por lote: la foto de la calidad del lote. */
-function PorLote({ records }) {
+function PorLote({ records, area }) {
+  const cols = COLUMNAS[area] || COLUMNAS.calidad
   const lotes = useMemo(() => {
     const m = new Map()
     for (const r of records) {
-      const k = r.lote || 'Sin lote'
-      if (!m.has(k)) m.set(k, {})
-      const g = m.get(k)
+      if (!r.lote) continue
+      if (!m.has(r.lote)) m.set(r.lote, {})
+      const g = m.get(r.lote)
       if (!g[r.kind] || g[r.kind].sampled_at < r.sampled_at) g[r.kind] = r
     }
     return [...m.entries()].sort((a, b) => String(b[0]).localeCompare(String(a[0]), 'es', { numeric: true }))
   }, [records])
-  if (!lotes.length) return <p className="hint">Sin registros todavía.</p>
-  const dato = (r, f) => (r ? f(r.results || {}) : '—')
+  if (!lotes.length) return <p className="hint">Sin registros por lote todavía.</p>
   return (
     <div className="qp-lotes">
       <div className="qp-lote qp-lote-head">
         <span>Lote</span>
-        <span>Peso huevo</span>
-        <span>Humedad d18</span>
-        <span>Fertilidad</span>
-        <span>Embriodiag.</span>
-        <span>Pollito</span>
+        {cols.map(([, l]) => (
+          <span key={l}>{l}</span>
+        ))}
       </div>
       {lotes.map(([lote, g]) => (
         <div key={lote} className="qp-lote">
           <b>{lote}</b>
-          <span className={g.egg_weight ? `s-${g.egg_weight.status}` : ''}>{dato(g.egg_weight, (x) => `${x.promedio} g`)}</span>
-          <span className={g.moisture_loss ? `s-${g.moisture_loss.status}` : ''}>{dato(g.moisture_loss, (x) => `${x.perdidaDia18} %`)}</span>
-          <span className={g.candling ? `s-${g.candling.status}` : ''}>{dato(g.candling, (x) => `${x.fertilidad} %`)}</span>
-          <span className={g.breakout ? `s-${g.breakout.status}` : ''}>{dato(g.breakout, (x) => `${x.analizados} analiz.`)}</span>
-          <span className={g.chick_quality ? `s-${g.chick_quality.status}` : ''}>
-            {dato(g.chick_quality, (x) => [x.promedio != null && `${x.promedio} g`, x.segundaPct != null && `${x.segundaPct} % 2.ª`].filter(Boolean).join(' · ') || '—')}
-          </span>
+          {cols.map(([k, l, f]) => (
+            <span key={l} className={g[k] ? `s-${g[k].status}` : ''}>
+              {g[k] ? f(g[k].results || {}) : '—'}
+            </span>
+          ))}
         </div>
       ))}
     </div>

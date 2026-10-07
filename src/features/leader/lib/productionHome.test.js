@@ -75,3 +75,20 @@ describe('inicio de producción', () => {
     expect(lotsOfMap({ payload: { slots: [{ entry: { lot: '45' } }, { entry: { lots: [{ lot: '46' }, { lot: '45' }] } }] } })).toEqual(['45', '46'])
   })
 })
+
+describe('vacunación en el inicio de producción', () => {
+  it('alerta de stock bajo y lote vencido llega como decisión y el consumo al equipo', () => {
+    const now = new Date(2026, 9, 7, 10)
+    const vaccineProducts = [{ id: 'v1', name: 'Marek', doses_per_vial: 1000, min_doses: 5000, active: true }]
+    const vaccineMovements = [
+      { id: 'a', product_id: 'v1', kind: 'in', doses: 4000, manufacturer_lot: 'L1', expires_on: '2026-10-01', moved_at: '2026-09-01T10:00:00Z', created_by: 'u2' },
+      { id: 'b', product_id: 'v1', kind: 'use', doses: 1000, manufacturer_lot: 'L1', lote: '45', moved_at: '2026-10-06T10:00:00Z', created_by: 'u2' },
+    ]
+    const { decisions } = productionBoard({ vaccineProducts, vaccineMovements, now })
+    const vac = decisions.filter((d) => d.tab === 'vacunacion')
+    expect(vac.some((d) => /Stock bajo/.test(d.title))).toBe(true)
+    expect(vac.some((d) => d.tone === 'danger' && /vencido/.test(d.title))).toBe(true)
+    const t = teamRecords({ members: [{ id: 'u2', name: 'Luis', role: 'vaccination_auxiliary' }], vaccineProducts, vaccineMovements })
+    expect(t[0].records.some((r) => r.kind === 'Vacuna · Consumo' && /lote 45/.test(r.text))).toBe(true)
+  })
+})

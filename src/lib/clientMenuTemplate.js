@@ -123,6 +123,13 @@ export const DEFAULT_CLIENT_TEMPLATE = {
       tab: 'calidad',
       hint: 'Peso del huevo, humedad, ovoscopia, embriodiagnóstico y pollito',
     },
+    {
+      id: 'vacunacion',
+      label: 'Vacunación',
+      group: 'Sanidad',
+      tab: 'vacunacion',
+      hint: 'Inventario y consumo de vacunas, nevera y nitrógeno, sexaje y ombligo',
+    },
     { id: 'veterinaria', label: 'Sanidad veterinaria', group: 'Sanidad', tab: 'veterinaria' },
     { id: 'sst', label: 'SST', group: 'Cumplimiento', tab: 'sst' },
     { id: 'ambiental', label: 'Gestión ambiental', group: 'Cumplimiento', tab: 'ambiental' },

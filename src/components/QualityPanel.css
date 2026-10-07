@@ -270,3 +270,25 @@
     animation: none !important;
   }
 }
+
+/* Formatos de vacunación (07-10-2026): casillas SI y panel embebido */
+.qp-si {
+  align-self: end;
+}
+.qp-si-caja {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.4rem;
+  font-weight: 600;
+}
+.qp-si-caja input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.qp-embebido {
+  padding: 0;
+}
+.qp-embebido .qp-head h3 {
+  margin: 0;
+}

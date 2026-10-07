@@ -1,0 +1,215 @@
+/* Vacunación (07-10-2026): reutiliza las piezas de QualityPanel (.qp-*) */
+.vx-saludo {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.25rem 0 0.75rem;
+}
+.vx-sub {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+.vx-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.5rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.vx-item.pend {
+  border-left: 4px solid var(--warn, #d97706);
+}
+.vx-item.hecho {
+  border-left: 4px solid var(--ok, #16a34a);
+}
+.vx-item > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.vx-item > div span {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+.vx-item-ico {
+  font-size: 1.6rem;
+}
+.vx-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.vx-alerta {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0.3rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 0;
+  font: inherit;
+  font-size: 0.88rem;
+}
+button.vx-alerta {
+  cursor: pointer;
+}
+.vx-alerta.t-warn {
+  background: rgba(217, 119, 6, 0.14);
+  color: inherit;
+}
+.vx-alerta.t-danger {
+  background: rgba(220, 38, 38, 0.14);
+  color: inherit;
+}
+.vx-check {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.vx-form {
+  margin: 0.75rem 0;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.vx-form h3 {
+  margin: 0 0 0.5rem;
+}
+.vx-prod {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 0.6rem 0;
+  padding: 0.25rem 0.6rem 0.5rem;
+  background: var(--bg-1);
+}
+.vx-prod.t-warn {
+  border-left: 4px solid var(--warn, #d97706);
+}
+.vx-prod.t-danger {
+  border-left: 4px solid var(--danger, #dc2626);
+}
+.vx-prod.inactiva {
+  opacity: 0.6;
+}
+.vx-prod-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 1rem;
+  width: 100%;
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+.vx-prod-nombre,
+.vx-prod-cifra {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.vx-prod-cifra {
+  text-align: right;
+}
+.vx-prod-cifra b {
+  font-size: 1.15rem;
+}
+.vx-prod-nombre small,
+.vx-prod-cifra small {
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+.vx-prod-det {
+  padding-top: 0.4rem;
+}
+.vx-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 0.4rem 0;
+}
+.vx-tabla th,
+.vx-tabla td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.vx-tabla tr.t-warn td {
+  background: rgba(217, 119, 6, 0.1);
+}
+.vx-tabla tr.t-danger td {
+  background: rgba(220, 38, 38, 0.1);
+}
+.vx-movs {
+  margin-top: 0.5rem;
+}
+.vx-mov {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.vx-mov-tipo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  text-align: center;
+  background: rgba(100, 116, 139, 0.15);
+}
+.vx-mov.k-in .vx-mov-tipo {
+  background: rgba(22, 163, 74, 0.15);
+}
+.vx-mov.k-use .vx-mov-tipo {
+  background: rgba(37, 99, 235, 0.15);
+}
+.vx-mov.k-discard .vx-mov-tipo {
+  background: rgba(220, 38, 38, 0.15);
+}
+.vx-mov-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.vx-mov-main small {
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+@media (max-width: 560px) {
+  .vx-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .vx-item > :last-child {
+    grid-column: 1 / -1;
+  }
+  .vx-prod-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .vx-prod-head > :last-child {
+    display: none;
+  }
+  .vx-tabla {
+    font-size: 0.8rem;
+  }
+}
+.vx-check input,
+.qp-si-caja input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+.vx-tabla-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
