@@ -8,7 +8,9 @@ import { isMissingTable } from '../lib/missingTable'
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
 
-export function useQualityRecords(orgId) {
+/** kinds: formatos a cargar (vacío = todos) */
+export function useQualityRecords(orgId, kinds = []) {
+  const kindsKey = kinds.join(',')
   const [records, setRecords] = useState([])
   const [machines, setMachines] = useState([])
   const [lots, setLots] = useState([])
@@ -20,7 +22,13 @@ export function useQualityRecords(orgId) {
     if (!orgId) return
     setLoading(true)
     const [r, plants, il, sl] = await Promise.all([
-      supabase.from('quality_records').select('*').eq('org_id', orgId).gte('sampled_at', daysAgo(120)).order('sampled_at', { ascending: false }).limit(800),
+      (kindsKey
+        ? supabase.from('quality_records').select('*').eq('org_id', orgId).in('kind', kindsKey.split(','))
+        : supabase.from('quality_records').select('*').eq('org_id', orgId)
+      )
+        .gte('sampled_at', daysAgo(120))
+        .order('sampled_at', { ascending: false })
+        .limit(800),
       supabase.from('plants').select('id').eq('org_id', orgId),
       supabase.from('incubation_lots').select('code').eq('org_id', orgId).gte('created_at', daysAgo(90)).limit(300),
       supabase.from('setter_loads').select('lote').eq('org_id', orgId).gte('loaded_at', daysAgo(40)).limit(400),
@@ -45,7 +53,7 @@ export function useQualityRecords(orgId) {
     for (const x of sl.data || []) for (const t of String(x.lote || '').match(/\d+/g) || []) set.add(t)
     setLots([...set].sort((a, b) => b.localeCompare(a, 'es', { numeric: true })))
     setLoading(false)
-  }, [orgId])
+  }, [orgId, kindsKey])
 
   useEffect(() => {
     load()

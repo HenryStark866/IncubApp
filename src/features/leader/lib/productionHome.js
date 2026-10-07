@@ -5,6 +5,7 @@
  * que registra cada auxiliar de su equipo.
  * Equipo: auxiliar de producción, de calidad, de vacunación y operario de recepción.
  */
+import { stockByProduct, MOV_LABEL } from '../../../lib/vaccineStock'
 
 export const PRODUCTION_TEAM_ROLES = ['auxiliary_production', 'quality_auxiliary', 'vaccination_auxiliary', 'reception_operator']
 
@@ -23,7 +24,13 @@ const QUALITY_LABEL = {
   candling: 'ovoscopia',
   breakout: 'embriodiagnóstico',
   chick_quality: 'calidad del pollito',
+  nitrogen_fridge: 'nevera y nitrógeno',
+  sexing_count: 'sexaje y conteo',
+  navel_quality: 'ombligo y cicatrización',
 }
+/** Formatos del auxiliar de vacunación (van a la pestaña Vacunación) */
+export const VAC_KINDS = ['nitrogen_fridge', 'sexing_count', 'navel_quality']
+const tabOfQuality = (kind) => (VAC_KINDS.includes(kind) ? 'vacunacion' : 'calidad')
 const num = (n) => Number(n || 0).toLocaleString('es-CO')
 const dayKey = (v) => (v ? new Date(v).toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) : '')
 export const fmtDay = (v) =>
@@ -199,7 +206,7 @@ export function machineStates({ machines = [], loads = [], transfers = [], check
 /**
  * Registros recientes de cada persona del equipo (lo que «sube» cada auxiliar).
  */
-export function teamRecords({ members = [], arrivals = [], stock = [], classifications = [], maps = [], vet = [], tasks = [], loads = [], transfers = [], hatches = [], quality = [] }) {
+export function teamRecords({ members = [], arrivals = [], stock = [], classifications = [], maps = [], vet = [], tasks = [], loads = [], transfers = [], hatches = [], quality = [], vaccineMovements = [], vaccineProducts = [] }) {
   const add = (list, by, item) => {
     if (!by) return
     if (!list.has(by)) list.set(by, [])
@@ -214,7 +221,9 @@ export function teamRecords({ members = [], arrivals = [], stock = [], classific
   for (const l of loads) add(byUser, l.created_by, { kind: 'Cargue de incubadora', at: l.loaded_at || l.created_at, text: `Lote ${l.lote || '—'}${l.machine_code ? ` · ${l.machine_code}` : ''}`, tab: 'cargue' })
   for (const x of transfers) add(byUser, x.created_by, { kind: 'Transferencia', at: x.transferred_at, text: `Lote ${x.lote || '—'}`, tab: 'supervision' })
   for (const h of hatches) add(byUser, h.created_by, { kind: 'Nacimiento', at: h.ended_at || h.started_at || h.created_at, text: `Lote ${h.lote || '—'}${h.actual_chicks ? ` · ${num(h.actual_chicks)} pollitos` : ''}`, tab: 'supervision' })
-  for (const q of quality) add(byUser, q.created_by, { kind: `Calidad · ${QUALITY_LABEL[q.kind] || q.kind}`, at: q.sampled_at, text: `Lote ${q.lote || '—'} · ${q.results?.resumen || ''}${q.status === 'alert' ? ' · ⚠ alerta' : q.status === 'watch' ? ' · vigilar' : ''}`, tab: 'calidad' })
+  for (const q of quality) add(byUser, q.created_by, { kind: `Calidad · ${QUALITY_LABEL[q.kind] || q.kind}`, at: q.sampled_at, text: `Lote ${q.lote || '—'} · ${q.results?.resumen || ''}${q.status === 'alert' ? ' · ⚠ alerta' : q.status === 'watch' ? ' · vigilar' : ''}`, tab: tabOfQuality(q.kind) })
+  const vacuna = new Map(vaccineProducts.map((p) => [p.id, p.name]))
+  for (const v of vaccineMovements) add(byUser, v.created_by, { kind: `Vacuna · ${MOV_LABEL[v.kind] || v.kind}`, at: v.moved_at, text: `${vacuna.get(v.product_id) || 'Vacuna'} · ${num(Math.abs(Number(v.doses)))} dosis${v.lote ? ` · lote ${v.lote}` : ''}${v.manufacturer_lot ? ` · fab. ${v.manufacturer_lot}` : ''}`, tab: 'vacunacion' })
   for (const t of tasks) {
     if (t.status === 'completed' || t.status === 'done') add(byUser, t.assigned_to, { kind: 'Tarea cerrada', at: t.completed_at || t.updated_at, text: `${t.title}${t.result_note ? ` · ${t.result_note}` : ''}`, tab: 'supervision', photo: t.photo_path })
   }
@@ -233,7 +242,7 @@ export function teamRecords({ members = [], arrivals = [], stock = [], classific
 }
 
 // ─────────────────────────── Tablero ───────────────────────────
-export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = [], states = [], transfers = [], hatches = [], tasks = [], quality = [], now = new Date() }) {
+export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = [], states = [], transfers = [], hatches = [], tasks = [], quality = [], vaccineProducts = [], vaccineMovements = [], now = new Date() }) {
   const today = dayKey(now)
   const decisions = []
 
@@ -288,10 +297,16 @@ export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = 
     decisions.push({
       id: `cal-${q.id}`,
       tone: 'warn',
-      title: `Calidad en alerta · ${QUALITY_LABEL[q.kind] || q.kind} · lote ${q.lote || '—'}`,
+      title: `${VAC_KINDS.includes(q.kind) ? 'Vacunación' : 'Calidad'} en alerta · ${QUALITY_LABEL[q.kind] || q.kind}${q.lote ? ` · lote ${q.lote}` : ''}`,
       detail: `${q.results?.resumen || ''} · ${fmtDay(q.sampled_at)} ${fmtTime(q.sampled_at)}`,
-      tab: 'calidad',
+      tab: tabOfQuality(q.kind),
     })
+  }
+  // Inventario de vacunas: stock bajo, lotes por vencer o vencidos con saldo
+  for (const p of stockByProduct({ products: vaccineProducts.filter((x) => x.active), movements: vaccineMovements, now })) {
+    p.alerts.forEach((a, i) =>
+      decisions.push({ id: `vac-${p.id}-${i}`, tone: a.tone === 'danger' ? 'danger' : 'warn', title: `Vacuna ${p.name}: ${a.text}`, detail: `${num(p.doses)} dosis en total${p.diasDeStock != null ? ` · alcanza para ${p.diasDeStock} día(s)` : ''}`, tab: 'vacunacion' }),
+    )
   }
   const late = tasks.filter((t) => t.status === 'pending' && now - new Date(t.created_at) > 4 * 3600000)
   if (late.length) {

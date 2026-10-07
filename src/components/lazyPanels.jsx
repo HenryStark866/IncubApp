@@ -98,6 +98,7 @@ export const ColdStorageLoadPanel = panelLoader(() => import('./ColdStorageLoadP
 export const OperationsDataCenter = panelLoader(() => import('./OperationsDataCenter'))
 export const MisionalesPanel = panelLoader(() => import('./MisionalesPanel'))
 export const QualityPanel = panelLoader(() => import('./QualityPanel'))
+export const VaccinationPanel = panelLoader(() => import('./VaccinationPanel'))
 export const OperatorHistoryPanel = panelLoader(() => import('./OperatorHistoryPanel'))
 export const VehiclePreopPanel = panelLoader(() => import('./VehiclePreopPanel'))
 export const MachineCalibrationPanel = panelLoader(() => import('./MachineCalibrationPanel'))

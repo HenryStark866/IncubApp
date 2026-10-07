@@ -94,6 +94,7 @@ import {
   OperationsDataCenter,
   MisionalesPanel,
   QualityPanel,
+  VaccinationPanel,
   OperatorHistoryPanel,
   VehiclePreopPanel,
   MachineCalibrationPanel,
@@ -169,6 +170,7 @@ const OMNISCIENT_TABS = [
   'cumplimiento',
   'misionales',
   'calidad',
+  'vacunacion',
   'historial',
   'preoperacional',
   'calibracion',
@@ -746,6 +748,16 @@ function Workspace({
                 else setTab('hoy')
               }}
             />
+          ) : tab === 'hoy' && org && role === 'vaccination_auxiliary' && can('vacunacion') ? (
+            // Auxiliar de vacunación: lo que le toca hoy (PR06-1, lotes nacidos, stock y tareas)
+            <VaccinationPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+              inicial="hoy"
+            />
           ) : tab === 'hoy' && org && shiftHomeKind(role) ? (
             // Operación de planta (operario, auxiliares de turno y producción, recepción,
             // supervisor): inicio «qué me toca ahora». El líder de área sigue arriba.
@@ -1083,6 +1095,14 @@ function Workspace({
             />
           ) : tab === 'calidad' && org && can('calidad') ? (
             <QualityPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              orgName={org.name}
+            />
+          ) : tab === 'vacunacion' && org && can('vacunacion') ? (
+            <VaccinationPanel
               orgId={org.id}
               userId={session.user.id}
               role={role}

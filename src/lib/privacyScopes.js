@@ -101,6 +101,7 @@ export const PRIVACY_DOMAINS = [
       'huevos',
       'historial',
       'calidad',
+      'vacunacion',
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
@@ -136,7 +137,7 @@ export const PRIVACY_DOMAINS = [
         ]
       }
       if (role === 'management' || role === 'management_auxiliary') {
-        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad']
+        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad', 'vacunacion']
       }
       // supervisor y líder de área de planta: dominio completo
       const completo = [
@@ -151,6 +152,7 @@ export const PRIVACY_DOMAINS = [
         'huevos',
         'historial',
         'calidad',
+        'vacunacion',
       ]
       // El líder ve además la producción, que es lo que dirige: la de la planta
       // (`datos-op` — lotes, cantidades, fechas y cargas actuales en incubadora,
@@ -302,7 +304,7 @@ export const PRIVACY_DOMAINS = [
     id: 'veterinary',
     label: 'Sanidad veterinaria',
     description: 'Vacunas, medicina, fertilidad y wet tunnels',
-    tabs: ['veterinaria'],
+    tabs: ['veterinaria', 'vacunacion'],
     members: (role, area) =>
       role === 'plant_veterinarian' ||
       role === 'vaccination_auxiliary' ||
