@@ -580,7 +580,7 @@ function FormMovimiento({ inicial, api, stock, onClose, onMsg, lotesPollito = []
       notes: f.notes.trim() || null,
     })
     setBusy(false)
-    onMsg(res.error || `${MOV_LABEL[f.kind]} guardada · ${num(dosisCalc)} dosis de ${prod?.name || 'vacuna'}`, Boolean(res.error))
+    onMsg(res.error || `${{ in: 'Entrada registrada', use: 'Consumo registrado', adjust: 'Ajuste registrado', discard: 'Baja registrada' }[f.kind]}: ${num(dosisCalc)} dosis de ${prod?.name || 'vacuna'}`, Boolean(res.error))
     if (!res.error) onClose()
   }
 

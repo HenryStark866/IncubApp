@@ -17,7 +17,8 @@
 // v18 (06-10-2026): inicio de la líder de producción y avisos «En desarrollo».
 // v19 (06-10-2026): formatos de calidad de incubación.
 // v20 (07-10-2026): perfil del auxiliar de vacunación (inventario, consumo y formatos).
-const CACHE = 'incubapp-shell-v20'
+// v21 (07-10-2026): huevos recibidos y posturas esperadas leídos de la lista por fecha de postura.
+const CACHE = 'incubapp-shell-v21'
 const PRECACHE = [
   '/',
   '/index.html',

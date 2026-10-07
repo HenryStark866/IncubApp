@@ -146,7 +146,7 @@ describe('recepción del día', () => {
     const r = receptionDay({
       day,
       lots: [
-        { id: 'l1', code: 'L-1', origin: 'Granja A', expected_arrival_date: '2026-09-28', postures: 1000 },
+        { id: 'l1', code: 'L-1', origin: 'Granja A', expected_arrival_date: '2026-09-28', postures: [{ productionDate: '2026-09-25', eggs: 600 }, { productionDate: '2026-09-26', eggs: 400 }] },
         { id: 'l2', code: 'L-2', origin: 'Granja B', expected_arrival_date: '2026-09-28' },
         { id: 'l3', code: 'L-3', origin: 'Granja C', expected_arrival_date: '2026-09-27' },
         { id: 'l4', code: 'L-4', origin: 'Granja D', expected_arrival_date: '2026-09-30' },
@@ -162,6 +162,8 @@ describe('recepción del día', () => {
     expect(r.atDoor.code).toBe('L-3')
     expect(r.received).toBe(1)
     expect(r.pending).toBe(2)
+    // posturas reales: lista por fecha de postura → 1.000 esperadas
+    expect(r.expected.find((l) => l.code === 'L-1').postures).toBe(1000)
   })
 })
 

@@ -213,7 +213,7 @@ export function teamRecords({ members = [], arrivals = [], stock = [], classific
     list.get(by).push(item)
   }
   const byUser = new Map()
-  for (const a of arrivals) add(byUser, a.received_by, { kind: 'Recepción de lote', at: a.arrived_at || a.created_at, text: `Lote ${a.lot_code || '—'} · ${num(a.received_postures)} huevos${a.photo_paths?.length ? ` · ${a.photo_paths.length} foto(s)` : ''}`, tab: 'recepcion' })
+  for (const a of arrivals) add(byUser, a.received_by, { kind: 'Recepción de lote', at: a.arrived_at || a.created_at, text: `Lote ${a.lot_code || '—'} · ${num(posturesOf(a.received_postures))} huevos${a.photo_paths?.length ? ` · ${a.photo_paths.length} foto(s)` : ''}`, tab: 'recepcion' })
   for (const s of stock) add(byUser, s.updated_by, { kind: 'Saldo cuarto frío', at: s.updated_at, text: `${num(totalOf(s.counts))} huevos · ${fmtDay(s.stock_date)}`, tab: 'clasificacion' })
   for (const c of classifications) add(byUser, c.created_by, { kind: 'Clasificación', at: c.created_at, text: `${c.carts_count || 0} carros · ${c.classification_type || ''}`, tab: 'clasificacion' })
   for (const m of maps) add(byUser, m.created_by || m.payload?.createdBy, { kind: 'Mapa de cargue', at: m.created_at, text: `${m.machine_name || 'Máquina'} · ${lotsOfMap(m).join(', ') || 'sin lotes'}`, tab: 'cargue' })
@@ -259,14 +259,15 @@ export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = 
   const lotById = new Map(lots.map((l) => [l.id, l]))
   for (const a of arrivals.filter((x) => dayKey(x.arrived_at) === today)) {
     const esperado = posturesOf(lotById.get(a.lot_id)?.postures)
-    if (esperado && a.received_postures != null) {
-      const diff = Number(a.received_postures) - esperado
+    const recibido = posturesOf(a.received_postures)
+    if (esperado && recibido) {
+      const diff = recibido - esperado
       if (Math.abs(diff) / esperado > 0.02) {
         decisions.push({
           id: `rec-${a.id}`,
           tone: 'warn',
           title: `Lote ${a.lot_code} llegó con ${diff > 0 ? '+' : ''}${num(diff)} huevos de diferencia`,
-          detail: `Esperado ${num(esperado)} · recibido ${num(a.received_postures)} · ${fmtTime(a.arrived_at)}`,
+          detail: `Esperado ${num(esperado)} · recibido ${num(recibido)} · ${fmtTime(a.arrived_at)}`,
           tab: 'recepcion',
         })
       }
@@ -327,7 +328,7 @@ export function productionBoard({ lots = [], arrivals = [], stockGroups, maps = 
   const kpis = [
     {
       label: 'Recibido hoy',
-      value: num(recibidoHoy.reduce((s, a) => s + (Number(a.received_postures) || 0), 0)),
+      value: num(recibidoHoy.reduce((s, a) => s + posturesOf(a.received_postures), 0)),
       sub: `${recibidoHoy.length} lote(s) · ${lots.filter((l) => l.expected_arrival_date === today && l.status !== 'arrived').length} por llegar`,
     },
     {

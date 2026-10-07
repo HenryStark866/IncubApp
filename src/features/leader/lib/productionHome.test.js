@@ -92,3 +92,16 @@ describe('vacunación en el inicio de producción', () => {
     expect(t[0].records.some((r) => r.kind === 'Vacuna · Consumo' && /lote 45/.test(r.text))).toBe(true)
   })
 })
+
+describe('recepción con posturas reales (lista por fecha de postura)', () => {
+  it('suma received_postures [{ eggs }] para el KPI, la diferencia y el equipo', () => {
+    const now = new Date(2026, 9, 7, 12)
+    const lots = [{ id: 'L1', code: '47', postures: [{ productionDate: '2026-10-05', eggs: 20000 }, { productionDate: '2026-10-06', eggs: 10000 }] }]
+    const arrivals = [{ id: 'a1', lot_id: 'L1', lot_code: '47', received_by: 'u1', arrived_at: new Date(2026, 9, 7, 9).toISOString(), received_postures: [{ productionDate: '2026-10-05', eggs: 19000 }, { productionDate: '2026-10-06', eggs: 9000 }] }]
+    const { decisions, kpis } = productionBoard({ lots, arrivals, now })
+    expect(kpis[0].value).toBe((28000).toLocaleString('es-CO'))
+    expect(decisions.some((d) => /-2\.000 huevos de diferencia/.test(d.title))).toBe(true)
+    const t = teamRecords({ members: [{ id: 'u1', name: 'J', role: 'reception_operator' }], arrivals })
+    expect(t[0].records[0].text).toMatch(/28\.000 huevos/)
+  })
+})
