@@ -16,6 +16,7 @@ import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
 import { compressImage } from '../lib/image'
 import ColdRoomPanel from './ColdRoomPanel'
 import remisionRefImg from '../assets/remision-galpon-referencia.jpg'
+import { recognizeAndParseRemision, SAMPLE_REMISION_DATA } from '../lib/remisionOcr'
 
 const EggRotationBoardPanelLazy = lazy(() => import('./EggRotationBoardPanel'))
 const TapingPanelLazy          = lazy(() => import('./TapingPanel'))
@@ -273,28 +274,102 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [ocrScanning, setOcrScanning] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(null)
+
+  const scanPhoto = async (fileOrBlob, photoLabel = 'foto capturada') => {
+    if (!fileOrBlob) return
+    setOcrScanning(true)
+    setOcrProgress({ progress: 0.05, message: 'Iniciando escaneo OCR de tu foto...' })
+    setMsg({ kind: 'info', text: `🔍 Analizando tu foto con OCR. Extrayendo No. de remisión, fechas y galpones…` })
+
+    try {
+      const res = await recognizeAndParseRemision(fileOrBlob, (p) => {
+        setOcrProgress(p)
+      })
+
+      if (res && res.ok && res.data) {
+        const d = res.data
+        const loadedSummary = []
+
+        if (d.remisionNo) {
+          setRemisionNo(d.remisionNo)
+          loadedSummary.push(`Nº ${d.remisionNo}`)
+        }
+        if (d.fechaProd) {
+          setFechaProd(d.fechaProd)
+          loadedSummary.push(`Fecha Prod: ${d.fechaProd}`)
+        }
+        if (d.fechaRemision) {
+          setFechaRemision(d.fechaRemision)
+          loadedSummary.push(`Fecha Remisión: ${d.fechaRemision}`)
+        }
+        if (d.quienDespacha) {
+          setQuienDespacha(d.quienDespacha)
+          loadedSummary.push(`Despacha: ${d.quienDespacha}`)
+        }
+        if (d.quienRecibe) {
+          setQuienRecibe(d.quienRecibe)
+          loadedSummary.push(`Recibe: ${d.quienRecibe}`)
+        }
+
+        if (d.rows && d.rows.length > 0) {
+          setRows(d.rows)
+          loadedSummary.push(`${d.rows.length} galpones`)
+        }
+
+        if (loadedSummary.length > 0) {
+          setMsg({
+            kind: 'ok',
+            text: `⚡ Datos cargados de tu foto: ${loadedSummary.join(' · ')}. Coteja con la imagen antes de guardar.`
+          })
+        } else {
+          setMsg({
+            kind: 'info',
+            text: '📷 Foto cargada correctamente. Puedes digitar o ajustar los valores cotejando directamente con la foto.'
+          })
+        }
+      } else {
+        setMsg({
+          kind: 'info',
+          text: '📷 Foto cargada. Puedes ampliarla para cotejar los datos mientras digitas.'
+        })
+      }
+    } catch (err) {
+      console.warn('OCR scan error:', err)
+      setMsg({
+        kind: 'warn',
+        text: '📷 Foto cargada. Amplía la foto para cotejar los datos mientras digitas.'
+      })
+    } finally {
+      setOcrScanning(false)
+      setOcrProgress(null)
+    }
+  }
 
   const handlePhotoChange = async (e) => {
     const f = e.target.files?.[0]
     if (!f) return
+    let finalFile = f
     try {
       const compressed = await compressImage(f, 1600, 0.75)
-      const finalFile = compressed && compressed.size > 0 ? compressed : f
-      setPhotoFile(finalFile)
-      if (photoPreview) URL.revokeObjectURL(photoPreview)
-      const u = URL.createObjectURL(finalFile)
-      setPhotoPreview(u)
-      setActivePhotoView('captured')
-      setShowRefImg(true)
-      setMsg({ kind: 'ok', text: '📷 Foto de la remisión capturada exitosamente. Puedes ampliarla para cotejar los datos.' })
+      if (compressed && compressed.size > 0) {
+        finalFile = compressed
+      }
     } catch (err) {
       console.warn('Compress error, using raw file', err)
-      setPhotoFile(f)
-      const u = URL.createObjectURL(f)
-      setPhotoPreview(u)
-      setActivePhotoView('captured')
-      setShowRefImg(true)
     }
+
+    setPhotoFile(finalFile)
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    const u = URL.createObjectURL(finalFile)
+    setPhotoPreview(u)
+    setActivePhotoView('captured')
+    setShowRefImg(true)
+
+    // ¡Escanear automáticamente la nueva foto y asignar sus datos a los campos!
+    scanPhoto(finalFile, f.name || 'foto tomada')
+
     e.target.value = ''
   }
 
@@ -310,32 +385,15 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const isViewingCaptured = hasCapturedPhoto && activePhotoView === 'captured'
 
   const loadReferenceSample = () => {
-    setRemisionNo('4854')
-    setFechaProd('2026-10-08')
-    setFechaRemision('2026-10-08')
-    setQuienDespacha('Adrian Gil')
-    setQuienRecibe('Nelson Palacio')
+    setRemisionNo(SAMPLE_REMISION_DATA.remisionNo)
+    setFechaProd(SAMPLE_REMISION_DATA.fechaProd)
+    setFechaRemision(SAMPLE_REMISION_DATA.fechaRemision)
+    setQuienDespacha(SAMPLE_REMISION_DATA.quienDespacha)
+    setQuienRecibe(SAMPLE_REMISION_DATA.quienRecibe)
     setObservaciones('')
-    setRows([
-      { galpon: '201', incubable: 2240, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
-      { galpon: '202', incubable: 2340, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
-      { galpon: '203', incubable: 2160, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
-      { galpon: '204', incubable: 1870, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '205', incubable: 2520, fisurado: '12030 ✓', extra: '', roto: '', sucio: '', cajas: 7, cubetas: '' },
-      { galpon: '301', incubable: 1870, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '302', incubable: 1680, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '303', incubable: 1800, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '304', incubable: 1950, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '305', incubable: 1800, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
-      { galpon: '306', incubable: 1980, fisurado: '12840 ✓', extra: '', roto: '', cajas: 6, cubetas: '' },
-      { galpon: '401', incubable: 1440, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-      { galpon: '402', incubable: 1380, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-      { galpon: '403', incubable: 1440, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-      { galpon: '404', incubable: 1530, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-      { galpon: '405', incubable: 1380, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-      { galpon: '406', incubable: 1440, fisurado: '10650 +90', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
-    ])
-    setMsg({ kind: 'ok', text: '✓ Se cargaron los datos exactos del formato físico de referencia Nº 4854 (Total incubable: 30.720 huevos)' })
+    setRows(SAMPLE_REMISION_DATA.rows)
+    setActivePhotoView('sample')
+    setMsg({ kind: 'ok', text: '✓ Se cargaron los datos de la plantilla de ejemplo (Nº 4854 - Total: 30.720 huevos)' })
   }
 
   const resetForm = () => {
@@ -551,15 +609,30 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
               </button>
             )}
 
-            {/* Cargar datos del ejemplo */}
-            <button
-              type="button"
-              className="ghost small"
-              onClick={loadReferenceSample}
-              title="Cargar los números de la remisión de ejemplo Nº 4854"
-            >
-              📋 Cargar datos foto (Nº 4854)
-            </button>
+            {/* Si está viendo la foto tomada: botón para volver a escanearla */}
+            {isViewingCaptured && (
+              <button
+                type="button"
+                className="primary small rx-scan-btn"
+                disabled={ocrScanning}
+                onClick={() => scanPhoto(photoFile, photoFile?.name || 'mi foto')}
+                title="Escanear y cargar automáticamente los datos de esta foto"
+              >
+                {ocrScanning ? '⏳ Escaneando…' : '⚡ Escanear datos de mi foto'}
+              </button>
+            )}
+
+            {/* Si está viendo el ejemplo: botón para cargar el ejemplo */}
+            {!isViewingCaptured && (
+              <button
+                type="button"
+                className="ghost small"
+                onClick={loadReferenceSample}
+                title="Cargar los números de la remisión de ejemplo Nº 4854"
+              >
+                📋 Cargar datos ejemplo (Nº 4854)
+              </button>
+            )}
 
             {/* Ocultar/mostrar preview */}
             <button
@@ -571,6 +644,25 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
             </button>
           </div>
         </div>
+
+        {/* Banner de progreso de escaneo OCR */}
+        {ocrScanning && (
+          <div className="rx-ocr-progress-banner">
+            <div className="rx-ocr-progress-spinner" />
+            <div className="rx-ocr-progress-info">
+              <strong>Escaneando datos de tu foto física con OCR...</strong>
+              <span>{ocrProgress?.message || 'Extrayendo número de remisión, fechas y galpones...'}</span>
+              {ocrProgress?.progress !== undefined && (
+                <div className="rx-ocr-progress-bar">
+                  <div
+                    className="rx-ocr-progress-fill"
+                    style={{ width: `${Math.round(Math.min(1, Math.max(0.05, ocrProgress.progress || 0.1)) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {showRefImg && (
           <div className="rx-remision-img-preview-box">
