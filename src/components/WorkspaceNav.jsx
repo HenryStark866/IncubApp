@@ -79,6 +79,7 @@ export default function WorkspaceNav({
       'Desarrollo',
       'CDH Maker',
       'Inicio',
+      'Recepción',
       'Recepción y Planta',
       'Control de Calidad',
       'Mi Turno',

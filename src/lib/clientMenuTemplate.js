@@ -177,6 +177,23 @@ const SHIFT_WORKER_ROLES = [
   'barn_operator',
 ]
 
+/**
+ * Ítems del menú del operario de recepción (en el orden pedido por operaciones).
+ * Se usa en buildClientNavItems para asignar grupo y etiqueta específicos.
+ */
+const RECEPTION_OPERATOR_MENU = [
+  { id: 'clasificacion',    label: '📦 Clasificación',         hint: 'Carros, mapa de cargue y orden del día' },
+  { id: 'recepcion',        label: '🚛 Recepción',              hint: 'Llegadas a planta y certificación' },
+  { id: 'liquidar-cargues', label: '⚖️ Liquidar cargues',       hint: 'Liquidación y balance de cargues' },
+  { id: 'auditoria-huevos', label: '🔍 Auditoría de huevos',   hint: 'Control de calidad, fisuras y muestras' },
+  { id: 'autorizar-datos',  label: '✅ Autorizar datos',        hint: 'Aprobación y validación de lotes' },
+  { id: 'horarios',         label: '🗓️ Mi horario',             hint: 'Turnos y horario de la semana' },
+  { id: 'asistencia',       label: '📋 Asistencia',             hint: 'Registro de asistencia y puntualidad' },
+  { id: 'solicitudes',      label: '📝 Solicitudes',            hint: 'Permisos, insumos y novedades' },
+  { id: 'reportes-informes',label: '📊 Reportes e informes',   hint: 'Consolidados y balances' },
+  { id: 'informacion',      label: 'ℹ️ Información',            hint: 'Guías, bioseguridad y manuales' },
+]
+
 /** Etiqueta del ítem según el rol (el operario habla de «sus» tareas, no de supervisión) */
 function navLabelFor(item, role) {
   const isShiftWorker = SHIFT_WORKER_ROLES.includes(role)
@@ -185,9 +202,9 @@ function navLabelFor(item, role) {
   if (item.id === 'cargue' && isShiftWorker) return 'Órdenes de cargue'
   if (item.id === 'hoy' && isShiftWorker) return 'Mi turno'
   if (role === 'reception_operator') {
-    if (item.id === 'horarios') return 'Mi horario'
-    if (item.id === 'recepcion') return 'Recepción'
-    if (item.id === 'reportes-informes' || item.id === 'reportes') return 'Reportes e informes'
+    const rxItem = RECEPTION_OPERATOR_MENU.find((r) => r.id === item.id)
+    if (rxItem) return rxItem.label
+    if (item.id === 'hoy') return 'Mi turno'
   }
   // Líder de área: su home «Hoy» es el tablero combinado con monitoreo y widgets
   if (item.id === 'hoy' && role === 'coordinator') return 'Panel principal del líder'
@@ -195,6 +212,27 @@ function navLabelFor(item, role) {
 }
 
 export function buildClientNavItems({ can, role, template = DEFAULT_CLIENT_TEMPLATE }) {
+  // El operario de recepción tiene su propio menú ordenado y unificado
+  if (role === 'reception_operator') {
+    const items = []
+    // «Hoy» / «Mi turno» — inicio del operario
+    const hoyItem = template.menu.find((m) => m.id === 'hoy')
+    if (hoyItem && (can('hoy') || hoyItem.always)) {
+      items.push({ id: 'hoy', label: 'Mi turno', group: 'Inicio', hint: hoyItem.hint })
+    }
+    // Submenús de recepción en el orden oficial
+    for (const rx of RECEPTION_OPERATOR_MENU) {
+      if (!can(rx.id)) continue
+      items.push({
+        id: rx.id,
+        label: rx.label,
+        group: 'Recepción',
+        hint: rx.hint,
+      })
+    }
+    return items
+  }
+
   const items = []
   for (const m of template.menu) {
     if (m.id === 'perfil') continue // se agrega al final en App
