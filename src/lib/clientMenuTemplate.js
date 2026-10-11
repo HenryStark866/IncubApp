@@ -182,16 +182,19 @@ const SHIFT_WORKER_ROLES = [
  * Se usa en buildClientNavItems para asignar grupo y etiqueta específicos.
  */
 const RECEPTION_OPERATOR_MENU = [
-  { id: 'clasificacion',    label: '📦 Clasificación',         hint: 'Carros, mapa de cargue y orden del día' },
-  { id: 'recepcion',        label: '🚛 Recepción',              hint: 'Llegadas a planta y certificación' },
-  { id: 'liquidar-cargues', label: '⚖️ Liquidar cargues',       hint: 'Liquidación y balance de cargues' },
-  { id: 'auditoria-huevos', label: '🔍 Auditoría de huevos',   hint: 'Control de calidad, fisuras y muestras' },
-  { id: 'autorizar-datos',  label: '✅ Autorizar datos',        hint: 'Aprobación y validación de lotes' },
-  { id: 'horarios',         label: '🗓️ Mi horario',             hint: 'Turnos y horario de la semana' },
-  { id: 'asistencia',       label: '📋 Asistencia',             hint: 'Registro de asistencia y puntualidad' },
-  { id: 'solicitudes',      label: '📝 Solicitudes',            hint: 'Permisos, insumos y novedades' },
-  { id: 'reportes-informes',label: '📊 Reportes e informes',   hint: 'Consolidados y balances' },
-  { id: 'informacion',      label: 'ℹ️ Información',            hint: 'Guías, bioseguridad y manuales' },
+  { id: 'clasificacion',      label: '📦 Clasificación',             hint: 'Carros, mapa de cargue y orden del día' },
+  { id: 'recepcion',          label: '🚛 Recepción',                hint: 'Llegadas a planta y certificación' },
+  { id: 'tablero-rotacion',   label: '🔄 Rotación de huevo',         hint: 'Tablero de rotación de lotes en cuarto frío' },
+  { id: 'encintar',           label: '🎀 Encintar',                  hint: 'Sellado con cinta de los carros previo al cargue' },
+  { id: 'marcar-carros',      label: '🏷️ Marcar carros',             hint: 'Identificación y marcación de carros por lote' },
+  { id: 'liquidar-cargues',   label: '⚖️ Liquidar cargues',           hint: 'Liquidación y balance de cargues' },
+  { id: 'auditoria-huevos',   label: '🔍 Auditoría de huevos',       hint: 'Control de calidad, fisuras y muestras' },
+  { id: 'autorizar-datos',    label: '✅ Autorizar datos',              hint: 'Aprobación y validación de lotes' },
+  { id: 'horarios',           label: '🗃️ Mi horario',               hint: 'Turnos y horario de la semana' },
+  { id: 'asistencia',         label: '📋 Asistencia',                hint: 'Registro de asistencia y puntualidad' },
+  { id: 'solicitudes',        label: '📝 Solicitudes',               hint: 'Permisos, insumos y novedades' },
+  { id: 'reportes-informes',  label: '📊 Reportes e informes',       hint: 'Consolidados y balances' },
+  { id: 'informacion',        label: 'ℹ️ Información',              hint: 'Guías, bioseguridad y manuales' },
 ]
 
 /** Etiqueta del ítem según el rol (el operario habla de «sus» tareas, no de supervisión) */

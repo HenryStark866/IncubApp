@@ -9,12 +9,16 @@
  * =============================================================================
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useEggReports } from '../hooks/useEggReports'
 import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
 import { compressImage } from '../lib/image'
 import ColdRoomPanel from './ColdRoomPanel'
+
+const EggRotationBoardPanelLazy = lazy(() => import('./EggRotationBoardPanel'))
+const TapingPanelLazy          = lazy(() => import('./TapingPanel'))
+const CartMarkingPanelLazy     = lazy(() => import('./CartMarkingPanel'))
 
 /**
  * Recepción del huevo en planta (Fase 4). El operario de recepción ve los
@@ -101,7 +105,7 @@ export default function ReceptionPanel({
       <nav className="subtabs-rail" aria-label="Recepción de huevo" style={{ marginBottom: 12 }}>
         <div className="subtabs-rail-head">
           <p className="subtabs-rail-label">Recepción</p>
-          <p className="subtabs-rail-hint">Llegada · certificación · cuarto frío</p>
+          <p className="subtabs-rail-hint">Llegada · certificación · remisión · rotación · encintar · marcar · cuarto frío</p>
         </div>
         <div className="tabs subtabs" role="tablist">
           {showReception && (
@@ -122,6 +126,42 @@ export default function ReceptionPanel({
               🚛 Llegada a planta
             </button>
           )}
+          {showReception && (
+            <button
+              type="button"
+              className={subTab === 'remision' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('remision')}
+            >
+              📋 Remisión galpón
+            </button>
+          )}
+          {showReception && (
+            <button
+              type="button"
+              className={subTab === 'rotacion' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('rotacion')}
+            >
+              🔄 Rotación de huevo
+            </button>
+          )}
+          {showReception && (
+            <button
+              type="button"
+              className={subTab === 'encintar' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('encintar')}
+            >
+              🎀 Encintar
+            </button>
+          )}
+          {showReception && (
+            <button
+              type="button"
+              className={subTab === 'marcar-carros' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('marcar-carros')}
+            >
+              🏷️ Marcar carros
+            </button>
+          )}
           {showColdRoom && (
             <button
               type="button"
@@ -137,6 +177,20 @@ export default function ReceptionPanel({
         <ColdRoomPanel orgId={orgId} userId={userId} role={role} />
       ) : subTab === 'llegada' ? (
         <EggArrivalPanel orgId={orgId} userId={userId} role={role} coordinatorName={coordinatorName} />
+      ) : subTab === 'remision' ? (
+        <RemisionForm orgId={orgId} userId={userId} role={role} />
+      ) : subTab === 'rotacion' ? (
+        <Suspense fallback={<p className="hint">Cargando tablero de rotación…</p>}>
+          <EggRotationBoardPanelLazy orgId={orgId} userId={userId} role={role} />
+        </Suspense>
+      ) : subTab === 'encintar' ? (
+        <Suspense fallback={<p className="hint">Cargando panel de encintado…</p>}>
+          <TapingPanelLazy orgId={orgId} userId={userId} role={role} />
+        </Suspense>
+      ) : subTab === 'marcar-carros' ? (
+        <Suspense fallback={<p className="hint">Cargando panel de marcación…</p>}>
+          <CartMarkingPanelLazy orgId={orgId} userId={userId} role={role} />
+        </Suspense>
       ) : (
         <ReceptionInbox orgId={orgId} userId={userId} role={role} coordinatorName={coordinatorName} />
       )}
@@ -144,6 +198,309 @@ export default function ReceptionPanel({
     </>
   )
 }
+
+/* ══ Formulario Remisión Huevos Galpón (formato Antioqueña de Incubación S.A.S) ══ */
+const REMISION_GALPON_COLS = [
+  { key: 'incubable', label: 'Incubable' },
+  { key: 'fisurado',  label: 'Fisurado' },
+  { key: 'extra',     label: 'Extra' },
+  { key: 'roto',      label: 'Roto' },
+  { key: 'sucio',     label: 'Sucio' },
+  { key: 'cajas',     label: 'Nº Cajas' },
+  { key: 'cubetas',   label: 'Nº Cubetas' },
+]
+
+function emptyRow(galpon = '') {
+  return { galpon, incubable: '', fisurado: '', extra: '', roto: '', sucio: '', cajas: '', cubetas: '' }
+}
+
+function numOrEmpty(v) {
+  const n = Number(v)
+  return isNaN(n) || v === '' ? '' : n
+}
+
+function colTotal(rows, key) {
+  return rows.reduce((s, r) => s + (Number(r[key]) || 0), 0)
+}
+
+function RemisionForm({ orgId, userId, role }) {
+  const canEdit = ['owner','admin','supervisor','coordinator','reception_operator','operator','auxiliary'].includes(role)
+
+  /* ── Estado principal ── */
+  const [remisionNo, setRemisionNo] = useState('')
+  const [fechaProd, setFechaProd] = useState('')
+  const [fechaRemision, setFechaRemision] = useState(() => new Date().toLocaleDateString('sv-SE'))
+  const [quienDespacha, setQuienDespacha] = useState('')
+  const [quienRecibe, setQuienRecibe] = useState('')
+  const [observaciones, setObservaciones] = useState('')
+
+  /* Filas de galpones — por defecto 3 vacías */
+  const [rows, setRows] = useState(() => [emptyRow(), emptyRow(), emptyRow()])
+
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const setCell = (i, key, val) =>
+    setRows(rs => rs.map((r, idx) => idx === i ? { ...r, [key]: val } : r))
+
+  const addRow = () => setRows(rs => [...rs, emptyRow()])
+  const removeRow = i => setRows(rs => rs.length > 1 ? rs.filter((_, idx) => idx !== i) : rs)
+
+  /* Totales */
+  const totalIncubable = colTotal(rows, 'incubable')
+  const totalRotos     = colTotal(rows, 'roto')
+  const totalSucios    = colTotal(rows, 'sucio')
+  const totalExtra     = colTotal(rows, 'extra')
+  const totalFisurado  = colTotal(rows, 'fisurado')
+
+  const handleSubmit = async () => {
+    if (!orgId || !userId) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const payload = {
+        org_id: orgId,
+        registered_by: userId,
+        remision_no: remisionNo.trim() || null,
+        fecha_produccion: fechaProd || null,
+        fecha_remision: fechaRemision || null,
+        quien_despacha: quienDespacha.trim() || null,
+        quien_recibe: quienRecibe.trim() || null,
+        observaciones: observaciones.trim() || null,
+        galpon_rows: rows.filter(r => r.galpon.trim() || Number(r.incubable) > 0),
+        totales: { incubable: totalIncubable, roto: totalRotos, sucio: totalSucios, extra: totalExtra, fisurado: totalFisurado },
+        created_at: new Date().toISOString(),
+      }
+      const { error } = await import('../lib/supabase').then(m =>
+        m.supabase.from('reception_remisions').insert(payload)
+      )
+      if (error) {
+        // Si la tabla no existe todavía, lo mostramos honestamente
+        if (error.code === '42P01' || /does not exist/i.test(error.message)) {
+          setMsg({ kind: 'warn', text: 'La tabla reception_remisions aún no está creada en Supabase. El formulario funciona — guárdalo cuando el administrador habilite la tabla.' })
+        } else {
+          setMsg({ kind: 'error', text: error.message })
+        }
+      } else {
+        setMsg({ kind: 'ok', text: `Remisión No. ${remisionNo || '—'} guardada · ${totalIncubable.toLocaleString('es-CO')} huevos incubables` })
+        setRows([emptyRow(), emptyRow(), emptyRow()])
+        setRemisionNo('')
+        setFechaProd('')
+        setFechaRemision(new Date().toLocaleDateString('sv-SE'))
+        setQuienDespacha('')
+        setQuienRecibe('')
+        setObservaciones('')
+      }
+    } catch(e) {
+      setMsg({ kind: 'error', text: e.message })
+    }
+    setBusy(false)
+  }
+
+  /* ── Render ── */
+  return (
+    <div className="card wide rx-remision-wrap">
+
+      {/* ── Imagen de referencia del formato físico ── */}
+      <details className="rx-remision-ref-details" style={{ marginBottom: 16 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent)', userSelect: 'none' }}>
+          📄 Ver formato físico de referencia (Remisión Huevos Galpón)
+        </summary>
+        <div style={{ marginTop: 10, textAlign: 'center' }}>
+          <img
+            src="/assets/remision-galpon-referencia.jpg"
+            alt="Formato físico Remisión Huevos Galpón — ANTIOQUEÑA DE INCUBACIÓN S.A.S"
+            style={{
+              maxWidth: '100%',
+              width: 520,
+              borderRadius: 8,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+              border: '1px solid var(--border, #e2e8f0)',
+            }}
+          />
+          <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Formato oficial · Remisión Huevos Galpón Detallado · NIT 900.762.687-3
+          </p>
+        </div>
+      </details>
+
+      {/* ── Encabezado tipo formato ── */}
+      <div className="rx-remision-header">
+        <div className="rx-remision-brand">
+          <div className="rx-remision-logo-box">
+            <span className="rx-remision-logo-text">INCUBANT</span>
+            <span className="rx-remision-logo-sub">ANTIOQUEÑA DE INCUBACIÓN S.A.S</span>
+          </div>
+          <div className="rx-remision-title-box">
+            <strong>ANTIOQUEÑA DE INCUBACIÓN S.A.S</strong>
+            <span>Remisión Huevos Galpón Detallado</span>
+            <span>NIT: 900.762.687-3</span>
+          </div>
+        </div>
+        <div className="rx-remision-no-box">
+          <span className="rx-remision-no-label">Remisión Huevos Galpón</span>
+          <div className="rx-remision-no-value">
+            <span>Nº</span>
+            {canEdit ? (
+              <input
+                type="text"
+                className="rx-remision-no-input"
+                value={remisionNo}
+                onChange={e => setRemisionNo(e.target.value)}
+                placeholder="0000"
+                maxLength={8}
+              />
+            ) : (
+              <strong>{remisionNo || '—'}</strong>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabla de galpones ── */}
+      <div className="rx-remision-table-wrap">
+        <table className="rx-remision-table">
+          <thead>
+            <tr>
+              <th rowSpan={2} className="rx-remision-th-galpon">Galpón</th>
+              <th rowSpan={2}>Incubable</th>
+              <th rowSpan={2}>Fisurado</th>
+              <th colSpan={3} className="rx-remision-th-center">Cantidad de Huevo</th>
+              <th rowSpan={2}>Nº Cajas</th>
+              <th rowSpan={2}>Nº Cubetas</th>
+              {canEdit && <th rowSpan={2}></th>}
+            </tr>
+            <tr>
+              <th>Extra</th>
+              <th>Roto</th>
+              <th>Sucio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="rx-remision-row">
+                <td>
+                  {canEdit ? (
+                    <input
+                      className="rx-remision-cell-input"
+                      value={row.galpon}
+                      onChange={e => setCell(i, 'galpon', e.target.value)}
+                      placeholder={`G${i + 1}`}
+                    />
+                  ) : row.galpon || `G${i+1}`}
+                </td>
+                {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
+                  <td key={key}>
+                    {canEdit ? (
+                      <input
+                        type="number"
+                        min="0"
+                        className="rx-remision-cell-input num"
+                        value={row[key]}
+                        onChange={e => setCell(i, key, e.target.value)}
+                        placeholder="—"
+                      />
+                    ) : (numOrEmpty(row[key]) !== '' ? numOrEmpty(row[key]).toLocaleString('es-CO') : '—')}
+                  </td>
+                ))}
+                {canEdit && (
+                  <td>
+                    <button type="button" className="ghost small rx-remision-del" onClick={() => removeRow(i)} title="Quitar fila">✕</button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+          {/* Totales por columna */}
+          <tfoot>
+            <tr className="rx-remision-totals">
+              <td colSpan={2}><strong>Total</strong></td>
+              {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
+                <td key={key}>
+                  <strong>{colTotal(rows, key) > 0 ? colTotal(rows, key).toLocaleString('es-CO') : '—'}</strong>
+                </td>
+              ))}
+              {canEdit && <td />}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {canEdit && (
+        <button type="button" className="ghost small" style={{ margin: '6px 0' }} onClick={addRow}>
+          + Agregar galpón
+        </button>
+      )}
+
+      {/* ── Resumen de totales (bloque inferior izquierdo del formato) ── */}
+      <div className="rx-remision-bottom">
+        <div className="rx-remision-totales-box">
+          <table className="rx-remision-totales-table">
+            <tbody>
+              {[
+                ['Huevo incubable', totalIncubable],
+                ['Huevo roto',      totalRotos],
+                ['Huevo sucio',     totalSucios],
+                ['Huevo extra',     totalExtra],
+              ].map(([label, val]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td><strong>{val > 0 ? val.toLocaleString('es-CO') : ''}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="rx-remision-obs">
+            <span>Observaciones</span>
+            {canEdit ? (
+              <input
+                type="text"
+                value={observaciones}
+                onChange={e => setObservaciones(e.target.value)}
+                placeholder="Anotaciones del turno…"
+              />
+            ) : <span>{observaciones || '—'}</span>}
+          </div>
+        </div>
+
+        {/* ── Metadatos (derecha del formato) ── */}
+        <div className="rx-remision-meta">
+          {[
+            { label: 'Fecha de Producción', type: 'date', val: fechaProd,       set: setFechaProd },
+            { label: 'Fecha de Remisión',   type: 'date', val: fechaRemision,   set: setFechaRemision },
+            { label: 'Quien Despacha',      type: 'text', val: quienDespacha,   set: setQuienDespacha },
+            { label: 'Quien Recibe',        type: 'text', val: quienRecibe,     set: setQuienRecibe },
+          ].map(({ label, type, val, set }) => (
+            <div key={label} className="rx-remision-meta-row">
+              <span>{label}:</span>
+              {canEdit ? (
+                <input type={type} value={val} onChange={e => set(e.target.value)} />
+              ) : <span>{val || '—'}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Acciones ── */}
+      {canEdit && (
+        <div className="actions row" style={{ marginTop: 12 }}>
+          <button type="button" className="primary" disabled={busy} onClick={handleSubmit}>
+            {busy ? 'Guardando…' : '💾 Guardar remisión'}
+          </button>
+          <button type="button" className="ghost" onClick={() => window.print()} title="Imprimir">
+            🖨️ Imprimir
+          </button>
+        </div>
+      )}
+      {msg && (
+        <p className={`msg ${msg.kind === 'ok' ? 'ok' : msg.kind === 'warn' ? 'warn' : 'error'}`} style={{ marginTop: 8 }}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  )
+}
+
 
 /* ══ Llegada de huevo a planta: foto + sello ═════════════════ */
 function EggArrivalPanel({ orgId, userId, role, coordinatorName }) {

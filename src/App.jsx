@@ -92,6 +92,9 @@ import {
   ReceptionInfoPanel,
   ColdStorageLoadPanel,
   OperationsDataCenter,
+  EggRotationBoardPanel,
+  TapingPanel,
+  CartMarkingPanel,
   MisionalesPanel,
   QualityPanel,
   VaccinationPanel,
@@ -154,6 +157,9 @@ const OMNISCIENT_TABS = [
   'solicitudes',
   'reportes-informes',
   'informacion',
+  'tablero-rotacion',
+  'encintar',
+  'marcar-carros',
   'gerencia',
   'informes',
   'ventas',
@@ -1087,6 +1093,12 @@ function Workspace({
             <ReceptionReportsPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
           ) : tab === 'informacion' && org && can('informacion') ? (
             <ReceptionInfoPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'tablero-rotacion' && org && can('tablero-rotacion') ? (
+            <EggRotationBoardPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'encintar' && org && can('encintar') ? (
+            <TapingPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
+          ) : tab === 'marcar-carros' && org && can('marcar-carros') ? (
+            <CartMarkingPanel orgId={org.id} userId={session.user.id} role={role} onNavigate={setTab} />
           ) : tab === 'cargue' && org && can('cargue') ? (
             <ColdStorageLoadPanel
               orgId={org.id}
