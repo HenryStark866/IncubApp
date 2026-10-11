@@ -12267,6 +12267,30 @@ a.plant3d-link:hover {
   flex-wrap: wrap;
 }
 
+.rx-camera-btn {
+  background: #16a34a !important;
+  color: #fff !important;
+  border-color: #15803d !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3) !important;
+}
+
+.rx-camera-btn:hover {
+  background: #15803d !important;
+}
+
+.rx-remove-photo-btn {
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.rx-preview-badge-bar {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .rx-remision-img-preview-box {
   display: flex;
   flex-direction: column;
@@ -12414,16 +12438,225 @@ a.plant3d-link:hover {
   background: #fff;
 }
 
-/* ── Tabla del formato ── */
+/* ── Barra selector de modo de vista (Tarjetas celular vs Tabla) ── */
+.rx-remision-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 12px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-0, #f8fafc));
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+}
+
+.rx-remision-view-lbl {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+}
+
+.rx-remision-view-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rx-view-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid var(--line, #cbd5e1);
+  background: var(--bg-1, #fff);
+  color: var(--text, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rx-view-btn.active {
+  background: var(--accent, #0284c7);
+  color: #fff;
+  border-color: var(--accent, #0284c7);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+/* ── MODO TARJETAS (ÓPTIMO PARA CELULAR) ── */
+.rx-remision-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rx-remision-card-item {
+  background: var(--bg-0, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  transition: border-color 0.15s ease;
+}
+
+.rx-remision-card-item:focus-within {
+  border-color: var(--accent, #0284c7);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.1);
+}
+
+.rx-remision-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed var(--line, #cbd5e1);
+}
+
+.rx-remision-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.rx-remision-galpon-badge {
+  background: var(--accent, #0284c7);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.rx-remision-card-galpon-lbl {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+}
+
+.rx-remision-card-galpon-input {
+  max-width: 110px;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--text, #0f172a);
+  padding: 4px 8px;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 6px;
+  background: var(--bg-1, #fff);
+}
+
+.rx-remision-card-galpon-val {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rx-card-del-btn {
+  color: #ef4444;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rx-remision-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .rx-remision-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.rx-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-1, #fff);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.rx-card-field.highlight-primary {
+  grid-column: 1 / -1;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1, #fff));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.rx-card-field-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.02em;
+}
+
+.rx-card-input {
+  width: 100%;
+  min-height: 40px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  text-align: center;
+  background: var(--bg-0, #f8fafc);
+  color: var(--text, inherit);
+  box-sizing: border-box;
+}
+
+.rx-card-input:focus {
+  border-color: var(--accent);
+  background: #fff;
+  outline: none;
+}
+
+.rx-card-input.highlight {
+  font-size: 1.15rem;
+  color: var(--accent, #0284c7);
+  background: #fff;
+}
+
+.rx-card-val {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.rx-card-val.highlight {
+  font-size: 1.15rem;
+  color: var(--accent, #0284c7);
+  font-weight: 800;
+}
+
+/* ── MODO TABLA CLÁSICA CON COLUMNA PEGAJOSA ── */
 .rx-remision-table-wrap {
   overflow-x: auto;
-  margin-bottom: 16px;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 14px;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 8px;
+}
+
+.rx-table-scroll-hint {
+  margin: 6px 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
 }
 
 .rx-remision-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+  min-width: 680px;
 }
 
 .rx-remision-table th,
@@ -12441,18 +12674,33 @@ a.plant3d-link:hover {
   text-align: center;
 }
 
+.rx-remision-table .sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg-1, #fff);
+  z-index: 3;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.06);
+}
+
+.rx-remision-table th.sticky-col {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-0, #f8fafc));
+  z-index: 4;
+}
+
 .rx-remision-table .rx-remision-th-center {
   text-align: center;
 }
 
 .rx-remision-cell-input {
   width: 100%;
+  min-height: 38px;
   border: 1px solid transparent;
   background: transparent;
-  padding: 4px;
-  font-size: 0.85rem;
+  padding: 4px 6px;
+  font-size: 0.9rem;
   border-radius: 4px;
   color: var(--text, inherit);
+  box-sizing: border-box;
 }
 
 .rx-remision-cell-input:focus {
@@ -12472,77 +12720,259 @@ a.plant3d-link:hover {
   font-weight: 800;
 }
 
-/* ── Bloque inferior: Totales y Metadatos ── */
+.rx-add-galpon-btn {
+  width: 100%;
+  min-height: 40px;
+  margin: 6px 0 16px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ── RESUMEN DE TOTALES EN FORMA DE KPIS (RESPONSIVO) ── */
+.rx-remision-kpis-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+@media (min-width: 600px) {
+  .rx-remision-kpis-wrap {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .rx-remision-kpis-wrap {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.rx-remision-kpi-pill {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  background: var(--bg-0, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.rx-remision-kpi-pill.highlight {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-1, #fff));
+  border-color: var(--accent, #0284c7);
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 600px) {
+  .rx-remision-kpi-pill.highlight {
+    grid-column: span 1;
+  }
+}
+
+.kpi-pill-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+}
+
+.kpi-pill-val {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text, #0f172a);
+  margin-top: 2px;
+}
+
+.rx-remision-kpi-pill.highlight .kpi-pill-val {
+  color: var(--accent, #0284c7);
+  font-size: 1.3rem;
+}
+
+/* ── SECCIÓN INFERIOR: OBSERVACIONES Y METADATOS ── */
 .rx-remision-bottom {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-top: 16px;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line, #cbd5e1);
 }
 
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .rx-remision-bottom {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-.rx-remision-totales-table {
+.rx-remision-obs-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rx-remision-field-lbl {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text, #1e293b);
+}
+
+.rx-remision-textarea {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  margin-bottom: 12px;
-}
-
-.rx-remision-totales-table td {
+  padding: 8px 10px;
   border: 1px solid var(--line, #cbd5e1);
-  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
 }
 
-.rx-remision-obs {
+.rx-remision-obs-read {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+}
+
+.rx-remision-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 500px) {
+  .rx-remision-meta-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rx-remision-meta-item {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.rx-remision-obs span {
+.rx-remision-meta-item label {
+  font-size: 0.78rem;
   font-weight: 700;
-  font-size: 0.82rem;
+  color: var(--text-muted, #64748b);
 }
 
-.rx-remision-obs input {
-  padding: 6px 8px;
+.rx-meta-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
   border: 1px solid var(--line, #cbd5e1);
-  border-radius: 6px;
-  font-size: 0.85rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
-.rx-remision-meta {
+/* ── BARRA DE ACCIONES RESPONSIVA ── */
+.rx-remision-actions-bar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
 }
 
-.rx-remision-meta-row {
+.rx-action-btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.85rem;
+  justify-content: center;
+  gap: 6px;
 }
 
-.rx-remision-meta-row span {
-  font-weight: 600;
-  white-space: nowrap;
+.rx-action-btn.main {
+  flex: 2 1 200px;
 }
 
-.rx-remision-meta-row input {
-  flex: 1;
-  max-width: 240px;
-  padding: 5px 8px;
-  border: 1px solid var(--line, #cbd5e1);
-  border-radius: 6px;
-  font-size: 0.85rem;
+/* ── AJUSTES ESPECIALES PARA PANTALLAS PEQUEÑAS (CELULARES <= 640px) ── */
+@media (max-width: 640px) {
+  .rx-remision-wrap {
+    padding: 12px 8px;
+    border-radius: 8px;
+  }
+
+  .rx-remision-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .rx-remision-brand {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .rx-remision-title-box {
+    text-align: center;
+  }
+
+  .rx-remision-no-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .rx-remision-no-input {
+    width: 100px;
+    font-size: 1.3rem;
+  }
+
+  .rx-remision-ref-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rx-remision-ref-actions {
+    flex-direction: column;
+  }
+
+  .rx-remision-ref-actions button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .rx-remision-view-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rx-remision-view-pills {
+    flex-direction: column;
+  }
+
+  .rx-view-btn {
+    width: 100%;
+    text-align: center;
+    min-height: 38px;
+  }
+
+  .rx-remision-actions-bar {
+    flex-direction: column;
+  }
+
+  .rx-action-btn {
+    width: 100%;
+  }
+
+  .rx-meta-input,
+  .rx-card-input,
+  .rx-remision-textarea {
+    font-size: 16px !important; /* Evita que Safari en iOS haga zoom forzado al tocar un input */
+  }
 }
+
 

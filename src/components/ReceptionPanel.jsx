@@ -251,12 +251,63 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const [observaciones, setObservaciones] = useState('')
   const [showRefImg, setShowRefImg] = useState(true)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [activePhotoView, setActivePhotoView] = useState('captured')
+  const cameraInputRef = useRef(null)
+  const galleryInputRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
+
+  const [mobileView, setMobileView] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return 'cards'
+    return 'cards'
+  })
 
   /* Filas de galpones — por defecto 3 vacías */
   const [rows, setRows] = useState(() => [emptyRow(), emptyRow(), emptyRow()])
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
+
+  const handlePhotoChange = async (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    try {
+      const compressed = await compressImage(f, 1600, 0.75)
+      const finalFile = compressed && compressed.size > 0 ? compressed : f
+      setPhotoFile(finalFile)
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+      const u = URL.createObjectURL(finalFile)
+      setPhotoPreview(u)
+      setActivePhotoView('captured')
+      setShowRefImg(true)
+      setMsg({ kind: 'ok', text: '📷 Foto de la remisión capturada exitosamente. Puedes ampliarla para cotejar los datos.' })
+    } catch (err) {
+      console.warn('Compress error, using raw file', err)
+      setPhotoFile(f)
+      const u = URL.createObjectURL(f)
+      setPhotoPreview(u)
+      setActivePhotoView('captured')
+      setShowRefImg(true)
+    }
+    e.target.value = ''
+  }
+
+  const removeCapturedPhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setActivePhotoView('sample')
+  }
+
+  const currentImageSrc = photoPreview && activePhotoView === 'captured' ? photoPreview : remisionRefImg
+  const hasCapturedPhoto = Boolean(photoPreview)
+  const isViewingCaptured = hasCapturedPhoto && activePhotoView === 'captured'
 
   const loadReferenceSample = () => {
     setRemisionNo('4854')
@@ -295,6 +346,7 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
     setQuienRecibe('')
     setObservaciones('')
     setRows([emptyRow(), emptyRow(), emptyRow()])
+    removeCapturedPhoto()
     setMsg(null)
   }
 
@@ -310,23 +362,46 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const totalSucios    = colTotal(rows, 'sucio')
   const totalExtra     = colTotal(rows, 'extra')
   const totalFisurado  = colTotal(rows, 'fisurado')
+  const totalCajas     = colTotal(rows, 'cajas')
+  const totalCubetas   = colTotal(rows, 'cubetas')
 
   const handleSubmit = async () => {
     if (!orgId || !userId) return
     setBusy(true)
     setMsg(null)
     try {
+      let uploadedPhotoPath = null
+      if (photoFile) {
+        try {
+          const ext = (photoFile.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+          const cleanNo = (remisionNo || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
+          const path = `${orgId}/reception-remisions/${Date.now()}-${cleanNo}.${ext}`
+          const { error: upErr } = await supabase.storage
+            .from('machine-checks')
+            .upload(path, photoFile, {
+              contentType: photoFile.type || 'image/jpeg',
+              upsert: false,
+            })
+          if (!upErr) {
+            uploadedPhotoPath = path
+          }
+        } catch (storageErr) {
+          console.warn('Storage upload error:', storageErr)
+        }
+      }
+
       const payload = {
         org_id: orgId,
         registered_by: userId,
         remision_no: remisionNo.trim() || null,
+        photo_path: uploadedPhotoPath,
         fecha_produccion: fechaProd || null,
         fecha_remision: fechaRemision || null,
         quien_despacha: quienDespacha.trim() || null,
         quien_recibe: quienRecibe.trim() || null,
         observaciones: observaciones.trim() || null,
         galpon_rows: rows.filter(r => r.galpon.trim() || Number(r.incubable) > 0),
-        totales: { incubable: totalIncubable, roto: totalRotos, sucio: totalSucios, extra: totalExtra, fisurado: totalFisurado },
+        totales: { incubable: totalIncubable, roto: totalRotos, sucio: totalSucios, extra: totalExtra, fisurado: totalFisurado, cajas: totalCajas, cubetas: totalCubetas },
         created_at: new Date().toISOString(),
       }
       const { error } = await import('../lib/supabase').then(m =>
@@ -339,7 +414,7 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
           setMsg({ kind: 'error', text: error.message })
         }
       } else {
-        setMsg({ kind: 'ok', text: `Remisión No. ${remisionNo || '—'} guardada · ${totalIncubable.toLocaleString('es-CO')} huevos incubables` })
+        setMsg({ kind: 'ok', text: `Remisión No. ${remisionNo || '—'} guardada con foto de evidencia · ${totalIncubable.toLocaleString('es-CO')} huevos incubables` })
         resetForm()
       }
     } catch(e) {
@@ -352,12 +427,31 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   return (
     <div className="card wide rx-remision-wrap">
 
+      {/* ── Inputs nativos ocultos para cámara y galería ── */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePhotoChange}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handlePhotoChange}
+      />
+
       {/* ── Modal Lightbox Pantalla Completa de la Imagen ── */}
       {lightboxOpen && (
         <div className="rx-remision-lightbox-overlay" onClick={() => setLightboxOpen(false)}>
           <div className="rx-remision-lightbox-header" onClick={e => e.stopPropagation()}>
             <strong style={{ fontSize: '1.05rem' }}>
-              📄 Formato Físico Original: Remisión Huevos Galpón Nº 4854 — ANTIOQUEÑA DE INCUBACIÓN S.A.S
+              {isViewingCaptured
+                ? '📸 Foto Capturada de la Remisión Física Actual'
+                : '📄 Formato Físico de Referencia: Remisión Nº 4854'}
             </strong>
             <button
               type="button"
@@ -369,30 +463,73 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
             </button>
           </div>
           <img
-            src={remisionRefImg}
-            alt="Formato físico original Remisión Huevos Galpón Nº 4854"
+            src={currentImageSrc}
+            alt="Foto de la remisión física"
             className="rx-remision-lightbox-img"
             onClick={e => e.stopPropagation()}
           />
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginTop: 10 }}>
-            Haz clic fuera de la foto o en Cerrar para volver.
+            Toca fuera de la foto o en Cerrar para volver.
           </p>
         </div>
       )}
 
-      {/* ── Tarjeta de referencia visible con la imagen física ── */}
+      {/* ── Tarjeta de Captura y Visualización de Foto de la Remisión ── */}
       <div className="rx-remision-ref-card">
         <div className="rx-remision-ref-header">
           <div className="rx-remision-ref-title">
-            <span style={{ fontSize: '1.4rem' }}>📸</span>
+            <span style={{ fontSize: '1.4rem' }}>{hasCapturedPhoto ? '📸' : '📷'}</span>
             <div>
-              <h3>Formato Físico Oficial: Remisión Huevos Galpón (Nº 4854)</h3>
+              <h3>
+                {isViewingCaptured
+                  ? 'Foto de la Remisión Física (Capturada)'
+                  : hasCapturedPhoto
+                  ? 'Plantilla de Ejemplo (Nº 4854)'
+                  : 'Foto del Formato Físico de Remisión'}
+              </h3>
               <p className="hint" style={{ margin: 0 }}>
-                Antioqueña de Incubación S.A.S · NIT: 900.762.687-3 · Formato físico diligenciado en granja
+                {isViewingCaptured
+                  ? 'Foto tomada para esta remisión · Lista para cotejar cantidades y guardar soporte'
+                  : hasCapturedPhoto
+                  ? 'Viendo formato de ejemplo de Antioqueña de Incubación S.A.S'
+                  : 'La imagen que ves es un ejemplo de referencia. Toma la foto de la remisión que llegó con los huevos.'}
               </p>
             </div>
           </div>
+
           <div className="rx-remision-ref-actions">
+            {/* Botón principal cámara */}
+            <button
+              type="button"
+              className="primary small rx-camera-btn"
+              onClick={() => cameraInputRef.current?.click()}
+              title="Abrir la cámara del celular para tomar foto"
+            >
+              📷 {hasCapturedPhoto ? 'Tomar otra foto' : 'Tomar foto con cámara'}
+            </button>
+
+            {/* Botón galería */}
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => galleryInputRef.current?.click()}
+              title="Seleccionar foto desde la galería del celular"
+            >
+              🖼️ Galería
+            </button>
+
+            {/* Alternar foto tomada vs ejemplo */}
+            {hasCapturedPhoto && (
+              <button
+                type="button"
+                className="secondary small"
+                onClick={() => setActivePhotoView(v => v === 'captured' ? 'sample' : 'captured')}
+              >
+                {isViewingCaptured ? '📄 Ver ejemplo (Nº 4854)' : '📸 Ver mi foto tomada'}
+              </button>
+            )}
+
+            {/* Ampliar */}
             <button
               type="button"
               className="secondary small"
@@ -401,35 +538,62 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
             >
               🔍 Ampliar foto
             </button>
+
+            {/* Quitar foto tomada */}
+            {hasCapturedPhoto && (
+              <button
+                type="button"
+                className="ghost small rx-remove-photo-btn"
+                onClick={removeCapturedPhoto}
+                title="Quitar foto tomada y volver al ejemplo"
+              >
+                🗑️ Quitar foto
+              </button>
+            )}
+
+            {/* Cargar datos del ejemplo */}
             <button
               type="button"
-              className="secondary small"
+              className="ghost small"
               onClick={loadReferenceSample}
-              title="Cargar los números y galpones exactamente como figuran en la remisión Nº 4854"
+              title="Cargar los números de la remisión de ejemplo Nº 4854"
             >
-              📋 Cargar datos de la foto (Nº 4854)
+              📋 Cargar datos foto (Nº 4854)
             </button>
+
+            {/* Ocultar/mostrar preview */}
             <button
               type="button"
               className="ghost small"
               onClick={() => setShowRefImg(v => !v)}
             >
-              {showRefImg ? '📷 Ocultar foto' : '📷 Mostrar foto'}
+              {showRefImg ? '📷 Ocultar' : '📷 Ver foto'}
             </button>
           </div>
         </div>
 
         {showRefImg && (
           <div className="rx-remision-img-preview-box">
+            <div className="rx-preview-badge-bar">
+              {isViewingCaptured ? (
+                <span className="pill status ok" style={{ fontWeight: 700 }}>
+                  ✅ Foto física tomada ({photoFile?.name || 'remision.jpg'})
+                </span>
+              ) : (
+                <span className="pill status warn" style={{ fontWeight: 700 }}>
+                  ℹ️ Imagen de ejemplo de referencia (Toma una foto con el botón arriba)
+                </span>
+              )}
+            </div>
             <img
-              src={remisionRefImg}
-              alt="Formato Físico de Remisión Huevos Galpón Nº 4854"
+              src={currentImageSrc}
+              alt="Formato Físico de Remisión"
               className="rx-remision-img-preview"
               onClick={() => setLightboxOpen(true)}
-              title="Clic para ampliar en pantalla completa"
+              title="Toca para ampliar en pantalla completa"
             />
             <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              🔍 Haz clic sobre la foto para ampliarla en pantalla completa
+              🔍 Toca la foto para ampliarla en pantalla completa mientras digitas los datos
             </p>
           </div>
         )}
@@ -445,7 +609,7 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
           <div className="rx-remision-title-box">
             <strong>ANTIOQUEÑA DE INCUBACIÓN S.A.S</strong>
             <span>Remisión Huevos Galpón Detallado</span>
-            <span>NIT: 900.762.687-3</span>
+            <span className="rx-nit">NIT: 900.762.687-3</span>
           </div>
         </div>
         <div className="rx-remision-no-box">
@@ -460,6 +624,7 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
                 onChange={e => setRemisionNo(e.target.value)}
                 placeholder="0000"
                 maxLength={8}
+                inputMode="numeric"
               />
             ) : (
               <strong>{remisionNo || '—'}</strong>
@@ -468,150 +633,372 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
         </div>
       </div>
 
-      {/* ── Tabla de galpones ── */}
-      <div className="rx-remision-table-wrap">
-        <table className="rx-remision-table">
-          <thead>
-            <tr>
-              <th rowSpan={2} className="rx-remision-th-galpon">Galpón</th>
-              <th rowSpan={2}>Incubable</th>
-              <th rowSpan={2}>Fisurado</th>
-              <th colSpan={3} className="rx-remision-th-center">Cantidad de Huevo</th>
-              <th rowSpan={2}>Nº Cajas</th>
-              <th rowSpan={2}>Nº Cubetas</th>
-              {canEdit && <th rowSpan={2}></th>}
-            </tr>
-            <tr>
-              <th>Extra</th>
-              <th>Roto</th>
-              <th>Sucio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} className="rx-remision-row">
-                <td>
+      {/* ── Selector de vista (Tarjetas para celular / Tabla) ── */}
+      <div className="rx-remision-view-toolbar">
+        <span className="rx-remision-view-lbl">Vista de captura:</span>
+        <div className="rx-remision-view-pills">
+          <button
+            type="button"
+            className={`rx-view-btn ${mobileView === 'cards' ? 'active' : ''}`}
+            onClick={() => setMobileView('cards')}
+          >
+            📱 Tarjetas (Ideal celular)
+          </button>
+          <button
+            type="button"
+            className={`rx-view-btn ${mobileView === 'table' ? 'active' : ''}`}
+            onClick={() => setMobileView('table')}
+          >
+            📊 Tabla clásica
+          </button>
+        </div>
+      </div>
+
+      {/* ── CONTENIDO: Modo Tarjetas (Celular) o Modo Tabla ── */}
+      {mobileView === 'cards' ? (
+        <div className="rx-remision-cards-list">
+          {rows.map((row, i) => (
+            <div key={i} className="rx-remision-card-item">
+              <div className="rx-remision-card-head">
+                <div className="rx-remision-card-head-left">
+                  <span className="rx-remision-galpon-badge">#{i + 1}</span>
+                  <label className="rx-remision-card-galpon-lbl">Galpón:</label>
                   {canEdit ? (
                     <input
-                      className="rx-remision-cell-input"
+                      className="rx-remision-card-galpon-input"
                       value={row.galpon}
                       onChange={e => setCell(i, 'galpon', e.target.value)}
                       placeholder={`G${i + 1}`}
                     />
-                  ) : row.galpon || `G${i+1}`}
-                </td>
-                {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
-                  <td key={key}>
-                    {canEdit ? (
-                      <input
-                        type="text"
-                        className="rx-remision-cell-input num"
-                        value={row[key]}
-                        onChange={e => setCell(i, key, e.target.value)}
-                        placeholder="—"
-                      />
-                    ) : (numOrEmpty(row[key]) !== '' ? numOrEmpty(row[key]).toLocaleString('es-CO') : '—')}
-                  </td>
-                ))}
-                {canEdit && (
-                  <td>
-                    <button type="button" className="ghost small rx-remision-del" onClick={() => removeRow(i)} title="Quitar fila">✕</button>
-                  </td>
+                  ) : (
+                    <strong className="rx-remision-card-galpon-val">{row.galpon || `G${i + 1}`}</strong>
+                  )}
+                </div>
+                {canEdit && rows.length > 1 && (
+                  <button
+                    type="button"
+                    className="ghost small rx-card-del-btn"
+                    onClick={() => removeRow(i)}
+                    title="Eliminar galpón"
+                  >
+                    ✕ Quitar
+                  </button>
                 )}
-              </tr>
-            ))}
-          </tbody>
-          {/* Totales por columna */}
-          <tfoot>
-            <tr className="rx-remision-totals">
-              <td colSpan={2}><strong>Total</strong></td>
-              {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
-                <td key={key}>
-                  <strong>{colTotal(rows, key) > 0 ? colTotal(rows, key).toLocaleString('es-CO') : '—'}</strong>
-                </td>
-              ))}
-              {canEdit && <td />}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+              </div>
 
-      {canEdit && (
-        <button type="button" className="ghost small" style={{ margin: '6px 0' }} onClick={addRow}>
-          + Agregar galpón
-        </button>
-      )}
+              <div className="rx-remision-card-grid">
+                <div className="rx-card-field highlight-primary">
+                  <span className="rx-card-field-lbl">🐣 Incubable</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num highlight"
+                      value={row.incubable}
+                      onChange={e => setCell(i, 'incubable', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val highlight">{row.incubable || '—'}</span>
+                  )}
+                </div>
 
-      {/* ── Resumen de totales (bloque inferior izquierdo del formato) ── */}
-      <div className="rx-remision-bottom">
-        <div className="rx-remision-totales-box">
-          <table className="rx-remision-totales-table">
-            <tbody>
-              {[
-                ['Huevo incubable', totalIncubable],
-                ['Huevo roto',      totalRotos],
-                ['Huevo sucio',     totalSucios],
-                ['Huevo extra',     totalExtra],
-              ].map(([label, val]) => (
-                <tr key={label}>
-                  <td>{label}</td>
-                  <td><strong>{val > 0 ? val.toLocaleString('es-CO') : ''}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="rx-remision-obs">
-            <span>Observaciones</span>
-            {canEdit ? (
-              <input
-                type="text"
-                value={observaciones}
-                onChange={e => setObservaciones(e.target.value)}
-                placeholder="Anotaciones del turno…"
-              />
-            ) : <span>{observaciones || '—'}</span>}
-          </div>
-        </div>
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">📦 Nº Cajas</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.cajas}
+                      onChange={e => setCell(i, 'cajas', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.cajas || '—'}</span>
+                  )}
+                </div>
 
-        {/* ── Metadatos (derecha del formato) ── */}
-        <div className="rx-remision-meta">
-          {[
-            { label: 'Fecha de Producción', type: 'date', val: fechaProd,       set: setFechaProd },
-            { label: 'Fecha de Remisión',   type: 'date', val: fechaRemision,   set: setFechaRemision },
-            { label: 'Quien Despacha',      type: 'text', val: quienDespacha,   set: setQuienDespacha },
-            { label: 'Quien Recibe',        type: 'text', val: quienRecibe,     set: setQuienRecibe },
-          ].map(({ label, type, val, set }) => (
-            <div key={label} className="rx-remision-meta-row">
-              <span>{label}:</span>
-              {canEdit ? (
-                <input type={type} value={val} onChange={e => set(e.target.value)} />
-              ) : <span>{val || '—'}</span>}
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">⚡ Fisurado</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.fisurado}
+                      onChange={e => setCell(i, 'fisurado', e.target.value)}
+                      placeholder="—"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.fisurado || '—'}</span>
+                  )}
+                </div>
+
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">🥚 Nº Cubetas</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.cubetas}
+                      onChange={e => setCell(i, 'cubetas', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.cubetas || '—'}</span>
+                  )}
+                </div>
+
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">⭐ Extra</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.extra}
+                      onChange={e => setCell(i, 'extra', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.extra || '—'}</span>
+                  )}
+                </div>
+
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">💥 Roto</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.roto}
+                      onChange={e => setCell(i, 'roto', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.roto || '—'}</span>
+                  )}
+                </div>
+
+                <div className="rx-card-field">
+                  <span className="rx-card-field-lbl">🍂 Sucio</span>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      className="rx-card-input num"
+                      value={row.sucio}
+                      onChange={e => setCell(i, 'sucio', e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    <span className="rx-card-val">{row.sucio || '—'}</span>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
+      ) : (
+        /* ── Tabla clásica con scroll horizontal y columna fija ── */
+        <div className="rx-remision-table-wrap">
+          <p className="hint rx-table-scroll-hint">👉 Desliza horizontalmente para ver todas las columnas</p>
+          <table className="rx-remision-table">
+            <thead>
+              <tr>
+                <th rowSpan={2} className="rx-remision-th-galpon sticky-col">Galpón</th>
+                <th rowSpan={2}>Incubable</th>
+                <th rowSpan={2}>Fisurado</th>
+                <th colSpan={3} className="rx-remision-th-center">Cantidad de Huevo</th>
+                <th rowSpan={2}>Nº Cajas</th>
+                <th rowSpan={2}>Nº Cubetas</th>
+                {canEdit && <th rowSpan={2}></th>}
+              </tr>
+              <tr>
+                <th>Extra</th>
+                <th>Roto</th>
+                <th>Sucio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} className="rx-remision-row">
+                  <td className="sticky-col">
+                    {canEdit ? (
+                      <input
+                        className="rx-remision-cell-input"
+                        value={row.galpon}
+                        onChange={e => setCell(i, 'galpon', e.target.value)}
+                        placeholder={`G${i + 1}`}
+                      />
+                    ) : row.galpon || `G${i+1}`}
+                  </td>
+                  {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
+                    <td key={key}>
+                      {canEdit ? (
+                        <input
+                          type="text"
+                          className="rx-remision-cell-input num"
+                          value={row[key]}
+                          onChange={e => setCell(i, key, e.target.value)}
+                          placeholder="—"
+                          inputMode={key === 'fisurado' ? 'text' : 'numeric'}
+                        />
+                      ) : (numOrEmpty(row[key]) !== '' ? numOrEmpty(row[key]).toLocaleString('es-CO') : '—')}
+                    </td>
+                  ))}
+                  {canEdit && (
+                    <td>
+                      <button type="button" className="ghost small rx-remision-del" onClick={() => removeRow(i)} title="Quitar fila">✕</button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="rx-remision-totals">
+                <td colSpan={2} className="sticky-col"><strong>Total</strong></td>
+                {['incubable','fisurado','extra','roto','sucio','cajas','cubetas'].map(key => (
+                  <td key={key}>
+                    <strong>{colTotal(rows, key) > 0 ? colTotal(rows, key).toLocaleString('es-CO') : '—'}</strong>
+                  </td>
+                ))}
+                {canEdit && <td />}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {canEdit && (
+        <button type="button" className="secondary rx-add-galpon-btn" onClick={addRow}>
+          ➕ Agregar otro galpón
+        </button>
+      )}
+
+      {/* ── Tarjetas resumen de totales KPI ── */}
+      <div className="rx-remision-kpis-wrap">
+        <div className="rx-remision-kpi-pill highlight">
+          <span className="kpi-pill-lbl">🐣 Huevo Incubable</span>
+          <span className="kpi-pill-val">{totalIncubable > 0 ? totalIncubable.toLocaleString('es-CO') : '0'}</span>
+        </div>
+        <div className="rx-remision-kpi-pill">
+          <span className="kpi-pill-lbl">📦 Nº Cajas</span>
+          <span className="kpi-pill-val">{totalCajas > 0 ? totalCajas.toLocaleString('es-CO') : '0'}</span>
+        </div>
+        <div className="rx-remision-kpi-pill">
+          <span className="kpi-pill-lbl">🥚 Nº Cubetas</span>
+          <span className="kpi-pill-val">{totalCubetas > 0 ? totalCubetas.toLocaleString('es-CO') : '0'}</span>
+        </div>
+        <div className="rx-remision-kpi-pill">
+          <span className="kpi-pill-lbl">💥 Huevo Roto</span>
+          <span className="kpi-pill-val">{totalRotos > 0 ? totalRotos.toLocaleString('es-CO') : '0'}</span>
+        </div>
+        <div className="rx-remision-kpi-pill">
+          <span className="kpi-pill-lbl">🍂 Huevo Sucio</span>
+          <span className="kpi-pill-val">{totalSucios > 0 ? totalSucios.toLocaleString('es-CO') : '0'}</span>
+        </div>
+        <div className="rx-remision-kpi-pill">
+          <span className="kpi-pill-lbl">⭐ Huevo Extra</span>
+          <span className="kpi-pill-val">{totalExtra > 0 ? totalExtra.toLocaleString('es-CO') : '0'}</span>
+        </div>
       </div>
 
-      {/* ── Acciones ── */}
+      {/* ── Bloque inferior: Observaciones y Metadatos ── */}
+      <div className="rx-remision-bottom">
+        <div className="rx-remision-obs-box">
+          <label className="rx-remision-field-lbl">📝 Observaciones de la remisión</label>
+          {canEdit ? (
+            <textarea
+              className="rx-remision-textarea"
+              rows={3}
+              value={observaciones}
+              onChange={e => setObservaciones(e.target.value)}
+              placeholder="Anotaciones de novedades, transporte o calidad…"
+            />
+          ) : (
+            <p className="rx-remision-obs-read">{observaciones || 'Sin observaciones'}</p>
+          )}
+        </div>
+
+        <div className="rx-remision-meta">
+          <div className="rx-remision-meta-grid">
+            <div className="rx-remision-meta-item">
+              <label>📅 Fecha de Producción:</label>
+              {canEdit ? (
+                <input
+                  type="date"
+                  className="rx-meta-input"
+                  value={fechaProd}
+                  onChange={e => setFechaProd(e.target.value)}
+                />
+              ) : <span>{fechaProd || '—'}</span>}
+            </div>
+
+            <div className="rx-remision-meta-item">
+              <label>🚚 Fecha de Remisión:</label>
+              {canEdit ? (
+                <input
+                  type="date"
+                  className="rx-meta-input"
+                  value={fechaRemision}
+                  onChange={e => setFechaRemision(e.target.value)}
+                />
+              ) : <span>{fechaRemision || '—'}</span>}
+            </div>
+
+            <div className="rx-remision-meta-item">
+              <label>📤 Quien Despacha:</label>
+              {canEdit ? (
+                <input
+                  type="text"
+                  className="rx-meta-input"
+                  value={quienDespacha}
+                  onChange={e => setQuienDespacha(e.target.value)}
+                  placeholder="Nombre de quien despacha"
+                />
+              ) : <span>{quienDespacha || '—'}</span>}
+            </div>
+
+            <div className="rx-remision-meta-item">
+              <label>📥 Quien Recibe:</label>
+              {canEdit ? (
+                <input
+                  type="text"
+                  className="rx-meta-input"
+                  value={quienRecibe}
+                  onChange={e => setQuienRecibe(e.target.value)}
+                  placeholder="Nombre de quien recibe"
+                />
+              ) : <span>{quienRecibe || '—'}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Barra de acciones responsiva ── */}
       {canEdit && (
-        <div className="actions row" style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button type="button" className="primary" disabled={busy} onClick={handleSubmit}>
+        <div className="rx-remision-actions-bar">
+          <button type="button" className="primary rx-action-btn main" disabled={busy} onClick={handleSubmit}>
             {busy ? 'Guardando…' : '💾 Guardar remisión'}
           </button>
-          <button type="button" className="ghost" onClick={resetForm} title="Limpiar todos los campos">
+          <button type="button" className="secondary rx-action-btn" onClick={resetForm} title="Limpiar todos los campos">
             ↺ Limpiar
           </button>
-          <button type="button" className="ghost" onClick={() => window.print()} title="Imprimir">
+          <button type="button" className="ghost rx-action-btn" onClick={() => window.print()} title="Imprimir">
             🖨️ Imprimir
           </button>
           {onGoToReception && (
-            <button type="button" className="ghost" onClick={onGoToReception} title="Volver a la lista de envíos">
-              ← Volver a Certificar envíos
+            <button type="button" className="ghost rx-action-btn" onClick={onGoToReception} title="Volver a la lista de envíos">
+              ← Volver a Certificar
             </button>
           )}
         </div>
       )}
       {msg && (
-        <p className={`msg ${msg.kind === 'ok' ? 'ok' : msg.kind === 'warn' ? 'warn' : 'error'}`} style={{ marginTop: 8 }}>
+        <p className={`msg ${msg.kind === 'ok' ? 'ok' : msg.kind === 'warn' ? 'warn' : 'error'}`} style={{ marginTop: 12 }}>
           {msg.text}
         </p>
       )}
