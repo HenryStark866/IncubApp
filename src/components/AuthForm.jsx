@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, SUPABASE_URL } from '../lib/supabase'
-import { buildAuthRedirectUrl, persistPendingSignupContext } from '../lib/authService'
+import { buildAuthRedirectUrl, persistPendingSignupContext, clearPendingSignupContext } from '../lib/authService'
 import {
   authErrorEs,
   hasOfflineLogin,
@@ -119,6 +119,7 @@ export default function AuthForm() {
       })
       return false
     }
+    clearPendingSignupContext()
     startOfflineSession(offlineSessionFor(user, SUPABASE_URL))
     return true
   }
@@ -205,6 +206,7 @@ export default function AuthForm() {
         setMessage({ kind: 'error', text: authErrorEs(error) })
         return
       }
+      clearPendingSignupContext()
       if (data?.user) await rememberOfflineLogin({ email: cleanEmail, password, user: data.user })
     } finally {
       setBusy(false)

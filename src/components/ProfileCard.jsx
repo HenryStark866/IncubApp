@@ -387,13 +387,14 @@ export default function ProfileCard({ session, org, role, profileApi }) {
   const [machines, setMachines] = useState([])
 
   useEffect(() => {
+    if (editing) return
     if (profile) {
       setFullName(profile.full_name ?? '')
       setPhone(profile.phone ?? '')
     } else if (!loading) {
       setFullName(session.user.user_metadata?.full_name ?? '')
     }
-  }, [profile, loading, session])
+  }, [profile, loading, session, editing])
 
   useEffect(() => {
     if (!userId) return
@@ -566,7 +567,15 @@ export default function ProfileCard({ session, org, role, profileApi }) {
             <button className="primary small" onClick={onSave} disabled={saving || !fullName.trim()}>
               {saving ? 'Guardando…' : 'Guardar cambios'}
             </button>
-            <button className="ghost" onClick={() => setEditing(false)} disabled={saving}>
+            <button
+              className="ghost"
+              onClick={() => {
+                setFullName(profile?.full_name ?? session.user.user_metadata?.full_name ?? '')
+                setPhone(profile?.phone ?? '')
+                setEditing(false)
+              }}
+              disabled={saving}
+            >
               Cancelar
             </button>
           </div>
@@ -582,7 +591,14 @@ export default function ProfileCard({ session, org, role, profileApi }) {
                 : ''}
             </span>
           </div>
-          <button className="ghost" onClick={() => setEditing(true)}>
+          <button
+            className="ghost"
+            onClick={() => {
+              setFullName(profile?.full_name ?? session.user.user_metadata?.full_name ?? '')
+              setPhone(profile?.phone ?? '')
+              setEditing(true)
+            }}
+          >
             Editar
           </button>
         </div>

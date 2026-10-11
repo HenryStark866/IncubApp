@@ -14,6 +14,7 @@
     "sync:enterprise:ots": "node scripts/sync_enterprise_data.mjs --generate-ots",
     "test:watch": "vitest",
     "preview": "vite preview",
+    "manual:pdf": "node scripts/generar_manual_usuario_pdf.mjs",
     "planta3d:fotos": "node scripts/planta3d-fotos.mjs"
   },
   "dependencies": {

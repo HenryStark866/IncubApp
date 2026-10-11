@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { readBootCache, saveBootCache } from '../lib/offlineAuth'
+import { readBootCache, saveBootCache, updateOfflineUserProfile } from '../lib/offlineAuth'
 
 /**
  * Perfil del usuario con sincronización bidireccional:
@@ -48,7 +48,10 @@ export function useProfile(userId) {
       if (err) setError(err.message)
       else {
         setProfile(data)
-        if (data) saveBootCache('profile', userId, data)
+        if (data) {
+          saveBootCache('profile', userId, data)
+          if (data.full_name) updateOfflineUserProfile(userId, { full_name: data.full_name })
+        }
       }
     } catch (e) {
       setError(e?.message || String(e))
@@ -76,8 +79,15 @@ export function useProfile(userId) {
           filter: `id=eq.${userId}`,
         },
         (payload) => {
-          if (payload.eventType === 'DELETE') setProfile(null)
-          else setProfile(payload.new)
+          if (payload.eventType === 'DELETE') {
+            setProfile(null)
+          } else if (payload.new) {
+            setProfile(payload.new)
+            saveBootCache('profile', userId, payload.new)
+            if (payload.new.full_name) {
+              updateOfflineUserProfile(userId, { full_name: payload.new.full_name })
+            }
+          }
         }
       )
       .subscribe((status) => setLive(status === 'SUBSCRIBED'))
@@ -96,19 +106,44 @@ export function useProfile(userId) {
       setSaving(true)
       setError(null)
 
+      const now = new Date().toISOString()
+      const nextProfile = profile
+        ? { ...profile, ...fields, updated_at: now }
+        : { id: userId, ...fields, updated_at: now }
+
+      // Actualizar de inmediato UI local y caché offline
+      setProfile(nextProfile)
+      saveBootCache('profile', userId, nextProfile)
+      if (fields.full_name !== undefined) {
+        updateOfflineUserProfile(userId, { full_name: fields.full_name })
+      }
+
       // upsert: crea el perfil si no existe (primer inicio de sesión)
       const { error: err } = await supabase
         .from('profiles')
-        .upsert({ id: userId, ...fields }, { onConflict: 'id' })
+        .upsert({ id: userId, ...fields, updated_at: now }, { onConflict: 'id' })
 
-      setSaving(false)
       if (err) {
+        setSaving(false)
         setError(err.message)
         return { error: err.message }
       }
+
+      // Sincronizar metadatos de Auth para que session.user.user_metadata no retenga el nombre viejo
+      if (fields.full_name !== undefined) {
+        try {
+          await supabase.auth.updateUser({
+            data: { full_name: fields.full_name },
+          })
+        } catch {
+          // Red inestable: la fila en profiles ya se guardó
+        }
+      }
+
+      setSaving(false)
       return { error: null }
     },
-    [userId]
+    [userId, profile]
   )
 
   // Cambia SOLO los campos dados sobre el perfil existente.
@@ -119,17 +154,34 @@ export function useProfile(userId) {
       if (!userId) return { error: 'Sin sesión activa' }
       setSaving(true)
       setError(null)
+
+      const nextProfile = profile ? { ...profile, ...fields } : { id: userId, ...fields }
+      setProfile(nextProfile)
+      saveBootCache('profile', userId, nextProfile)
+      if (fields.full_name !== undefined) {
+        updateOfflineUserProfile(userId, { full_name: fields.full_name })
+      }
+
       const { error: err } = await supabase.from('profiles').update(fields).eq('id', userId)
       setSaving(false)
       if (err) {
         setError(err.message)
         return { error: err.message }
       }
-      // Eco optimista: el Realtime confirma después
-      setProfile((p) => (p ? { ...p, ...fields } : p))
+
+      if (fields.full_name !== undefined) {
+        try {
+          await supabase.auth.updateUser({
+            data: { full_name: fields.full_name },
+          })
+        } catch {
+          /* */
+        }
+      }
+
       return { error: null }
     },
-    [userId]
+    [userId, profile]
   )
 
   // Sube la foto de perfil (galería o selfie) al bucket público avatars y la guarda

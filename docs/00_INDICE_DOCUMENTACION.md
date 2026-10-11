@@ -25,7 +25,9 @@
 
 | Documento | Contenido |
 |-----------|-----------|
-| Manual de Usuario - IncubApp.docx | Uso por roles y pestañas |
+| [Manual_de_Usuario_IncubApp.pdf](./Manual_de_Usuario_IncubApp.pdf) | **Manual ilustrado paso a paso en PDF** (todos los roles, maquetas y secuencia de botones) |
+| [Manual_de_Usuario_IncubApp.html](./Manual_de_Usuario_IncubApp.html) | **Instructivo interactivo web e imprimible** (navegación por módulos y descarga) |
+| Manual de Usuario - IncubApp.docx | Uso por roles y pestañas (Word editable) |
 | Manual Tecnico - IncubApp.docx | Stack, migraciones, despliegue |
 | Peticiones a Coordinacion - IncubApp.docx | Decisiones pendientes de coordinación |
 | Servicios y Presupuesto - IncubApp.docx | Cloud, soporte, inversión |

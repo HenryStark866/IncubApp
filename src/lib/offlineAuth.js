@@ -152,6 +152,32 @@ export function forgetOfflineLogin(email) {
   }
 }
 
+/** Actualiza datos de perfil en los usuarios guardados para entrada sin conexión. */
+export function updateOfflineUserProfile(userId, patch = {}) {
+  if (!userId) return
+  try {
+    const all = readAll()
+    let changed = false
+    for (const key of Object.keys(all)) {
+      if (all[key]?.userId === userId) {
+        if (patch.full_name !== undefined) {
+          all[key].user = {
+            ...all[key].user,
+            user_metadata: {
+              ...(all[key].user?.user_metadata || {}),
+              full_name: patch.full_name,
+            },
+          }
+          changed = true
+        }
+      }
+    }
+    if (changed) writeAll(all)
+  } catch {
+    /* */
+  }
+}
+
 /** Clave donde supabase-js guarda la sesión: sb-<ref>-auth-token. */
 export function sessionStorageKey(supabaseUrl) {
   try {

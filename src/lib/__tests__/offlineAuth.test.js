@@ -26,6 +26,7 @@ const {
   rememberOfflineLogin,
   sessionStorageKey,
   verifyOfflineLogin,
+  updateOfflineUserProfile,
 } = await import('../offlineAuth')
 
 const URL_SB = 'https://pdxlmjlooeqlvvgbosbu.supabase.co'
@@ -41,6 +42,13 @@ describe('entrada sin conexión', () => {
     expect((await verifyOfflineLogin('ana@incubant.co', 'secreta1'))?.id).toBe('u-1')
     expect(await verifyOfflineLogin('ana@incubant.co', 'otra')).toBeNull()
     expect(await verifyOfflineLogin('nadie@incubant.co', 'secreta1')).toBeNull()
+  })
+
+  it('actualiza los datos de perfil guardados en la entrada sin conexión', async () => {
+    await rememberOfflineLogin({ email: 'ana@incubant.co', password: 'secreta1', user })
+    updateOfflineUserProfile('u-1', { full_name: 'Ana María Gómez' })
+    const logged = await verifyOfflineLogin('ana@incubant.co', 'secreta1')
+    expect(logged?.user_metadata?.full_name).toBe('Ana María Gómez')
   })
 
   it('usa la sesión guardada por supabase-js si es de esa persona', () => {

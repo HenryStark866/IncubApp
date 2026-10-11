@@ -1321,12 +1321,20 @@ export default function App() {
    * servidor con org_id del registro; esto solo lo completa si faltara, sin aprobar.
    */
   useEffect(() => {
+    // Si el usuario ya cuenta con membresías en la empresa, limpiar cualquier
+    // contexto de registro previo del dispositivo para evitar sobreescrituras accidentales
+    if (memberships.length > 0) {
+      clearPendingSignupContext()
+    }
     if (!userId || orgLoading || memberships.length > 0 || session?.offline) return
 
     const pending = readPendingSignupContext()
     const pendingOrg = pending.orgId || session?.user?.user_metadata?.org_id || null
     if (!pendingOrg) return
-    const pendingName = pending.fullName || session?.user?.user_metadata?.full_name || ''
+
+    // Protección: no sobreescribir si el perfil ya tiene un nombre guardado
+    const existingName = profile?.full_name?.trim()
+    const pendingName = (!existingName ? (pending.fullName || session?.user?.user_metadata?.full_name) : null) || ''
 
     async function ensureUserMembership() {
       try {
@@ -1343,7 +1351,7 @@ export default function App() {
       }
     }
     ensureUserMembership()
-  }, [userId, orgLoading, memberships.length, session])
+  }, [userId, orgLoading, memberships.length, session, profile?.full_name])
 
   const legal = useLegalAcceptance({ userId, orgId: org?.id })
   const [legalBusy, setLegalBusy] = useState(false)
