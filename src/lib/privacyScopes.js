@@ -87,6 +87,7 @@ export const PRIVACY_DOMAINS = [
       'plantas',
       'clasificacion',
       'recepcion',
+      'remision-galpon',
       'tablero-rotacion',
       'encintar',
       'marcar-carros',
@@ -126,6 +127,7 @@ export const PRIVACY_DOMAINS = [
         return [
           'clasificacion',
           'recepcion',
+          'remision-galpon',
           'tablero-rotacion',
           'encintar',
           'marcar-carros',
@@ -151,6 +153,7 @@ export const PRIVACY_DOMAINS = [
         'monitoreo',
         'plantas',
         'recepcion',
+        'remision-galpon',
         'cargue',
         'supervision',
         'calibracion',

@@ -15,6 +15,7 @@ import { useEggReports } from '../hooks/useEggReports'
 import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
 import { compressImage } from '../lib/image'
 import ColdRoomPanel from './ColdRoomPanel'
+import remisionRefImg from '../assets/remision-galpon-referencia.jpg'
 
 const EggRotationBoardPanelLazy = lazy(() => import('./EggRotationBoardPanel'))
 const TapingPanelLazy          = lazy(() => import('./TapingPanel'))
@@ -96,8 +97,17 @@ export default function ReceptionPanel({
   coordinatorName,
   showReception = true,
   showColdRoom = true,
+  initialSubTab = null,
+  onNavigate,
 }) {
-  const [subTab, setSubTab] = useState(showReception ? 'recepcion' : 'cuartofrio')
+  const [subTab, setSubTab] = useState(initialSubTab || (showReception ? 'recepcion' : 'cuartofrio'))
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab)
+    }
+  }, [initialSubTab])
+
   const multi = showReception && showColdRoom
 
   return (
@@ -120,19 +130,19 @@ export default function ReceptionPanel({
           {showReception && (
             <button
               type="button"
-              className={subTab === 'llegada' ? 'tab active' : 'tab'}
-              onClick={() => setSubTab('llegada')}
+              className={subTab === 'remision' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('remision')}
             >
-              🚛 Llegada a planta
+              📋 Remisión galpón
             </button>
           )}
           {showReception && (
             <button
               type="button"
-              className={subTab === 'remision' ? 'tab active' : 'tab'}
-              onClick={() => setSubTab('remision')}
+              className={subTab === 'llegada' ? 'tab active' : 'tab'}
+              onClick={() => setSubTab('llegada')}
             >
-              📋 Remisión galpón
+              🚛 Llegada a planta
             </button>
           )}
           {showReception && (
@@ -178,7 +188,7 @@ export default function ReceptionPanel({
       ) : subTab === 'llegada' ? (
         <EggArrivalPanel orgId={orgId} userId={userId} role={role} coordinatorName={coordinatorName} />
       ) : subTab === 'remision' ? (
-        <RemisionForm orgId={orgId} userId={userId} role={role} />
+        <RemisionForm orgId={orgId} userId={userId} role={role} onGoToReception={() => setSubTab('recepcion')} />
       ) : subTab === 'rotacion' ? (
         <Suspense fallback={<p className="hint">Cargando tablero de rotación…</p>}>
           <EggRotationBoardPanelLazy orgId={orgId} userId={userId} role={role} />
@@ -192,7 +202,13 @@ export default function ReceptionPanel({
           <CartMarkingPanelLazy orgId={orgId} userId={userId} role={role} />
         </Suspense>
       ) : (
-        <ReceptionInbox orgId={orgId} userId={userId} role={role} coordinatorName={coordinatorName} />
+        <ReceptionInbox
+          orgId={orgId}
+          userId={userId}
+          role={role}
+          coordinatorName={coordinatorName}
+          onOpenRemision={() => setSubTab('remision')}
+        />
       )}
       {!multi && !showReception && showColdRoom ? null : null}
     </>
@@ -223,7 +239,7 @@ function colTotal(rows, key) {
   return rows.reduce((s, r) => s + (Number(r[key]) || 0), 0)
 }
 
-function RemisionForm({ orgId, userId, role }) {
+function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const canEdit = ['owner','admin','supervisor','coordinator','reception_operator','operator','auxiliary'].includes(role)
 
   /* ── Estado principal ── */
@@ -233,12 +249,54 @@ function RemisionForm({ orgId, userId, role }) {
   const [quienDespacha, setQuienDespacha] = useState('')
   const [quienRecibe, setQuienRecibe] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  const [showRefImg, setShowRefImg] = useState(true)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   /* Filas de galpones — por defecto 3 vacías */
   const [rows, setRows] = useState(() => [emptyRow(), emptyRow(), emptyRow()])
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
+
+  const loadReferenceSample = () => {
+    setRemisionNo('4854')
+    setFechaProd('2026-10-08')
+    setFechaRemision('2026-10-08')
+    setQuienDespacha('Adrian Gil')
+    setQuienRecibe('Nelson Palacio')
+    setObservaciones('')
+    setRows([
+      { galpon: '201', incubable: 2240, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
+      { galpon: '202', incubable: 2340, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
+      { galpon: '203', incubable: 2160, fisurado: '', extra: '', roto: '', sucio: '', cajas: 6, cubetas: '' },
+      { galpon: '204', incubable: 1870, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '205', incubable: 2520, fisurado: '12030 ✓', extra: '', roto: '', sucio: '', cajas: 7, cubetas: '' },
+      { galpon: '301', incubable: 1870, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '302', incubable: 1680, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '303', incubable: 1800, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '304', incubable: 1950, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '305', incubable: 1800, fisurado: '', extra: '', roto: '', sucio: '', cajas: 5, cubetas: '' },
+      { galpon: '306', incubable: 1980, fisurado: '12840 ✓', extra: '', roto: '', cajas: 6, cubetas: '' },
+      { galpon: '401', incubable: 1440, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+      { galpon: '402', incubable: 1380, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+      { galpon: '403', incubable: 1440, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+      { galpon: '404', incubable: 1530, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+      { galpon: '405', incubable: 1380, fisurado: '', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+      { galpon: '406', incubable: 1440, fisurado: '10650 +90', extra: '', roto: '', sucio: '', cajas: 4, cubetas: '' },
+    ])
+    setMsg({ kind: 'ok', text: '✓ Se cargaron los datos exactos del formato físico de referencia Nº 4854 (Total incubable: 30.720 huevos)' })
+  }
+
+  const resetForm = () => {
+    setRemisionNo('')
+    setFechaProd('')
+    setFechaRemision(new Date().toLocaleDateString('sv-SE'))
+    setQuienDespacha('')
+    setQuienRecibe('')
+    setObservaciones('')
+    setRows([emptyRow(), emptyRow(), emptyRow()])
+    setMsg(null)
+  }
 
   const setCell = (i, key, val) =>
     setRows(rs => rs.map((r, idx) => idx === i ? { ...r, [key]: val } : r))
@@ -275,7 +333,6 @@ function RemisionForm({ orgId, userId, role }) {
         m.supabase.from('reception_remisions').insert(payload)
       )
       if (error) {
-        // Si la tabla no existe todavía, lo mostramos honestamente
         if (error.code === '42P01' || /does not exist/i.test(error.message)) {
           setMsg({ kind: 'warn', text: 'La tabla reception_remisions aún no está creada en Supabase. El formulario funciona — guárdalo cuando el administrador habilite la tabla.' })
         } else {
@@ -283,13 +340,7 @@ function RemisionForm({ orgId, userId, role }) {
         }
       } else {
         setMsg({ kind: 'ok', text: `Remisión No. ${remisionNo || '—'} guardada · ${totalIncubable.toLocaleString('es-CO')} huevos incubables` })
-        setRows([emptyRow(), emptyRow(), emptyRow()])
-        setRemisionNo('')
-        setFechaProd('')
-        setFechaRemision(new Date().toLocaleDateString('sv-SE'))
-        setQuienDespacha('')
-        setQuienRecibe('')
-        setObservaciones('')
+        resetForm()
       }
     } catch(e) {
       setMsg({ kind: 'error', text: e.message })
@@ -301,28 +352,88 @@ function RemisionForm({ orgId, userId, role }) {
   return (
     <div className="card wide rx-remision-wrap">
 
-      {/* ── Imagen de referencia del formato físico ── */}
-      <details className="rx-remision-ref-details" style={{ marginBottom: 16 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent)', userSelect: 'none' }}>
-          📄 Ver formato físico de referencia (Remisión Huevos Galpón)
-        </summary>
-        <div style={{ marginTop: 10, textAlign: 'center' }}>
+      {/* ── Modal Lightbox Pantalla Completa de la Imagen ── */}
+      {lightboxOpen && (
+        <div className="rx-remision-lightbox-overlay" onClick={() => setLightboxOpen(false)}>
+          <div className="rx-remision-lightbox-header" onClick={e => e.stopPropagation()}>
+            <strong style={{ fontSize: '1.05rem' }}>
+              📄 Formato Físico Original: Remisión Huevos Galpón Nº 4854 — ANTIOQUEÑA DE INCUBACIÓN S.A.S
+            </strong>
+            <button
+              type="button"
+              className="ghost"
+              style={{ color: '#fff', fontSize: '1.1rem', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}
+              onClick={() => setLightboxOpen(false)}
+            >
+              ✕ Cerrar
+            </button>
+          </div>
           <img
-            src="/assets/remision-galpon-referencia.jpg"
-            alt="Formato físico Remisión Huevos Galpón — ANTIOQUEÑA DE INCUBACIÓN S.A.S"
-            style={{
-              maxWidth: '100%',
-              width: 520,
-              borderRadius: 8,
-              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-              border: '1px solid var(--border, #e2e8f0)',
-            }}
+            src={remisionRefImg}
+            alt="Formato físico original Remisión Huevos Galpón Nº 4854"
+            className="rx-remision-lightbox-img"
+            onClick={e => e.stopPropagation()}
           />
-          <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Formato oficial · Remisión Huevos Galpón Detallado · NIT 900.762.687-3
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginTop: 10 }}>
+            Haz clic fuera de la foto o en Cerrar para volver.
           </p>
         </div>
-      </details>
+      )}
+
+      {/* ── Tarjeta de referencia visible con la imagen física ── */}
+      <div className="rx-remision-ref-card">
+        <div className="rx-remision-ref-header">
+          <div className="rx-remision-ref-title">
+            <span style={{ fontSize: '1.4rem' }}>📸</span>
+            <div>
+              <h3>Formato Físico Oficial: Remisión Huevos Galpón (Nº 4854)</h3>
+              <p className="hint" style={{ margin: 0 }}>
+                Antioqueña de Incubación S.A.S · NIT: 900.762.687-3 · Formato físico diligenciado en granja
+              </p>
+            </div>
+          </div>
+          <div className="rx-remision-ref-actions">
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => setLightboxOpen(true)}
+              title="Ver imagen en alta resolución en pantalla completa"
+            >
+              🔍 Ampliar foto
+            </button>
+            <button
+              type="button"
+              className="secondary small"
+              onClick={loadReferenceSample}
+              title="Cargar los números y galpones exactamente como figuran en la remisión Nº 4854"
+            >
+              📋 Cargar datos de la foto (Nº 4854)
+            </button>
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => setShowRefImg(v => !v)}
+            >
+              {showRefImg ? '📷 Ocultar foto' : '📷 Mostrar foto'}
+            </button>
+          </div>
+        </div>
+
+        {showRefImg && (
+          <div className="rx-remision-img-preview-box">
+            <img
+              src={remisionRefImg}
+              alt="Formato Físico de Remisión Huevos Galpón Nº 4854"
+              className="rx-remision-img-preview"
+              onClick={() => setLightboxOpen(true)}
+              title="Clic para ampliar en pantalla completa"
+            />
+            <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              🔍 Haz clic sobre la foto para ampliarla en pantalla completa
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* ── Encabezado tipo formato ── */}
       <div className="rx-remision-header">
@@ -393,8 +504,7 @@ function RemisionForm({ orgId, userId, role }) {
                   <td key={key}>
                     {canEdit ? (
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         className="rx-remision-cell-input num"
                         value={row[key]}
                         onChange={e => setCell(i, key, e.target.value)}
@@ -483,13 +593,21 @@ function RemisionForm({ orgId, userId, role }) {
 
       {/* ── Acciones ── */}
       {canEdit && (
-        <div className="actions row" style={{ marginTop: 12 }}>
+        <div className="actions row" style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" className="primary" disabled={busy} onClick={handleSubmit}>
             {busy ? 'Guardando…' : '💾 Guardar remisión'}
+          </button>
+          <button type="button" className="ghost" onClick={resetForm} title="Limpiar todos los campos">
+            ↺ Limpiar
           </button>
           <button type="button" className="ghost" onClick={() => window.print()} title="Imprimir">
             🖨️ Imprimir
           </button>
+          {onGoToReception && (
+            <button type="button" className="ghost" onClick={onGoToReception} title="Volver a la lista de envíos">
+              ← Volver a Certificar envíos
+            </button>
+          )}
         </div>
       )}
       {msg && (
@@ -1031,7 +1149,7 @@ function ArrivalRow({ arrival, getUrl }) {
 }
 
 /* ══ Bandeja de recepción (envíos de las granjas) ════════════ */
-function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
+function ReceptionInbox({ orgId, userId, role, coordinatorName, onOpenRemision }) {
   const canCertify = ['owner', 'admin', 'supervisor', 'coordinator', 'reception_operator'].includes(role)
   const er = useEggReports(orgId, userId)
   const [rooms, setRooms] = useState([])
@@ -1114,6 +1232,31 @@ function ReceptionInbox({ orgId, userId, role, coordinatorName }) {
           <span className="kpi-value">{num(kpis.incToday)}</span>
           <span className="kpi-label">Huevo incubable recibido hoy</span>
         </div>
+      </div>
+
+      {/* ── Acceso directo al formato físico oficial con thumbnail ── */}
+      <div className="rx-remision-banner-card" style={{ marginTop: 14 }}>
+        <img
+          src={remisionRefImg}
+          alt="Formato oficial Antioqueña"
+          className="rx-remision-banner-thumb"
+        />
+        <div className="rx-remision-banner-info">
+          <strong>📋 Formato Oficial: Remisión Huevos Galpón (Nº 4854)</strong>
+          <span className="hint">
+            Consulta la imagen escaneada original de Antioqueña de Incubación S.A.S o captura el formato físico digitalmente.
+          </span>
+        </div>
+        {onOpenRemision && (
+          <button
+            type="button"
+            className="primary small"
+            onClick={onOpenRemision}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            📄 Ver formato e imagen
+          </button>
+        )}
       </div>
 
       {er.error && <p className="msg error">{er.error}</p>}

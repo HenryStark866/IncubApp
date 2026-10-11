@@ -98,6 +98,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
     { id: 'clasificacion', label: 'Clasificación', group: 'Recepción y Planta', tab: 'clasificacion', hint: 'Carros, mapa de cargue y orden del día' },
     { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Recepción y Planta', tab: 'recepcion', hint: 'Llegadas a planta y certificación' },
+    { id: 'remision-galpon', label: 'Remisión galpón', group: 'Recepción y Planta', tab: 'remision-galpon', hint: 'Formato físico oficial y captura de remisión huevos galpón' },
     { id: 'liquidar-cargues', label: 'Liquidar cargues', group: 'Recepción y Planta', tab: 'liquidar-cargues', hint: 'Liquidación y balance de cargues' },
     { id: 'auditoria-huevos', label: 'Auditoría de huevos', group: 'Control de Calidad', tab: 'auditoria-huevos', hint: 'Control de calidad, fisuras y muestras' },
     { id: 'autorizar-datos', label: 'Autorizar datos', group: 'Control de Calidad', tab: 'autorizar-datos', hint: 'Aprobación y validación de lotes' },
@@ -184,6 +185,7 @@ const SHIFT_WORKER_ROLES = [
 const RECEPTION_OPERATOR_MENU = [
   { id: 'clasificacion',      label: '📦 Clasificación',             hint: 'Carros, mapa de cargue y orden del día' },
   { id: 'recepcion',          label: '🚛 Recepción',                hint: 'Llegadas a planta y certificación' },
+  { id: 'remision-galpon',    label: '📋 Remisión galpón',          hint: 'Formato físico oficial y captura de remisión huevos galpón' },
   { id: 'tablero-rotacion',   label: '🔄 Rotación de huevo',         hint: 'Tablero de rotación de lotes en cuarto frío' },
   { id: 'encintar',           label: '🎀 Encintar',                  hint: 'Sellado con cinta de los carros previo al cargue' },
   { id: 'marcar-carros',      label: '🏷️ Marcar carros',             hint: 'Identificación y marcación de carros por lote' },

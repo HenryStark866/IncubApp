@@ -149,6 +149,7 @@ const OMNISCIENT_TABS = [
   'huevos',
   'clasificacion',
   'recepcion',
+  'remision-galpon',
   'liquidar-cargues',
   'auditoria-huevos',
   'autorizar-datos',
@@ -1078,6 +1079,17 @@ function Workspace({
               role={role}
               showReception
               showColdRoom
+              coordinatorName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={setTab}
+            />
+          ) : tab === 'remision-galpon' && org && can('remision-galpon') ? (
+            <ReceptionPanel
+              orgId={org.id}
+              userId={session.user.id}
+              role={role}
+              showReception
+              showColdRoom
+              initialSubTab="remision"
               coordinatorName={profileApi.profile?.full_name ?? session.user.email}
               onNavigate={setTab}
             />
