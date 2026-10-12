@@ -71,7 +71,7 @@ export const PRIVACY_DOMAINS = [
     // Supervisión nativa: gerencia puede registrar/ver rondas como el supervisor.
     // `datos-op`: centro de datos (lotes, cantidades, fechas, cargas actuales) que
     // arranca el pipeline automatizado de clasificación/cargue.
-    tabs: ['gerencia', 'informes', 'datos-op', 'proyeccion-broiler', 'supervision', 'panel', 'monitoreo', 'plantas'],
+    tabs: ['gerencia', 'informes', 'datos-op', 'flujo', 'proyeccion-broiler', 'supervision', 'panel', 'monitoreo', 'plantas'],
     members: (role, area) =>
       role === 'management' ||
       role === 'management_auxiliary' ||
@@ -109,6 +109,7 @@ export const PRIVACY_DOMAINS = [
       'calidad',
       'vacunacion',
       'proyeccion-broiler',
+      'flujo',
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
@@ -118,16 +119,17 @@ export const PRIVACY_DOMAINS = [
      */
     tabsFor: (role, _area) => {
       // 06-10-2026: el auxiliar de calidad y el de producción registran los formatos de calidad
-      if (role === 'quality_auxiliary') return ['calidad', 'supervision', 'horarios', 'historial']
-      if (role === 'auxiliary_production') return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial', 'calidad']
+      if (role === 'quality_auxiliary') return ['flujo', 'calidad', 'supervision', 'horarios', 'historial']
+      if (role === 'auxiliary_production') return ['flujo', 'supervision', 'calibracion', 'horarios', 'cargue', 'historial', 'calidad']
       if (role === 'operator' || role === 'auxiliary') {
-        return ['supervision', 'calibracion', 'horarios', 'cargue', 'historial']
+        return ['flujo', 'supervision', 'calibracion', 'horarios', 'cargue', 'historial']
       }
       if (role === 'reception_operator') {
         // 05-10-2026: menú propio del operario de recepción. Se conservan «supervision»
         // (sus rondas por turno: el cumplimiento le exige 6), «cargue» e «historial»
         // (su inicio los enlaza; sin ellos esos accesos lo devolvían al inicio).
         return [
+          'flujo',
           'clasificacion',
           'recepcion',
           'remision-galpon',
@@ -148,10 +150,11 @@ export const PRIVACY_DOMAINS = [
         ]
       }
       if (role === 'management' || role === 'management_auxiliary') {
-        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad', 'vacunacion', 'proyeccion-broiler']
+        return ['flujo', 'panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad', 'vacunacion', 'proyeccion-broiler']
       }
       // supervisor y líder de área de planta: dominio completo
       const completo = [
+        'flujo',
         'panel',
         'monitoreo',
         'plantas',
@@ -322,7 +325,7 @@ export const PRIVACY_DOMAINS = [
     id: 'veterinary',
     label: 'Sanidad veterinaria',
     description: 'Vacunas, medicina, fertilidad y wet tunnels',
-    tabs: ['veterinaria', 'vacunacion'],
+    tabs: ['veterinaria', 'vacunacion', 'flujo'],
     members: (role, area) =>
       role === 'plant_veterinarian' ||
       role === 'vaccination_auxiliary' ||

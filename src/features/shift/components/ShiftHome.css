@@ -692,3 +692,11 @@ html[data-theme='dark'] .sh-hero {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Mi parte del flujo de producción, arriba del inicio (12-10-2026) */
+.sh-flow {
+  padding: 12px 16px 0;
+}
+.sh-flow .pf-root {
+  margin: 0;
+}

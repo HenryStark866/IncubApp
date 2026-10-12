@@ -74,3 +74,13 @@ describe('estado de la incubadora con varios lotes en un cargue', () => {
     expect(s.phase).not.toBe('completed')
   })
 })
+
+describe('lotes de relleno', () => {
+  it('«POR CONFIRMAR» no cruza una incubadora con la transferencia de otra', async () => {
+    const { computeAllMachineStates } = await import('../machineOpsState')
+    const loads = [{ id: 'l', machine_id: 'm21', lote: 'POR CONFIRMAR', loaded_at: '2026-09-27T17:00:00-05:00' }]
+    const transfers = [{ id: 't', lote: 'POR CONFIRMAR', source_machine_id: null, transferred_at: '2026-10-10T06:30:00-05:00', room_ids: [] }]
+    const s = computeAllMachineStates({ machines: [{ id: 'm21', type: 'setter', status: 'active' }], loads, transfers, hatches: [], now: Date.parse('2026-10-12T12:00:00Z') }).get('m21')
+    expect(s.phase).toBe('incubating')
+  })
+})

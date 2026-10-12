@@ -35,7 +35,7 @@ describe('inventario de vacunas', () => {
     expect(dos[0]).toMatchObject({ lote: '47', doses: 32000, chicks: 15800, dosisPorPollito: 1.01, vacunas: ['Marek HVT', 'Gumboro'] })
   })
   it('formatos del auxiliar de vacunación como en papel', () => {
-    expect(formatosDe('vacunacion').map((f) => f.id)).toEqual(['nitrogen_fridge', 'sexing_count', 'navel_quality'])
+    expect(formatosDe('vacunacion').map((f) => f.id)).toEqual(['chick_quality', 'nitrogen_fridge', 'sexing_count', 'navel_quality'])
     const pr = formatoPorId('nitrogen_fridge').calcular({ tempNevera: '2,3', tanque1: '36', tanque2: '41', relleno1: 'si' })
     expect(pr.status).toBe('ok')
     expect(pr.resumen).toMatch(/relleno tanque 1/)

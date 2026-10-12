@@ -32,3 +32,4 @@
 20261007_jerarquia_usuarios.sql
 20261012_remision_galpon.sql
 20261012_equipo_mantenimiento_traslados.sql
+20261012_flujo_produccion.sql

@@ -238,6 +238,10 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const [quienDespacha, setQuienDespacha] = useState('')
   const [quienRecibe, setQuienRecibe] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  // Cotejo en el cuarto frío (12-10-2026): conteo de planta, visto bueno o novedad
+  const [conteoPlanta, setConteoPlanta] = useState('')
+  const [verificacion, setVerificacion] = useState('')
+  const [novedad, setNovedad] = useState('')
   const [showRefImg, setShowRefImg] = useState(true)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [photoFile, setPhotoFile] = useState(null)
@@ -380,6 +384,9 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
     setQuienDespacha('')
     setQuienRecibe('')
     setObservaciones('')
+    setConteoPlanta('')
+    setVerificacion('')
+    setNovedad('')
     setRows([emptyRow(), emptyRow(), emptyRow()])
     removeCapturedPhoto()
     setMsg(null)
@@ -440,6 +447,9 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
         quien_despacha: quienDespacha.trim() || null,
         quien_recibe: quienRecibe.trim() || null,
         observaciones: observaciones.trim() || null,
+        verificacion: verificacion || null,
+        novedad: verificacion === 'novedad' ? novedad.trim() || null : null,
+        conteo_planta: numOrEmpty(conteoPlanta) || null,
         // Se guardan números, no el texto digitado («2.240» → 2240)
         galpon_rows: filledRows.map((r) => ({
           galpon: String(r.galpon).trim(),
@@ -453,7 +463,30 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
         })),
         totales: { incubable: totalIncubable, roto: totalRotos, sucio: totalSucios, extra: totalExtra, fisurado: totalFisurado, cajas: totalCajas, cubetas: totalCubetas },
       }
-      const { error } = await supabase.from('reception_remisions').insert(payload)
+      if (verificacion === 'novedad' && !novedad.trim()) {
+        setBusy(false)
+        setMsg({ kind: 'error', text: 'Describe la novedad (qué no cuadra con la remisión).' })
+        return
+      }
+      let { error } = await supabase.from('reception_remisions').insert(payload)
+      // Servidor sin la migración 20261012_flujo_produccion: se guarda sin el cotejo
+      if (error && /verificacion|novedad|conteo_planta/.test(error.message || '')) {
+        const { verificacion: _v, novedad: _n, conteo_planta: _c, ...sinCotejo } = payload
+        ;({ error } = await supabase.from('reception_remisions').insert(sinCotejo))
+      }
+      if (!error && verificacion === 'novedad') {
+        try {
+          await supabase.from('notifications').insert({
+            org_id: orgId,
+            title: `Novedad en la remisión Nº ${remisionNo.trim()}`,
+            body: `${novedad.trim()} · remisión ${totalIncubable.toLocaleString('es-CO')} incubables${numOrEmpty(conteoPlanta) ? `, contados en planta ${Number(numOrEmpty(conteoPlanta)).toLocaleString('es-CO')}` : ''}.`,
+            kind: 'reception_novelty',
+            created_by: userId,
+          })
+        } catch {
+          /* la remisión ya quedó guardada */
+        }
+      }
       if (error) {
         if (uploadedPhotoPath) await supabase.storage.from('machine-checks').remove([uploadedPhotoPath])
         if (error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message)) {
@@ -1052,6 +1085,34 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
         </div>
       </div>
 
+      {/* ── Cotejo en el cuarto frío: visto bueno o novedad ── */}
+      {canEdit && (
+        <div className="rx-remision-cotejo">
+          <h4>✅ Cotejo en el cuarto frío</h4>
+          <p className="hint">Descarga el huevo con el conductor, ubícalo en el cuarto frío, cuéntalo y compáralo con la remisión.</p>
+          <label className="rx-remision-field-lbl">
+            Huevos incubables contados en planta
+            <input type="text" inputMode="numeric" className="rx-meta-input" value={conteoPlanta} onChange={(e) => setConteoPlanta(e.target.value)} placeholder={totalIncubable ? totalIncubable.toLocaleString('es-CO') : '0'} />
+          </label>
+          {numOrEmpty(conteoPlanta) !== '' && totalIncubable > 0 && Number(numOrEmpty(conteoPlanta)) !== totalIncubable && (
+            <p className="msg warn">
+              Diferencia de {Math.abs(Number(numOrEmpty(conteoPlanta)) - totalIncubable).toLocaleString('es-CO')} huevos con la remisión: repórtala como novedad.
+            </p>
+          )}
+          <div className="rx-remision-cotejo-btns" role="radiogroup" aria-label="Resultado del cotejo">
+            <button type="button" className={verificacion === 'ok' ? 'primary small' : 'secondary small'} aria-pressed={verificacion === 'ok'} onClick={() => setVerificacion('ok')}>
+              ✓ Visto bueno
+            </button>
+            <button type="button" className={verificacion === 'novedad' ? 'primary small' : 'secondary small'} aria-pressed={verificacion === 'novedad'} onClick={() => setVerificacion('novedad')}>
+              ⚠ Reportar novedad
+            </button>
+          </div>
+          {verificacion === 'novedad' && (
+            <textarea className="rx-remision-textarea" rows={2} value={novedad} onChange={(e) => setNovedad(e.target.value)} placeholder="Qué no cuadra: huevos de menos, rotos, cajas, sucio…" />
+          )}
+        </div>
+      )}
+
       {/* ── Barra de acciones responsiva ── */}
       {canEdit && (
         <div className="rx-remision-actions-bar">
@@ -1091,7 +1152,7 @@ function RecentRemisions({ orgId, reloadKey }) {
     let alive = true
     supabase
       .from('reception_remisions')
-      .select('id, remision_no, fecha_remision, quien_despacha, totales, photo_path, created_at')
+      .select('*')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .limit(10)
@@ -1131,6 +1192,24 @@ function RecentRemisions({ orgId, reloadKey }) {
               <span>{r.fecha_remision || new Date(r.created_at).toLocaleDateString('es-CO')}</span>
               <span>{Number(r.totales?.incubable || 0).toLocaleString('es-CO')} incubables</span>
               {r.quien_despacha && <span>Despacha: {r.quien_despacha}</span>}
+              {r.verificacion === 'ok' ? (
+                <span className="pill status ok">✓ Visto bueno</span>
+              ) : r.verificacion === 'novedad' ? (
+                <span className="pill status warn" title={r.novedad || ''}>⚠ Novedad</span>
+              ) : (
+                'verificacion' in r && (
+                  <button
+                    type="button"
+                    className="secondary small"
+                    onClick={async () => {
+                      await supabase.from('reception_remisions').update({ verificacion: 'ok' }).eq('id', r.id)
+                      setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, verificacion: 'ok' } : x)))
+                    }}
+                  >
+                    ✓ Dar visto bueno
+                  </button>
+                )
+              )}
               {r.photo_path && (
                 <button type="button" className="ghost small" onClick={() => openPhoto(r.photo_path)}>
                   📷 Foto

@@ -4,8 +4,9 @@
  * consumo por lote de pollito y sus formatos (PR06-1 nevera y nitrógeno, sexaje y
  * conteo, ombligo y cicatrización). La líder de producción ve lo mismo en su inicio.
  */
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { useVaccines } from '../hooks/useVaccines'
+const ProductionFlowPanel = lazy(() => import('./ProductionFlowPanel'))
 import { startShiftActivity, completeShiftActivity } from '../hooks/useShiftOps'
 import { MOV_LABEL, STORAGE_LABEL, stockByProduct, loteSugerido, consumoPorLote, pendientesVacunacion } from '../lib/vaccineStock'
 import { ESTADOS } from '../lib/qualityFormats'
@@ -86,6 +87,11 @@ export default function VaccinationPanel({ orgId, userId, role, userName, orgNam
       {api.error && <p className="msg error">{api.error}</p>}
       {msg && <p className={`msg ${msg.error ? 'error' : 'ok'}`}>{msg.text}</p>}
 
+      {vista === 'hoy' && (
+        <Suspense fallback={null}>
+          <ProductionFlowPanel orgId={orgId} role={role} compact title="Nacimientos en el flujo" />
+        </Suspense>
+      )}
       {vista === 'hoy' && <Hoy api={api} stock={stock} orgId={orgId} userName={userName} onFormato={abrirFormato} onVista={setVista} onMsg={aviso} />}
       {vista === 'inventario' && <Inventario api={api} stock={stock} esLider={esLider} userId={userId} orgName={orgName} userName={userName} onMsg={aviso} />}
       {vista === 'consumo' && <Consumo api={api} stock={stock} userId={userId} esLider={esLider} onMsg={aviso} />}

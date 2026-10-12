@@ -55,10 +55,14 @@ export function ageLabel(hours) {
   return `${d}d ${h}h`
 }
 
+/** Textos de relleno que no identifican un lote: nunca sirven para cruzar registros */
+const PLACEHOLDER_LOTE = /^(por confirmar|sin registrar|sin dato|sin lote|—|-)$/i
+
 function loteKey(lote) {
-  return String(lote || '')
+  const k = String(lote || '')
     .trim()
     .toLowerCase()
+  return PLACEHOLDER_LOTE.test(k) ? '' : k
 }
 
 /**

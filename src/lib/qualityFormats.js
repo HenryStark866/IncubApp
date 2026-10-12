@@ -236,6 +236,8 @@ export const FORMATOS = [
   {
     id: 'chick_quality',
     area: 'calidad',
+    // 12-10-2026: al nacer, la auxiliar de vacunación reporta cantidades Y pesos
+    tambien: ['vacunacion'],
     label: 'Calidad del pollito',
     icon: '🐣',
     codigo: 'FOCAL-05',
@@ -380,4 +382,4 @@ export const FORMATOS = [
 export const formatoPorId = (id) => FORMATOS.find((f) => f.id === id)
 
 /** Formatos de un área: «calidad» o «vacunacion» */
-export const formatosDe = (area) => FORMATOS.filter((f) => f.area === area)
+export const formatosDe = (area) => FORMATOS.filter((f) => f.area === area || (f.tambien || []).includes(area))

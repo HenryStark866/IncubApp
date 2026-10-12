@@ -5,7 +5,8 @@
  * máquinas, transferencias y nacimientos, y su equipo (lo que registra cada auxiliar y
  * las tareas que les asigna).
  */
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
+const ProductionFlowPanel = lazy(() => import('../../../components/ProductionFlowPanel'))
 import { isMobileDevice } from '../../../hooks/useIsMobile'
 import { useLeaderHome } from '../hooks/useLeaderHome'
 import { useLoadClassification } from '../../../hooks/useLoadClassification'
@@ -95,6 +96,9 @@ export default function ProductionLeaderHome({ orgId, userId, userName, onNaviga
       </header>
       {home.error && <p className="lh-msg is-error">{home.error}</p>}
       {msg && <p className={`lh-msg ${msg.error ? 'is-error' : 'is-ok'}`}>{msg.text}</p>}
+      <Suspense fallback={null}>
+        <ProductionFlowPanel orgId={orgId} role="coordinator" onNavigate={onNavigate} compact />
+      </Suspense>
 
       {!vista ? (
         <div className="lh-card">

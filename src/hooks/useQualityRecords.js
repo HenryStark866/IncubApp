@@ -78,8 +78,19 @@ export function useQualityRecords(orgId, kinds = []) {
         if (paths.length) await supabase.storage.from('machine-checks').remove(paths)
         return { error: isMissingTable(e) ? 'Falta actualizar el servidor (migración 20261006_formatos_calidad).' : e.message }
       }
+      // 12-10-2026: el conteo (sexaje) y el peso del pollito actualizan solos su nacimiento
+      let hatch = null
+      if (['sexing_count', 'chick_quality'].includes(row.kind)) {
+        try {
+          const { data: s } = await supabase.auth.getSession()
+          const { syncHatchFromRecord } = await import('../lib/hatchFromCounts')
+          hatch = await syncHatchFromRecord({ orgId, userId: s?.session?.user?.id || null, record: row })
+        } catch {
+          /* el formato ya quedó guardado */
+        }
+      }
       await load()
-      return { error: null }
+      return { error: null, hatch }
     },
     [orgId, load],
   )

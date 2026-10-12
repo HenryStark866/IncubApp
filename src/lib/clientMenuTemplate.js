@@ -95,6 +95,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'equipo-mantenimiento', label: 'Equipo y sedes', group: 'Mantenimiento', tab: 'equipo-mantenimiento', hint: 'Sedes de los técnicos, asignar OT y actividades, dónde está cada uno' },
     { id: 'horarios', label: 'Horarios de turno', group: 'Operación', tab: 'horarios' },
     { id: 'monitoreo', label: 'Monitoreo', group: 'Operación', tab: 'monitoreo' },
+    { id: 'flujo', label: 'Flujo de producción', group: 'Operación', tab: 'flujo', hint: 'Recepción → clasificación → cargue → calibración → transferencia → nacimiento: qué toca hoy y quién' },
     { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },
     { id: 'proyeccion-broiler', label: 'Proyección broiler', group: 'Operación', tab: 'proyeccion-broiler', hint: 'Pollitos que nacen por día con cargues, transferencias y nacimientos reales' },
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
@@ -186,6 +187,7 @@ const SHIFT_WORKER_ROLES = [
  * Se usa en buildClientNavItems para asignar grupo y etiqueta específicos.
  */
 const RECEPTION_OPERATOR_MENU = [
+  { id: 'flujo',              label: '🔁 Mi flujo de hoy',          hint: 'Lo que te toca hoy: recepción, remisión y clasificación' },
   { id: 'clasificacion',      label: '📦 Clasificación',             hint: 'Carros, mapa de cargue y orden del día' },
   { id: 'recepcion',          label: '🚛 Recepción',                hint: 'Llegadas a planta y certificación' },
   { id: 'remision-galpon',    label: '📋 Remisión galpón',          hint: 'Formato físico oficial y captura de remisión huevos galpón' },

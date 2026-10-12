@@ -96,6 +96,7 @@ import {
   TapingPanel,
   CartMarkingPanel,
   BroilerProjectionPanel,
+  ProductionFlowPanel,
   MaintenanceTeamPanel,
   ManualsCenter,
   MisionalesPanel,
@@ -165,6 +166,7 @@ const OMNISCIENT_TABS = [
   'encintar',
   'marcar-carros',
   'proyeccion-broiler',
+  'flujo',
   'equipo-mantenimiento',
   'manuales',
   'gerencia',
@@ -1158,6 +1160,17 @@ function Workspace({
               userName={profileApi.profile?.full_name ?? session.user.email}
               orgName={org.name}
             />
+          ) : tab === 'flujo' && org && can('flujo') ? (
+            <div className="card wide">
+              <ProductionFlowPanel
+                orgId={org.id}
+                role={role}
+                onNavigate={(t) => {
+                  if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                  else setTab('hoy')
+                }}
+              />
+            </div>
           ) : tab === 'proyeccion-broiler' && org && can('proyeccion-broiler') ? (
             <div className="card wide">
               <BroilerProjectionPanel orgId={org.id} />

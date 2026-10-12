@@ -32,6 +32,7 @@ export const NOTIF_KINDS = {
   load_map: { label: 'Mapa de cargue', icon: '🗺️' },
   load_order: { label: 'Orden de cargue', icon: '🥚' },
   mission_trip: { label: 'Traslado misional', icon: '🚗' },
+  reception_novelty: { label: 'Novedad de recepción', icon: '⚠️' },
 }
 
 /** 12-10-2026: el traslado misional es para SST y los jefes; no para todo el turno */

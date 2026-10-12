@@ -39,6 +39,7 @@ const MachineAssetHub = lazy(() => import('../features/maintenance/components/Ma
 // Etapa 3: decisiones, equipo y plan del día del líder según su área (va encima de lo que ya había).
 const LeaderAreaHome = lazy(() => import('../features/leader/components/LeaderAreaHome'))
 const BroilerProjectionPanel = lazy(() => import('./BroilerProjectionPanel'))
+const ProductionFlowPanel = lazy(() => import('./ProductionFlowPanel'))
 const MaintenanceTeamPanel = lazy(() => import('../features/maintenance/components/MaintenanceTeamPanel'))
 
 /** Vista SIG que eligió el líder de planta la última vez */
@@ -732,6 +733,9 @@ export default function LeaderDashboard({
 
         {sig === 'produccion' ? (
           <>
+            <Suspense fallback={null}>
+              <ProductionFlowPanel orgId={orgId} role={role} onNavigate={onNavigate} />
+            </Suspense>
             {areaHome}
             <Suspense fallback={<p className="ldr-feed-empty">Cargando proyección broiler…</p>}>
               <BroilerProjectionPanel orgId={orgId} />

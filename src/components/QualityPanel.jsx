@@ -121,7 +121,12 @@ function Formulario({ formato, api, onGuardado, loteInicial = '' }) {
       fotos,
     )
     setBusy(false)
-    onGuardado(res.error || `${formato.label} guardado · ${ESTADOS[calc.status].label}`, Boolean(res.error))
+    const nac = res.hatch?.updated
+      ? res.hatch.patch.actual_chicks
+        ? ` · nacimiento actualizado: ${Number(res.hatch.patch.actual_chicks).toLocaleString('es-CO')} pollitos${res.hatch.patch.status === 'completed' ? ' (cerrado)' : ''}`
+        : ' · peso del pollito anotado en el nacimiento'
+      : ''
+    onGuardado(res.error || `${formato.label} guardado · ${ESTADOS[calc.status].label}${nac}`, Boolean(res.error))
   }
 
   return (

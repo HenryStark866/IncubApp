@@ -66,6 +66,29 @@ export const MANUALS = [
     ],
   },
   {
+    id: 'flujo',
+    title: 'Flujo de producción (todos en la planta)',
+    audience: 'Recepción, turno, vacunación, supervisión y líderes',
+    icon: '🔁',
+    sections: [
+      {
+        title: 'Cómo va el huevo de punta a punta',
+        steps: [
+          { text: 'Abre «Flujo de producción» (en tu inicio aparece «Mi parte del flujo hoy»). Arriba está lo que toca ya, con quién lo hace y el botón «Ir ›».', tab: 'flujo' },
+          '1. Recepción (operario de recepción): reporta el huevo recibido con la foto de la etiqueta 🏷️ en «Llegada a planta».',
+          '2. Descarga con el conductor, ubica el huevo en el cuarto frío, cuéntalo y cotéjalo con la remisión: en «Remisión galpón» escribe lo contado y da ✓ Visto bueno o ⚠ Reporta la novedad (le llega a la líder de producción).',
+          '3. Clasificación (operario de recepción): los días sin nacimiento (miércoles, sábado y domingo). Cada cargue lleva 12 carros.',
+          '4. Mapas y cargue: los mapas entran según el broiler. Se carga la noche anterior a un día de nacimiento; lo normal son dos incubadoras. El flujo dice cuántas faltan y cuáles están libres.',
+          '5. Calibración de incubadoras: entre 1 día 12 h y 2 días 12 h de incubación.',
+          '6. Transferencia (turneros, auxiliares o líderes): día 18. Al guardarla se programa solo el nacimiento y se piden las calibraciones de las nacedoras.',
+          '7. Calibración de nacedoras: después de la transferencia, con el huevo adentro.',
+          '8. Nacimiento (auxiliar de vacunación): día 21. En «Vacunación» registra «Sexaje y conteo» de cada lote y la «Calidad del pollito» (pesos). Con todos los lotes contados, el nacimiento queda cerrado solo con los pollitos reales y el peso promedio.',
+        ],
+        tip: 'Si una etapa queda en rojo, algo se atrasó: el flujo lo dice y lleva a la pantalla donde se resuelve. Mientras más se registre, más exacta es la proyección y más dirige la app la operación.',
+      },
+    ],
+  },
+  {
     id: 'lider-planta',
     title: 'Líder de planta (SIG Producción y SIG Mantenimiento)',
     audience: 'Líder / jefe de planta',
@@ -356,6 +379,7 @@ export function manualIdsFor(role, area) {
   if (role === 'management' || role === 'management_auxiliary' || (role === 'coordinator' && a === 'management')) own.push('gerencia', 'broiler')
   if (role === 'driver') own.push('conductor')
   if (role === 'owner' || role === 'admin') own.push('gerencia', 'lider-planta', 'lider-mantenimiento')
+  if (['coordinator', 'supervisor', 'operator', 'auxiliary', 'auxiliary_production', 'quality_auxiliary', 'reception_operator', 'vaccination_auxiliary', 'management', 'owner', 'admin'].includes(role)) own.push('flujo')
   const ids = [...new Set([...own, 'basico'])]
   return { own: ids, others: MANUALS.map((m) => m.id).filter((id) => !ids.includes(id)) }
 }

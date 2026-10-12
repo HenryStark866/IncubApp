@@ -7,9 +7,12 @@
  * El líder de área conserva su LeaderDashboard: no pasa por aquí.
  * Henry Stark Desarrollador · CDH Maker
  */
-import { useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { usePerformance } from '../../../hooks/usePerformance'
 import { useShiftHome } from '../hooks/useShiftHome'
+// 12-10-2026: «mi parte del flujo» arriba del inicio de cada quien
+const ProductionFlowPanel = lazy(() => import('../../../components/ProductionFlowPanel'))
+
 import { clock, productionDay, receptionDay, shiftHomeKind } from '../lib/shiftHome'
 import { AttendanceChip, Header, Note, RoundsChip, TabBar } from './ShiftHomeUi'
 import { Icon } from './shiftIcons'
@@ -256,6 +259,13 @@ export default function ShiftHome({ orgId, userId, role, area, userName, onNavig
   const View = kind === 'supervisor' ? SupervisorHome : kind === 'production' ? ProductionView : kind === 'reception' ? ReceptionView : OperatorHome
   return (
     <div className="sh-root" data-kind={kind || 'operator'}>
+      {can('flujo') && (
+        <Suspense fallback={null}>
+          <div className="sh-flow">
+            <ProductionFlowPanel orgId={orgId} role={role} onNavigate={go} compact title="Mi parte del flujo hoy" />
+          </div>
+        </Suspense>
+      )}
       <View home={home} perf={perf} first={first} go={go} orgId={orgId} userId={userId} role={role} userName={userName} can={can} />
     </div>
   )
