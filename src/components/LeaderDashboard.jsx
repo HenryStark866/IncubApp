@@ -21,6 +21,7 @@ import { useWorkOrders } from '../hooks/useWorkOrders'
 import { conditionOf } from '../lib/machineCondition'
 import { buildClientNavItems } from '../lib/clientMenuTemplate'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import FloorMap from './FloorMap'
 import { buildProductionEvidence } from '../features/maintenance/lib/productionEvidence'
@@ -349,7 +350,9 @@ export default function LeaderDashboard({
 
   const totalMachines = machines.length
   const onlineCount = presence?.onlineCount ?? 0
-  const puede3D = canSeePlant3DTour(role)
+  // 12-10-2026: la planta 3D es solo para el PC; en el celular no se carga
+  const isMobile = useIsMobile()
+  const puede3D = canSeePlant3DTour(role) && !isMobile
 
   const activeOrdersCount = useMemo(() => {
     return orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length
@@ -734,7 +737,7 @@ export default function LeaderDashboard({
               <BroilerProjectionPanel orgId={orgId} />
             </Suspense>
             {quickAccess}
-            <div className={`ldr-main-split${developerMode ? '' : ' ldr-main-split-3d'}`}>
+            <div className={`ldr-main-split${plantView && !developerMode ? ' ldr-main-split-3d' : ''}`}>
               {plantView}
               {feedSection(productionEvents, 'Actividad de producción del turno', 'Sin rondas, cargues ni transferencias registradas aún.')}
             </div>
@@ -769,7 +772,7 @@ export default function LeaderDashboard({
       {machineKpis}
       {quickAccess}
       {evidenceSection(dashboardEvidence, 'Evidencias Registradas (SIG Mantenimiento & Producción)', 'No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.')}
-      <div className={`ldr-main-split${developerMode ? '' : ' ldr-main-split-3d'}`}>
+      <div className={`ldr-main-split${plantView && !developerMode ? ' ldr-main-split-3d' : ''}`}>
         {plantView}
         {feedSection(recentEvents.slice(0, 12), 'Actividad del turno', 'Sin actividad registrada en este turno aún.')}
       </div>

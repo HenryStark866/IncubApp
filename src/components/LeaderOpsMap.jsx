@@ -36,6 +36,7 @@ import FloorMap from './FloorMap'
 import { exportOperationReport, exportOperationReportDoc, SHIFT_LABEL } from '../lib/operationReport'
 import { conditionOf } from '../lib/machineCondition'
 import { canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 /**
  * Tabs que son HERRAMIENTAS PARA HACER (turnos, rondas, OT, calibración,
@@ -217,8 +218,11 @@ export default function LeaderOpsMap({
   const [openFilter, setOpenFilter] = useState(null)
 
   /* ── Vista principal: la planta 3D; el plano 2D en vivo queda en el menú ── */
-  const puede3D = canSeePlant3DTour(role)
-  const [vista, setVista] = useState(initialVista ?? (puede3D ? '3d' : '2d'))
+  // 12-10-2026: la planta 3D es solo para el PC; en el celular abre el plano 2D
+  const isMobile = useIsMobile()
+  const puede3D = canSeePlant3DTour(role) && !isMobile
+  const [vistaElegida, setVista] = useState(initialVista ?? (puede3D ? '3d' : '2d'))
+  const vista = vistaElegida === '3d' && !puede3D ? '2d' : vistaElegida
   const [menuAbierto, setMenuAbierto] = useState(false)
   // El recorrido tarda un par de segundos en levantar la planta entera, así que
   // una vez cargado se queda montado y solo se esconde: volver a él es
@@ -512,7 +516,7 @@ export default function LeaderOpsMap({
       <div className="lom-map-stage">
         {/* La pantalla principal: el recorrido 3D, del mismo origen. Se queda
             montado al cambiar de vista para no volver a levantar la planta. */}
-        {tourMontado && (
+        {tourMontado && puede3D && (
           <iframe
             className="lom-tour-3d"
             src={PLANT_3D_TOUR_URL}

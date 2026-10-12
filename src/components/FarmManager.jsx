@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { usePlants } from '../hooks/usePlants'
 import { useRooms } from '../hooks/useRooms'
 import { useMachines } from '../hooks/useMachines'
@@ -221,7 +222,9 @@ export default function FarmManager({
   const machinesApi = useMachines(selectedFarmId)
   const [selectedMachineId, setSelectedMachineId] = useState(null)
 
-  const canSee3D = canSeeFarm3DTour(role) || editPlanos
+  // 12-10-2026: la granja 3D es solo para el PC
+  const isMobile = useIsMobile()
+  const canSee3D = (canSeeFarm3DTour(role) || editPlanos) && !isMobile
 
   const handleImportPlanoBase = async () => {
     if (!selectedFarmId || importing) return
@@ -391,7 +394,7 @@ export default function FarmManager({
             </p>
           )}
 
-          {selectedFarm && vista === '3d' && (
+          {selectedFarm && vista === '3d' && canSee3D && (
             <div style={{ marginTop: 12 }}>
               <iframe
                 className="lom-tour-3d"

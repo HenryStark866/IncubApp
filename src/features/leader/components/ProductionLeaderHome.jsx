@@ -6,6 +6,7 @@
  * las tareas que les asigna).
  */
 import { useMemo, useState } from 'react'
+import { isMobileDevice } from '../../../hooks/useIsMobile'
 import { useLeaderHome } from '../hooks/useLeaderHome'
 import { useLoadClassification } from '../../../hooks/useLoadClassification'
 import { createShiftActivity } from '../../../hooks/useShiftOps'
@@ -300,9 +301,12 @@ function Maquinas({ states, onNavigate }) {
         <button type="button" className="lh-btn" onClick={() => onNavigate?.('monitoreo')}>
           Monitoreo completo
         </button>
-        <button type="button" className="lh-btn" onClick={() => onNavigate?.('mapa-3d')}>
-          Mapa 3D de la planta
-        </button>
+        {/* El 3D es solo para el PC */}
+        {!isMobileDevice() && (
+          <button type="button" className="lh-btn" onClick={() => onNavigate?.('mapa-3d')}>
+            Mapa 3D de la planta
+          </button>
+        )}
       </div>
     </Seccion>
   )

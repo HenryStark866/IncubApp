@@ -10,6 +10,7 @@
  */
 
 import { ROLE_LABEL, areaLabel, canSeePlant3DTour, PLANT_3D_TOUR_URL } from '../lib/roles'
+import { isMobileDevice } from '../hooks/useIsMobile'
 import { useTodayBoard } from '../hooks/useTodayBoard'
 import OnlinePresencePanel from './OnlinePresencePanel'
 import {
@@ -289,7 +290,7 @@ function ExecTodayBoard({
           meta={updatedMeta}
           actions={
             <>
-              {canSeePlant3DTour(role) && (
+              {canSeePlant3DTour(role) && !isMobileDevice() && (
                 /* Metaverso IncubApp: página aparte, en pestaña nueva (la CSP
                    de la app pone frame-ancestors 'none', no admite iframe). */
                 <a
