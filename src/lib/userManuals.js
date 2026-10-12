@@ -280,6 +280,7 @@ export const MANUALS = [
         title: 'Tu turno',
         steps: [
           { text: '«Hoy» te dice qué te toca ahora: rondas pendientes, cargues y actividades.', tab: 'hoy' },
+          'Con el bot de EagleTrax activo, las rondas de cada hora las hace el bot: tú solo haces la ronda de RECIBIR EL TURNO (con foto de cada máquina y las novedades que veas). Si el bot deja de reportar, la app te vuelve a pedir las rondas de siempre.',
           { text: 'Ronda: en «Supervisión» toma la foto de la pantalla de cada máquina y marca su estado (normal, Alerta, Falla o Apagada).', tab: 'supervision' },
           'Si marcas Falla o Apagada, la app te deja pedir la OT a mantenimiento desde ahí mismo.',
           { text: 'Calibrar máquina: dos fotos (calibrador y pantalla).', tab: 'calibracion' },

@@ -1,0 +1,37 @@
+﻿# IncubApp · Instala el bot de rondas en el PC EAGLETRAX (12-10-2026)
+# 1. Copia el bot a C:\IncubAppBot
+# 2. Pide el correo y la clave de la cuenta del bot (cuenta «Observador» creada en
+#    IncubApp > Administración). La clave queda cifrada con Windows para este usuario: no se
+#    guarda en texto ni sale del equipo.
+# 3. Calibra: se ubica cada máquina en el plano de EagleTrax.
+# 4. Programa la tarea «IncubApp Bot Rondas» cada hora (minuto 05), con la sesión iniciada.
+$ErrorActionPreference = 'Stop'
+$origen = $PSScriptRoot
+$destino = 'C:\IncubAppBot'
+Write-Host "=== Bot de rondas EagleTrax → IncubApp ===" -ForegroundColor Cyan
+if (-not (Test-Path (Join-Path $origen 'config.json'))) {
+  Write-Host 'Falta config.json junto al instalador (lo genera soporte con preparar-paquete.ps1).' -ForegroundColor Red
+  exit 1
+}
+New-Item -ItemType Directory -Force -Path $destino | Out-Null
+foreach ($f in 'bot-eagletrax.ps1', 'config.json', 'LEEME.md') { Copy-Item (Join-Path $origen $f) $destino -Force }
+if (Test-Path (Join-Path $origen 'maquinas.json')) { Copy-Item (Join-Path $origen 'maquinas.json') $destino -Force }
+
+$cfg = Get-Content (Join-Path $destino 'config.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$correo = Read-Host "Correo de la cuenta del bot [$($cfg.email)]"
+if ($correo) { $cfg.email = $correo.Trim(); $cfg | ConvertTo-Json | Set-Content (Join-Path $destino 'config.json') -Encoding UTF8 }
+$clave = Read-Host 'Clave de la cuenta del bot' -AsSecureString
+$clave | ConvertFrom-SecureString | Set-Content (Join-Path $destino 'clave.bin')
+Write-Host 'Clave guardada cifrada.' -ForegroundColor Green
+
+if (-not (Test-Path (Join-Path $destino 'maquinas.json')) -or (Read-Host '¿Calibrar las posiciones de las máquinas ahora? (s/n)') -eq 's') {
+  Write-Host 'Deja EagleTrax abierto en el plano de la planta.' -ForegroundColor Yellow
+  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $destino 'bot-eagletrax.ps1') -Calibrar
+}
+
+$accion = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$destino\bot-eagletrax.ps1`""
+$inicio = (Get-Date).AddHours(1).ToString('HH') + ':05'
+schtasks /Create /F /TN 'IncubApp Bot Rondas' /SC HOURLY /MO 1 /ST $inicio /TR $accion /IT | Out-Null
+Write-Host "Tarea «IncubApp Bot Rondas» programada cada hora desde las $inicio." -ForegroundColor Green
+Write-Host 'Importante: deja la sesión de Windows iniciada, sin bloqueo de pantalla ni protector, y EagleTrax abierto en el plano.' -ForegroundColor Yellow
+Write-Host "Prueba ya una máquina:  powershell -ExecutionPolicy Bypass -File $destino\bot-eagletrax.ps1 -Probar INC-18" -ForegroundColor Cyan

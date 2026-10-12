@@ -39,7 +39,7 @@ function Item({ i, onNavigate }) {
 export default function ProductionFlowPanel({ orgId, role, onNavigate, compact = false, title = 'Flujo de producción' }) {
   const { flow, loading, warning, updatedAt, reload } = useProductionFlow(orgId)
   const mineIds = useMemo(() => stagesForRole(role), [role])
-  const isLead = mineIds.length === 7
+  const isLead = mineIds.length === 8
   const [all, setAll] = useState(!compact && isLead)
 
   if (!orgId) return null

@@ -24,6 +24,7 @@
 import { computeAllMachineStates } from './machineOpsState'
 import { cycleSchedule, dayKey, isHatchDay, nextHatchDay, ROOMS_PER_HATCH_DAY, HATCH_WEEKDAY_LABEL } from './hatchSchedule'
 import { INC_CALIB_MAX_HOURS, INC_CALIB_MIN_HOURS, CALIB_SOURCE } from './machineCalibration'
+import { botStatus, BOT_ACTIVE_WINDOW_H } from './roundsBot'
 
 const DAY = 86_400_000
 const H = 3_600_000
@@ -39,6 +40,7 @@ const lotsOf = (t) => [...new Set(String(t || '').match(/\d+/g) || [])]
 
 /** Quién hace cada etapa (para filtrar «mi parte del flujo») */
 export const STAGE_ROLES = {
+  rondas: ['operator', 'auxiliary', 'auxiliary_production', 'supervisor'],
   recepcion: ['reception_operator'],
   clasificacion: ['reception_operator'],
   cargue: ['operator', 'auxiliary', 'auxiliary_production', 'supervisor'],
@@ -87,6 +89,7 @@ export function buildProductionFlow({
   stock = [],
   quality = [],
   calibOrders = [],
+  botChecks = [],
 } = {}) {
   const today = dayKey(now)
   const wd = new Date(`${today}T12:00:00Z`).getUTCDay()
@@ -290,7 +293,22 @@ export function buildProductionFlow({
     })
   }
 
+  // ── 0. Rondas de cada hora: las hace el bot de EagleTrax ──────
+  const bot = botStatus(botChecks, now)
+  const ron = []
+  if (bot.last) {
+    const mins = Math.round((now - ms(bot.last)) / 60000)
+    ron.push(
+      bot.active
+        ? { id: 'bot-ok', tone: 'ok', text: `El bot de EagleTrax hizo la ronda hace ${mins} min`, detail: `${bot.machines} máquinas en su última ronda · el operario solo hace la ronda de recibir el turno` }
+        : { id: 'bot-down', tone: 'danger', text: `El bot de EagleTrax no reporta hace ${Math.floor(mins / 60)} h ${mins % 60} min`, detail: `Revisa el PC EAGLETRAX (encendido, sesión abierta, EagleTrax en el plano). Mientras tanto el turno vuelve a hacer las rondas.`, tab: 'supervision' },
+    )
+  } else {
+    ron.push({ id: 'bot-none', tone: 'info', text: 'Rondas a cargo del turno', detail: `Cuando el bot de EagleTrax esté instalado hará las rondas de cada hora (se considera activo si reportó en las últimas ${BOT_ACTIVE_WINDOW_H} h).`, tab: 'supervision' })
+  }
+
   const stages = [
+    stage('rondas', 0, 'Rondas de cada hora (bot EagleTrax)', 'Bot EagleTrax · el operario recibe el turno', 'supervision', ron, 'Rondas al día'),
     stage('recepcion', 1, 'Recepción del huevo', 'Operario de recepción', 'recepcion', rec, 'Recepción al día'),
     stage('clasificacion', 2, 'Cuarto frío y clasificación', 'Operario de recepción', 'clasificacion', cla, 'Clasificación al día'),
     stage('cargue', 3, 'Mapas y cargue de incubadoras', 'Turno y líder de planta', 'cargue', car, 'Cargue al día'),

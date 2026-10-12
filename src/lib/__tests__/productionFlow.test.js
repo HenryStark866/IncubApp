@@ -50,6 +50,6 @@ describe('flujo de producción', () => {
   it('cada perfil ve su parte del flujo', () => {
     expect(stagesForRole('reception_operator')).toEqual(['recepcion', 'clasificacion'])
     expect(stagesForRole('vaccination_auxiliary')).toEqual(['nacimiento'])
-    expect(stagesForRole('coordinator')).toHaveLength(7)
+    expect(stagesForRole('coordinator')).toHaveLength(8)
   })
 })

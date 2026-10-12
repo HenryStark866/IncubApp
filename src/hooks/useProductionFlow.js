@@ -34,7 +34,7 @@ export function useProductionFlow(orgId) {
     setLoading(true)
     const plants = await queryRows('plants', (q) => q.select('id').eq('org_id', orgId))
     const ids = plants.data.map((p) => p.id)
-    const [machines, loads, transfers, hatches, maps, carts, arrivals, remisions, stock, quality, calib] = await Promise.all([
+    const [machines, loads, transfers, hatches, maps, carts, arrivals, remisions, stock, quality, calib, botChecks] = await Promise.all([
       ids.length ? queryRows('machines', (q) => q.select('id, plant_id, room_id, code, name, type, status').in('plant_id', ids)) : { data: [] },
       queryRows('setter_loads', (q) => q.select('id, machine_id, lote, loaded_at, cycle_start_at, created_at').eq('org_id', orgId).gte('loaded_at', ago(60)).limit(1500)),
       queryRows('transfers', (q) => q.select('id, lote, mode, room_ids, hatcher_ids, transferred_at, cycle_start_at, source_machine_id').eq('org_id', orgId).gte('transferred_at', ago(60)).limit(600)),
@@ -48,6 +48,10 @@ export function useProductionFlow(orgId) {
       optional('cold_room_stock', (q) => q.select('id, stock_date, counts').eq('org_id', orgId).gte('stock_date', ago(7).slice(0, 10)).limit(300)),
       optional('quality_records', (q) => q.select('id, kind, lote, sampled_at, results').eq('org_id', orgId).in('kind', ['chick_quality', 'sexing_count']).gte('sampled_at', ago(15)).limit(300)),
       queryRows('work_orders', (q) => q.select('id, machine_id, status, created_at, completed_at').eq('org_id', orgId).eq('source', 'calibration').gte('created_at', ago(25)).limit(600)),
+      // Rondas del bot de EagleTrax de las últimas horas
+      queryRows('machine_checks', (q) =>
+        q.select('machine_id, taken_at, notes').eq('org_id', orgId).like('notes', '[bot-eagletrax]%').gte('taken_at', new Date(Date.now() - 12 * 3_600_000).toISOString()).order('taken_at', { ascending: false }).limit(200),
+      ),
     ])
     setRaw({
       machines: machines.data.filter((m) => m.status !== 'decommissioned'),
@@ -61,6 +65,7 @@ export function useProductionFlow(orgId) {
       stock: stock.data,
       quality: quality.data,
       calibOrders: calib.data,
+      botChecks: botChecks.data,
     })
     setWarning(loadWarning([plants, machines, loads, transfers, hatches, maps, calib].map((r) => r.error).filter(Boolean), { source: 'flujo de producción' }))
     setUpdatedAt(new Date())

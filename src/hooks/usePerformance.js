@@ -3,6 +3,7 @@
  * Supabase + fallback local.
  * Henry Stark Desarrollador
  */
+import { isBotActive, roundsRequired } from '../lib/roundsBot'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { photoRoundsByUser, roundsForCompliance } from '../lib/roundRecords'
@@ -32,6 +33,7 @@ import { buildPunctuality, isMarginKey, readMargins } from '../lib/shiftPunctual
 export function usePerformance({ orgId, userId, role, area }) {
   const [targets, setTargets] = useState([])
   const [rounds, setRounds] = useState([])
+  const [botActive, setBotActive] = useState(false)
   const [labors, setLabors] = useState([])
   const [members, setMembers] = useState([])
   const [usageMap, setUsageMap] = useState({})
@@ -127,6 +129,8 @@ export function usePerformance({ orgId, userId, role, area }) {
     // Las fotos de Supervisión cuentan como ronda: cada hora del turno en que
     // alguien tomó fotos es una ronda para esa persona (lib/roundRecords).
     const photoRounds = photoRoundsByUser(photoChecks)
+    // 12-10-2026: con el bot de EagleTrax reportando, el operario solo debe la ronda de recibir el turno
+    setBotActive(isBotActive(photoChecks))
 
     if (!mem.error) {
       setMembers(
@@ -424,9 +428,11 @@ export function usePerformance({ orgId, userId, role, area }) {
           unit: 'rondas',
         })
       }
+      const rr = merged.get('rounds')
+      if (rr && botActive) merged.set('rounds', { ...rr, expected: roundsRequired(Number(rr.expected) || DEFAULT_MIN_ROUNDS_PER_SHIFT, true), label: 'Ronda de recibir el turno (el bot hace las demás)' })
       return [...merged.values()]
     },
-    [targets]
+    [targets, botActive]
   )
 
   // Puntualidad de ayer y hoy (el T3 de anoche sigue siendo «el turno actual» en la madrugada).
@@ -536,7 +542,9 @@ export function usePerformance({ orgId, userId, role, area }) {
     teamScores,
     isCoord,
     isShiftWorker: isShiftWorkerRole(role),
-    minRounds: DEFAULT_MIN_ROUNDS_PER_SHIFT,
+    minRounds: roundsRequired(DEFAULT_MIN_ROUNDS_PER_SHIFT, botActive),
+    /** El bot de EagleTrax está haciendo las rondas de cada hora */
+    botActive,
     minDays: BONUS_MIN_CONTINUOUS_DAYS,
     minScore: BONUS_MIN_SCORE_PCT,
     fundNote: BONUS_FUND_NOTE,
@@ -562,7 +570,7 @@ async function loadPhotoChecks(orgId, since) {
   for (let page = 0; page < 30; page += 1) {
     const { data, error } = await supabase
       .from('machine_checks')
-      .select('taken_by, taken_at, shift_date, shift_number, hour_slot, plant_id, condition, photo_path')
+      .select('machine_id, taken_by, taken_at, shift_date, shift_number, hour_slot, plant_id, condition, photo_path, notes')
       .eq('org_id', orgId)
       .gte('shift_date', since)
       .not('photo_path', 'is', null)
