@@ -29,6 +29,8 @@ export const COMMON_TABS = [
   /** Cargue: habilitado para todos los perfiles de la empresa (el cliente
    *  externo del portal se excluye en nativeTabsFor). */
   'cargue',
+  /** 12-10-2026: manuales e instructivos de cada perfil, dentro de la app */
+  'manuales',
 ]
 
 /**
@@ -69,7 +71,7 @@ export const PRIVACY_DOMAINS = [
     // Supervisión nativa: gerencia puede registrar/ver rondas como el supervisor.
     // `datos-op`: centro de datos (lotes, cantidades, fechas, cargas actuales) que
     // arranca el pipeline automatizado de clasificación/cargue.
-    tabs: ['gerencia', 'informes', 'datos-op', 'supervision', 'panel', 'monitoreo', 'plantas'],
+    tabs: ['gerencia', 'informes', 'datos-op', 'proyeccion-broiler', 'supervision', 'panel', 'monitoreo', 'plantas'],
     members: (role, area) =>
       role === 'management' ||
       role === 'management_auxiliary' ||
@@ -106,6 +108,7 @@ export const PRIVACY_DOMAINS = [
       'historial',
       'calidad',
       'vacunacion',
+      'proyeccion-broiler',
     ],
     /**
      * El operario de turno NO ve panel de coordinación ni planos: solo sus
@@ -145,7 +148,7 @@ export const PRIVACY_DOMAINS = [
         ]
       }
       if (role === 'management' || role === 'management_auxiliary') {
-        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad', 'vacunacion']
+        return ['panel', 'monitoreo', 'plantas', 'supervision', 'calibracion', 'calidad', 'vacunacion', 'proyeccion-broiler']
       }
       // supervisor y líder de área de planta: dominio completo
       const completo = [
@@ -177,7 +180,8 @@ export const PRIVACY_DOMAINS = [
       // A esta rama solo llegan el supervisor y los líderes del dominio de
       // planta, así que basta con distinguir el rol: el supervisor NO las lleva
       // —ejecuta el turno, no dirige la producción.
-      if (role === 'coordinator') return [...completo, 'datos-op', 'produccion']
+      // 12-10-2026: y la proyección broiler (pollitos por día con los datos reales de la planta)
+      if (role === 'coordinator') return [...completo, 'datos-op', 'produccion', 'proyeccion-broiler']
       return completo
     },
     members: (role, area) =>
@@ -212,12 +216,17 @@ export const PRIVACY_DOMAINS = [
     id: 'maintenance',
     label: 'Mantenimiento',
     description: 'Órdenes de trabajo y coordinación de mantenimiento',
-    tabs: ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial', 'plan-am'],
+    tabs: ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'equipo-mantenimiento', 'historial', 'plan-am'],
     /** Auxiliar de mantenimiento ejecuta OT y calibraciones; no ve el tablero de coordinación. */
     tabsFor: (role, area) => {
       if (role === 'maintenance_auxiliary') return ['mantenimiento', 'calibracion', 'historial', 'plan-am']
       if (role === 'coordinator' && area === 'maintenance') {
-        return ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'historial', 'plan-am']
+        // 12-10-2026: «Equipo y sedes»: asigna sedes y actividades, ve dónde está cada técnico
+        return ['mantenimiento', 'calibracion', 'coord_mantenimiento', 'equipo-mantenimiento', 'historial', 'plan-am']
+      }
+      // 12-10-2026: el líder de planta maneja también el SIG de Mantenimiento: Plan AM y su equipo
+      if (role === 'coordinator' && ['plant', 'general', '', null, undefined].includes(area ?? '')) {
+        return ['mantenimiento', 'calibracion', 'plan-am', 'equipo-mantenimiento']
       }
       return ['mantenimiento', 'calibracion']
     },

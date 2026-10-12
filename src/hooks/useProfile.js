@@ -100,6 +100,18 @@ export function useProfile(userId) {
     }
   }, [userId, loadProfile])
 
+  // Si el servidor rechaza el cambio, la pantalla y la caché vuelven a lo que había
+  const rollback = useCallback(
+    (previous) => {
+      setProfile(previous)
+      if (previous) {
+        saveBootCache('profile', userId, previous)
+        if (previous.full_name) updateOfflineUserProfile(userId, { full_name: previous.full_name })
+      }
+    },
+    [userId]
+  )
+
   const saveProfile = useCallback(
     async (fields) => {
       if (!userId) return { error: 'Sin sesión activa' }
@@ -111,19 +123,25 @@ export function useProfile(userId) {
         ? { ...profile, ...fields, updated_at: now }
         : { id: userId, ...fields, updated_at: now }
 
-      // Actualizar de inmediato UI local y caché offline
+      // Actualizar de inmediato UI local y caché offline (se revierte si el servidor rechaza)
+      const previous = profile
       setProfile(nextProfile)
       saveBootCache('profile', userId, nextProfile)
       if (fields.full_name !== undefined) {
         updateOfflineUserProfile(userId, { full_name: fields.full_name })
       }
 
-      // upsert: crea el perfil si no existe (primer inicio de sesión)
-      const { error: err } = await supabase
+      // upsert: crea el perfil si no existe (primer inicio de sesión).
+      // Si la instalación no tiene profiles.updated_at, se guarda sin esa columna.
+      let { error: err } = await supabase
         .from('profiles')
         .upsert({ id: userId, ...fields, updated_at: now }, { onConflict: 'id' })
+      if (err && /updated_at/.test(err.message || '')) {
+        ;({ error: err } = await supabase.from('profiles').upsert({ id: userId, ...fields }, { onConflict: 'id' }))
+      }
 
       if (err) {
+        rollback(previous)
         setSaving(false)
         setError(err.message)
         return { error: err.message }
@@ -143,7 +161,7 @@ export function useProfile(userId) {
       setSaving(false)
       return { error: null }
     },
-    [userId, profile]
+    [userId, profile, rollback]
   )
 
   // Cambia SOLO los campos dados sobre el perfil existente.
@@ -155,6 +173,7 @@ export function useProfile(userId) {
       setSaving(true)
       setError(null)
 
+      const previous = profile
       const nextProfile = profile ? { ...profile, ...fields } : { id: userId, ...fields }
       setProfile(nextProfile)
       saveBootCache('profile', userId, nextProfile)
@@ -165,6 +184,7 @@ export function useProfile(userId) {
       const { error: err } = await supabase.from('profiles').update(fields).eq('id', userId)
       setSaving(false)
       if (err) {
+        rollback(previous)
         setError(err.message)
         return { error: err.message }
       }
@@ -181,7 +201,7 @@ export function useProfile(userId) {
 
       return { error: null }
     },
-    [userId, profile]
+    [userId, profile, rollback]
   )
 
   // Sube la foto de perfil (galería o selfie) al bucket público avatars y la guarda

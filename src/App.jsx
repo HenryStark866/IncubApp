@@ -95,6 +95,9 @@ import {
   EggRotationBoardPanel,
   TapingPanel,
   CartMarkingPanel,
+  BroilerProjectionPanel,
+  MaintenanceTeamPanel,
+  ManualsCenter,
   MisionalesPanel,
   QualityPanel,
   VaccinationPanel,
@@ -161,6 +164,9 @@ const OMNISCIENT_TABS = [
   'tablero-rotacion',
   'encintar',
   'marcar-carros',
+  'proyeccion-broiler',
+  'equipo-mantenimiento',
+  'manuales',
   'gerencia',
   'informes',
   'ventas',
@@ -751,6 +757,7 @@ function Workspace({
               orgId={org.id}
               userId={session.user.id}
               defaultSede={sedeOfSite(site)}
+              siteId={site?.id || null}
               userName={profileApi.profile?.full_name ?? session.user.email}
               onNavigate={(t) => {
                 if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
@@ -1150,6 +1157,34 @@ function Workspace({
               role={role}
               userName={profileApi.profile?.full_name ?? session.user.email}
               orgName={org.name}
+            />
+          ) : tab === 'proyeccion-broiler' && org && can('proyeccion-broiler') ? (
+            <div className="card wide">
+              <BroilerProjectionPanel orgId={org.id} />
+            </div>
+          ) : tab === 'equipo-mantenimiento' && org && can('equipo-mantenimiento') ? (
+            <div className="card wide">
+              <MaintenanceTeamPanel
+                orgId={org.id}
+                userId={session.user.id}
+                role={role}
+                area={area}
+                userName={profileApi.profile?.full_name ?? session.user.email}
+                onNavigate={(t) => {
+                  if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                  else setTab('hoy')
+                }}
+              />
+            </div>
+          ) : tab === 'manuales' && org && can('manuales') ? (
+            <ManualsCenter
+              role={role}
+              area={area}
+              userName={profileApi.profile?.full_name ?? session.user.email}
+              onNavigate={(t) => {
+                if (can(t) || t === 'hoy' || t === 'perfil') setTab(t)
+                else setTab('hoy')
+              }}
             />
           ) : tab === 'diseno' && isPlatformAdmin && !previewing ? (
             <DevStudio orgId={org?.id} userId={session.user.id} role={role} />

@@ -16,7 +16,7 @@ import { useIncubationLots, lotTotals } from '../hooks/useIncubationLots'
 import { compressImage } from '../lib/image'
 import ColdRoomPanel from './ColdRoomPanel'
 import remisionRefImg from '../assets/remision-galpon-referencia.jpg'
-import { recognizeAndParseRemision, SAMPLE_REMISION_DATA } from '../lib/remisionOcr'
+import { parseQty, recognizeAndParseRemision } from '../lib/remisionOcr'
 
 const EggRotationBoardPanelLazy = lazy(() => import('./EggRotationBoardPanel'))
 const TapingPanelLazy          = lazy(() => import('./TapingPanel'))
@@ -192,15 +192,15 @@ export default function ReceptionPanel({
         <RemisionForm orgId={orgId} userId={userId} role={role} onGoToReception={() => setSubTab('recepcion')} />
       ) : subTab === 'rotacion' ? (
         <Suspense fallback={<p className="hint">Cargando tablero de rotación…</p>}>
-          <EggRotationBoardPanelLazy orgId={orgId} userId={userId} role={role} />
+          <EggRotationBoardPanelLazy orgId={orgId} userId={userId} role={role} onNavigate={onNavigate} />
         </Suspense>
       ) : subTab === 'encintar' ? (
         <Suspense fallback={<p className="hint">Cargando panel de encintado…</p>}>
-          <TapingPanelLazy orgId={orgId} userId={userId} role={role} />
+          <TapingPanelLazy orgId={orgId} userId={userId} role={role} onNavigate={onNavigate} />
         </Suspense>
       ) : subTab === 'marcar-carros' ? (
         <Suspense fallback={<p className="hint">Cargando panel de marcación…</p>}>
-          <CartMarkingPanelLazy orgId={orgId} userId={userId} role={role} />
+          <CartMarkingPanelLazy orgId={orgId} userId={userId} role={role} onNavigate={onNavigate} />
         </Suspense>
       ) : (
         <ReceptionInbox
@@ -217,27 +217,15 @@ export default function ReceptionPanel({
 }
 
 /* ══ Formulario Remisión Huevos Galpón (formato Antioqueña de Incubación S.A.S) ══ */
-const REMISION_GALPON_COLS = [
-  { key: 'incubable', label: 'Incubable' },
-  { key: 'fisurado',  label: 'Fisurado' },
-  { key: 'extra',     label: 'Extra' },
-  { key: 'roto',      label: 'Roto' },
-  { key: 'sucio',     label: 'Sucio' },
-  { key: 'cajas',     label: 'Nº Cajas' },
-  { key: 'cubetas',   label: 'Nº Cubetas' },
-]
-
 function emptyRow(galpon = '') {
   return { galpon, incubable: '', fisurado: '', extra: '', roto: '', sucio: '', cajas: '', cubetas: '' }
 }
 
-function numOrEmpty(v) {
-  const n = Number(v)
-  return isNaN(n) || v === '' ? '' : n
-}
+// Las cantidades se digitan como en el papel («2.240»): Number('2.240') daba 2,24.
+const numOrEmpty = parseQty
 
 function colTotal(rows, key) {
-  return rows.reduce((s, r) => s + (Number(r[key]) || 0), 0)
+  return rows.reduce((s, r) => s + (Number(parseQty(r[key])) || 0), 0)
 }
 
 function RemisionForm({ orgId, userId, role, onGoToReception }) {
@@ -276,8 +264,9 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const [msg, setMsg] = useState(null)
   const [ocrScanning, setOcrScanning] = useState(false)
   const [ocrProgress, setOcrProgress] = useState(null)
+  const [recentKey, setRecentKey] = useState(0)
 
-  const scanPhoto = async (fileOrBlob, photoLabel = 'foto capturada') => {
+  const scanPhoto = async (fileOrBlob) => {
     if (!fileOrBlob) return
     setOcrScanning(true)
     setOcrProgress({ progress: 0.05, message: 'Iniciando escaneo OCR de tu foto...' })
@@ -368,7 +357,7 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
     setShowRefImg(true)
 
     // ¡Escanear automáticamente la nueva foto y asignar sus datos a los campos!
-    scanPhoto(finalFile, f.name || 'foto tomada')
+    scanPhoto(finalFile)
 
     e.target.value = ''
   }
@@ -383,18 +372,6 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const currentImageSrc = photoPreview && activePhotoView === 'captured' ? photoPreview : remisionRefImg
   const hasCapturedPhoto = Boolean(photoPreview)
   const isViewingCaptured = hasCapturedPhoto && activePhotoView === 'captured'
-
-  const loadReferenceSample = () => {
-    setRemisionNo(SAMPLE_REMISION_DATA.remisionNo)
-    setFechaProd(SAMPLE_REMISION_DATA.fechaProd)
-    setFechaRemision(SAMPLE_REMISION_DATA.fechaRemision)
-    setQuienDespacha(SAMPLE_REMISION_DATA.quienDespacha)
-    setQuienRecibe(SAMPLE_REMISION_DATA.quienRecibe)
-    setObservaciones('')
-    setRows(SAMPLE_REMISION_DATA.rows)
-    setActivePhotoView('sample')
-    setMsg({ kind: 'ok', text: '✓ Se cargaron los datos de la plantilla de ejemplo (Nº 4854 - Total: 30.720 huevos)' })
-  }
 
   const resetForm = () => {
     setRemisionNo('')
@@ -423,59 +400,76 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
   const totalCajas     = colTotal(rows, 'cajas')
   const totalCubetas   = colTotal(rows, 'cubetas')
 
+  const filledRows = rows.filter((r) => String(r.galpon).trim() || Number(parseQty(r.incubable)) > 0)
+
   const handleSubmit = async () => {
     if (!orgId || !userId) return
+    // Una remisión sin número o sin huevos no sirve para cruzar con la llegada a planta
+    if (!remisionNo.trim()) {
+      setMsg({ kind: 'error', text: 'Escribe el número de la remisión (está arriba a la derecha del papel).' })
+      return
+    }
+    if (totalIncubable <= 0) {
+      setMsg({ kind: 'error', text: 'Anota al menos un galpón con su cantidad de huevo incubable.' })
+      return
+    }
     setBusy(true)
     setMsg(null)
+    let photoWarning = null
     try {
       let uploadedPhotoPath = null
       if (photoFile) {
-        try {
-          const ext = (photoFile.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
-          const cleanNo = (remisionNo || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
-          const path = `${orgId}/reception-remisions/${Date.now()}-${cleanNo}.${ext}`
-          const { error: upErr } = await supabase.storage
-            .from('machine-checks')
-            .upload(path, photoFile, {
-              contentType: photoFile.type || 'image/jpeg',
-              upsert: false,
-            })
-          if (!upErr) {
-            uploadedPhotoPath = path
-          }
-        } catch (storageErr) {
-          console.warn('Storage upload error:', storageErr)
-        }
+        const ext = (photoFile.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+        const cleanNo = remisionNo.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
+        const path = `${orgId}/reception-remisions/${Date.now()}-${cleanNo}.${ext}`
+        const { error: upErr } = await supabase.storage
+          .from('machine-checks')
+          .upload(path, photoFile, { contentType: photoFile.type || 'image/jpeg', upsert: false })
+        // Antes un fallo de la foto se callaba y el mensaje decía «guardada con foto»
+        if (upErr) photoWarning = `La foto no se pudo subir (${upErr.message}); la remisión quedó sin foto.`
+        else uploadedPhotoPath = path
       }
 
       const payload = {
         org_id: orgId,
         registered_by: userId,
-        remision_no: remisionNo.trim() || null,
+        remision_no: remisionNo.trim(),
         photo_path: uploadedPhotoPath,
         fecha_produccion: fechaProd || null,
         fecha_remision: fechaRemision || null,
         quien_despacha: quienDespacha.trim() || null,
         quien_recibe: quienRecibe.trim() || null,
         observaciones: observaciones.trim() || null,
-        galpon_rows: rows.filter(r => r.galpon.trim() || Number(r.incubable) > 0),
+        // Se guardan números, no el texto digitado («2.240» → 2240)
+        galpon_rows: filledRows.map((r) => ({
+          galpon: String(r.galpon).trim(),
+          incubable: numOrEmpty(r.incubable) || 0,
+          fisurado: numOrEmpty(r.fisurado) || 0,
+          extra: numOrEmpty(r.extra) || 0,
+          roto: numOrEmpty(r.roto) || 0,
+          sucio: numOrEmpty(r.sucio) || 0,
+          cajas: numOrEmpty(r.cajas) || 0,
+          cubetas: numOrEmpty(r.cubetas) || 0,
+        })),
         totales: { incubable: totalIncubable, roto: totalRotos, sucio: totalSucios, extra: totalExtra, fisurado: totalFisurado, cajas: totalCajas, cubetas: totalCubetas },
-        created_at: new Date().toISOString(),
       }
-      const { error } = await import('../lib/supabase').then(m =>
-        m.supabase.from('reception_remisions').insert(payload)
-      )
+      const { error } = await supabase.from('reception_remisions').insert(payload)
       if (error) {
-        if (error.code === '42P01' || /does not exist/i.test(error.message)) {
-          setMsg({ kind: 'warn', text: 'La tabla reception_remisions aún no está creada en Supabase. El formulario funciona — guárdalo cuando el administrador habilite la tabla.' })
+        if (uploadedPhotoPath) await supabase.storage.from('machine-checks').remove([uploadedPhotoPath])
+        if (error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message)) {
+          setMsg({ kind: 'error', text: 'El servidor todavía no tiene la tabla de remisiones (migración 20261012_remision_galpon). No se guardó: avisa al administrador.' })
+        } else if (error.code === '23505') {
+          setMsg({ kind: 'error', text: `La remisión Nº ${remisionNo.trim()} ya está registrada.` })
         } else {
           setMsg({ kind: 'error', text: error.message })
         }
       } else {
-        setMsg({ kind: 'ok', text: `Remisión No. ${remisionNo || '—'} guardada con foto de evidencia · ${totalIncubable.toLocaleString('es-CO')} huevos incubables` })
+        const saved = `Remisión Nº ${remisionNo.trim()} guardada${uploadedPhotoPath ? ' con su foto' : ''} · ${totalIncubable.toLocaleString('es-CO')} huevos incubables`
         resetForm()
+        setMsg(photoWarning ? { kind: 'warn', text: `${saved}. ${photoWarning}` } : { kind: 'ok', text: saved })
+        setRecentKey((k) => k + 1)
       }
-    } catch(e) {
+    } catch (e) {
       setMsg({ kind: 'error', text: e.message })
     }
     setBusy(false)
@@ -615,22 +609,10 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
                 type="button"
                 className="primary small rx-scan-btn"
                 disabled={ocrScanning}
-                onClick={() => scanPhoto(photoFile, photoFile?.name || 'mi foto')}
+                onClick={() => scanPhoto(photoFile)}
                 title="Escanear y cargar automáticamente los datos de esta foto"
               >
                 {ocrScanning ? '⏳ Escaneando…' : '⚡ Escanear datos de mi foto'}
-              </button>
-            )}
-
-            {/* Si está viendo el ejemplo: botón para cargar el ejemplo */}
-            {!isViewingCaptured && (
-              <button
-                type="button"
-                className="ghost small"
-                onClick={loadReferenceSample}
-                title="Cargar los números de la remisión de ejemplo Nº 4854"
-              >
-                📋 Cargar datos ejemplo (Nº 4854)
               </button>
             )}
 
@@ -1094,7 +1076,71 @@ function RemisionForm({ orgId, userId, role, onGoToReception }) {
           {msg.text}
         </p>
       )}
+      <RecentRemisions orgId={orgId} reloadKey={recentKey} />
     </div>
+  )
+}
+
+/** Últimas remisiones guardadas: confirma que quedaron en la base y abre su foto. */
+function RecentRemisions({ orgId, reloadKey }) {
+  const [rows, setRows] = useState([])
+  const [state, setState] = useState('loading')
+
+  useEffect(() => {
+    if (!orgId) return undefined
+    let alive = true
+    supabase
+      .from('reception_remisions')
+      .select('id, remision_no, fecha_remision, quien_despacha, totales, photo_path, created_at')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data, error }) => {
+        if (!alive) return
+        if (error) setState(/does not exist|schema cache|PGRST205/i.test(error.message) ? 'missing' : 'error')
+        else {
+          setRows(data || [])
+          setState('ok')
+        }
+      })
+    return () => {
+      alive = false
+    }
+  }, [orgId, reloadKey])
+
+  const openPhoto = async (path) => {
+    const { data } = await supabase.storage.from('machine-checks').createSignedUrl(path, 3600)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener')
+  }
+
+  if (state === 'missing') return null
+  return (
+    <section className="rx-remision-recent" aria-label="Remisiones guardadas">
+      <h3>Últimas remisiones guardadas</h3>
+      {state === 'loading' ? (
+        <p className="hint">Cargando…</p>
+      ) : state === 'error' ? (
+        <p className="hint">No se pudieron cargar las remisiones guardadas.</p>
+      ) : rows.length === 0 ? (
+        <p className="hint">Todavía no hay remisiones guardadas.</p>
+      ) : (
+        <ul className="rx-remision-recent-list">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <b>Nº {r.remision_no}</b>
+              <span>{r.fecha_remision || new Date(r.created_at).toLocaleDateString('es-CO')}</span>
+              <span>{Number(r.totales?.incubable || 0).toLocaleString('es-CO')} incubables</span>
+              {r.quien_despacha && <span>Despacha: {r.quien_despacha}</span>}
+              {r.photo_path && (
+                <button type="button" className="ghost small" onClick={() => openPhoto(r.photo_path)}>
+                  📷 Foto
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

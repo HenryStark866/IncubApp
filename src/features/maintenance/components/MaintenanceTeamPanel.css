@@ -1,0 +1,240 @@
+/* Equipo y sedes de mantenimiento · variables de la app (claro y oscuro). 12-10-2026 */
+.mt-root {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 18px;
+  min-width: 0;
+  color: var(--text);
+}
+.mt-root > .msg {
+  margin: 0 0 12px;
+}
+.mt-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+  /* Superficie propia: se lee igual dentro de cualquier tarjeta y tema */
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.mt-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.mt-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.mt-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+  gap: 14px;
+}
+.mt-root.is-compact .mt-grid {
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
+}
+@media (max-width: 900px) {
+  .mt-grid,
+  .mt-root.is-compact .mt-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mt-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.mt-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+.mt-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0 0 8px;
+}
+.mt-card-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+}
+.mt-dim {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.mt-empty {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.mt-people,
+.mt-orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mt-person {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.mt-person:first-child {
+  border-top: 0;
+}
+.mt-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 2px solid var(--line);
+}
+.mt-person.st-en_sitio .mt-av {
+  border-color: var(--ok);
+}
+.mt-person.st-en_traslado .mt-av {
+  border-color: var(--amber);
+}
+.mt-person-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mt-person-main b {
+  color: var(--text);
+}
+.mt-now {
+  font-size: 13px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.mt-pill {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+.mt-pill.st-en_sitio {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+}
+.mt-pill.st-en_traslado {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 45%, var(--line));
+}
+.mt-person-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 150px;
+}
+.mt-person-actions select,
+.mt-orders select {
+  max-width: 200px;
+}
+@media (max-width: 560px) {
+  .mt-person {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+  .mt-person-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .mt-person-actions select {
+    flex: 1 1 160px;
+    max-width: none;
+  }
+}
+.mt-orders li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.mt-orders li:first-child {
+  border-top: 0;
+}
+.mt-orders li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mt-orders li b {
+  font-size: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.mt-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.mt-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+.mt-form .mt-span {
+  grid-column: 1 / -1;
+}
+@media (max-width: 560px) {
+  .mt-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.mt-assign {
+  margin: 0 0 14px;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.mt-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

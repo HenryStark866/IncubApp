@@ -37,6 +37,29 @@ import {
 const MachineAssetHub = lazy(() => import('../features/maintenance/components/MachineAssetHub'))
 // Etapa 3: decisiones, equipo y plan del día del líder según su área (va encima de lo que ya había).
 const LeaderAreaHome = lazy(() => import('../features/leader/components/LeaderAreaHome'))
+const BroilerProjectionPanel = lazy(() => import('./BroilerProjectionPanel'))
+const MaintenanceTeamPanel = lazy(() => import('../features/maintenance/components/MaintenanceTeamPanel'))
+
+/** Vista SIG que eligió el líder de planta la última vez */
+const SIG_VIEW_KEY = 'incubapp_lider_sig'
+function readSigView() {
+  try {
+    return localStorage.getItem(SIG_VIEW_KEY) === 'mantenimiento' ? 'mantenimiento' : 'produccion'
+  } catch {
+    return 'produccion'
+  }
+}
+/** Líder de planta: área planta, general o sin área (mismo criterio que leaderKind) */
+const isPlantArea = (area) => ['', 'plant', 'general'].includes(String(area || '').toLowerCase())
+const PRODUCTION_EVENTS = new Set(['Ronda', 'Actividad', 'Cargue', 'Transferencia'])
+/** Evidencia del SIG Producción (cargues, transferencias, nacimientos, mapas) o del de Mantenimiento */
+const sigAreaOf = (item) => (item?.kind === 'production' || item?.kind === 'load-map' ? 'produccion' : 'mantenimiento')
+const MAINTENANCE_TOOLS = [
+  { id: 'mantenimiento', label: 'Órdenes de trabajo', icon: '🧾', hint: 'Crear, asignar y cerrar OT en cualquier sede' },
+  { id: 'plan-am', label: 'Plan AM y manuales', icon: '📅', hint: 'Actividades de la semana por sede' },
+  { id: 'calibracion', label: 'Calibraciones', icon: '🎯', hint: 'INC y nacedoras' },
+  { id: 'equipo-mantenimiento', label: 'Equipo y sedes', icon: '👷', hint: 'Dónde está cada técnico y qué tiene asignado' },
+]
 
 /** Tabs excluidos del acceso rápido: el líder los ve como resultado, no ejecuta. */
 const EXCLUDED_QUICK = new Set([
@@ -397,7 +420,7 @@ export default function LeaderDashboard({
     return out
       .filter((e) => !!e.when)
       .sort((a, b) => b.when.localeCompare(a.when))
-      .slice(0, 12)
+      .slice(0, 80)
   }, [mc.checks, so.activities, loads, transfers, orders])
 
   const peopleName = useMemo(() => {
@@ -474,172 +497,284 @@ export default function LeaderDashboard({
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
   const firstName = userName ? userName.split(' ')[0] : 'Líder'
 
+  // 12-10-2026: el líder de planta maneja los dos SIG. Se ven por separado y en orden:
+  // SIG Producción (decisiones, proyección broiler, actividad y evidencias de producción)
+  // y SIG Mantenimiento (estado de máquinas, OT, evidencias y Centro de Activos).
+  const isPlantLeader = isPlantArea(area)
+  const isMaintenanceLeader = String(area || '').toLowerCase() === 'maintenance'
+  const [sig, setSig] = useState(() => readSigView())
+  const chooseSig = (v) => {
+    setSig(v)
+    try {
+      localStorage.setItem(SIG_VIEW_KEY, v)
+    } catch {
+      /* sin almacenamiento: solo dura la sesión */
+    }
+  }
+  const productionEvidence = dashboardEvidence.filter((item) => sigAreaOf(item) === 'produccion')
+  const maintenanceEvidence = dashboardEvidence.filter((item) => sigAreaOf(item) === 'mantenimiento')
+  const productionEvents = recentEvents.filter((e) => PRODUCTION_EVENTS.has(e.kind)).slice(0, 12)
+  const maintenanceEvents = recentEvents.filter((e) => e.kind === 'Mantenimiento').slice(0, 12)
+
+  const areaHome = (
+    <Suspense fallback={null}>
+      <LeaderAreaHome
+        orgId={orgId}
+        userId={userId}
+        role={role}
+        area={area}
+        userName={userName}
+        onNavigate={onNavigate}
+        peopleName={peopleName}
+      />
+    </Suspense>
+  )
+
+  const machineKpis = (
+    <section className="ldr-kpi-grid" aria-label="Indicadores de planta">
+      <KpiCard
+        label="Operativas"
+        value={summary.normal}
+        icon="✅"
+        color={CONDITION_COLOR.normal}
+        sub={`de ${totalMachines} máquinas`}
+      />
+      <KpiCard label="En alerta" value={summary.warning} icon="!" color={CONDITION_COLOR.warning} />
+      <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
+      <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
+      <KpiCard
+        label={isPlantLeader ? 'Evidencias SIG Mant.' : 'Evidencias SIG'}
+        value={isPlantLeader ? maintenanceEvidence.length : dashboardEvidence.length}
+        icon="SIG"
+        color="#a78bfa"
+        sub="Registros vinculados"
+      />
+      <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
+    </section>
+  )
+
+  const quickAccess = quickItems.length > 0 && (
+    <section className="ldr-quick-section" aria-label="Acceso rápido">
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">⚡</span> Acceso Rápido
+      </h2>
+      <div className="ldr-quick-grid">
+        {quickItems.map((item) => (
+          <QuickCard key={item.id} item={item} onNavigate={onNavigate} />
+        ))}
+      </div>
+    </section>
+  )
+
+  const evidenceSection = (items, title, empty) => (
+    <section className="ldr-evidence-section" aria-label={title}>
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">📸</span> {title}
+        <span className="ldr-section-sub">{items.length} registros vinculados</span>
+      </h2>
+      {items.length === 0 ? (
+        <p className="ldr-feed-empty">{empty}</p>
+      ) : (
+        <div className="ldr-ev-grid">
+          {items.slice(0, 8).map((item) => (
+            <EvidenceCard key={item.id} item={item} getFileUrl={getFileUrl} peopleName={peopleName} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+
+  const feedSection = (events, title, empty) => (
+    <section className="ldr-feed-section" aria-label={title}>
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">📋</span> {title}
+      </h2>
+      <div className="ldr-feed">
+        {events.length === 0 ? (
+          <p className="ldr-feed-empty">{empty}</p>
+        ) : (
+          events.map((ev, i) => (
+            <FeedItem key={i} event={ev} peopleName={peopleName} getPhotoUrl={mc.getPhotoUrl} onOpenFormat={openFeedFormat} />
+          ))
+        )}
+      </div>
+    </section>
+  )
+
+  const plantView = developerMode ? (
+    <section className="ldr-map-section" aria-label="Plano de planta en vivo">
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">Plano</span> Plano en vivo
+        {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
+      </h2>
+      <div className="ldr-map-frame">
+        {roomsApi.loading ? (
+          <div className="ldr-map-placeholder">Cargando plano…</div>
+        ) : roomsApi.rooms.length === 0 ? (
+          <div className="ldr-map-placeholder">Planta sin plano dibujado aún.</div>
+        ) : (
+          <FloorMap
+            canManage={false}
+            canExpand={false}
+            roomsApi={roomsApi}
+            machines={machines}
+            updateMachine={() => {}}
+            moveRoom={roomsApi.moveRoom}
+            selectedMachineId={null}
+            onSelectMachine={() => {}}
+            livePeople={[]}
+            conditionByMachine={conditionByMachine}
+            highlightRoomIds={null}
+          />
+        )}
+      </div>
+    </section>
+  ) : puede3D ? (
+    <section className="ldr-map-section ldr-map-section-3d" aria-label="Planta 3D en vivo">
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">3D</span> Planta 3D en vivo
+        {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
+      </h2>
+      <div className="ldr-map-frame ldr-map-frame-3d">
+        <iframe className="ldr-tour-3d" src={PLANT_3D_TOUR_URL} title="Planta 3D en vivo" allow="fullscreen" />
+      </div>
+    </section>
+  ) : null
+
+  const assetsSection = (
+    <section className="ldr-assets-section" aria-label="Gestión de Activos SIG">
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
+      </h2>
+      <div className="ldr-assets-frame">
+        <Suspense fallback={<p className="ldr-feed-empty">Cargando Centro de Activos…</p>}>
+          <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
+        </Suspense>
+      </div>
+    </section>
+  )
+
+  const maintenanceShortcuts = (
+    <section className="ldr-quick-section" aria-label="Herramientas de mantenimiento">
+      <h2 className="ldr-section-title">
+        <span aria-hidden="true">🔧</span> Herramientas SIG Mantenimiento
+      </h2>
+      <div className="ldr-quick-grid">
+        {MAINTENANCE_TOOLS.filter((t) => !can || can(t.id)).map((t) => (
+          <QuickCard key={t.id} item={t} onNavigate={onNavigate} />
+        ))}
+      </div>
+    </section>
+  )
+
+  const header = (
+    <header className="ldr-header">
+      <div className="ldr-header-left">
+        <h1 className="ldr-greeting">
+          {greeting}, <span className="ldr-name">{firstName}</span>
+        </h1>
+        <p className="ldr-subtitle">
+          {orgName || 'Planta'} · Turno {currentShift} ·{' '}
+          <span className="ldr-shift-label">{SHIFT_LABEL?.[currentShift] || `T${currentShift}`}</span>
+        </p>
+      </div>
+      <div className="ldr-header-right">
+        <span className="ldr-clock">{currentTime}</span>
+        <span className="pill live">
+          <span className="dot" />
+          En vivo
+        </span>
+      </div>
+    </header>
+  )
+
+  const footer = (
+    <footer className="ldr-actions">
+      {puede3D && (
+        <a className="ldr-action-btn ldr-ghost" href={PLANT_3D_TOUR_URL} target="_blank" rel="noopener noreferrer">
+          3D aparte
+        </a>
+      )}
+    </footer>
+  )
+
+  if (isPlantLeader) {
+    return (
+      <div className="leader-dash">
+        {header}
+        <nav className="ldr-sig-switch" role="tablist" aria-label="Sistema integrado de gestión">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sig === 'produccion'}
+            className={sig === 'produccion' ? 'active' : ''}
+            onClick={() => chooseSig('produccion')}
+          >
+            <span aria-hidden="true">🐣</span> SIG Producción
+            <small>decisiones · broiler · cargues y nacimientos</small>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sig === 'mantenimiento'}
+            className={sig === 'mantenimiento' ? 'active' : ''}
+            onClick={() => chooseSig('mantenimiento')}
+          >
+            <span aria-hidden="true">🔧</span> SIG Mantenimiento
+            <small>
+              máquinas · {activeOrdersCount} OT activas · {summary.fault} con falla
+            </small>
+          </button>
+        </nav>
+
+        {sig === 'produccion' ? (
+          <>
+            {areaHome}
+            <Suspense fallback={<p className="ldr-feed-empty">Cargando proyección broiler…</p>}>
+              <BroilerProjectionPanel orgId={orgId} />
+            </Suspense>
+            {quickAccess}
+            <div className={`ldr-main-split${developerMode ? '' : ' ldr-main-split-3d'}`}>
+              {plantView}
+              {feedSection(productionEvents, 'Actividad de producción del turno', 'Sin rondas, cargues ni transferencias registradas aún.')}
+            </div>
+            {evidenceSection(productionEvidence, 'Evidencias SIG Producción', 'Sin registros de cargue, transferencia o nacimiento con evidencia todavía.')}
+          </>
+        ) : (
+          <>
+            {machineKpis}
+            {maintenanceShortcuts}
+            <div className="ldr-main-split">
+              {feedSection(maintenanceEvents, 'Órdenes de trabajo recientes', 'Sin órdenes de trabajo registradas aún.')}
+              {evidenceSection(maintenanceEvidence, 'Evidencias SIG Mantenimiento', 'Sin evidencias de OT, calibraciones ni registros SIG todavía.')}
+            </div>
+          </>
+        )}
+        {/* Un solo Centro de Activos: alimenta las evidencias de las dos vistas y se ve en Mantenimiento */}
+        <div hidden={sig !== 'mantenimiento'}>{assetsSection}</div>
+        {footer}
+      </div>
+    )
+  }
+
   return (
     <div className="leader-dash">
-      <header className="ldr-header">
-        <div className="ldr-header-left">
-          <h1 className="ldr-greeting">
-            {greeting}, <span className="ldr-name">{firstName}</span>
-          </h1>
-          <p className="ldr-subtitle">
-            {orgName || 'Planta'} · Turno {currentShift} ·{' '}
-            <span className="ldr-shift-label">{SHIFT_LABEL?.[currentShift] || `T${currentShift}`}</span>
-          </p>
-        </div>
-        <div className="ldr-header-right">
-          <span className="ldr-clock">{currentTime}</span>
-          <span className="pill live">
-            <span className="dot" />
-            En vivo
-          </span>
-        </div>
-      </header>
-
-      <Suspense fallback={null}>
-        <LeaderAreaHome
-          orgId={orgId}
-          userId={userId}
-          role={role}
-          area={area}
-          userName={userName}
-          onNavigate={onNavigate}
-          peopleName={peopleName}
-        />
-      </Suspense>
-
-      <section className="ldr-kpi-grid" aria-label="Indicadores de planta">
-        <KpiCard
-          label="Operativas"
-          value={summary.normal}
-          icon="✅"
-          color={CONDITION_COLOR.normal}
-          sub={`de ${totalMachines} máquinas`}
-        />
-        <KpiCard label="En alerta" value={summary.warning} icon="!" color={CONDITION_COLOR.warning} />
-        <KpiCard label="Con falla" value={summary.fault} icon="🔴" color={CONDITION_COLOR.fault} />
-        <KpiCard label="OTs Activas" value={activeOrdersCount} icon="🔧" color="#38bdf8" sub="Mantenimiento SIG" />
-        <KpiCard
-          label="Evidencias SIG"
-          value={dashboardEvidence.length}
-          icon="SIG"
-          color="#a78bfa"
-          sub="Registros vinculados"
-        />
-        <KpiCard label="Personal online" value={onlineCount} icon="👥" color="var(--accent)" sub="en plataforma" />
-      </section>
-
-      {quickItems.length > 0 && (
-        <section className="ldr-quick-section" aria-label="Acceso rápido">
-          <h2 className="ldr-section-title">
-            <span aria-hidden="true">⚡</span> Acceso Rápido
-          </h2>
-          <div className="ldr-quick-grid">
-            {quickItems.map((item) => (
-              <QuickCard key={item.id} item={item} onNavigate={onNavigate} />
-            ))}
-          </div>
-        </section>
+      {header}
+      {areaHome}
+      {isMaintenanceLeader && (
+        <Suspense fallback={<p className="ldr-feed-empty">Cargando equipo de mantenimiento…</p>}>
+          <MaintenanceTeamPanel orgId={orgId} userId={userId} role={role} area={area} userName={userName} onNavigate={onNavigate} compact />
+        </Suspense>
       )}
-
-      {/* Evidencias SIG Mantenimiento y Producción */}
-      <section className="ldr-evidence-section" aria-label="Evidencias SIG Mantenimiento y Producción">
-        <h2 className="ldr-section-title">
-          <span aria-hidden="true">📸</span> Evidencias Registradas (SIG Mantenimiento & Producción)
-          <span className="ldr-section-sub">{dashboardEvidence.length} registros vinculados</span>
-        </h2>
-        {dashboardEvidence.length === 0 ? (
-          <p className="ldr-feed-empty">
-            No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.
-          </p>
-        ) : (
-          <div className="ldr-ev-grid">
-            {dashboardEvidence.slice(0, 8).map((item) => (
-              <EvidenceCard key={item.id} item={item} getFileUrl={getFileUrl} peopleName={peopleName} />
-            ))}
-          </div>
-        )}
-      </section>
-
+      {machineKpis}
+      {quickAccess}
+      {evidenceSection(dashboardEvidence, 'Evidencias Registradas (SIG Mantenimiento & Producción)', 'No hay evidencias ni adjuntos de mantenimiento/producción en esta organización aún.')}
       <div className={`ldr-main-split${developerMode ? '' : ' ldr-main-split-3d'}`}>
-        {developerMode ? (
-          <section className="ldr-map-section" aria-label="Plano de planta en vivo">
-            <h2 className="ldr-section-title">
-              <span aria-hidden="true">Plano</span> Plano en vivo
-              {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
-            </h2>
-            <div className="ldr-map-frame">
-              {roomsApi.loading ? (
-                <div className="ldr-map-placeholder">Cargando plano…</div>
-              ) : roomsApi.rooms.length === 0 ? (
-                <div className="ldr-map-placeholder">Planta sin plano dibujado aún.</div>
-              ) : (
-                <FloorMap
-                  canManage={false}
-                  canExpand={false}
-                  roomsApi={roomsApi}
-                  machines={machines}
-                  updateMachine={() => {}}
-                  moveRoom={roomsApi.moveRoom}
-                  selectedMachineId={null}
-                  onSelectMachine={() => {}}
-                  livePeople={[]}
-                  conditionByMachine={conditionByMachine}
-                  highlightRoomIds={null}
-                />
-              )}
-            </div>
-          </section>
-        ) : puede3D ? (
-          <section className="ldr-map-section ldr-map-section-3d" aria-label="Planta 3D en vivo">
-            <h2 className="ldr-section-title">
-              <span aria-hidden="true">3D</span> Planta 3D en vivo
-              {selectedPlant && <span className="ldr-section-sub">{selectedPlant.name}</span>}
-            </h2>
-            <div className="ldr-map-frame ldr-map-frame-3d">
-              <iframe className="ldr-tour-3d" src={PLANT_3D_TOUR_URL} title="Planta 3D en vivo" allow="fullscreen" />
-            </div>
-          </section>
-        ) : null}
-
-        <section className="ldr-feed-section" aria-label="Actividad reciente">
-          <h2 className="ldr-section-title">
-            <span aria-hidden="true">📋</span> Actividad del turno
-          </h2>
-          <div className="ldr-feed">
-            {recentEvents.length === 0 ? (
-              <p className="ldr-feed-empty">Sin actividad registrada en este turno aún.</p>
-            ) : (
-              recentEvents.map((ev, i) => (
-                <FeedItem
-                  key={i}
-                  event={ev}
-                  peopleName={peopleName}
-                  getPhotoUrl={mc.getPhotoUrl}
-                  onOpenFormat={openFeedFormat}
-                />
-              ))
-            )}
-          </div>
-        </section>
+        {plantView}
+        {feedSection(recentEvents.slice(0, 12), 'Actividad del turno', 'Sin actividad registrada en este turno aún.')}
       </div>
-
-      <section className="ldr-assets-section" aria-label="Gestión de Activos SIG">
-        <h2 className="ldr-section-title">
-          <span aria-hidden="true">🛠️</span> Centro de Activos y Dossiers SIG
-        </h2>
-        <div className="ldr-assets-frame">
-          <Suspense fallback={<p className="ldr-feed-empty">Cargando Centro de Activos…</p>}>
-            <MachineAssetHub orgId={orgId} onEvidenceLoaded={handleSigEvidenceLoaded} />
-          </Suspense>
-        </div>
-      </section>
-      <footer className="ldr-actions">
-        {puede3D && (
-          <a className="ldr-action-btn ldr-ghost" href={PLANT_3D_TOUR_URL} target="_blank" rel="noopener noreferrer">
-            3D aparte
-          </a>
-        )}
-      </footer>
+      {assetsSection}
+      {footer}
     </div>
   )
 }

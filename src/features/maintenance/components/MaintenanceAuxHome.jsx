@@ -26,6 +26,7 @@ import {
 import { SIG_FORMATS } from '../../../lib/corporateBrand'
 import { isoWeekOf } from '../../../lib/planCompliance'
 import PlanTaskInstructions from './PlanTaskInstructions'
+import AuxWorkLocation from './AuxWorkLocation'
 import { EvidencePicker } from '../../shift/components/ShiftForms'
 import { setAssistantContext } from '../../../lib/assistantContext'
 import { maintenanceSnapshot } from '../../shift/lib/assistantSnapshots'
@@ -416,7 +417,7 @@ function PlanRow({ item, onOpen }) {
   )
 }
 
-export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate, defaultSede = null }) {
+export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate, defaultSede = null, siteId = null }) {
   const api = useMaintenanceAuxHome({ orgId, userId, userName })
   const go = (tab) => onNavigate?.(tab)
   const first = (userName || '').trim().split(/\s+/)[0] || ''
@@ -515,6 +516,8 @@ export default function MaintenanceAuxHome({ orgId, userId, userName, onNavigate
 
       <div className="sh-body">
         {api.warnings.length ? <p className="sh-note">No se pudo cargar {api.warnings.join(', ')}.</p> : null}
+
+        <AuxWorkLocation orgId={orgId} userId={userId} siteId={siteId} myOrders={api.assigned || []} onNavigate={go} />
 
         <section className="sh-hero" aria-label="Plan AM de la semana">
           <div className="sh-hero-row">

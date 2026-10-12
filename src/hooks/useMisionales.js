@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { calcularPorcentaje, normalizePlaca } from '../lib/misionalesCatalog'
+import { reportMissionTrip } from '../lib/teamLocations'
 
 const LS_KEY = 'incubapp_misionales_v1'
 
@@ -57,7 +58,7 @@ function uid() {
   return `mis_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
+export function useMisionales(orgId, userId, { canSeeAll = false, userName = '' } = {}) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -208,6 +209,10 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
         }
         return { error: err.message }
       }
+      // 12-10-2026: el traslado queda como «en traslado» (origen → destino) para su jefe y
+      // le llega a SST como notificación. Si falla, la inspección ya quedó guardada.
+      const viaje = await reportMissionTrip({ orgId, userId, inspection: row, userName: userName || row.driver_name })
+      if (viaje.error) console.warn('[Misionales] El traslado no se pudo avisar a SST / jefe:', viaje.error)
       // Cada 15 inspecciones del conductor se agrupan en un consolidado.
       let consolidados = []
       const { data: reps, error: repErr } = await supabase.rpc('mission_consolidar', { p_org: orgId })
@@ -215,7 +220,7 @@ export function useMisionales(orgId, userId, { canSeeAll = false } = {}) {
       await load()
       return { error: null, row, consolidados }
     },
-    [orgId, userId, localMode, load]
+    [orgId, userId, userName, localMode, load]
   )
 
   const removeInspection = useCallback(

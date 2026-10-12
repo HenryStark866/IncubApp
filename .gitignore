@@ -68,3 +68,7 @@ servidor-local/respaldos/
 
 # Exportes de datos de planta (14-EXPORTAR-CICLO): no se suben al repositorio
 servidor-local/exportes/
+
+# Copia del repositorio original de Misionales: es PRIVADO (ver servidor-local/16-subir-misionales.ps1).
+# Se queda en disco, nunca en IncubApp (público).
+repo misionales/

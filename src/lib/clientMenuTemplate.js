@@ -16,7 +16,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
   description:
     'Estructura base del producto: supervisión, OT, gerencia, comercial, granja, sanidad, IoT, misionales y administración de la empresa. Se aplica al crear un tenant y se actualiza cuando se adecua el producto.',
   sourceClient: 'Plantilla base IncubApp (CDH Maker)',
-  version: 8,
+  version: 9,
   /**
    * Ítems del menú operativo del cliente (plantilla).
    * group = agrupación en el menú del tenant (no CDH Maker).
@@ -92,9 +92,11 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     },
     { id: 'mantenimiento', label: 'Órdenes de trabajo', group: 'Operación', tab: 'mantenimiento' },
     { id: 'plan-am', label: 'Plan AM y manuales', group: 'Mantenimiento', tab: 'plan-am', hint: 'Actividades de la semana, instructivos y manuales para descargar' },
+    { id: 'equipo-mantenimiento', label: 'Equipo y sedes', group: 'Mantenimiento', tab: 'equipo-mantenimiento', hint: 'Sedes de los técnicos, asignar OT y actividades, dónde está cada uno' },
     { id: 'horarios', label: 'Horarios de turno', group: 'Operación', tab: 'horarios' },
     { id: 'monitoreo', label: 'Monitoreo', group: 'Operación', tab: 'monitoreo' },
     { id: 'produccion', label: 'Producción', group: 'Operación', tab: 'produccion' },
+    { id: 'proyeccion-broiler', label: 'Proyección broiler', group: 'Operación', tab: 'proyeccion-broiler', hint: 'Pollitos que nacen por día con cargues, transferencias y nacimientos reales' },
     { id: 'huevos', label: 'Reportes de huevo', group: 'Operación', tab: 'huevos' },
     { id: 'clasificacion', label: 'Clasificación', group: 'Recepción y Planta', tab: 'clasificacion', hint: 'Carros, mapa de cargue y orden del día' },
     { id: 'recepcion', label: 'Recepción / cuarto frío', group: 'Recepción y Planta', tab: 'recepcion', hint: 'Llegadas a planta y certificación' },
@@ -105,6 +107,7 @@ export const DEFAULT_CLIENT_TEMPLATE = {
     { id: 'solicitudes', label: 'Solicitudes', group: 'Mi Turno', tab: 'solicitudes', hint: 'Permisos, insumos y novedades' },
     { id: 'reportes-informes', label: 'Reportes e informes', group: 'Informes', tab: 'reportes-informes', hint: 'Consolidados y balances' },
     { id: 'informacion', label: 'Información', group: 'Ayuda y Guías', tab: 'informacion', hint: 'Guías, bioseguridad y manuales' },
+    { id: 'manuales', label: 'Manuales e instructivos', group: 'Ayuda y Guías', tab: 'manuales', hint: 'Paso a paso de tu perfil y manual completo', always: true },
     {
       id: 'cargue',
       label: 'Cargue',
@@ -234,6 +237,16 @@ export function buildClientNavItems({ can, role, template = DEFAULT_CLIENT_TEMPL
         group: 'Recepción',
         hint: rx.hint,
       })
+    }
+    // 12-10-2026: lo demás que su perfil permite (rondas de Supervisión, Mi historial,
+    // Cargue, Misionales, Cumplimiento, Manuales…) sigue en el menú, en su grupo de siempre.
+    // Sin esto el operario perdía las rondas que el cumplimiento le exige.
+    const listed = new Set(items.map((i) => i.id))
+    for (const m of template.menu) {
+      if (m.id === 'perfil' || listed.has(m.id)) continue
+      const tab = m.tab || m.id
+      if (!can(tab) && !can(m.id)) continue
+      items.push({ id: m.id, label: navLabelFor(m, role), group: m.group || 'Operación', hint: m.hint, enDesarrollo: !!m.enDesarrollo })
     }
     return items
   }

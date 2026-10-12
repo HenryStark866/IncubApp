@@ -10998,6 +10998,56 @@ a.plant3d-link:hover {
 /* ── Quick Access Grid ── */
 .ldr-quick-section {}
 
+/* ── Líder de planta: SIG Producción / SIG Mantenimiento por separado (12-10-2026) ── */
+.ldr-sig-switch {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.ldr-sig-switch button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.ldr-sig-switch button small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.ldr-sig-switch button.active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  color: var(--accent);
+}
+@media (max-width: 560px) {
+  .ldr-sig-switch button {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
 /* ── SIG Evidence Cards ── */
 .ldr-evidence-section {
   margin-bottom: 20px;

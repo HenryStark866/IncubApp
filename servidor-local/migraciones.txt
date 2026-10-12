@@ -30,3 +30,5 @@
 20261007_vacunacion.sql
 20261007_admin_set_password_lider_general.sql
 20261007_jerarquia_usuarios.sql
+20261012_remision_galpon.sql
+20261012_equipo_mantenimiento_traslados.sql

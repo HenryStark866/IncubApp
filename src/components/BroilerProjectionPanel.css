@@ -1,0 +1,317 @@
+/* Proyección broiler · usa las variables de la app (modo claro y oscuro). 12-10-2026 */
+.bp-root {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.bp-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 16px;
+}
+.bp-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.bp-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 62ch;
+}
+.bp-head-actions {
+  display: flex;
+  gap: 6px;
+}
+.bp-msg {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--amber) 12%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--line));
+}
+.bp-empty {
+  margin: 12px 0 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.bp-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.bp-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.bp-kpi span {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bp-kpi b {
+  font-size: 22px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.bp-kpi small {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bp-kpi.is-main {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+}
+.bp-kpi.is-main b {
+  color: var(--accent);
+}
+
+/* Gráfico: columnas por día; en el celular se desliza a lo ancho */
+.bp-chart {
+  margin-top: 16px;
+}
+.bp-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 170px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.bp-bar-col {
+  flex: 1 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  min-width: 22px;
+}
+.bp-bar-val {
+  font-size: 10px;
+  color: var(--text-dim);
+  height: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.bp-bar-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+.bp-bar {
+  width: 70%;
+  min-height: 0;
+  border-radius: 6px 6px 2px 2px;
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+.bp-bar-real {
+  position: absolute;
+  bottom: 0;
+  width: 34%;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--ok);
+}
+.bp-bar-day {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.bp-bar-col.is-today .bp-bar-day {
+  color: var(--accent);
+  font-weight: 700;
+}
+.bp-bar-col.is-today .bp-bar-track {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
+}
+.bp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bp-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.bp-dot.proj {
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+.bp-dot.real {
+  background: var(--ok);
+}
+.bp-dot.today {
+  border: 2px solid var(--accent);
+}
+
+.bp-filter {
+  display: inline-flex;
+  gap: 4px;
+  margin: 16px 0 8px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.bp-filter button {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.bp-filter button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.bp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bp-table th,
+.bp-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: var(--text);
+  white-space: nowrap;
+}
+.bp-table th {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.bp-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.bp-st {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+}
+.bp-st.tone-info {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.bp-st.tone-warn {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 45%, var(--line));
+}
+.bp-st.tone-ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+}
+.bp-cards {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+}
+.bp-card {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.bp-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.bp-progress {
+  height: 6px;
+  margin: 10px 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 60%, transparent);
+  overflow: hidden;
+}
+.bp-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.bp-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin: 0 0 8px;
+}
+.bp-card dt {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.bp-card dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.bp-card small {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bp-updated {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 760px) {
+  .bp-root {
+    padding: 12px;
+  }
+  .bp-table {
+    display: none;
+  }
+  .bp-cards {
+    display: grid;
+  }
+  .bp-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bp-kpi b {
+    font-size: 19px;
+  }
+  .bp-bars {
+    height: 140px;
+  }
+}

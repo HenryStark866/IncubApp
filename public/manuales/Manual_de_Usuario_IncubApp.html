@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario e Instructivo Operativo · IncubApp v3.0</title>
+  <style>
+    :root {
+      --orange: #E0740A;
+      --orange-dark: #C26208;
+      --orange-light: #FEF3EB;
+      --navy: #1A2332;
+      --navy-light: #2C3A50;
+      --slate: #475569;
+      --slate-light: #F8FAFC;
+      --border: #CBD5E1;
+      --green: #16A34A;
+      --green-light: #F0FDF4;
+      --amber: #D97706;
+      --amber-light: #FEFCE8;
+      --red: #DC2626;
+      --red-light: #FEF2F2;
+      --blue: #2563EB;
+      --blue-light: #EFF6FF;
+      --text: #0F172A;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background-color: #F1F5F9;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      background: var(--navy);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 100;
+    }
+
+    .toolbar h1 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toolbar h1 span.tag {
+      background: var(--orange);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .btn-print {
+      background: var(--orange);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .btn-print:hover { background: var(--orange-dark); }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    /* Portada */
+    .cover {
+      background: linear-gradient(135deg, var(--navy) 0%, #0B111B 100%);
+      color: white;
+      padding: 60px 48px;
+      position: relative;
+      border-bottom: 6px solid var(--orange);
+    }
+    .cover-brand {
+      display: inline-block;
+      background: var(--orange);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+    .cover h1 {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .cover p.subtitle {
+      font-size: 17px;
+      color: #94A3B8;
+      max-width: 700px;
+      margin-bottom: 30px;
+    }
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .meta-item strong { display: block; font-size: 11px; color: var(--orange); text-transform: uppercase; }
+    .meta-item span { font-size: 13px; color: #E2E8F0; }
+
+    /* Contenido */
+    .content { padding: 48px; }
+    .toc {
+      background: var(--slate-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+    .toc h2 { font-size: 18px; color: var(--navy); margin-bottom: 16px; }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+    .toc-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--navy);
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .toc-link:hover { border-color: var(--orange); color: var(--orange); }
+    .toc-link .mod-badge {
+      background: var(--navy);
+      color: white;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Módulos */
+    .module-section {
+      margin-bottom: 50px;
+      page-break-after: always;
+    }
+    .module-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--navy);
+      margin-bottom: 24px;
+    }
+    .module-badge {
+      background: var(--orange);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .module-title h2 { font-size: 22px; color: var(--navy); }
+    .module-title p { font-size: 13px; color: var(--slate); }
+
+    /* Pasos */
+    .step-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      break-inside: avoid;
+    }
+    .step-head {
+      background: var(--orange-light);
+      padding: 12px 20px;
+      border-bottom: 1px solid #FED7AA;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .step-head h3 {
+      font-size: 15px;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-num {
+      background: var(--orange);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .step-role {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--navy-light);
+      background: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .step-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+    @media (max-width: 768px) {
+      .step-body { grid-template-columns: 1fr; }
+    }
+
+    /* Maqueta Visual */
+    .mockup-window {
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .mockup-bar {
+      background: var(--navy);
+      color: white;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mockup-bar .dots {
+      display: flex;
+      gap: 4px;
+    }
+    .mockup-bar .dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .mockup-bar .dots i.r { background: var(--red); }
+    .mockup-bar .dots i.y { background: var(--amber); }
+    .mockup-bar .dots i.g { background: var(--green); }
+    .mockup-content {
+      padding: 16px;
+      position: relative;
+      min-height: 220px;
+      font-size: 12px;
+    }
+
+    /* Elementos interactivos simulados */
+    .sim-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .sim-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 11px;
+      border: 1px solid transparent;
+      cursor: default;
+      position: relative;
+    }
+    .sim-btn.primary { background: var(--orange); color: white; }
+    .sim-btn.secondary { background: var(--slate-light); color: var(--navy); border-color: var(--border); }
+    .sim-btn.success { background: var(--green); color: white; }
+
+    /* Indicadores y Callouts (Figuras de señalar botones) */
+    .callout-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: var(--red);
+      color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 0 0 2px white, 0 2px 4px rgba(0,0,0,0.3);
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .sim-focus {
+      outline: 2px dashed var(--red);
+      outline-offset: 4px;
+      position: relative;
+    }
+
+    /* Secuencia explicativa */
+    .sequence-panel {
+      background: var(--slate-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sequence-panel h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--navy);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .sequence-list { list-style: none; }
+    .sequence-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .sequence-badge {
+      background: var(--red);
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .sequence-text strong { display: block; font-size: 13px; color: var(--navy); }
+    .sequence-text span { font-size: 12px; color: var(--slate); }
+
+    .step-tip {
+      background: var(--amber-light);
+      border: 1px solid #FCD34D;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #92400E;
+      margin-top: 12px;
+    }
+
+    /* Impresión */
+    @media print {
+      body { background: white; font-size: 12px; }
+      .toolbar { display: none; }
+      .container { max-width: 100%; margin: 0; box-shadow: none; border-radius: 0; }
+      .module-section { page-break-after: always; }
+      .step-card { break-inside: avoid; margin-bottom: 18px; }
+      .cover { padding: 40px 20px; }
+      .content { padding: 20px; }
+      .callout-badge { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de herramientas superior -->
+  <header class="toolbar">
+    <h1>
+      INCUBAPP SIG
+      <span class="tag">Manual v3.0</span>
+      <span style="font-weight: normal; font-size: 12px; color: #94A3B8;">Antioqueña de Incubación SAS</span>
+    </h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="Manual_de_Usuario_IncubApp.pdf" download class="btn-print" style="background: #16A34A;">
+        📄 Descargar Archivo PDF Directo
+      </a>
+      <button class="btn-print" onclick="window.print()">
+        🖨️ Imprimir / Guardar Como PDF
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Portada -->
+    <section class="cover">
+      <div class="cover-brand">INCUBAPP · CDH MAKER</div>
+      <h1>MANUAL DE USUARIO E INSTRUCTIVO OPERATIVO</h1>
+      <p class="subtitle">
+        Guía integral secuencial ilustrada por roles con diagramas de pantalla y figuras de señalización de botones para la operación de planta y granja.
+      </p>
+
+      <div class="cover-meta">
+        <div class="meta-item">
+          <strong>Organización</strong>
+          <span>Antioqueña de Incubación SAS</span>
+        </div>
+        <div class="meta-item">
+          <strong>Versión</strong>
+          <span>3.0 (Octubre 2026) · SIG</span>
+        </div>
+        <div class="meta-item">
+          <strong>Arquitectura</strong>
+          <span>Perfiles Herméticos & Modo Offline</span>
+        </div>
+        <div class="meta-item">
+          <strong>Desarrollo & TI</strong>
+          <span>Henry Camilo Taborda Galeano</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="content">
+      <!-- Índice -->
+      <section class="toc">
+        <h2>📑 Tabla de Contenidos por Módulo y Rol</h2>
+        <div class="toc-grid">
+          <a href="#mod1" class="toc-link"><span class="mod-badge">M1</span> Acceso, Autenticación y Perfil</a>
+          <a href="#mod2" class="toc-link"><span class="mod-badge">M2</span> Operario de Turno (Planta y Rondas)</a>
+          <a href="#mod3" class="toc-link"><span class="mod-badge">M3</span> Líder de Área / Coordinador</a>
+          <a href="#mod4" class="toc-link"><span class="mod-badge">M4</span> Líder de Granja (Sedes y Aves)</a>
+          <a href="#mod5" class="toc-link"><span class="mod-badge">M5</span> Mantenimiento y Técnico SIG</a>
+          <a href="#mod6" class="toc-link"><span class="mod-badge">M6</span> Recepción, Clasificación y Cargue</a>
+          <a href="#mod7" class="toc-link"><span class="mod-badge">M7</span> Calidad, SST y Misionales</a>
+          <a href="#mod8" class="toc-link"><span class="mod-badge">M8</span> Gerencia y Dirección</a>
+          <a href="#mod9" class="toc-link"><span class="mod-badge">M9</span> Administración de Empresa</a>
+          <a href="#mod10" class="toc-link"><span class="mod-badge">M10</span> Operación Offline y Soporte</a>
+        </div>
+      </section>
+
+      <!-- MÓDULO 1 -->
+      <section id="mod1" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 1</span>
+          <div class="module-title">
+            <h2>Acceso, Inicio de Sesión y Configuración de Perfil</h2>
+            <p>Flujo universal de entrada para todos los colaboradores de Antioqueña de Incubación SAS</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">1</span> Inicio de Sesión y Selección de Empresa</h3>
+            <span class="step-role">Común a todos</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>IncubApp · Acceso Seguro</span>
+                <span>Público</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card" style="text-align: center;">
+                  <strong style="color: var(--orange); font-size: 15px;">INCUBANT</strong>
+                  <p style="font-size: 11px; color: var(--slate);">Antioqueña de Incubación SAS</p>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <label style="font-size: 10px; color: var(--slate); display: block;">Correo corporativo:</label>
+                  <input type="text" value="colaborador@incubant.co" readonly style="width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 10px; color: var(--slate); display: block;">Contraseña:</label>
+                  <input type="password" value="••••••••••••" readonly style="width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <div style="text-align: center; position: relative;" class="sim-focus">
+                  <span class="callout-badge">❶</span>
+                  <div class="sim-btn primary" style="width: 100%; justify-content: center;">
+                    Entrar a IncubApp
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Presiona «Entrar a IncubApp»</strong>
+                      <span>El sistema valida tus credenciales y carga el perfil autorizado.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Si no hay señal: Entrada Offline</strong>
+                      <span>Si te encuentras en granja sin internet, la app abre directamente con tus credenciales guardadas.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Consejo:</strong> Si olvidaste tu contraseña, toca «¿Olvidaste tu contraseña?» o solicita una temporal al administrador.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">2</span> Edición de Perfil, Foto y Permisos de Dispositivo</h3>
+            <span class="step-role">Común a todos</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>Mi Perfil Personal</span>
+                <span>Configuración</span>
+              </div>
+              <div class="mockup-content">
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                  <div style="position: relative;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--orange); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                      MT
+                    </div>
+                    <span class="callout-badge" style="top: -5px; right: -5px;">❶</span>
+                  </div>
+                  <div>
+                    <strong style="font-size: 13px;">Miguel Taborda</strong>
+                    <p style="font-size: 11px; color: var(--slate);">Líder de Área · Mantenimiento</p>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">Editar Datos</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❸</span>
+                    <div class="sim-btn primary">Guardar cambios</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Toca tu Avatar / Foto</strong>
+                      <span>Toma una selfie o carga tu foto para el carné digital.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Editar Datos»</strong>
+                      <span>Habilita los campos de nombre y teléfono de contacto.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Guardar cambios»</strong>
+                      <span>Se sincroniza al instante en la base de datos y la caché de arranque.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Importante:</strong> El nombre guardado aquí es el que figurará legalmente en tus firmas digitales de rondas y OTs.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 2 -->
+      <section id="mod2" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 2</span>
+          <div class="module-title">
+            <h2>Operario de Turno (Operaciones Planta y Rondas)</h2>
+            <p>Marcación con selfie biométrica, semáforo de máquinas y rondas horarias</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">3</span> Registro de Inicio de Turno con Selfie</h3>
+            <span class="step-role">Operario / Auxiliar de Turno</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>Mi Turno · Asistencia Diaria</span>
+                <span>Operario</span>
+              </div>
+              <div class="mockup-content">
+                <p style="font-weight: bold; margin-bottom: 8px;">Buenos días, Turno 1 (06:00 - 14:00)</p>
+                <div style="background: var(--navy); border-radius: 6px; padding: 20px; text-align: center; color: white; margin-bottom: 12px;">
+                  <span style="font-size: 28px;">📷</span>
+                  <p style="font-size: 11px; margin-top: 4px;">Cámara frontal activa</p>
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn secondary">📷 Tomar Selfie</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn primary">Marcar Ingreso al Turno</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Presiona «Tomar Selfie»</strong>
+                      <span>Abre la cámara frontal. Encuadra tu rostro portando la dotación.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Marcar Ingreso al Turno»</strong>
+                      <span>Registra la hora exacta y GPS para los bonos de puntualidad.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Meta de puntualidad:</strong> Marcar dentro de los primeros 15 minutos del turno asegura el 100% de cumplimiento.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">4</span> Registro de Ronda Horaria y Semáforo de Máquinas</h3>
+            <span class="step-role">Operario / Auxiliar de Turno</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>Toma de Ronda · INC-04</span>
+                <span>Ronda Horaria</span>
+              </div>
+              <div class="mockup-content">
+                <div style="margin-bottom: 10px;">
+                  <span style="font-weight: bold;">Máquina: INC-04</span> · <span>Ronda 08:00 a. m.</span>
+                </div>
+                <p style="font-size: 11px; margin-bottom: 6px; font-weight: bold;">Condición operativa:</p>
+                <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn success">Normal (Verde)</div>
+                  </div>
+                  <div class="sim-btn secondary">Alerta (Amarillo)</div>
+                  <div class="sim-btn secondary">Falla (Rojo)</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">📷 Foto de Panel</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❸</span>
+                    <div class="sim-btn primary">Guardar Ronda</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Elige la condición del semáforo</strong>
+                      <span>Verde si la temperatura y volteo están correctos.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Foto de Panel»</strong>
+                      <span>Captura la pantalla física de la incubadora con claridad.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Guardar Ronda»</strong>
+                      <span>Se transmite en vivo al LeaderDashboard del coordinador.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Alerta crítica:</strong> Si seleccionas «Falla (Rojo)», el sistema alerta inmediatamente al técnico de mantenimiento.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 3 -->
+      <section id="mod3" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 3</span>
+          <div class="module-title">
+            <h2>Líder de Área / Coordinador de Operaciones</h2>
+            <p>Supervisión en vivo, KPIs de planta, mapa interactivo 2D/3D y asignación de OTs</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">5</span> Consola en Vivo (LeaderDashboard)</h3>
+            <span class="step-role">Líder de Área / Coordinador</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>LeaderDashboard · Planta Central</span>
+                <span>En vivo</span>
+              </div>
+              <div class="mockup-content">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+                  <div style="background: var(--green-light); border: 1px solid var(--green); padding: 6px; border-radius: 4px; text-align: center;">
+                    <strong style="color: var(--green); font-size: 14px;">36</strong>
+                    <span style="display:block; font-size: 9px;">Operativas</span>
+                  </div>
+                  <div style="background: var(--amber-light); border: 1px solid var(--amber); padding: 6px; border-radius: 4px; text-align: center;">
+                    <strong style="color: var(--amber); font-size: 14px;">0</strong>
+                    <span style="display:block; font-size: 9px;">En Alerta</span>
+                  </div>
+                  <div style="background: var(--red-light); border: 1px solid var(--red); padding: 6px; border-radius: 4px; text-align: center;">
+                    <strong style="color: var(--red); font-size: 14px;">0</strong>
+                    <span style="display:block; font-size: 9px;">Con Falla</span>
+                  </div>
+                  <div style="background: var(--blue-light); border: 1px solid var(--blue); padding: 6px; border-radius: 4px; text-align: center;">
+                    <strong style="color: var(--blue); font-size: 14px;">0</strong>
+                    <span style="display:block; font-size: 9px;">OTs Activas</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn primary">🗺️ Mapa de Planta</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">📋 Revisar Rondas</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❸</span>
+                    <div class="sim-btn secondary">🔧 Crear OT</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Mapa de Planta»</strong>
+                      <span>Abre el gemelo digital en 2D y 3D con el plano de salas.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Revisar Rondas»</strong>
+                      <span>Audita las fotos y lecturas enviadas por los operarios.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Crear OT»</strong>
+                      <span>Genera una orden correctiva asignada al técnico de turno.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Seguimiento:</strong> El líder observa el ritmo horario del turno para evitar vacíos de información entre cambios de guardia.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 4 -->
+      <section id="mod4" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 4</span>
+          <div class="module-title">
+            <h2>Líder de Granja (Farm Leader)</h2>
+            <p>Control de sedes reproductoras, Plan AM de granja, lotes y mortalidad</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">6</span> Tablero de Sede y Ejecución de Plan AM</h3>
+            <span class="step-role">Líder de Granja (Ej. Granja La Fe)</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>FarmLeaderHome · Granja La Fe</span>
+                <span>Granja</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card">
+                  <strong>Sede: G-GRANJA LA FE</strong>
+                  <p style="font-size: 11px; color: var(--slate);">4 Galpones · Lote L-2026-A · Aves reproductoras</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn primary">📋 Abrir Plan de Sede</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">🥚 Registrar Producción</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Abrir Plan de Sede»</strong>
+                      <span>Visualiza las rutinas preventivas de silos, comederos y clima.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Registrar Producción»</strong>
+                      <span>Ingresa los huevos fértiles recolectados para despacho a planta.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Hermetismo:</strong> Cada líder de granja únicamente visualiza los datos de su sede asignada.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 5 -->
+      <section id="mod5" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 5</span>
+          <div class="module-title">
+            <h2>Mantenimiento y Técnico SIG</h2>
+            <p>Plan semanal preventivo, listas de chequeo técnico, OTs y calibraciones</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">7</span> Ejecución de OT Preventiva con Checklist</h3>
+            <span class="step-role">Auxiliar de Mantenimiento</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>MaintenanceAuxHome · Plan AM</span>
+                <span>Técnico</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card">
+                  <strong>OT-2026-088 · INC-02 (Mensual)</strong>
+                  <p style="font-size: 11px; color: var(--slate);">Mantenimiento sistema volteo y cadenas</p>
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <div style="position: relative; display: inline-block;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn primary">▶ Ejecutar Tarea (Chequeo)</div>
+                  </div>
+                </div>
+                <div class="sim-card" style="font-size: 11px; background: var(--slate-light);">
+                  <p>☑ 1. Verificación de tensores</p>
+                  <p>☑ 2. Lubricación de chumaceras</p>
+                  <p>☑ 3. Ajuste pernos de anclaje</p>
+                </div>
+                <div style="position: relative; display: inline-block;" class="sim-focus">
+                  <span class="callout-badge">❷</span>
+                  <div class="sim-btn success">✓ Completar OT</div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Ejecutar Tarea»</strong>
+                      <span>Abre el instructivo paso a paso y la lista técnica obligatoria.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Marca los puntos y toca «Completar OT»</strong>
+                      <span>Registra los repuestos utilizados y firma digitalmente.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Requisito SIG:</strong> No se puede cerrar una orden preventiva sin adjuntar la foto del trabajo culminado.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 6 -->
+      <section id="mod6" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 6</span>
+          <div class="module-title">
+            <h2>Recepción, Clasificación y Cargue de Huevo</h2>
+            <p>Ingreso de lotes, clasificación por carro y mapa interactivo de cargue</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">8</span> Asistente de Clasificación y Mapa de Cargue</h3>
+            <span class="step-role">Recepción / Clasificación / Cargue</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>Cargue · Incubadora INC-05</span>
+                <span>Operaciones</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card">
+                  <strong>Lote: L-LA-FE-42 · 19,200 Huevos</strong>
+                  <p style="font-size: 11px;">Carros programados: 4 · Capacidad máquina: 100%</p>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn primary">▶ Clasificar Lote</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">📅 Fijar Fecha Cargue</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❸</span>
+                    <div class="sim-btn success">✓ Sellar Cargue</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Clasificar Lote»</strong>
+                      <span>Guía la carga carro por carro registrando aptos y descartes.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Fija Fecha de Cargue</strong>
+                      <span>Define la fecha de transferencia (día 18) y nacimiento (día 21).</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Sellar Cargue»</strong>
+                      <span>Genera la sábana oficial de cargue para trazabilidad SIG.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Prevención de errores:</strong> El sistema impide que un mismo carro sea cargado en dos máquinas a la vez.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 7 -->
+      <section id="mod7" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 7</span>
+          <div class="module-title">
+            <h2>Calidad, SST y Desplazamientos Misionales</h2>
+            <p>Formato FOSST22 de inspección vehicular y legalización de viáticos misionales</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">9</span> Inspección Preoperacional FOSST22</h3>
+            <span class="step-role">Conductores / Logística / SST</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>FOSST22 · Control de Vehículos</span>
+                <span>SST</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card">
+                  <strong>Camión TermoKing · TKL-804</strong>
+                  <p style="font-size: 11px;">124,500 km · SOAT Vigente · Frenos y luces OK</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn secondary">📷 Foto Odómetro</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn primary">Emitir FOSST22</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Foto de Odómetro y Firma</strong>
+                      <span>Registra la evidencia física del kilometraje y estado inicial.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Emitir FOSST22»</strong>
+                      <span>Genera el PDF legal requerido para transitar en vías nacionales.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Seguridad vial:</strong> El preoperacional debe diligenciarse antes del encendido del motor al iniciar el turno.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 8 -->
+      <section id="mod8" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 8</span>
+          <div class="module-title">
+            <h2>Gerencia y Dirección Estratégica</h2>
+            <p>Tablero ejecutivo de indicadores macro, metas de calidad y bonos del 95%+</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">10</span> Tablero Ejecutivo y Autorización de Bonos</h3>
+            <span class="step-role">Gerencia General / Propietario</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>ExecTodayBoard · Resumen Ejecutivo</span>
+                <span>Dirección</span>
+              </div>
+              <div class="mockup-content">
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                  <div class="sim-card" style="flex: 1; text-align: center;">
+                    <strong style="color: var(--green); font-size: 16px;">88.4%</strong>
+                    <p style="font-size: 10px;">Nacimiento</p>
+                  </div>
+                  <div class="sim-card" style="flex: 1; text-align: center;">
+                    <strong style="color: var(--orange); font-size: 16px;">96.8%</strong>
+                    <p style="font-size: 10px;">Bonos 95%+</p>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn primary">📊 Informe Gerencial</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn success">✓ Autorizar Bonos</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Informe Gerencial»</strong>
+                      <span>Descarga el consolidado ejecutivo para junta directiva.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Autorizar Bonos»</strong>
+                      <span>Valida y aprueba los desembolsos de puntualidad y rondas del personal.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Visión omnisciente:</strong> La gerencia monitorea en tiempo real la productividad de todas las granjas y plantas.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 9 -->
+      <section id="mod9" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 9</span>
+          <div class="module-title">
+            <h2>Administración de Empresa y Seguridad</h2>
+            <p>Aprobación de usuarios, asignación de roles herméticos y contraseñas</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">11</span> Aprobación y Asignación de Roles Herméticos</h3>
+            <span class="step-role">Administrador de Empresa (Admin)</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>AdminDashboard · Control de Personal</span>
+                <span>Admin</span>
+              </div>
+              <div class="mockup-content">
+                <div class="sim-card" style="background: var(--amber-light);">
+                  <strong>Carlos Pérez · carlos@incubant.co</strong>
+                  <p style="font-size: 11px;">Nuevo usuario · Pendiente de aprobación</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❶</span>
+                    <div class="sim-btn success">✓ Aprobar</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❷</span>
+                    <div class="sim-btn secondary">🏷️ Asignar Rol</div>
+                  </div>
+                  <div style="position: relative;" class="sim-focus">
+                    <span class="callout-badge">❸</span>
+                    <div class="sim-btn secondary">🔑 Clave Temporal</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Secuencia de Botones a Presionar</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Aprobar»</strong>
+                      <span>Autoriza el ingreso del colaborador a la plataforma.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Toca «Asignar Rol»</strong>
+                      <span>Configura el módulo hermético (Operario, Líder, Mantenimiento).</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Oprime «Clave Temporal»</strong>
+                      <span>Emite una contraseña de rescate si el usuario no tiene correo activo.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Seguridad:</strong> Si un empleado se retira, el administrador puede revocar su acceso con un solo clic.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MÓDULO 10 -->
+      <section id="mod10" class="module-section">
+        <div class="module-header">
+          <span class="module-badge">MÓDULO 10</span>
+          <div class="module-title">
+            <h2>Operación Offline y Soporte Técnico</h2>
+            <p>Guía de trabajo en zonas sin señal, reconexión y mesa de ayuda</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head">
+            <h3><span class="step-num">12</span> Modo Sin Conexión (Offline) y Sincronización</h3>
+            <span class="step-role">Todos los colaboradores</span>
+          </div>
+          <div class="step-body">
+            <div class="mockup-window">
+              <div class="mockup-bar">
+                <div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+                <span>Banner de Sincronización Offline</span>
+                <span>Alerta</span>
+              </div>
+              <div class="mockup-content">
+                <div style="background: var(--red-light); border: 1px solid var(--red); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                  <strong style="color: var(--red); font-size: 12px;">⚠ Modo sin conexión activo</strong>
+                  <p style="font-size: 11px; margin-top: 4px;">
+                    Sin conexión estable: algunos datos no cargaron. Se actualiza solo al volver la señal.
+                  </p>
+                </div>
+                <div style="position: relative; display: inline-block;" class="sim-focus">
+                  <span class="callout-badge">❶</span>
+                  <div class="sim-btn primary">🔄 Sincronizar Ahora</div>
+                </div>
+              </div>
+            </div>
+            <div class="sequence-panel">
+              <div>
+                <h4>Cómo Funciona la Sincronización</h4>
+                <ul class="sequence-list">
+                  <li class="sequence-item">
+                    <span class="sequence-badge">1</span>
+                    <div class="sequence-text">
+                      <strong>La app nunca se bloquea</strong>
+                      <span>Todas tus rondas y fotos se guardan en la memoria segura del móvil.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">2</span>
+                    <div class="sequence-text">
+                      <strong>Sincronización automática</strong>
+                      <span>Al detectar señal Wi-Fi o datos, los registros suben a la nube.</span>
+                    </div>
+                  </li>
+                  <li class="sequence-item">
+                    <span class="sequence-badge">3</span>
+                    <div class="sequence-text">
+                      <strong>Botón manual «Sincronizar Ahora»</strong>
+                      <span>Fuerza el envío inmediato una vez restablecida la señal.</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="step-tip">
+                <strong>Soporte TI:</strong> Ante cualquier anomalía, comunícate con el área de Mantenimiento e Instrumentación o usa el chat de ayuda en la esquina inferior derecha.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>

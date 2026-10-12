@@ -31,7 +31,11 @@ export const NOTIF_KINDS = {
   attendance: { label: 'Asistencia', icon: '⏱️' },
   load_map: { label: 'Mapa de cargue', icon: '🗺️' },
   load_order: { label: 'Orden de cargue', icon: '🥚' },
+  mission_trip: { label: 'Traslado misional', icon: '🚗' },
 }
+
+/** 12-10-2026: el traslado misional es para SST y los jefes; no para todo el turno */
+const MISSION_TRIP_ROLES = new Set(['owner', 'admin', 'management', 'coordinator', 'supervisor', 'sst_auxiliary', 'hse_auxiliary'])
 
 const OT_KINDS = new Set(['ot', 'machine_alert'])
 const MGMT_KINDS = new Set([
@@ -68,6 +72,7 @@ export function canSeeNotification(n, role, area, isOmniscient = false) {
   if (isOmniscient) return true
   const kind = n?.kind || 'general'
   const title = `${n?.title || ''} ${n?.body || ''}`
+  if (kind === 'mission_trip') return MISSION_TRIP_ROLES.has(role)
 
   const looksLikeOt =
     OT_KINDS.has(kind) ||

@@ -98,12 +98,18 @@ export default function MisionalesPanel({
   userName,
   orgName,
 }) {
+  // 12-10-2026: SST (líder y auxiliares) y los líderes de área ven todos los traslados:
+  // SST hace el seguimiento y cada jefe ve dónde está su gente y para dónde va.
   const canSeeAll =
     canManageOrgUsers(role) ||
     role === "supervisor" ||
+    role === "coordinator" ||
+    role === "sst_auxiliary" ||
+    role === "hse_auxiliary" ||
+    role === "management" ||
     role === "platform_admin" ||
     role === "developer";
-  const api = useMisionales(orgId, userId, { canSeeAll });
+  const api = useMisionales(orgId, userId, { canSeeAll, userName });
   const [vista, setVista] = useState("form");
   const enLinea = useEnLinea();
 
