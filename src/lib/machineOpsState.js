@@ -129,6 +129,22 @@ export function computeAllMachineStates({ machines, loads, transfers, hatches, n
     if (!l.machine_id) continue
     latestLoadByMachine.set(l.machine_id, l)
   }
+  // 12-10-2026: un cargue se registra con una fila por lote (43, 44, TRATADO…). La máquina
+  // muestra todos los lotes del cargue, no solo el de la última fila.
+  for (const [machineId, last] of latestLoadByMachine) {
+    const at = new Date(last.loaded_at || last.cycle_start_at || 0).getTime()
+    const lotes = []
+    for (const l of loadsAsc) {
+      if (l.machine_id !== machineId) continue
+      if (Math.abs(new Date(l.loaded_at || l.cycle_start_at || 0).getTime() - at) > 3 * 3_600_000) continue
+      const v = String(l.lote || '').trim()
+      if (v && !lotes.includes(v)) lotes.push(v)
+    }
+    if (lotes.length > 1) {
+      lotes.sort((x, y) => x.localeCompare(y, 'es', { numeric: true }))
+      latestLoadByMachine.set(machineId, { ...last, lote: lotes.join(' + '), lotes })
+    }
+  }
 
   // Nacedoras: ocupación por room desde transferencias recientes no cerradas
   const latestTransferTouchingRoom = new Map() // roomId → transfer
@@ -216,11 +232,12 @@ function computeSetterState(m, load, transfersByLote, now, transfersBySource = n
   const cycleStart = load.cycle_start_at || load.loaded_at
   const hours = ageHoursFrom(cycleStart, now)
   const k = loteKey(load.lote)
+  const keys = (load.lotes || [load.lote]).map(loteKey).filter(Boolean)
   // ES: Por lote (antiguas) y por incubadora de origen (nuevas e importadas).
   // EN: By lot (old ones) and by source setter (new and imported ones).
   const transfers = transferenciasDeLaIncubadora({
     maquinaId: m.id,
-    porLote: k ? transfersByLote.get(k) || [] : [],
+    porLote: [...new Set([k, ...keys])].flatMap((key) => transfersByLote.get(key) || []),
     porOrigen: transfersBySource,
   })
   // ¿Este cargue ya fue transferido? (lote transferido después del cargue)

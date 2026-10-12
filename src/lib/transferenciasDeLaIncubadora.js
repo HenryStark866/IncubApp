@@ -23,7 +23,11 @@
 export function transferenciasDeLaIncubadora({ maquinaId, porLote = [], porOrigen = new Map() }) {
   // ES: Unión sin duplicados (por id). EN: Union without duplicates (by id).
   const vistas = new Map()
-  for (const t of [...porLote, ...(porOrigen.get(maquinaId) || [])]) vistas.set(t.id ?? t, t)
+  // ES: 12-10-2026: una transferencia que dice de qué incubadora salió solo cierra esa
+  //     incubadora. Antes, con el mismo texto de lote («47»), la de INC-10 vaciaba INC-11.
+  // EN: A transfer that names its source setter only closes that setter.
+  const delMismoLote = porLote.filter((t) => !t?.source_machine_id || t.source_machine_id === maquinaId)
+  for (const t of [...delMismoLote, ...(porOrigen.get(maquinaId) || [])]) vistas.set(t.id ?? t, t)
   // ES: Orden cronológico ascendente. EN: Ascending time order.
   return [...vistas.values()].sort((a, b) => new Date(a.transferred_at || 0) - new Date(b.transferred_at || 0))
 }

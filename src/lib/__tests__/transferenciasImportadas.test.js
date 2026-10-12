@@ -39,6 +39,12 @@ describe('origenTransferencia', () => {
 })
 
 describe('transferenciasDeLaIncubadora', () => {
+  it('no toma la transferencia de otra incubadora aunque tenga el mismo lote', () => {
+    const otra = { id: 'x', lote: '47', source_machine_id: 'm2', transferred_at: '2026-09-27T14:00:00Z' }
+    const vieja = { id: 'y', lote: '47', transferred_at: '2026-08-01T14:00:00Z' }
+    expect(transferenciasDeLaIncubadora({ maquinaId: 'm1', porLote: [otra, vieja] }).map((t) => t.id)).toEqual(['y'])
+  })
+
   it('ES: une por lote y por origen sin repetir / EN: merges by lot and source without repeats', () => {
     const a = { id: 'a', transferred_at: '2026-09-02T00:00:00Z' }
     const b = { id: 'b', transferred_at: '2026-09-01T00:00:00Z' }
@@ -54,5 +60,17 @@ describe('computeAllMachineStates con transferencia por incubadora', () => {
     const transfers = [{ id: 't1', lote: '43 + 44', source_machine_id: 'inc1', transferred_at: '2026-10-05T22:00:00Z', room_ids: [] }]
     const estado = computeAllMachineStates({ machines, loads, transfers, hatches: [], now: ahora }).get('inc1')
     expect(estado.last_transfer_id ?? estado.timeline.find((x) => x.kind === 'transfer')?.id).toBe('t1')
+  })
+})
+
+describe('estado de la incubadora con varios lotes en un cargue', () => {
+  it('muestra todos los lotes del cargue y no la cierra con la transferencia de otra máquina', async () => {
+    const { computeAllMachineStates } = await import('../machineOpsState')
+    const at = '2026-09-21T22:00:00-05:00'
+    const loads = ['46', '44', '43', '47', 'TRATADO'].map((lote, i) => ({ id: `l${i}`, machine_id: 'm11', lote, loaded_at: at, cycle_start_at: at }))
+    const transfers = [{ id: 't', lote: '47', source_machine_id: 'm10', transferred_at: '2026-09-27T14:00:00Z', room_ids: [] }]
+    const s = computeAllMachineStates({ machines: [{ id: 'm11', type: 'setter', status: 'active' }], loads, transfers, hatches: [], now: Date.parse('2026-10-05T12:00:00Z') }).get('m11')
+    expect(s.lote).toBe('43 + 44 + 46 + 47 + TRATADO')
+    expect(s.phase).not.toBe('completed')
   })
 })

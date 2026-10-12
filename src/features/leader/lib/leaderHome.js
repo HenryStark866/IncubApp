@@ -1603,7 +1603,7 @@ const MANAGEMENT_KPIS = [
  */
 /** Producción para gerencia: el mismo tablero de la líder (máquinas, cuarto frío, mapas, vacunas…). */
 function productionAreaBoard(data, now) {
-  const states = machineStates({ machines: data.machines, loads: data.loads, transfers: data.transfers, checks: data.checks, workOrders: data.workOrders, now })
+  const states = machineStates({ machines: data.machines, loads: data.loads, transfers: data.transfers, hatches: data.hatches, checks: data.checks, workOrders: data.workOrders, now })
   const stockGroups = coldRoomGroups({ stock: data.stock, batches: data.batches, farms: data.farms, rooms: data.rooms })
   return productionBoard({ ...data, states, stockGroups, now })
 }

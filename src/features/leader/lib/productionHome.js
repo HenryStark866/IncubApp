@@ -131,8 +131,10 @@ export function coldRoomGroups({ stock = [], batches = [], farms = [], rooms = [
  * posterior) → lotes, inicio de ciclo y día de incubación.
  * Nacedora: transferencias de los últimos 4 días que la incluyen → lotes y hora.
  */
-export function machineStates({ machines = [], loads = [], transfers = [], checks = [], workOrders = [], now = new Date() }) {
+export function machineStates({ machines = [], loads = [], transfers = [], hatches = [], checks = [], workOrders = [], now = new Date() }) {
   const t = now.getTime()
+  // 12-10-2026: una nacedora cuyo nacimiento ya se cerró queda vacía, aunque la transferencia sea de hace menos de 4 días
+  const hatched = new Set(hatches.filter((h) => h.status === 'completed' && h.transfer_id).map((h) => h.transfer_id))
   const lastCheck = new Map()
   for (const c of [...checks].sort((a, b) => String(b.taken_at).localeCompare(String(a.taken_at)))) {
     if (!lastCheck.has(c.machine_id)) lastCheck.set(c.machine_id, c)
@@ -165,7 +167,7 @@ export function machineStates({ machines = [], loads = [], transfers = [], check
         }
       } else {
         const inn = transfers.filter(
-          (x) => (x.hatcher_ids || []).includes(m.id) && t - new Date(x.transferred_at).getTime() < 4 * DAY,
+          (x) => (x.hatcher_ids || []).includes(m.id) && t - new Date(x.transferred_at).getTime() < 4 * DAY && !hatched.has(x.id),
         )
         if (inn.length) {
           for (const x of inn) {

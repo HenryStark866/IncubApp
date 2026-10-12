@@ -64,6 +64,7 @@ export default function ProductionLeaderHome({ orgId, userId, userName, onNaviga
       machines: data.machines,
       loads: data.loads,
       transfers: data.transfers,
+      hatches: data.hatches,
       checks: data.checks,
       workOrders: data.workOrders,
     })
