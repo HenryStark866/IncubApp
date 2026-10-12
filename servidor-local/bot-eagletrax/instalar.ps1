@@ -18,6 +18,14 @@ foreach ($f in 'bot-eagletrax.ps1', 'config.json', 'LEEME.md') { Copy-Item (Join
 if (Test-Path (Join-Path $origen 'maquinas.json')) { Copy-Item (Join-Path $origen 'maquinas.json') $destino -Force }
 
 $cfg = Get-Content (Join-Path $destino 'config.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+try {
+  $r = Invoke-WebRequest -Uri "$($cfg.url.TrimEnd('/'))/auth/v1/health" -Headers @{ apikey = $cfg.anon_key } -UseBasicParsing -TimeoutSec 20
+  Write-Host "Conexión con IncubApp: OK ($($r.StatusCode))." -ForegroundColor Green
+} catch {
+  Write-Host "Este PC no llega a $($cfg.url): $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host 'Revisa que tenga internet (el bot sube los pantallazos por esa dirección) y vuelve a ejecutar el instalador.' -ForegroundColor Red
+  exit 1
+}
 $correo = Read-Host "Correo de la cuenta del bot [$($cfg.email)]"
 if ($correo) { $cfg.email = $correo.Trim(); $cfg | ConvertTo-Json | Set-Content (Join-Path $destino 'config.json') -Encoding UTF8 }
 $clave = Read-Host 'Clave de la cuenta del bot' -AsSecureString
