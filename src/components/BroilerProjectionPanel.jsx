@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react'
 import { useBroilerProjection } from '../hooks/useBroilerProjection'
 import { exportToExcel } from '../lib/exportExcel'
 import { INCUBATION_DAYS } from '../lib/broilerProjection'
+import { HATCH_WEEKDAY_LABEL } from '../lib/hatchSchedule'
 import './BroilerProjectionPanel.css'
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString('es-CO')
@@ -44,13 +45,20 @@ function Chart({ calendar }) {
     <div className="bp-chart" role="img" aria-label="Pollitos proyectados por día de nacimiento">
       <div className="bp-bars">
         {calendar.map((d) => (
-          <div key={d.date} className={`bp-bar-col${d.isToday ? ' is-today' : ''}`} title={`${dayLabel(d.date)}: ${n(d.projected)} proyectados${d.actual != null ? ` · ${n(d.actual)} reales` : ''}`}>
+          <div
+            key={d.date}
+            className={`bp-bar-col${d.isToday ? ' is-today' : ''}${!d.hatchDay ? ' is-off' : ''}`}
+            title={`${dayLabel(d.date)}: ${d.rooms} sala${d.rooms === 1 ? '' : 's'} · ${n(d.projected)} proyectados${d.actual != null ? ` · ${n(d.actual)} reales` : ''}${!d.hatchDay ? ' · NO es día de nacimiento' : ''}`}
+          >
             <span className="bp-bar-val">{d.projected ? `${Math.round(d.projected / 1000)}k` : ''}</span>
             <div className="bp-bar-track">
               <div className="bp-bar" style={{ height: `${(d.projected / max) * 100}%` }} />
               {d.actual != null && <div className="bp-bar-real" style={{ height: `${(d.actual / max) * 100}%` }} />}
             </div>
-            <span className="bp-bar-day">{new Date(`${d.date}T12:00:00`).getDate()}</span>
+            <span className="bp-bar-day">
+              {new Date(`${d.date}T12:00:00`).toLocaleDateString('es-CO', { weekday: 'narrow' })} {new Date(`${d.date}T12:00:00`).getDate()}
+            </span>
+            <span className={`bp-bar-rooms st-${d.roomsStatus}`}>{d.rooms ? `${d.rooms}s` : '—'}</span>
           </div>
         ))}
       </div>
@@ -58,6 +66,7 @@ function Chart({ calendar }) {
         <span><i className="bp-dot proj" /> Proyectado</span>
         <span><i className="bp-dot real" /> Real (nacimiento cerrado)</span>
         <span><i className="bp-dot today" /> Hoy</span>
+        <span>Nacimientos {HATCH_WEEKDAY_LABEL} · «2s» = dos salas (lo normal)</span>
       </div>
     </div>
   )
@@ -172,6 +181,12 @@ export default function BroilerProjectionPanel({ orgId, compact = false }) {
             </p>
           )}
 
+          {p.totals.offSchedule > 0 && (
+            <p className="bp-msg">
+              {p.totals.offSchedule} cargue{p.totals.offSchedule === 1 ? '' : 's'} no cae{p.totals.offSchedule === 1 ? '' : 'n'} en la rotación (día 21 fuera de {HATCH_WEEKDAY_LABEL}): se
+              proyecta{p.totals.offSchedule === 1 ? '' : 'n'} al siguiente día de nacimiento. Revisa el inicio de ciclo de ese cargue.
+            </p>
+          )}
           <Chart calendar={p.calendar} />
 
           {!compact && (

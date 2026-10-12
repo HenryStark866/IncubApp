@@ -21,7 +21,7 @@ import { readingFieldsFor } from './machineReadings'
 
 const CONDITION_LABEL = { normal: 'Normal', warning: 'Alerta', fault: 'Falla', off: 'Apagada', unreported: 'Sin reportar' }
 const SCOPE_LABEL = { temperature: 'Temperatura', humidity: 'Humedad relativa', both: 'Temperatura y humedad' }
-const REASON_LABEL = { inc_window: 'Ventana de incubación', post_hatch: 'Después del nacimiento', pre_transfer: 'Antes de la transferencia', manual: 'Manual' }
+const REASON_LABEL = { inc_window: 'Ventana de incubación', post_hatch: 'Después del nacimiento', pre_transfer: 'Antes de la transferencia', post_transfer: 'Después de la transferencia', manual: 'Manual' }
 const STATUS_LABEL = { open: 'Abierta', pending: 'Pendiente', in_progress: 'En curso', completed: 'Cerrada', cancelled: 'Cancelada' }
 const RECORD_KINDS = new Set(['round', 'calibration', 'work-order', 'production'])
 

@@ -75,3 +75,26 @@ describe('proyección broiler', () => {
     expect(p.totals.cyclesInProcess).toBe(0)
   })
 })
+
+describe('proyección con la rotación de la planta', () => {
+  it('nacen en lunes/martes/jueves/viernes, cuenta las salas por día y avisa lo que cae fuera', () => {
+    const now = Date.parse('2026-10-12T15:00:00-05:00') // lunes
+    const p = projectBroiler({
+      now,
+      loads: [
+        { id: 'a', machine_id: 'm1', lote: '45', cycle_start_at: '2026-09-27T22:00:00-05:00' }, // dom → lun 19-10
+        { id: 'b', machine_id: 'm2', lote: '46', cycle_start_at: '2026-09-27T22:00:00-05:00' },
+        { id: 'c', machine_id: 'm3', lote: '47', cycle_start_at: '2026-09-28T22:00:00-05:00' }, // lun → mar 20-10
+        { id: 'd', machine_id: 'm4', lote: '48', cycle_start_at: '2026-09-29T22:00:00-05:00' }, // mar → mié: fuera
+      ],
+      lots: [{ code: '45', postures: [{ eggs: 64512 }] }, { code: '46', postures: [{ eggs: 64512 }] }, { code: '47', postures: [{ eggs: 64512 }] }, { code: '48', postures: [{ eggs: 64512 }] }],
+    })
+    const day = (d) => p.calendar.find((c) => c.date === d)
+    expect(day('2026-10-19')).toMatchObject({ rooms: 2, roomsStatus: 'normal', hatchDay: true })
+    expect(day('2026-10-20')).toMatchObject({ rooms: 1, roomsStatus: 'una' })
+    expect(day('2026-10-21')).toBeUndefined() // miércoles: no hay nacimiento
+    expect(day('2026-10-22')).toMatchObject({ rooms: 1 }) // el de fuera pasa al jueves
+    expect(p.cycles.find((c) => c.id === 'd').offSchedule).toBe(true)
+    expect(p.totals.offSchedule).toBe(1)
+  })
+})

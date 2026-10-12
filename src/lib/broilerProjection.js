@@ -17,8 +17,10 @@
  * =============================================================================
  */
 
-export const INCUBATION_DAYS = 21
-export const TRANSFER_DAY = 18
+import { cycleSchedule, isHatchDay, roomsLoadStatus, TRANSFER_DAY as T_DAY, HATCH_DAY } from './hatchSchedule'
+
+export const INCUBATION_DAYS = HATCH_DAY
+export const TRANSFER_DAY = T_DAY
 /** Referencia de la industria (huevo incubable → pollito) cuando aún no hay historia */
 export const REFERENCE_HATCH_RATE = 0.83
 export const RATE_WINDOW_DAYS = 90
@@ -165,7 +167,9 @@ export function projectBroiler({ loads = [], transfers = [], hatches = [], maps 
     const actual = hatch && hatch.actual_chicks != null && num(hatch.actual_chicks) > 0 ? num(hatch.actual_chicks) : null
     const estimated = num(hatch?.estimated_chicks) || null
     const projected = estimated ?? Math.round(eggs * rate.rate)
-    const hatchAt = ms(hatch?.ended_at) ?? ms(hatch?.started_at) ?? ms(hatch?.scheduled_at) ?? hatchDue
+    // Rotación de la planta: nace el lunes, martes, jueves o viernes que da la cuenta de 21 días
+    const sched = cycleSchedule(start)
+    const hatchAt = ms(hatch?.ended_at) ?? (hatch?.status !== 'planned' ? ms(hatch?.started_at) : null) ?? ms(hatch?.scheduled_at)
 
     let stage = 'incubando'
     if (transfer) stage = 'nacedora'
@@ -178,10 +182,11 @@ export function projectBroiler({ loads = [], transfers = [], hatches = [], maps 
       machineId: l.machine_id,
       machine: codeOf.get(l.machine_id) || '—',
       loadedAt: new Date(start).toISOString(),
-      transferDue: new Date(start + TRANSFER_DAY * DAY).toISOString(),
+      transferDue: sched.transferAt,
       transferredAt: transfer ? transfer.transferred_at || transfer.created_at : null,
       hatchDue: new Date(hatchDue).toISOString(),
-      hatchDate: dayKey(hatchAt),
+      hatchDate: hatchAt != null ? dayKey(hatchAt) : sched.hatchDate,
+      offSchedule: hatchAt == null && !sched.onSchedule,
       day: Math.max(0, Math.min(INCUBATION_DAYS, Math.floor((now - start) / DAY))),
       stage,
       eggs,
@@ -199,10 +204,14 @@ export function projectBroiler({ loads = [], transfers = [], hatches = [], maps 
   for (let i = -3; i <= horizonDays; i++) {
     const d = dayKey(now + i * DAY)
     const list = cycles.filter((c) => c.hatchDate === d)
-    if (i < 0 && !list.length) continue
+    // Solo los días de nacimiento (lunes, martes, jueves, viernes), salvo que algo caiga fuera
+    if (!list.length && (i < 0 || !isHatchDay(d))) continue
     calendar.push({
       date: d,
       isToday: d === today,
+      hatchDay: isHatchDay(d),
+      rooms: list.length,
+      roomsStatus: roomsLoadStatus(list.length),
       projected: list.reduce((s, c) => s + c.projected, 0),
       actual: list.some((c) => c.actual != null) ? list.reduce((s, c) => s + (c.actual || 0), 0) : null,
       eggs: list.reduce((s, c) => s + c.eggs, 0),
@@ -233,6 +242,7 @@ export function projectBroiler({ loads = [], transfers = [], hatches = [], maps 
       next7: sum(week),
       next21: sum(all),
       withoutEggs: cycles.filter((c) => c.stage !== 'nacido' && c.eggs <= 0).length,
+      offSchedule: cycles.filter((c) => c.offSchedule && c.stage !== 'nacido').length,
     },
     accuracy: closed.length ? { samples: closed.length, estimated: est, actual: act, pct: est ? act / est : null } : null,
   }

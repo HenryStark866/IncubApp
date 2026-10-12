@@ -3,7 +3,8 @@
  *
  * Sensores: temperatura (°F) y humedad (%).
  * INC: ventana 1d12h – 2d12h (36–60 h).
- * Nacedoras: post-nacimiento y pre-transferencia.
+ * Nacedoras: después de la transferencia (12-10-2026: planta calibra con el huevo ya adentro)
+ *   y después del nacimiento. «pre_transfer» queda solo para leer OT antiguas.
  *
  * Henry Stark Desarrollador · CDH Maker
  */
@@ -18,14 +19,17 @@ export const CALIB_SOURCE = 'calibration'
 export const CALIB_REASON = {
   inc_window: 'inc_window',
   post_hatch: 'post_hatch',
+  /** @deprecated planta no calibra antes de transferir; solo para OT antiguas */
   pre_transfer: 'pre_transfer',
+  post_transfer: 'post_transfer',
   manual: 'manual',
 }
 
 export const CALIB_REASON_LABEL = {
   inc_window: 'Ventana de ciclo INC (1d12h–2d12h)',
   post_hatch: 'Después de nacimiento',
-  pre_transfer: 'Antes de transferencia',
+  pre_transfer: 'Antes de transferencia (antiguo)',
+  post_transfer: 'Después de transferencia',
   manual: 'Calibración manual',
 }
 

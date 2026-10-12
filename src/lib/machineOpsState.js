@@ -333,7 +333,7 @@ function computeHatcherState(m, transfer, hatchesByLote, hatchesByTransfer, now)
 
   let phase = MACHINE_PHASE.in_hatcher
   let calibDue = true
-  let calibReason = 'pre_transfer' // post recepción en nacedora → calibrar
+  let calibReason = 'post_transfer' // recibió huevo: se calibra después de la transferencia
 
   if (hatch) {
     timeline.push({

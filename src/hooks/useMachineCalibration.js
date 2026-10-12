@@ -367,56 +367,59 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
   )
 
   /**
-   * INC listas para transferir (≥10 d de ciclo, aún sin transferencia del lote):
-   * genera OT de calibración en nacedoras de la misma planta (antes de transferir).
+   * 12-10-2026 (planta): las nacedoras se calibran DESPUÉS de la transferencia, con el
+   * huevo adentro, y no antes. Nacedoras que recibieron una transferencia en los últimos
+   * 3 días (aún sin nacimiento cerrado) y no tienen su calibración: se emite la OT.
+   * La transferencia nueva ya la emite al guardarse; esto cubre las que entraron sin ella.
    */
-  const ensurePreTransferOrders = useCallback(async () => {
+  const ensurePostTransferOrders = useCallback(async () => {
     if (!orgId || !userId) return { created: 0 }
-    const MIN_TRANSFER_HOURS = 10 * 24
     try {
-      const [{ data: loads }, { data: transfers }] = await Promise.all([
+      const since = new Date(Date.now() - 3 * 86_400_000).toISOString()
+      const [{ data: transfers }, { data: hatches }, { data: calibOrders }] = await Promise.all([
         supabase
-          .from('setter_loads')
-          .select('id, plant_id, machine_id, lote, cycle_start_at, loaded_at, batch_id')
+          .from('transfers')
+          .select('id, lote, transferred_at, hatcher_ids, room_ids')
           .eq('org_id', orgId)
-          .order('loaded_at', { ascending: false })
+          .gte('transferred_at', since)
+          .order('transferred_at', { ascending: false })
+          .limit(50),
+        supabase.from('hatch_events').select('transfer_id, status').eq('org_id', orgId).eq('status', 'completed').gte('created_at', since).limit(100),
+        // Calibraciones ya emitidas (abiertas o hechas) desde entonces: no se piden otra vez
+        supabase
+          .from('work_orders')
+          .select('machine_id, created_at, status')
+          .eq('org_id', orgId)
+          .eq('source', CALIB_SOURCE)
+          .neq('status', 'cancelled')
+          .gte('created_at', since)
           .limit(300),
-        supabase.from('transfers').select('lote, batch_id').eq('org_id', orgId).limit(400),
       ])
-      const transferredLotes = new Set(
-        (transfers || []).map((t) => String(t.lote || '').trim().toLowerCase()).filter(Boolean)
-      )
-      const plantsNeeding = new Set()
-      // Inicio del ciclo más reciente que motiva la transferencia: acota la
-      // ventana para que una OT de una transferencia anterior no la bloquee.
-      let cycleStartAt = null
-      for (const l of loads || []) {
-        const start = l.cycle_start_at || l.loaded_at
-        if (!start) continue
-        const hours = (Date.now() - new Date(start).getTime()) / 3_600_000
-        if (hours < MIN_TRANSFER_HOURS) continue
-        const key = String(l.lote || '').trim().toLowerCase()
-        if (key && transferredLotes.has(key)) continue
-        if (l.plant_id) plantsNeeding.add(l.plant_id)
-        if (!cycleStartAt || new Date(start) > new Date(cycleStartAt)) cycleStartAt = start
-      }
-      if (!plantsNeeding.size) return { created: 0 }
-
+      const calibratedAfter = (machineId, at) =>
+        (calibOrders || []).some((o) => o.machine_id === machineId && new Date(o.created_at) >= new Date(at))
+      const hatched = new Set((hatches || []).map((h) => h.transfer_id).filter(Boolean))
       let created = 0
-      const hatchers = machines.filter(
-        (m) =>
-          plantsNeeding.has(m.plant_id) &&
-          isHatcherType(m.type) &&
-          m.status !== 'decommissioned'
-      )
-      for (const machine of hatchers) {
-        const res = await ensureCalibrationOrder(
-          machine,
-          CALIB_REASON.pre_transfer,
-          'Ventana de transferencia: calibrar nacedora antes de recibir huevo',
-          { cycleStartAt }
+      const seen = new Set()
+      for (const t of transfers || []) {
+        if (hatched.has(t.id)) continue
+        const targets = machines.filter(
+          (m) =>
+            isHatcherType(m.type) &&
+            m.status !== 'decommissioned' &&
+            ((t.hatcher_ids || []).length ? t.hatcher_ids.includes(m.id) : (t.room_ids || []).includes(m.room_id)),
         )
-        if (res.created) created++
+        for (const machine of targets) {
+          if (seen.has(machine.id)) continue
+          seen.add(machine.id)
+          if (calibratedAfter(machine.id, t.transferred_at)) continue
+          const res = await ensureCalibrationOrder(
+            machine,
+            CALIB_REASON.post_transfer,
+            `Después de la transferencia del lote ${t.lote || '—'}`,
+            { cycleStartAt: t.transferred_at },
+          )
+          if (res.created) created++
+        }
       }
       if (created > 0) await loadAll()
       return { created }
@@ -791,7 +794,9 @@ export function useMachineCalibration(orgId, userId, { role } = {}) {
     openForMachine,
     ensureCalibrationOrder,
     ensureIncWindowOrders,
-    ensurePreTransferOrders,
+    ensurePostTransferOrders,
+    /** @deprecated nombre anterior: ahora emite las de después de la transferencia */
+    ensurePreTransferOrders: ensurePostTransferOrders,
     ensureHatcherOrdersForRooms,
     expireStaleCalibrationOrders,
     submitCalibration,

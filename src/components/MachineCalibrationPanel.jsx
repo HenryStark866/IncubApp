@@ -353,7 +353,7 @@ export default function MachineCalibrationPanel({ orgId, userId, role }) {
     const scan = async () => {
       await api.expireStaleCalibrationOrders()
       await api.ensureIncWindowOrders()
-      await api.ensurePreTransferOrders()
+      await api.ensurePostTransferOrders()
     }
     scan()
     const t = setInterval(scan, 5 * 60 * 1000)

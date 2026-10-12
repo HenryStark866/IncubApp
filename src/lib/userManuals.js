@@ -116,6 +116,16 @@ export const MANUALS = [
         ],
       },
       {
+        title: 'La rotación de la planta',
+        steps: [
+          'Siempre es la misma: se carga la incubadora, el día 18 se transfiere a nacedoras y el día 21 nace.',
+          'Los nacimientos son los lunes, martes, jueves y viernes. Lo normal es que nazcan dos salas de nacedoras completas (dos incubadoras); a veces una sola.',
+          'El gráfico muestra solo los días de nacimiento y, debajo de cada día, cuántas salas nacen («2s» en verde es lo normal).',
+          'Si un cargue no cae en la rotación (su día 21 sería miércoles, sábado o domingo), la app lo pasa al siguiente día de nacimiento y avisa para revisar su inicio de ciclo.',
+          'Al registrar la transferencia, el nacimiento queda programado solo para su día; el supervisor lo inicia y lo cierra con los pollitos reales.',
+        ],
+      },
+      {
         title: 'De dónde salen los números (es automático)',
         steps: [
           'Cada cargue de incubadora registrado abre un ciclo: transferencia el día 18 y nacimiento el día 21.',
@@ -250,6 +260,7 @@ export const MANUALS = [
           { text: 'Ronda: en «Supervisión» toma la foto de la pantalla de cada máquina y marca su estado (normal, Alerta, Falla o Apagada).', tab: 'supervision' },
           'Si marcas Falla o Apagada, la app te deja pedir la OT a mantenimiento desde ahí mismo.',
           { text: 'Calibrar máquina: dos fotos (calibrador y pantalla).', tab: 'calibracion' },
+          'Las nacedoras se calibran DESPUÉS de la transferencia, con el huevo adentro: al guardar la transferencia la app crea sola la OT de calibración de cada nacedora.',
           { text: '«Mi historial» muestra lo que hiciste y lo compara entre períodos.', tab: 'historial' },
         ],
       },

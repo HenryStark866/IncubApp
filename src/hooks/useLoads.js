@@ -159,23 +159,6 @@ export function useLoads(orgId, userId) {
         return { error: upErr.message }
       }
 
-      // Antes/al transferir: OT de calibración de nacedoras destino (si aún no hay abierta)
-      if (rooms.length) {
-        try {
-          const { generateHatcherCalibrationOrders } = await import('./useMachineCalibration')
-          const { CALIB_REASON } = await import('../lib/machineCalibration')
-          await generateHatcherCalibrationOrders({
-            orgId,
-            userId,
-            roomIds: rooms,
-            reason: CALIB_REASON.pre_transfer,
-            extra: `Pre-transferencia lote ${lote.trim()}`,
-          })
-        } catch {
-          /* no bloquear transferencia si falla la OT */
-        }
-      }
-
       const base = {
         org_id: orgId,
         plant_id: plantId,
@@ -204,6 +187,57 @@ export function useLoads(orgId, userId) {
         await supabase.storage.from('machine-checks').remove([path])
         setError(err.message)
         return { error: err.message }
+      }
+
+      // 12-10-2026 (planta): las nacedoras se calibran DESPUÉS de la transferencia, ya con
+      // el huevo adentro. La OT se emite al guardar la transferencia, no antes.
+      if (rooms.length) {
+        try {
+          const { generateHatcherCalibrationOrders } = await import('./useMachineCalibration')
+          const { CALIB_REASON } = await import('../lib/machineCalibration')
+          await generateHatcherCalibrationOrders({
+            orgId,
+            userId,
+            roomIds: rooms,
+            reason: CALIB_REASON.post_transfer,
+            extra: `Después de la transferencia del lote ${lote.trim()}`,
+          })
+        } catch {
+          /* no bloquear la transferencia si falla la OT */
+        }
+      }
+
+      // Rotación fija: día 18 se transfiere, día 21 nace (lunes, martes, jueves o viernes).
+      // El nacimiento queda programado solo; el supervisor lo inicia y lo cierra con los pollitos.
+      try {
+        const { cycleSchedule, hatchScheduledAt } = await import('../lib/hatchSchedule')
+        const sched = cycleSchedule(cycleStartAt || null)
+        const hatchDate = sched?.hatchDate || cycleSchedule(Date.now() - 18 * 86_400_000)?.hatchDate
+        const { data: saved } = await supabase
+          .from('transfers')
+          .select('id, batch_id, lote, mode, room_ids')
+          .eq('org_id', orgId)
+          .eq('source_machine_id', sourceMachineId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (saved && hatchDate) {
+          const at = hatchScheduledAt(hatchDate)
+          await supabase.from('hatch_events').insert({
+            org_id: orgId,
+            plant_id: plantId,
+            transfer_id: saved.id,
+            batch_id: saved.batch_id || null,
+            lote: saved.lote,
+            mode: saved.mode === 'double' ? 'double' : 'single',
+            room_ids: saved.room_ids ?? [],
+            status: 'planned',
+            scheduled_at: at,
+            started_at: at,
+          })
+        }
+      } catch {
+        /* el nacimiento se puede programar a mano desde Supervisión */
       }
       return { error: null }
     },
