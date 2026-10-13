@@ -38,6 +38,11 @@ terminar cada máquina.
 Por cada máquina pon el puntero en el centro de su pantallita en el plano y presiona ENTER
 (`s` + ENTER salta una). Las posiciones se guardan relativas a la ventana maximizada.
 
+Para recalibrar solo algunas sin repetir las 36:
+`powershell -ExecutionPolicy Bypass -File C:\IncubAppBotot-eagletrax.ps1 -Calibrar -Solo NAC-01,NAC-02`
+
+Si una máquina no tiene posición, el registro de la ronda lo dice («sin posición en el plano»).
+
 ## Probar
 
 `powershell -ExecutionPolicy Bypass -File C:\IncubAppBot\bot-eagletrax.ps1 -Probar INC-18`

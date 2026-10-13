@@ -15,6 +15,8 @@
 param(
   [switch]$RegistrarTarea,
   [switch]$Calibrar,
+  # Calibrar solo estas máquinas (las demás posiciones se conservan): -Calibrar -Solo NAC-01,NAC-02
+  [string[]]$Solo = @(),
   [string]$Probar = '',
   [switch]$SinSubir
 )
@@ -181,7 +183,17 @@ if ($Calibrar) {
   Write-Host "`nCALIBRAR: pon el puntero del mouse en el CENTRO de la pantallita de cada máquina y presiona ENTER aquí." -ForegroundColor Cyan
   Write-Host "Escribe s + ENTER para saltar una máquina que no esté en el plano. (La ventana de EagleTrax queda maximizada.)`n" -ForegroundColor Cyan
   $mapa = [ordered]@{}
-  foreach ($code in $ORDEN) {
+  $lista = $ORDEN
+  if ($Solo.Count) {
+    # Se conservan las posiciones ya calibradas y solo se piden las indicadas
+    if (Test-Path $mapPath) {
+      $prev = Get-Content $mapPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      foreach ($pp in $prev.PSObject.Properties) { $mapa[$pp.Name] = @{ fx = $pp.Value.fx; fy = $pp.Value.fy } }
+    }
+    $lista = @($Solo | ForEach-Object { $_.Trim().ToUpper() } | Where-Object { $ORDEN -contains $_ })
+    Write-Host ("Solo se calibran: " + ($lista -join ', ')) -ForegroundColor Yellow
+  }
+  foreach ($code in $lista) {
     $resp = Read-Host "  $code"
     if ($resp -eq 's') { continue }
     $p = New-Object W+POINT; [void][W]::GetCursorPos([ref]$p)
@@ -246,11 +258,19 @@ $ok = 0; $fallas = 0
 foreach ($code in $ORDEN) {
   $pos = $mapa.$code
   $m = $porCodigo[$code]
-  if (-not $pos -or -not $m) { continue }
+  if (-not $m) { continue }
+  if (-not $pos) { L "  $code sin posición en el plano: calíbrala con -Calibrar -Solo $code" 'Yellow'; $fallas++; continue }
   if ($yaHechas[$m.id]) { continue }
   $archivo = Join-Path $tmp "$code.jpg"
   try {
-    $tituloVentana = Abrir-Y-Capturar $pos $et $archivo
+    try {
+      $tituloVentana = Abrir-Y-Capturar $pos $et $archivo
+    } catch {
+      L "  $code reintento: $($_.Exception.Message)" 'Yellow'
+      Cerrar-OX
+      Start-Sleep -Seconds 3
+      $tituloVentana = Abrir-Y-Capturar $pos $et $archivo
+    }
     if ($SinSubir) { $ok++; L "  $code ✓ ($tituloVentana)"; continue }
     $ruta = "$org/$($m.id)/$fechaTurno/T$turno-H$('{0:D2}' -f $hora)-$([DateTimeOffset]::Now.ToUnixTimeMilliseconds())-bot.jpg"
     Invoke-RestMethod -Method Post -Uri "$base/storage/v1/object/machine-checks/$ruta" -Headers ($auth + @{ 'x-upsert' = 'false' }) -ContentType 'image/jpeg' -InFile $archivo | Out-Null
