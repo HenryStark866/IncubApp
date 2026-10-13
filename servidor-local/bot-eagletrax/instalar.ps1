@@ -7,10 +7,14 @@
 # 4. Programa la tarea «IncubApp Bot Rondas» cada hora (minuto 05), con la sesión iniciada.
 $ErrorActionPreference = 'Stop'
 $origen = $PSScriptRoot
+# Si se abrió el instalador de la carpeta de origen, la configuración está en «paquete»
+if (-not (Test-Path (Join-Path $origen 'config.json')) -and (Test-Path (Join-Path $origen 'paquete\config.json'))) {
+  $origen = Join-Path $origen 'paquete'
+}
 $destino = 'C:\IncubAppBot'
 Write-Host "=== Bot de rondas EagleTrax → IncubApp ===" -ForegroundColor Cyan
 if (-not (Test-Path (Join-Path $origen 'config.json'))) {
-  Write-Host 'Falta config.json junto al instalador (lo genera soporte con preparar-paquete.ps1).' -ForegroundColor Red
+  Write-Host 'Falta config.json: abre la carpeta «paquete» y ejecuta el INSTALAR-BOT-EAGLETRAX.bat que está adentro.' -ForegroundColor Red
   exit 1
 }
 New-Item -ItemType Directory -Force -Path $destino | Out-Null
