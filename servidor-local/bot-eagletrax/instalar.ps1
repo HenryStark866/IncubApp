@@ -41,9 +41,6 @@ if (-not (Test-Path (Join-Path $destino 'maquinas.json')) -or (Read-Host '¿Cali
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $destino 'bot-eagletrax.ps1') -Calibrar
 }
 
-$accion = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$destino\bot-eagletrax.ps1`""
-$inicio = (Get-Date).AddHours(1).ToString('HH') + ':05'
-schtasks /Create /F /TN 'IncubApp Bot Rondas' /SC HOURLY /MO 1 /ST $inicio /TR $accion /IT | Out-Null
-Write-Host "Tarea «IncubApp Bot Rondas» programada cada hora desde las $inicio." -ForegroundColor Green
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $destino 'bot-eagletrax.ps1') -RegistrarTarea
 Write-Host 'Importante: deja la sesión de Windows iniciada, sin bloqueo de pantalla ni protector, y EagleTrax abierto en el plano.' -ForegroundColor Yellow
 Write-Host "Prueba ya una máquina:  powershell -ExecutionPolicy Bypass -File $destino\bot-eagletrax.ps1 -Probar INC-18" -ForegroundColor Cyan

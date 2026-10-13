@@ -13,6 +13,7 @@
 #   powershell -ExecutionPolicy Bypass -File bot-eagletrax.ps1             # la ronda (la corre la tarea programada)
 # =============================================================================
 param(
+  [switch]$RegistrarTarea,
   [switch]$Calibrar,
   [string]$Probar = '',
   [switch]$SinSubir
@@ -55,6 +56,17 @@ public static class W {
     }, IntPtr.Zero);
     return found;
   }
+  public static IntPtr[] FindAll(string[] prefixes) {
+    var list = new System.Collections.Generic.List<IntPtr>();
+    EnumWindows(delegate (IntPtr h, IntPtr p) {
+      if (!IsWindowVisible(h)) return true;
+      var sb = new StringBuilder(512); GetWindowText(h, sb, 512);
+      var t = sb.ToString();
+      foreach (var pre in prefixes) { if (t.StartsWith(pre)) { list.Add(h); break; } }
+      return true;
+    }, IntPtr.Zero);
+    return list.ToArray();
+  }
   public static IntPtr FindContains(string part) {
     IntPtr found = IntPtr.Zero;
     EnumWindows(delegate (IntPtr h, IntPtr p) {
@@ -69,11 +81,30 @@ public static class W {
 "@
 [void][W]::SetProcessDPIAware()
 
+# ── Tarea programada: cada hora en el minuto 05, máximo 25 min por ronda; si una ronda
+#    quedó colgada, la nueva la reemplaza (antes una colgada frenaba todas las siguientes).
+if ($RegistrarTarea) {
+  $script = Join-Path $aqui 'bot-eagletrax.ps1'
+  $accion = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $script + '"')
+  $inicio = (Get-Date).Date.AddHours((Get-Date).Hour + 1).AddMinutes(5)
+  $disparo = New-ScheduledTaskTrigger -Once -At $inicio -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Days 3650)
+  $ajustes = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 25) -MultipleInstances StopExisting -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+  $quien = New-ScheduledTaskPrincipal -UserId ($env:USERDOMAIN + '\' + $env:USERNAME) -LogonType Interactive -RunLevel Limited
+  Register-ScheduledTask -TaskName 'IncubApp Bot Rondas' -Action $accion -Trigger $disparo -Settings $ajustes -Principal $quien -Force | Out-Null
+  Write-Host ("Tarea «IncubApp Bot Rondas» lista: cada hora desde las " + $inicio.ToString('HH:mm') + ", máximo 25 min por ronda.") -ForegroundColor Green
+  exit 0
+}
+
 $cfgPath = Join-Path $aqui 'config.json'
 $mapPath = Join-Path $aqui 'maquinas.json'
 if (-not (Test-Path $cfgPath)) { L "Falta config.json (corre INSTALAR-BOT-EAGLETRAX.bat)." 'Red'; exit 1 }
 $cfg = Get-Content $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $ORDEN = @(1..24 | ForEach-Object { 'INC-{0:D2}' -f $_ }) + @(1..12 | ForEach-Object { 'NAC-{0:D2}' -f $_ })
+# Ventanas que abre el doble clic: las máquinas nuevas abren «OX Remote Control»; las de la
+# zona vieja, «Remote Link» (13-10-2026). Se aceptan las dos y las que se agreguen en config.json.
+$TITULOS = @('OX Remote Control', 'Remote Link')
+foreach ($t in @($cfg.ventana_maquina) + @($cfg.ventanas_maquina)) { if ($t -and $TITULOS -notcontains $t) { $TITULOS += $t } }
+$ESPERA = if ($cfg.espera_datos_seg) { [int]$cfg.espera_datos_seg } else { 4 }
 
 function Ventana-EagleTrax {
   $h = [W]::FindContains($cfg.ventana_eagletrax)
@@ -85,12 +116,13 @@ function Ventana-EagleTrax {
   return @{ h = $h; r = $r }
 }
 
+# Cierra TODAS las ventanas de máquina abiertas (también las que quedaron de rondas anteriores)
 function Cerrar-OX {
-  for ($i = 0; $i -lt 5; $i++) {
-    $ox = [W]::Find($cfg.ventana_maquina)
-    if ($ox -eq [IntPtr]::Zero) { return }
-    [void][W]::PostMessage($ox, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)  # WM_CLOSE
-    Start-Sleep -Milliseconds 800
+  for ($i = 0; $i -lt 10; $i++) {
+    $abiertas = [W]::FindAll([string[]]$TITULOS)
+    if (-not $abiertas -or $abiertas.Count -eq 0) { return }
+    foreach ($h in $abiertas) { [void][W]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) }  # WM_CLOSE
+    Start-Sleep -Milliseconds 900
   }
 }
 
@@ -118,16 +150,28 @@ function Captura($h, $archivo) {
 
 function Abrir-Y-Capturar($maq, $et, $archivo) {
   Cerrar-OX
+  $antes = @([W]::FindAll([string[]]$TITULOS))
   $x = [int]($et.r.Left + $maq.fx * ($et.r.Right - $et.r.Left))
   $y = [int]($et.r.Top + $maq.fy * ($et.r.Bottom - $et.r.Top))
   Doble-Clic $x $y
+  # Espera la ventana NUEVA de la máquina (OX Remote Control o Remote Link)
   $ox = [IntPtr]::Zero
-  for ($i = 0; $i -lt 30 -and $ox -eq [IntPtr]::Zero; $i++) { Start-Sleep -Milliseconds 500; $ox = [W]::Find($cfg.ventana_maquina) }
-  if ($ox -eq [IntPtr]::Zero) { throw 'no abrió la ventana de la máquina' }
-  Start-Sleep -Seconds ([int]$cfg.espera_datos_seg)   # que cargue los valores de la máquina
+  for ($i = 0; $i -lt 40 -and $ox -eq [IntPtr]::Zero; $i++) {
+    Start-Sleep -Milliseconds 500
+    foreach ($h in [W]::FindAll([string[]]$TITULOS)) { if ($antes -notcontains $h) { $ox = $h; break } }
+  }
+  if ($ox -eq [IntPtr]::Zero) { throw ('no abrió la ventana de la máquina (se esperaba: ' + ($TITULOS -join ' o ') + ')') }
+  $sb = New-Object System.Text.StringBuilder 256
+  [void][W]::GetWindowText($ox, $sb, 256)
+  $titulo = $sb.ToString()
+  # «Remote Link» (zona vieja) tarda más en traer los valores de la máquina
+  $espera = if ($titulo.StartsWith('Remote Link')) { [math]::Max($ESPERA, 7) } else { $ESPERA }
+  Start-Sleep -Seconds $espera
   Captura $ox $archivo
   [void][W]::PostMessage($ox, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
-  Start-Sleep -Milliseconds 800
+  Start-Sleep -Milliseconds 900
+  Cerrar-OX
+  return $titulo
 }
 
 # ── Calibrar: ubicar cada máquina en el plano (una vez, o si cambia el plano) ──
@@ -160,8 +204,8 @@ if ($Probar) {
   $m = $mapa.$Probar
   if (-not $m) { L "No hay posición para $Probar en maquinas.json." 'Red'; exit 1 }
   $f = Join-Path $aqui "prueba-$Probar.jpg"
-  Abrir-Y-Capturar $m $et $f
-  L "Listo: revisa $f (debe verse la pantalla de $Probar)." 'Green'
+  $t = Abrir-Y-Capturar $m $et $f
+  L "Listo ($t): revisa $f (debe verse la pantalla de $Probar)." 'Green'
   exit 0
 }
 
@@ -195,6 +239,7 @@ $yaHechas = @{}; foreach ($c in $hechas) { $yaHechas[$c.machine_id] = $true }
 $et = Ventana-EagleTrax
 if (-not $et) { L "EagleTrax no está abierto: no se pudo hacer la ronda. IncubApp avisará y pedirá la ronda al operario." 'Red'; exit 2 }
 
+Cerrar-OX   # las que hayan quedado abiertas de antes
 $tmp = Join-Path $env:TEMP 'incubapp-bot'
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 $ok = 0; $fallas = 0
@@ -205,18 +250,18 @@ foreach ($code in $ORDEN) {
   if ($yaHechas[$m.id]) { continue }
   $archivo = Join-Path $tmp "$code.jpg"
   try {
-    Abrir-Y-Capturar $pos $et $archivo
-    if ($SinSubir) { $ok++; continue }
+    $tituloVentana = Abrir-Y-Capturar $pos $et $archivo
+    if ($SinSubir) { $ok++; L "  $code ✓ ($tituloVentana)"; continue }
     $ruta = "$org/$($m.id)/$fechaTurno/T$turno-H$('{0:D2}' -f $hora)-$([DateTimeOffset]::Now.ToUnixTimeMilliseconds())-bot.jpg"
     Invoke-RestMethod -Method Post -Uri "$base/storage/v1/object/machine-checks/$ruta" -Headers ($auth + @{ 'x-upsert' = 'false' }) -ContentType 'image/jpeg' -InFile $archivo | Out-Null
     $fila = @{
       org_id = $org; plant_id = $m.plant_id; machine_id = $m.id; taken_by = $uid
       shift_date = $fechaTurno; shift_number = $turno; hour_slot = $hora; condition = 'normal'
-      notes = '[bot-eagletrax] Pantallazo de EagleTrax (OX Remote Control)'; photo_path = $ruta
+      notes = "[bot-eagletrax] Pantallazo de EagleTrax ($tituloVentana)"; photo_path = $ruta
     }
     Invoke-RestMethod -Method Post -Uri "$base/rest/v1/machine_checks" -Headers ($auth + @{ Prefer = 'return=minimal' }) -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes(($fila | ConvertTo-Json))) | Out-Null
     $ok++
-    L "  $code ✓"
+    L "  $code ✓ ($tituloVentana)"
   } catch {
     $fallas++
     L "  $code ✗ $($_.Exception.Message)" 'Yellow'

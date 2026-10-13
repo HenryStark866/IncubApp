@@ -22,6 +22,15 @@ a exigir las rondas de siempre y el líder lo ve en el flujo.
    pide el correo y la clave de la cuenta del bot (queda cifrada con Windows), calibra y
    programa la tarea.
 
+## Actualizar el bot
+
+Copia la carpeta `paquete` nueva al PC EAGLETRAX y ejecuta `ACTUALIZAR-BOT.bat`: cambia solo el
+programa; la clave y las posiciones calibradas se conservan.
+
+Las máquinas nuevas abren la ventana **OX Remote Control** y las de la zona vieja **Remote Link**:
+el bot reconoce las dos, espera más a Remote Link (tarda en traer los valores) y cierra todas al
+terminar cada máquina.
+
 ## Calibrar (una vez, o si cambia el plano de EagleTrax)
 
 `powershell -ExecutionPolicy Bypass -File C:\IncubAppBot\bot-eagletrax.ps1 -Calibrar`

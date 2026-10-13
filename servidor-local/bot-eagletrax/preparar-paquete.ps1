@@ -9,13 +9,14 @@ $key = ($env | Where-Object { $_ -match '^VITE_SUPABASE_KEY=' }) -replace '^VITE
 if (-not $key) { Write-Host 'No encontré VITE_SUPABASE_KEY en .env.production' -ForegroundColor Red; exit 1 }
 $paq = Join-Path $aqui 'paquete'
 New-Item -ItemType Directory -Force -Path $paq | Out-Null
-foreach ($f in 'bot-eagletrax.ps1', 'instalar.ps1', 'INSTALAR-BOT-EAGLETRAX.bat', 'LEEME.md') { Copy-Item (Join-Path $aqui $f) $paq -Force }
+foreach ($f in 'bot-eagletrax.ps1', 'instalar.ps1', 'INSTALAR-BOT-EAGLETRAX.bat', 'ACTUALIZAR-BOT.bat', 'LEEME.md') { Copy-Item (Join-Path $aqui $f) $paq -Force }
 [ordered]@{
   url = 'https://incubapp.cdhmaker.com'
   anon_key = $key.Trim()
   email = 'bot.rondas@incubant.co'
   ventana_eagletrax = 'EagleTrax'
   ventana_maquina = 'OX Remote Control'
+  ventanas_maquina = @('OX Remote Control', 'Remote Link')
   espera_datos_seg = 4
 } | ConvertTo-Json | Set-Content (Join-Path $paq 'config.json') -Encoding UTF8
 Write-Host "Paquete listo en $paq. Cópialo al PC EAGLETRAX y ejecuta INSTALAR-BOT-EAGLETRAX.bat." -ForegroundColor Green
