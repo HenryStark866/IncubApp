@@ -35,3 +35,4 @@
 20261012_flujo_produccion.sql
 20261012_ot_permisos_rendimiento.sql
 20261013_almacenamiento_por_empresa.sql
+20261013_reloj_ciclo_maquinas.sql

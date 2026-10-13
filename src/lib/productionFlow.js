@@ -25,6 +25,7 @@ import { computeAllMachineStates } from './machineOpsState'
 import { cycleSchedule, dayKey, isHatchDay, nextHatchDay, ROOMS_PER_HATCH_DAY, HATCH_WEEKDAY_LABEL } from './hatchSchedule'
 import { INC_CALIB_MAX_HOURS, INC_CALIB_MIN_HOURS, CALIB_SOURCE } from './machineCalibration'
 import { botStatus, BOT_ACTIVE_WINDOW_H } from './roundsBot'
+import { clockLabel, compareClock, latestClocks } from './machineClock'
 
 const DAY = 86_400_000
 const H = 3_600_000
@@ -90,6 +91,7 @@ export function buildProductionFlow({
   quality = [],
   calibOrders = [],
   botChecks = [],
+  clockChecks = [],
 } = {}) {
   const today = dayKey(now)
   const wd = new Date(`${today}T12:00:00Z`).getUTCDay()
@@ -100,6 +102,9 @@ export function buildProductionFlow({
   const setters = machines.filter((m) => m.type === 'setter' || m.type === 'combo')
   const hatchers = machines.filter((m) => m.type === 'hatcher')
   const sinceToday = ms(`${today}T00:00:00-05:00`)
+  // Reloj del ciclo que muestra cada pantalla (bot de EagleTrax / fotos de ronda)
+  const clocks = latestClocks(clockChecks, now)
+  const clockCheck = new Map(setters.map((m) => [m.id, compareClock(clocks.get(m.id), states.get(m.id))]))
 
   // ── 1. Recepción ───────────────────────────────────────────────
   const arrivalsToday = arrivals.filter((a) => (ms(a.arrived_at) ?? 0) >= sinceToday)
@@ -146,7 +151,8 @@ export function buildProductionFlow({
   const loadsTonight = nightHatch?.onSchedule
   const empty = setters.filter((m) => {
     const s = states.get(m.id)
-    return m.status !== 'decommissioned' && m.status !== 'maintenance' && (!s || s.phase === 'idle' || s.phase === 'completed')
+    const corriendo = clockCheck.get(m.id)?.kind === 'sin_registro'
+    return m.status !== 'decommissioned' && m.status !== 'maintenance' && !corriendo && (!s || s.phase === 'idle' || s.phase === 'completed')
   })
   const openMaps = maps.filter((m) => ['approved', 'ordered'].includes(m.status))
   const pendingMaps = maps.filter((m) => m.status === 'pending_approval')
@@ -164,6 +170,28 @@ export function buildProductionFlow({
     })
   } else {
     car.push({ id: 'car-none', tone: 'info', text: 'Esta noche no se carga', detail: `Se carga la noche antes de un día de nacimiento (${HATCH_WEEKDAY_LABEL}). Próximo: ${nextHatchDay(tomorrow)}.` })
+  }
+  for (const m of setters) {
+    const cmp = clockCheck.get(m.id)
+    if (!cmp || cmp.kind === 'ok') continue
+    const s = states.get(m.id)
+    if (cmp.kind === 'sin_registro') {
+      car.push({
+        id: `clk-${m.id}`,
+        tone: 'danger',
+        text: `${m.code}: su pantalla lleva ${clockLabel(cmp.clock.ageMin)} de ciclo y en la app está vacía`,
+        detail: `Cargue sin registrar (empezó hacia el ${new Date(cmp.clock.startAt).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}). Regístralo con sus lotes.`,
+        tab: 'cargue',
+      })
+    } else {
+      car.push({
+        id: `clk-${m.id}`,
+        tone: 'warn',
+        text: `${m.code}: la pantalla dice día ${Math.floor(cmp.clock.day)} y la app día ${s?.age_hours != null ? Math.floor(s.age_hours / 24) : '—'}`,
+        detail: `El inicio de ciclo registrado no cuadra con el reloj de la máquina (${Math.round(Math.abs(cmp.diffH ?? 0))} h de diferencia). Revisa el cargue: la máquina manda.`,
+        tab: 'cargue',
+      })
+    }
   }
   for (const m of openMaps) {
     car.push({ id: `map-${m.id}`, tone: 'warn', text: `Mapa listo para cargar: ${m.machine_name || code.get(m.machine_id) || 'incubadora por asignar'}`, detail: m.status === 'ordered' ? 'Orden de cargue dada' : 'Aprobado, falta la orden', tab: 'cargue' })
@@ -216,16 +244,20 @@ export function buildProductionFlow({
   const tra = []
   for (const m of setters) {
     const s = states.get(m.id)
-    if (!s || !['incubating', 'transfer_ready', 'calib_window'].includes(s.phase)) continue
-    const sched = cycleSchedule(s.cycle_start_at)
+    const cmp = clockCheck.get(m.id)
+    const running = s && ['incubating', 'transfer_ready', 'calib_window'].includes(s.phase)
+    if (!running && cmp?.kind !== 'sin_registro') continue
+    // La máquina manda: con reloj fresco se usa su inicio real
+    const start = cmp?.clock ? cmp.clock.startAt : ms(s.cycle_start_at)
+    const sched = cycleSchedule(start)
     if (!sched) continue
     const due = ms(sched.transferAt)
-    const day = (now - ms(s.cycle_start_at)) / DAY
+    const day = (now - start) / DAY
     if (due - now > 1.2 * DAY) continue
     tra.push({
       id: `tr-${m.id}`,
       tone: day > 19 ? 'danger' : 'warn',
-      text: `${m.code}: ${day >= 18 ? 'transferir hoy' : 'se transfiere mañana'} · lote ${s.lote || '—'}`,
+      text: `${m.code}: ${day >= 18 ? 'transferir hoy' : 'se transfiere mañana'} · lote ${s?.lote || 'sin registrar'}${cmp?.clock ? ' · según la pantalla' : ''}`,
       detail: `Día ${Math.floor(day)} de incubación · nace el ${sched.hatchDate.slice(8)}/${sched.hatchDate.slice(5, 7)} · salas libres: ${roomsFree.join(', ') || 'ninguna'}`,
       tab: 'supervision',
     })

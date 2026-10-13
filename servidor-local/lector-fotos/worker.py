@@ -12,7 +12,7 @@ from lector import leer
 BASE = '/storage/stub/stub/machine-checks'
 POR_VUELTA = 3
 PAUSA = 60
-MODELO = 'lector-propio-rapidocr-v2'
+MODELO = 'lector-propio-rapidocr-v3'
 
 
 def ruta_foto(photo_path):
@@ -41,8 +41,17 @@ def resultado(fila, lectura):
             f"Leído de la foto: {', '.join(f'{k} {v}' for k, v in valores.items())}." if valores else None,
             f"En blanco por no leerse con certeza: {', '.join(d['campo'] for d in dudas)}." if dudas else None,
         ]))
+    # El número de la pantalla debe ser el de la máquina de la ronda (INC-18 → 18)
+    n = lectura.get('maquina_pantalla')
+    codigo = str(fila.get('machine_code') or '')
+    esperado = int(codigo.split('-')[-1]) if codigo.split('-')[-1].isdigit() else None
+    if n is not None and esperado is not None and n != esperado:
+        dudas.append({'campo': 'maquina', 'tipo': 'otra_maquina', 'motivo': f'la pantalla dice la máquina {n} y la ronda es de {codigo}'})
+        motivo = (motivo + ' ' if motivo else '') + f'Ojo: la pantalla es de la máquina {n}, no de {codigo}.'
+        # Con otra máquina en pantalla no se aplica nada: un dato de otra máquina es peor que ninguno
+        valores, estado = {}, 'sin_lecturas'
     return {'check_id': str(fila['check_id']), 'status': estado, 'valores': valores, 'discrepancias': dudas,
-            'motivo': motivo, 'modelo': MODELO, 'lecturas': [lectura]}
+            'motivo': motivo, 'modelo': MODELO, 'lecturas': [lectura], 'etiqueta_pantalla': lectura.get('etiqueta')}
 
 
 def conectar():

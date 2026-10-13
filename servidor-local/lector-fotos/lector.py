@@ -15,6 +15,7 @@ import cv2
 from rapidocr_onnxruntime import RapidOCR
 
 from interpretar import interpretar3
+from reloj import numero_maquina, reloj_ciclo
 
 _ocr = RapidOCR()
 
@@ -54,4 +55,15 @@ def leer(ruta_o_imagen, tipo='setter'):
     e = 1280 / max(img.shape[:2])
     if e < 1:
         img = cv2.resize(img, None, fx=e, fy=e)
-    return interpretar3(_cajas(img), tipo)
+    cajas = _cajas(img)
+    r = interpretar3(cajas, tipo)
+    # 13-10-2026: reloj del ciclo («18d 20h 49'») y número de máquina del encabezado
+    minutos = reloj_ciclo(cajas) if tipo != 'hatcher' else None
+    if minutos is not None:
+        r.setdefault('valores', {})['cycle_age_minutes'] = minutos
+        r.setdefault('detalle', {})['cycle_age_minutes'] = 'ok'
+    n, etiqueta = numero_maquina(cajas)
+    if n is not None:
+        r['maquina_pantalla'] = n
+        r['etiqueta'] = etiqueta
+    return r
