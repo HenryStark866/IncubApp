@@ -22,6 +22,15 @@ a exigir las rondas de siempre y el líder lo ve en el flujo.
    pide el correo y la clave de la cuenta del bot (queda cifrada con Windows), calibra y
    programa la tarea.
 
+## Encender y apagar
+
+En el escritorio del PC EAGLETRAX quedan tres accesos directos:
+
+- **Encender bot de rondas**: lo activa (ronda cada hora en el minuto 05) y ofrece hacer una ronda ya.
+- **Apagar bot de rondas**: detiene la ronda en curso y desactiva las siguientes. Con el bot apagado,
+  a las 2 horas IncubApp vuelve a pedirle las rondas al operario de turno.
+- **Estado del bot de rondas**: dice si está encendido, la última y la próxima ronda, y el registro de hoy.
+
 ## Actualizar el bot
 
 Copia la carpeta `paquete` nueva al PC EAGLETRAX y ejecuta `ACTUALIZAR-BOT.bat`: cambia solo el

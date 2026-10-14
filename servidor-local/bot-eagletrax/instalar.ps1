@@ -42,5 +42,6 @@ if (-not (Test-Path (Join-Path $destino 'maquinas.json')) -or (Read-Host '¿Cali
 }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $destino 'bot-eagletrax.ps1') -RegistrarTarea
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $origen 'accesos-directos.ps1')
 Write-Host 'Importante: deja la sesión de Windows iniciada, sin bloqueo de pantalla ni protector, y EagleTrax abierto en el plano.' -ForegroundColor Yellow
 Write-Host "Prueba ya una máquina:  powershell -ExecutionPolicy Bypass -File $destino\bot-eagletrax.ps1 -Probar INC-18" -ForegroundColor Cyan

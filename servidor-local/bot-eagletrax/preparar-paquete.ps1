@@ -9,7 +9,7 @@ $key = ($env | Where-Object { $_ -match '^VITE_SUPABASE_KEY=' }) -replace '^VITE
 if (-not $key) { Write-Host 'No encontré VITE_SUPABASE_KEY en .env.production' -ForegroundColor Red; exit 1 }
 $paq = Join-Path $aqui 'paquete'
 New-Item -ItemType Directory -Force -Path $paq | Out-Null
-foreach ($f in 'bot-eagletrax.ps1', 'instalar.ps1', 'INSTALAR-BOT-EAGLETRAX.bat', 'ACTUALIZAR-BOT.bat', 'LEEME.md') { Copy-Item (Join-Path $aqui $f) $paq -Force }
+foreach ($f in 'bot-eagletrax.ps1', 'instalar.ps1', 'INSTALAR-BOT-EAGLETRAX.bat', 'ACTUALIZAR-BOT.bat', 'ENCENDER-BOT.bat', 'APAGAR-BOT.bat', 'ESTADO-BOT.bat', 'accesos-directos.ps1', 'LEEME.md') { Copy-Item (Join-Path $aqui $f) $paq -Force }
 [ordered]@{
   url = 'https://incubapp.cdhmaker.com'
   anon_key = $key.Trim()
