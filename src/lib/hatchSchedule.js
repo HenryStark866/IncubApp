@@ -71,9 +71,9 @@ export function cycleSchedule(cycleStart) {
   }
 }
 
-/** Hora a la que se programa el nacimiento (06:00 del día de nacimiento, Bogotá) */
+/** Hora a la que se programa el nacimiento (04:00 del día de nacimiento, Bogotá: la planta saca a las 4 am) */
 export function hatchScheduledAt(hatchDate) {
-  return new Date(`${hatchDate}T06:00:00-05:00`).toISOString()
+  return new Date(`${hatchDate}T04:00:00-05:00`).toISOString()
 }
 
 /**

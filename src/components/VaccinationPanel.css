@@ -213,3 +213,48 @@ button.vx-alerta {
   overflow-x: auto;
   max-width: 100%;
 }
+
+/* 14-10-2026: inventario por cliente (Planta, Granja, Pollo Olympico, Paulandia…) */
+.vx-duenos {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
+  -webkit-overflow-scrolling: touch;
+}
+.vx-duenos button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.vx-duenos button small {
+  opacity: 0.7;
+  font-size: 0.75rem;
+}
+.vx-duenos button.on {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+.vx-duenos .vx-dueno-nuevo {
+  border-style: dashed;
+}
+.vx-codigo {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  border: 1px solid var(--line);
+}

@@ -35,7 +35,7 @@ describe('inventario de vacunas', () => {
     expect(dos[0]).toMatchObject({ lote: '47', doses: 32000, chicks: 15800, dosisPorPollito: 1.01, vacunas: ['Marek HVT', 'Gumboro'] })
   })
   it('formatos del auxiliar de vacunación como en papel', () => {
-    expect(formatosDe('vacunacion').map((f) => f.id)).toEqual(['chick_quality', 'nitrogen_fridge', 'sexing_count', 'navel_quality'])
+    expect(formatosDe('vacunacion').map((f) => f.id)).toEqual(['chick_weight', 'nitrogen_fridge', 'sexing_count', 'navel_quality'])
     const pr = formatoPorId('nitrogen_fridge').calcular({ tempNevera: '2,3', tanque1: '36', tanque2: '41', relleno1: 'si' })
     expect(pr.status).toBe('ok')
     expect(pr.resumen).toMatch(/relleno tanque 1/)
@@ -68,5 +68,20 @@ describe('pendientesVacunacion', () => {
   it('sin control de hoy devuelve null', () => {
     const r = pendientesVacunacion({ now, formats: [{ kind: 'nitrogen_fridge', sampled_at: '2026-10-06T12:00:00Z' }] })
     expect(r.nitrogenoHoy).toBeNull()
+  })
+})
+
+describe('pesaje del pollito (14-10-2026)', () => {
+  it('solo lote, pollitos pesados y peso total', () => {
+    const r = formatoPorId('chick_weight').calcular({ muestra: '100', pesoTotal: '4120' })
+    expect(r.results.promedio).toBe(41.2)
+    expect(r.muestra).toBe(100)
+    expect(r.status).toBe('ok')
+  })
+  it('acepta el peso total en kilos', () => {
+    expect(formatoPorId('chick_weight').calcular({ muestra: '100', pesoTotal: '4,12' }).results.promedio).toBe(41.2)
+  })
+  it('pide los dos datos', () => {
+    expect(formatoPorId('chick_weight').calcular({ muestra: '100' }).error).toBeTruthy()
   })
 })

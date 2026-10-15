@@ -127,7 +127,7 @@ function Hoy({ api, stock, orgId, userName, onFormato, onVista, onMsg }) {
     )
     api.reload()
   }
-  const hayPendientes = !nitrogenoHoy || lotes.some((l) => !l.sexaje || !l.ombligo) || alertas.length || tareas.length
+  const hayPendientes = !nitrogenoHoy || lotes.some((l) => !l.sexaje || !l.peso || !l.ombligo) || alertas.length || tareas.length
 
   return (
     <div className="vx-hoy">
@@ -155,7 +155,7 @@ function Hoy({ api, stock, orgId, userName, onFormato, onVista, onMsg }) {
       <h3 className="vx-sub">Lotes nacidos (últimos 5 días)</h3>
       {lotes.length === 0 && <p className="hint">Sin nacimientos registrados en los últimos días.</p>}
       {lotes.map((l) => (
-        <section key={l.lote} className={`vx-item ${l.sexaje && l.ombligo ? 'hecho' : 'pend'}`}>
+        <section key={l.lote} className={`vx-item ${l.sexaje && l.peso && l.ombligo ? 'hecho' : 'pend'}`}>
           <span className="vx-item-ico" aria-hidden="true">
             🐣
           </span>
@@ -169,6 +169,9 @@ function Hoy({ api, stock, orgId, userName, onFormato, onVista, onMsg }) {
           <span className="vx-botones">
             <button type="button" className={l.sexaje ? 'ghost small' : 'primary small'} onClick={() => onFormato('sexing_count', l.lote)}>
               {l.sexaje ? '✔ Sexaje' : 'Sexaje y conteo'}
+            </button>
+            <button type="button" className={l.peso ? 'ghost small' : 'primary small'} onClick={() => onFormato('chick_weight', l.lote)}>
+              {l.peso ? '✔ Pesaje' : 'Pesaje'}
             </button>
             <button type="button" className={l.ombligo ? 'ghost small' : 'primary small'} onClick={() => onFormato('navel_quality', l.lote)}>
               {l.ombligo ? '✔ Ombligo' : 'Ombligo'}
@@ -209,7 +212,28 @@ function Hoy({ api, stock, orgId, userName, onFormato, onVista, onMsg }) {
 }
 
 /* ─────────────────────────── Inventario ─────────────────────────── */
+const ORDEN_DUENOS = ['Planta', 'Granja']
+/** Planta y Granja primero, luego los clientes en orden alfabético */
+function duenosDe(stock, extra = []) {
+  const set = new Set(['Planta', ...stock.map((p) => p.owner || 'Planta'), ...extra])
+  return [...set].sort((a, b) => {
+    const ia = ORDEN_DUENOS.indexOf(a)
+    const ib = ORDEN_DUENOS.indexOf(b)
+    if (ia >= 0 || ib >= 0) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
+    return a.localeCompare(b, 'es')
+  })
+}
+/** Insumos que no se cuentan en dosis (agujas, jeringas, diluentes…) */
+const porUnidad = (p) => Number(p.doses_per_vial) === 1
+const PLURAL = { frasco: 'Frascos', bolsa: 'Bolsas', ampolla: 'Ampollas', und: 'Unidades', unidad: 'Unidades', caja: 'Cajas' }
+const unidadDe = (p, plural = false) => {
+  const u = String(p.unit || 'frasco').toLowerCase()
+  return plural ? PLURAL[u] || u : u
+}
 const PRODUCTO_VACIO = {
+  owner: 'Planta',
+  code: '',
+  unit: 'frasco',
   name: '',
   laboratory: '',
   disease: '',
@@ -225,11 +249,26 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
   const [mov, setMov] = useState(null) // { kind, product_id }
   const [abierto, setAbierto] = useState(null)
   const [verInactivas, setVerInactivas] = useState(false)
-  const lista = stock.filter((p) => verInactivas || p.active)
+  // 14-10-2026: cada cliente (y la planta y la granja) tiene su propio inventario
+  const [nuevos, setNuevos] = useState([])
+  const duenos = useMemo(() => duenosDe(stock, nuevos), [stock, nuevos])
+  const [dueno, setDueno] = useState(null)
+  const actual = duenos.includes(dueno) ? dueno : duenos[0] || 'Planta'
+  const delDueno = stock.filter((p) => (p.owner || 'Planta') === actual)
+  const lista = delDueno.filter((p) => verInactivas || p.active)
+  const nuevoCliente = () => {
+    const nombre = window.prompt('Nombre del nuevo cliente (o granja):')?.trim()
+    if (!nombre) return
+    const existe = duenos.find((d) => d.toLowerCase() === nombre.toLowerCase())
+    if (!existe) setNuevos((n) => [...n, nombre])
+    setDueno(existe || nombre)
+    setProducto({ ...PRODUCTO_VACIO, owner: existe || nombre })
+  }
 
   const exportar = async () => {
     const { exportToExcel } = await import('../lib/exportExcel')
     const nombre = new Map(api.products.map((p) => [p.id, p.name]))
+    const duenoDe = new Map(api.products.map((p) => [p.id, p.owner || 'Planta']))
     await exportToExcel(
       'Inventario_vacunas',
       [
@@ -237,12 +276,15 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
           name: 'Saldo por lote',
           rows: stock.flatMap((p) =>
             (p.lots.length ? p.lots : [{ lot: '—', doses: 0, vials: 0, expires: null }]).map((l) => ({
+              Dueño: p.owner || 'Planta',
+              Código: p.code || '',
               Vacuna: p.name,
               Laboratorio: p.laboratory || '',
               'Lote fabricante': l.lot,
               Vence: l.expires || '',
               Dosis: l.doses,
-              Frascos: l.vials,
+              Cantidad: l.vials,
+              Unidad: unidadDe(p),
               'Uso diario (30 d)': p.usoDiario,
               'Días de stock': p.diasDeStock ?? '',
             })),
@@ -253,6 +295,7 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
           rows: api.movements.map((m) => ({
             Fecha: fechaHora(m.moved_at),
             Tipo: MOV_LABEL[m.kind] || m.kind,
+            Dueño: duenoDe.get(m.product_id) || '',
             Vacuna: nombre.get(m.product_id) || '',
             'Lote fabricante': m.manufacturer_lot || '',
             Vence: m.expires_on || '',
@@ -277,6 +320,17 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
 
   return (
     <div className="vx-inv">
+      <div className="vx-duenos" role="tablist" aria-label="Inventario de">
+        {duenos.map((d) => (
+          <button key={d} type="button" role="tab" aria-selected={d === actual} className={d === actual ? 'on' : ''} onClick={() => setDueno(d)}>
+            {d}
+            <small>{stock.filter((p) => (p.owner || 'Planta') === d && p.active).length}</small>
+          </button>
+        ))}
+        <button type="button" className="vx-dueno-nuevo" onClick={nuevoCliente}>
+          ＋ Cliente
+        </button>
+      </div>
       <div className="qp-filtros">
         <button
           type="button"
@@ -284,15 +338,15 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
           onClick={() =>
             setMov({
               kind: 'in',
-              product_id: stock.find((p) => p.active)?.id || '',
+              product_id: delDueno.find((p) => p.active)?.id || '',
             })
           }
-          disabled={!stock.length}
+          disabled={!delDueno.length}
         >
           ＋ Entrada
         </button>
-        <button type="button" className="ghost small" onClick={() => setProducto({ ...PRODUCTO_VACIO })}>
-          ＋ Vacuna
+        <button type="button" className="ghost small" onClick={() => setProducto({ ...PRODUCTO_VACIO, owner: actual })}>
+          ＋ Vacuna o insumo
         </button>
         <button type="button" className="ghost small" onClick={exportar} disabled={!stock.length}>
           📥 Excel
@@ -302,11 +356,15 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
         </label>
       </div>
 
-      {producto && <FormProducto inicial={producto} api={api} onClose={() => setProducto(null)} onMsg={onMsg} />}
+      {producto && (
+        <FormProducto inicial={producto} api={api} duenos={duenos} onClose={() => setProducto(null)} onMsg={onMsg} onGuardado={(o) => setDueno(o)} />
+      )}
       {mov && <FormMovimiento inicial={mov} api={api} stock={stock} onClose={() => setMov(null)} onMsg={onMsg} />}
 
       {api.loading && !stock.length && <p className="hint">Cargando…</p>}
-      {!api.loading && !stock.length && !api.missing && <p className="hint">Registre la primera vacuna con «＋ Vacuna» y luego su entrada.</p>}
+      {!api.loading && !delDueno.length && !api.missing && (
+        <p className="hint">{actual} aún no tiene vacunas: regístrelas con «＋ Vacuna o insumo» y luego su entrada.</p>
+      )}
       {lista.map((p) => (
         <div
           key={p.id}
@@ -314,15 +372,21 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
         >
           <button type="button" className="vx-prod-head" onClick={() => setAbierto(abierto === p.id ? null : p.id)} aria-expanded={abierto === p.id}>
             <span className="vx-prod-nombre">
-              <b>{p.name}</b>
+              <b>
+                {p.code ? <span className="vx-codigo">{p.code}</span> : null}
+                {p.name}
+              </b>
               <small>
                 {[p.disease, p.laboratory, p.route, STORAGE_LABEL[p.storage]].filter(Boolean).join(' · ')}
                 {!p.active && ' · inactiva'}
               </small>
             </span>
             <span className="vx-prod-cifra">
-              <b>{num(p.doses)}</b>
-              <small>dosis · {num(p.vials)} frascos</small>
+              <b>{num(porUnidad(p) ? p.doses : p.vials)}</b>
+              <small>
+                {unidadDe(p, true).toLowerCase()}
+                {porUnidad(p) ? '' : ` · ${num(p.doses)} dosis`}
+              </small>
             </span>
             <span className="vx-prod-cifra">
               <b>{p.diasDeStock ?? '—'}</b>
@@ -367,7 +431,7 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
                 </table>
               </div>
               <p className="hint">
-                {num(p.doses_per_vial)} dosis por frasco · mínimo {num(p.min_doses)} dosis · uso diario promedio {num(p.usoDiario)} dosis (30 días)
+                {porUnidad(p) ? `Se cuenta por ${unidadDe(p)}` : `${num(p.doses_per_vial)} dosis por ${unidadDe(p)}`} · mínimo {num(p.min_doses)} dosis · uso diario promedio {num(p.usoDiario)} dosis (30 días)
               </p>
               <div className="vx-botones">
                 <button type="button" className="primary small" onClick={() => setMov({ kind: 'in', product_id: p.id })}>
@@ -428,7 +492,7 @@ function Inventario({ api, stock, esLider, userId, orgName, userName, onMsg }) {
   )
 }
 
-function FormProducto({ inicial, api, onClose, onMsg }) {
+function FormProducto({ inicial, api, duenos = [], onClose, onMsg, onGuardado }) {
   const [f, setF] = useState(inicial)
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) =>
@@ -439,11 +503,15 @@ function FormProducto({ inicial, api, onClose, onMsg }) {
   const guardar = async (e) => {
     e.preventDefault()
     if (!f.name.trim()) return onMsg('Escriba el nombre de la vacuna.', true)
+    if (!String(f.owner || '').trim()) return onMsg('Escriba de quién es (planta, granja o cliente).', true)
     const porFrasco = Number(f.doses_per_vial)
     if (!(porFrasco > 0)) return onMsg('Las dosis por frasco deben ser mayores que 0.', true)
     setBusy(true)
     const res = await api.saveProduct(
       {
+        owner: String(f.owner).trim(),
+        code: f.code?.trim() || null,
+        unit: f.unit?.trim() || 'frasco',
         name: f.name.trim(),
         laboratory: f.laboratory?.trim() || null,
         disease: f.disease?.trim() || null,
@@ -457,15 +525,40 @@ function FormProducto({ inicial, api, onClose, onMsg }) {
     )
     setBusy(false)
     onMsg(res.error || (f.id ? 'Vacuna actualizada' : 'Vacuna creada'), Boolean(res.error))
-    if (!res.error) onClose()
+    if (!res.error) {
+      onGuardado?.(String(f.owner).trim())
+      onClose()
+    }
   }
   return (
     <form className="qp-form vx-form" onSubmit={guardar}>
       <h3>{f.id ? `Editar ${inicial.name}` : 'Nueva vacuna'}</h3>
       <div className="qp-grid">
         <label>
+          De (planta, granja o cliente) *
+          <input list="vx-duenos" value={f.owner || ''} onChange={set('owner')} />
+          <datalist id="vx-duenos">
+            {duenos.map((d) => (
+              <option key={d} value={d} />
+            ))}
+          </datalist>
+        </label>
+        <label>
           Nombre *
-          <input value={f.name} onChange={set('name')} placeholder="ej: Marek HVT + Rispens" />
+          <input value={f.name} onChange={set('name')} placeholder="ej: Vectormune HVT NDV *4000" />
+        </label>
+        <label>
+          Código
+          <input value={f.code || ''} onChange={set('code')} placeholder="ej: MP183" />
+        </label>
+        <label>
+          Se cuenta por
+          <input list="vx-unidades" value={f.unit || ''} onChange={set('unit')} />
+          <datalist id="vx-unidades">
+            {['frasco', 'bolsa', 'ampolla', 'und', 'caja'].map((v) => (
+              <option key={v} value={v} />
+            ))}
+          </datalist>
         </label>
         <label>
           Enfermedad
@@ -485,7 +578,7 @@ function FormProducto({ inicial, api, onClose, onMsg }) {
           </datalist>
         </label>
         <label>
-          Dosis por frasco *
+          Dosis por {f.unit || 'frasco'} * (1 si no va en dosis)
           <input inputMode="numeric" value={f.doses_per_vial} onChange={set('doses_per_vial')} />
         </label>
         <label>
@@ -598,13 +691,17 @@ function FormMovimiento({ inicial, api, stock, onClose, onMsg, lotesPollito = []
           Vacuna *
           <select value={f.product_id} onChange={set('product_id')}>
             <option value="">—</option>
-            {stock
-              .filter((p) => p.active || p.id === f.product_id)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({num(p.doses)} dosis)
-                </option>
-              ))}
+            {duenosDe(stock).map((d) => (
+              <optgroup key={d} label={d}>
+                {stock
+                  .filter((p) => (p.owner || 'Planta') === d && (p.active || p.id === f.product_id))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({porUnidad(p) ? `${num(p.doses)} ${unidadDe(p)}` : `${num(p.vials)} ${unidadDe(p)} · ${num(p.doses)} dosis`})
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
           </select>
         </label>
         <label>

@@ -288,7 +288,7 @@ export function buildProductionFlow({
   const weightOf = (h) => {
     if (num(h.avg_chick_weight_g)) return num(h.avg_chick_weight_g)
     const lots = lotsOf(h.lote)
-    const q = quality.find((r) => r.kind === 'chick_quality' && lots.includes(String(r.lote || '').trim()) && dayKey(ms(r.sampled_at) ?? 0) >= hatchDayOf(h))
+    const q = quality.find((r) => (r.kind === 'chick_quality' || r.kind === 'chick_weight') && lots.includes(String(r.lote || '').trim()) && dayKey(ms(r.sampled_at) ?? 0) >= hatchDayOf(h))
     return q?.results?.promedio ?? null
   }
   const nac = []

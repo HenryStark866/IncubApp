@@ -105,7 +105,7 @@ const diaBogota = (v) => (v ? new Date(v).toLocaleDateString('sv-SE', { timeZone
 /**
  * Lo que le toca hoy al auxiliar de vacunación:
  * - el control PR06-1 de nevera y nitrógeno del día (uno por día);
- * - por cada lote nacido en los últimos días, si ya tiene sexaje/conteo y ombligo.
+ * - por cada lote nacido en los últimos días, si ya tiene sexaje/conteo, pesaje y ombligo.
  */
 export function pendientesVacunacion({ formats = [], hatches = [], now = new Date() }) {
   const hoy = diaBogota(now)
@@ -127,7 +127,7 @@ export function pendientesVacunacion({ formats = [], hatches = [], now = new Dat
   return {
     nitrogenoHoy,
     lotes: [...lotes.values()]
-      .map((l) => ({ ...l, sexaje: hechos('sexing_count', l.lote), ombligo: hechos('navel_quality', l.lote) }))
+      .map((l) => ({ ...l, sexaje: hechos('sexing_count', l.lote), ombligo: hechos('navel_quality', l.lote), peso: hechos('chick_weight', l.lote) || hechos('chick_quality', l.lote) }))
       .sort((a, b) => String(b.at).localeCompare(String(a.at))),
   }
 }

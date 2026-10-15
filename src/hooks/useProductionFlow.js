@@ -46,7 +46,7 @@ export function useProductionFlow(orgId) {
       optional('lot_arrivals', (q) => q.select('id, lot_code, arrived_at, seal_number, received_by').eq('org_id', orgId).gte('arrived_at', ago(3)).limit(100)),
       optional('reception_remisions', (q) => q.select('*').eq('org_id', orgId).gte('created_at', ago(3)).limit(100)),
       optional('cold_room_stock', (q) => q.select('id, stock_date, counts').eq('org_id', orgId).gte('stock_date', ago(7).slice(0, 10)).limit(300)),
-      optional('quality_records', (q) => q.select('id, kind, lote, sampled_at, results').eq('org_id', orgId).in('kind', ['chick_quality', 'sexing_count']).gte('sampled_at', ago(15)).limit(300)),
+      optional('quality_records', (q) => q.select('id, kind, lote, sampled_at, results').eq('org_id', orgId).in('kind', ['chick_quality', 'chick_weight', 'sexing_count']).gte('sampled_at', ago(15)).limit(300)),
       queryRows('work_orders', (q) => q.select('id, machine_id, status, created_at, completed_at').eq('org_id', orgId).eq('source', 'calibration').gte('created_at', ago(25)).limit(600)),
       // Rondas del bot de EagleTrax de las últimas horas
       queryRows('machine_checks', (q) =>

@@ -28,7 +28,7 @@ export function useVaccines(orgId, userId) {
         .from('quality_records')
         .select('id, kind, sampled_at, lote, status, results')
         .eq('org_id', orgId)
-        .in('kind', ['nitrogen_fridge', 'sexing_count', 'navel_quality'])
+        .in('kind', ['nitrogen_fridge', 'sexing_count', 'navel_quality', 'chick_weight', 'chick_quality'])
         .gte('sampled_at', daysAgo(7)),
       supabase
         .from('hatch_events')

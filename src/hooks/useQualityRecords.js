@@ -80,7 +80,7 @@ export function useQualityRecords(orgId, kinds = []) {
       }
       // 12-10-2026: el conteo (sexaje) y el peso del pollito actualizan solos su nacimiento
       let hatch = null
-      if (['sexing_count', 'chick_quality'].includes(row.kind)) {
+      if (['sexing_count', 'chick_quality', 'chick_weight'].includes(row.kind)) {
         try {
           const { data: s } = await supabase.auth.getSession()
           const { syncHatchFromRecord } = await import('../lib/hatchFromCounts')

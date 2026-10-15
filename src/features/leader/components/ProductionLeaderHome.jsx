@@ -831,6 +831,7 @@ const ETIQUETA_CAL = {
   candling: '🔦 Ovoscopia',
   breakout: '🥚 Embriodiagnóstico',
   chick_quality: '🐣 Calidad del pollito',
+  chick_weight: '⚖️ Pesaje del pollito',
 }
 const ESTADO_CAL = { ok: 'Normal', watch: 'Vigilar', alert: 'Alerta' }
 

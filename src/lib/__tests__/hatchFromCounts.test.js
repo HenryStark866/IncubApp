@@ -19,3 +19,10 @@ describe('el conteo de vacunación cierra el nacimiento', () => {
     expect(p2).toMatchObject({ actual_chicks: 52000, males_count: 27000, females_count: 25000, status: 'completed', closed_by: 'u', avg_chick_weight_g: 41.2 })
   })
 })
+
+describe('pesaje del pollito al nacimiento', () => {
+  it('el peso promedio del pesaje llega al nacimiento', () => {
+    const recs = [{ kind: 'chick_weight', lote: '43', sampled_at: '2026-10-13T05:00:00-05:00', results: { promedio: 41.2 } }]
+    expect(hatchPatchFromRecords(hatch, recs).avg_chick_weight_g).toBe(41.2)
+  })
+})

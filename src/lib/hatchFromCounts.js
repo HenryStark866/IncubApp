@@ -4,13 +4,16 @@
  * PROPÓSITO: El eslabón que faltaba (12-10-2026): cuando la auxiliar de vacunación
  *   registra el «Sexaje y conteo» de un lote, el nacimiento de ese lote queda con los
  *   pollitos reales (machos, hembras y total) y, con todos sus lotes contados, cerrado.
- *   Con la «Calidad del pollito» queda el peso promedio. Así la proyección broiler pasa a
+ *   Con la «Calidad del pollito» o el «Pesaje del pollito» queda el peso promedio. Así la proyección broiler pasa a
  *   la tasa real sin que nadie digite dos veces.
  * =============================================================================
  */
 import { supabase } from './supabase'
 
 const DAY = 86_400_000
+/** Formatos que dan el peso del pollito al nacimiento */
+export const PESO_KINDS = ['chick_quality', 'chick_weight']
+export const HATCH_KINDS = ['sexing_count', ...PESO_KINDS]
 const lotsOf = (t) => [...new Set(String(t || '').match(/\d+/g) || [])]
 const ms = (v) => {
   const t = Date.parse(v || '')
@@ -67,7 +70,7 @@ export function hatchPatchFromRecords(hatch, records = [], { userId = null, now 
       }
     }
   }
-  const pesos = mine.filter((x) => x.kind === 'chick_quality' && Number(x.results?.promedio) > 0)
+  const pesos = mine.filter((x) => PESO_KINDS.includes(x.kind) && Number(x.results?.promedio) > 0)
   if (pesos.length) {
     const prom = pesos.reduce((s, r) => s + Number(r.results.promedio), 0) / pesos.length
     patch.avg_chick_weight_g = Math.round(prom * 100) / 100
@@ -77,7 +80,7 @@ export function hatchPatchFromRecords(hatch, records = [], { userId = null, now 
 
 /** Tras guardar un formato de vacunación / calidad del pollito: actualiza su nacimiento. */
 export async function syncHatchFromRecord({ orgId, userId, record, client = supabase }) {
-  if (!orgId || !record?.lote || !['sexing_count', 'chick_quality'].includes(record.kind)) return { updated: false }
+  if (!orgId || !record?.lote || !HATCH_KINDS.includes(record.kind)) return { updated: false }
   const since = new Date(Date.now() - 5 * DAY).toISOString()
   const { data: hatches } = await client
     .from('hatch_events')
@@ -91,7 +94,7 @@ export async function syncHatchFromRecord({ orgId, userId, record, client = supa
     .from('quality_records')
     .select('kind, lote, sampled_at, results')
     .eq('org_id', orgId)
-    .in('kind', ['sexing_count', 'chick_quality'])
+    .in('kind', HATCH_KINDS)
     .gte('sampled_at', since)
     .limit(500)
   const patch = hatchPatchFromRecords(hatch, records || [], { userId })

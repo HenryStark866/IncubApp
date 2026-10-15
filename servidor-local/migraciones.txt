@@ -36,3 +36,4 @@
 20261012_ot_permisos_rendimiento.sql
 20261013_almacenamiento_por_empresa.sql
 20261013_reloj_ciclo_maquinas.sql
+20261014_vacunas_por_cliente_y_pesaje.sql

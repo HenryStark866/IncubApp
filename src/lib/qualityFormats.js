@@ -236,8 +236,6 @@ export const FORMATOS = [
   {
     id: 'chick_quality',
     area: 'calidad',
-    // 12-10-2026: al nacer, la auxiliar de vacunación reporta cantidades Y pesos
-    tambien: ['vacunacion'],
     label: 'Calidad del pollito',
     icon: '🐣',
     codigo: 'FOCAL-05',
@@ -275,6 +273,34 @@ export const FORMATOS = [
         resumen: [prom != null && `Peso ${prom} g`, est && `uniformidad ${est.uniformidad} %`, `${segunda} de segunda${segPct != null ? ` (${segPct} %)` : ''}`]
           .filter(Boolean)
           .join(' · '),
+      }
+    },
+  },
+  // 14-10-2026: al nacer, la auxiliar solo pone el lote, los pollitos pesados y el peso
+  {
+    id: 'chick_weight',
+    area: 'vacunacion',
+    tambien: ['calidad'],
+    label: 'Pesaje del pollito',
+    icon: '⚖️',
+    codigo: 'FOCAL-06',
+    ayuda: 'Al sacar de nacedora: escriba cuántos pollitos pesó y el peso total de todos (en gramos).',
+    campos: [
+      { k: 'muestra', label: 'Pollitos pesados', tipo: 'numero', placeholder: 'ej: 100' },
+      { k: 'pesoTotal', label: 'Peso total (g)', tipo: 'numero', placeholder: 'ej: 4120' },
+    ],
+    calcular(d) {
+      const c = n(d.muestra)
+      const t = n(d.pesoTotal)
+      if (!c || !t) return { error: 'Escriba los pollitos pesados y el peso total.' }
+      // Si escribió el peso en kilos (ej: 4.12 para 100 pollitos), páselo a gramos
+      const gramos = t / c < 1 ? t * 1000 : t
+      const prom = r1(gramos / c)
+      return {
+        muestra: c,
+        results: { n: c, pesoTotal: gramos, promedio: prom },
+        status: rango(prom, REFERENCIA.pesoPollito),
+        resumen: `Peso promedio ${prom} g (${c} pollitos · ${gramos.toLocaleString('es-CO')} g)`,
       }
     },
   },

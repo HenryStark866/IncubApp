@@ -24,12 +24,13 @@ const QUALITY_LABEL = {
   candling: 'ovoscopia',
   breakout: 'embriodiagnóstico',
   chick_quality: 'calidad del pollito',
+  chick_weight: 'pesaje del pollito',
   nitrogen_fridge: 'nevera y nitrógeno',
   sexing_count: 'sexaje y conteo',
   navel_quality: 'ombligo y cicatrización',
 }
 /** Formatos del auxiliar de vacunación (van a la pestaña Vacunación) */
-export const VAC_KINDS = ['nitrogen_fridge', 'sexing_count', 'navel_quality']
+export const VAC_KINDS = ['nitrogen_fridge', 'sexing_count', 'navel_quality', 'chick_weight']
 const tabOfQuality = (kind) => (VAC_KINDS.includes(kind) ? 'vacunacion' : 'calidad')
 const num = (n) => Number(n || 0).toLocaleString('es-CO')
 const dayKey = (v) => (v ? new Date(v).toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) : '')

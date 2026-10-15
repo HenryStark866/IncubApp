@@ -332,11 +332,13 @@ const COLUMNAS = {
     ['moisture_loss', 'Humedad d18', (x) => `${x.perdidaDia18} %`],
     ['candling', 'Fertilidad', (x) => `${x.fertilidad} %`],
     ['breakout', 'Embriodiag.', (x) => `${x.analizados} analiz.`],
+    ['chick_weight', 'Peso pollito', (x) => `${x.promedio} g`],
     ['chick_quality', 'Pollito', (x) => [x.promedio != null && `${x.promedio} g`, x.segundaPct != null && `${x.segundaPct} % 2.ª`].filter(Boolean).join(' · ') || '—'],
   ],
   vacunacion: [
     ['sexing_count', 'Sexaje M / H', (x) => `${x.sexajeMac} / ${x.sexajeHem}`],
     ['sexing_count', 'Conteo M / H', (x) => `${x.conteoMac} / ${x.conteoHem}`],
+    ['chick_weight', 'Peso pollito', (x) => `${x.promedio} g`],
     ['navel_quality', 'Ombligo n II / n III', (x) => `${x.nIIPct} % / ${x.nIIIPct} %`],
     ['navel_quality', 'Abd. · tarso · pico', (x) => `${x.abdomen} · ${x.tarso} · ${x.pico}`],
     ['navel_quality', 'Sin actividad', (x) => String(x.actividad)],
